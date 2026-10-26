@@ -85,3 +85,4 @@ SCENARIOS: list[tuple[str, Callable[[Page, dict[str, str], Any], None]]] = [
     ("scale", scenario_scale),
     ("measure", scenario_measure),
 ]
+

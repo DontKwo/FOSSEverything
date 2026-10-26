@@ -70,3 +70,4 @@ SCENARIOS: list[tuple[str, Callable[[Page, dict[str, str], Any], None]]] = [
     ("paste", scenario_paste),
     ("output", scenario_output),
 ]
+

@@ -1092,19 +1092,71 @@
     "tab": "document",
     "testid": "ocr-language"
   },
-  "resume_studio-01": null,
-  "resume_studio-02": null,
-  "resume_studio-03": null,
-  "resume_studio-04": null,
-  "resume_studio-05": null,
-  "resume_studio-06": null,
-  "resume_studio-07": null,
-  "resume_studio-08": null,
-  "resume_studio-09": null,
-  "resume_studio-10": null,
-  "resume_studio-11": null,
-  "resume_studio-12": null,
-  "resume_studio-13": null,
+  "resume_studio-01": {
+    "view": "resume",
+    "tab": "personal",
+    "testid": "tool-page-resume"
+  },
+  "resume_studio-02": {
+    "view": "resume",
+    "tab": "personal",
+    "testid": "resume-offline-badge"
+  },
+  "resume_studio-03": {
+    "view": "resume",
+    "tab": "sections",
+    "testid": "resume-master-mgmt"
+  },
+  "resume_studio-04": {
+    "view": "resume",
+    "tab": "sections",
+    "testid": "resume-bullet-toggle"
+  },
+  "resume_studio-05": {
+    "view": "resume",
+    "tab": "sections",
+    "testid": "resume-section-reorder"
+  },
+  "resume_studio-06": {
+    "view": "resume",
+    "tab": "profiles",
+    "testid": "resume-profile-select"
+  },
+  "resume_studio-07": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-theme-select"
+  },
+  "resume_studio-08": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-export-pdf-btn"
+  },
+  "resume_studio-09": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-export-md-btn"
+  },
+  "resume_studio-10": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-export-docx-btn"
+  },
+  "resume_studio-11": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-copy-txt-btn"
+  },
+  "resume_studio-12": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-layout-select"
+  },
+  "resume_studio-13": {
+    "view": "resume",
+    "tab": "history",
+    "testid": "resume-history-diff"
+  },
   "product_and_engineering_guardrails-01": null,
   "product_and_engineering_guardrails-02": null,
   "product_and_engineering_guardrails-03": null,

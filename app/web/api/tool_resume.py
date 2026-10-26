@@ -108,7 +108,10 @@ class ResumeApiMixin:
         require(params, "resume", "job_description")
         res_obj = resume_from_dict(dict(params["resume"]))
         job_desc = str(params["job_description"])
-        score, matched, missing = analyze_ats_match(res_obj, job_desc)
+        res = analyze_ats_match(res_obj, job_desc)
+        score = float(res.get("score", 0))
+        matched = [kw for kw, _ in res.get("matched", [])]
+        missing = [kw for kw, _ in res.get("missing", [])]
         return ok(score=round(score, 1), matched_keywords=matched, missing_keywords=missing)
 
     @api_method

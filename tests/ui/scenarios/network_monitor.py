@@ -63,3 +63,4 @@ SCENARIOS: list[tuple[str, Callable[[Page, dict[str, str], Any], None]]] = [
     ("stats", scenario_stats),
     ("apps", scenario_apps),
 ]
+
