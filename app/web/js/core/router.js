@@ -137,7 +137,7 @@ window.FOSS = window.FOSS || {};
     var breadcrumb = window.FOSS.dom.el("div", { className: "breadcrumb row" }, [
       window.FOSS.dom.el("span", { text: "FOSSEverything", className: "breadcrumb-root" }),
       window.FOSS.dom.el("span", { text: "/", className: "breadcrumb-sep" }),
-      window.FOSS.dom.el("span", { text: viewTitle, className: "breadcrumb-current", title: viewTitle })
+      window.FOSS.dom.el("span", { text: viewTitle, className: "breadcrumb-current", title: viewTitle, "data-truncate-ok": "true" })
     ]);
 
     var leftGroup = window.FOSS.dom.el("div", { className: "row" }, [toggleBtn, breadcrumb]);

@@ -119,6 +119,32 @@
   padding-inline: var(--space-4);
   gap: var(--space-3);
   z-index: 10;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.breadcrumb-current {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 16rem;
+}
+
+@media (max-width: 900px) {
+  .topbar-search span {
+    display: none;
+  }
+  .breadcrumb-current {
+    max-width: 8rem;
+  }
 }
 
 .scroll-main {

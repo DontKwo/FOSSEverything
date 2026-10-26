@@ -50,6 +50,6 @@
   font-size: var(--text-sm);
   line-height: 1.5;
   tab-size: 2;
-  white-space: pre;
-  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
