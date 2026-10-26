@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from app.features.encoding.ops import (
@@ -47,27 +48,37 @@ class EncodingApiMixin:
     def encoding_base64_encode_text(self, params: dict[str, Any]) -> dict[str, Any]:
         # Encode string to base64 format.
         require(params, "text")
-        return ok(result=base64_encode_text(str(params["text"])))
+        url_safe = bool(params.get("url_safe", False))
+        return ok(result=base64_encode_text(str(params["text"]), url_safe=url_safe))
 
     @api_method
     def encoding_base64_decode_text(self, params: dict[str, Any]) -> dict[str, Any]:
         # Decode base64 string to plain text.
         require(params, "text")
-        return ok(result=base64_decode_text(str(params["text"])))
+        url_safe = bool(params.get("url_safe", False))
+        return ok(result=base64_decode_text(str(params["text"]), url_safe=url_safe))
 
     @api_method
     def encoding_base64_encode_file(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Encode file contents into base64 text file.
-        require(params, "input_path", "output_path")
-        base64_encode_file(params["input_path"], params["output_path"])
-        return ok(output_path=params["output_path"])
+        # Encode file contents into base64 text string or output file.
+        require(params, "input_path")
+        url_safe = bool(params.get("url_safe", False))
+        res = base64_encode_file(str(params["input_path"]), url_safe=url_safe)
+        out_p = params.get("output_path")
+        if out_p:
+            Path(out_p).write_text(res, encoding="utf-8")
+        return ok(result=res, output_path=out_p)
 
     @api_method
     def encoding_base64_decode_to_file(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Decode base64 text file into binary output file.
-        require(params, "input_path", "output_path")
-        base64_decode_to_file(params["input_path"], params["output_path"])
-        return ok(output_path=params["output_path"])
+        # Decode base64 text into binary output file.
+        require(params, "output_path")
+        data = str(params.get("data", params.get("text", "")))
+        if not data and "input_path" in params:
+            data = Path(str(params["input_path"])).read_text(encoding="utf-8")
+        url_safe = bool(params.get("url_safe", False))
+        res_p = base64_decode_to_file(data, str(params["output_path"]), url_safe=url_safe)
+        return ok(output_path=res_p)
 
     @api_method
     def encoding_hex_encode_text(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -84,39 +95,52 @@ class EncodingApiMixin:
 
     @api_method
     def encoding_hex_encode_file(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Encode file contents into hex string file.
-        require(params, "input_path", "output_path")
+        # Encode file contents into hex string or output file.
+        require(params, "input_path")
         spaced = bool(params.get("spaced", False))
-        hex_encode_file(params["input_path"], params["output_path"], spaced=spaced)
-        return ok(output_path=params["output_path"])
+        res = hex_encode_file(str(params["input_path"]), spaced=spaced)
+        out_p = params.get("output_path")
+        if out_p:
+            Path(out_p).write_text(res, encoding="utf-8")
+        return ok(result=res, output_path=out_p)
 
     @api_method
     def encoding_hex_decode_to_file(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Decode hex string file into binary output.
-        require(params, "input_path", "output_path")
-        hex_decode_to_file(params["input_path"], params["output_path"])
-        return ok(output_path=params["output_path"])
+        # Decode hex string into binary output file.
+        require(params, "output_path")
+        hex_str = str(params.get("hex_str", params.get("text", "")))
+        if not hex_str and "input_path" in params:
+            hex_str = Path(str(params["input_path"])).read_text(encoding="utf-8")
+        res_p = hex_decode_to_file(hex_str, str(params["output_path"]))
+        return ok(output_path=res_p)
 
     @api_method
     def encoding_binary_encode_file(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Encode binary file into zero-one string file.
-        require(params, "input_path", "output_path")
-        binary_encode_file(params["input_path"], params["output_path"])
-        return ok(output_path=params["output_path"])
+        # Encode binary file into zero-one string or output file.
+        require(params, "input_path")
+        spaced = bool(params.get("spaced", True))
+        res = binary_encode_file(str(params["input_path"]), spaced=spaced)
+        out_p = params.get("output_path")
+        if out_p:
+            Path(out_p).write_text(res, encoding="utf-8")
+        return ok(result=res, output_path=out_p)
 
     @api_method
     def encoding_binary_decode_to_file(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Decode zero-one string file into binary output.
-        require(params, "input_path", "output_path")
-        binary_decode_to_file(params["input_path"], params["output_path"])
-        return ok(output_path=params["output_path"])
+        # Decode zero-one string into binary output file.
+        require(params, "output_path")
+        b_str = str(params.get("binary_str", params.get("text", "")))
+        if not b_str and "input_path" in params:
+            b_str = Path(str(params["input_path"])).read_text(encoding="utf-8")
+        res_p = binary_decode_to_file(b_str, str(params["output_path"]))
+        return ok(output_path=res_p)
 
     @api_method
     def encoding_url_encode(self, params: dict[str, Any]) -> dict[str, Any]:
         # URL encode input text.
         require(params, "text")
-        component = bool(params.get("component", True))
-        return ok(result=url_encode(str(params["text"]), component=component))
+        full_url = bool(params.get("full_url", False))
+        return ok(result=url_encode(str(params["text"]), full_url=full_url))
 
     @api_method
     def encoding_url_decode(self, params: dict[str, Any]) -> dict[str, Any]:

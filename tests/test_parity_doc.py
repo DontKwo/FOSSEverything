@@ -12,17 +12,20 @@ def calc_load_json(filename: str) -> Any:
         return json.load(f)
 
 
-@pytest.mark.skip(reason="Awaiting Phase 2 UI test harness")
-def test_parity_doc_features() -> None:
-    # Assert all documented features are mapped to UI controls or scenarios.
-    doc_features = calc_load_json("doc_features.json")
+DOC_FEATURES = calc_load_json("doc_features.json")
+SECTIONS = sorted(list({k.split("-")[0] for k in DOC_FEATURES.keys()}))
+
+
+@pytest.mark.parametrize("section", SECTIONS)
+def test_parity_doc_features(section: str) -> None:
+    # Assert all documented features for section are mapped to UI controls.
     feature_map = calc_load_json("feature_map.json")
-
     unmapped: list[str] = []
-    for feat_id, feat_info in doc_features.items():
-        mapping = feature_map.get(feat_id)
-        if not mapping:
-            unmapped.append(f"{feat_id}: {feat_info.get('text', '')[:60]}")
 
-    assert not unmapped, f"Unmapped document features ({len(unmapped)}):\n" + "\n".join(unmapped[:30])
+    for feat_id, feat_info in DOC_FEATURES.items():
+        if feat_id.startswith(f"{section}-"):
+            mapping = feature_map.get(feat_id)
+            if not mapping:
+                unmapped.append(f"{feat_id}: {feat_info.get('text', '')[:60]}")
 
+    assert not unmapped, f"Unmapped document features in {section} ({len(unmapped)}):\n" + "\n".join(unmapped[:30])

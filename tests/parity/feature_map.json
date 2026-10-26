@@ -117,13 +117,41 @@
   "text_tools-06": null,
   "text_tools-07": null,
   "text_tools-08": null,
-  "encoding_decoding-01": null,
-  "encoding_decoding-02": null,
-  "encoding_decoding-03": null,
-  "encoding_decoding-04": null,
-  "encoding_decoding-05": null,
-  "encoding_decoding-06": null,
-  "encoding_decoding-07": null,
+  "encoding_decoding-01": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-editor"
+  },
+  "encoding_decoding-02": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-encode"
+  },
+  "encoding_decoding-03": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-scheme"
+  },
+  "encoding_decoding-04": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-option"
+  },
+  "encoding_decoding-05": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-decode"
+  },
+  "encoding_decoding-06": {
+    "view": "encoding",
+    "tab": "file",
+    "testid": "encoding-file-picker"
+  },
+  "encoding_decoding-07": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-error"
+  },
   "batch_file_renamer-01": null,
   "batch_file_renamer-02": null,
   "batch_file_renamer-03": null,
