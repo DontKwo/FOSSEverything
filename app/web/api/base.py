@@ -18,6 +18,7 @@ from app.system.settings import (
     set_setting,
 )
 from app.system.shell_integration import (
+    FILE_FAMILIES,
     is_default_for_extension,
     manual_association_instructions,
     register_shell_context_menu,
@@ -34,7 +35,7 @@ class BaseApi:
         self._jobs = JobRunner()
         self._dialog_answers: list[Any] = []
 
-    def set_window(self, window: Any) -> None:
+    def _set_window(self, window: Any) -> None:
         # Set reference to active pywebview window.
         self._window = window
 
@@ -251,11 +252,24 @@ class BaseApi:
         return ok(paths=[], cancelled=True)
 
     @api_method
+    def get_theme_palette(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Return theme color palette dictionary.
+        theme_name = str(params.get("theme_name", "dark"))
+        from app.core.theme import default_palette
+        palette = default_palette(theme_name)
+        return ok(**palette, palette=palette)
+
+    @api_method
     def read_text_file(self, params: dict[str, Any]) -> dict[str, Any]:
         # Read text content from given file path.
         require(params, "file_path")
         content = Path(params["file_path"]).read_text(encoding="utf-8", errors="replace")
-        return ok(content=content)
+        return ok(content=content, text=content)
+
+    @api_method
+    def read_file_text(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Alias for reading text file.
+        return self.read_text_file(params)
 
     @api_method
     def write_text_file(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -266,6 +280,16 @@ class BaseApi:
         p.write_text(params["content"], encoding="utf-8")
         self._record_recent("recent_outputs", str(p))
         return ok(file_path=str(p.resolve()))
+
+    @api_method
+    def save_file(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Alias for writing text content.
+        return self.write_text_file(params)
+
+    @api_method
+    def select_directory(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Alias for selecting folder dialog.
+        return self.select_folder(params)
 
     @api_method
     def open_path(self, params: dict[str, Any]) -> dict[str, Any]:

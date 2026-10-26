@@ -63,12 +63,20 @@ def calc_ops_inventory(all_files: list[str]) -> dict[str, dict[str, list[str]]]:
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 if not node.name.startswith("_"):
                     param_names = [a.arg for a in node.args.posonlyargs + node.args.args + node.args.kwonlyargs]
+                    if node.args.vararg:
+                        param_names.append(node.args.vararg.arg)
+                    if node.args.kwarg:
+                        param_names.append(node.args.kwarg.arg)
                     funcs[node.name] = param_names
             elif isinstance(node, ast.ClassDef):
                 for sub in node.body:
                     if isinstance(sub, (ast.FunctionDef, ast.AsyncFunctionDef)):
                         if not sub.name.startswith("_"):
                             param_names = [a.arg for a in sub.args.posonlyargs + sub.args.args + sub.args.kwonlyargs]
+                            if sub.args.vararg:
+                                param_names.append(sub.args.vararg.arg)
+                            if sub.args.kwarg:
+                                param_names.append(sub.args.kwarg.arg)
                             funcs[f"{node.name}.{sub.name}"] = param_names
         inventory[path] = funcs
     return inventory

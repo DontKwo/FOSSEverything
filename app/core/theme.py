@@ -200,3 +200,25 @@ def get_font_scale(settings: Any = None) -> float:
     if not math.isfinite(scale) or scale <= 0:
         return 1.0
     return scale
+
+
+def parse_color_value(value: object, fallback: str) -> str:
+    # Parse color text or return fallback.
+    text = str(value or "").strip()
+    return text if text else fallback
+
+
+def rgba(color_value: str, alpha: float) -> str:
+    # Format color string with opacity.
+    val = color_value.strip().lstrip("#")
+    if len(val) == 6:
+        r_val = int(val[0:2], 16)
+        g_val = int(val[2:4], 16)
+        b_val = int(val[4:6], 16)
+        return f"rgba({r_val}, {g_val}, {b_val}, {alpha})"
+    return f"rgba(0, 0, 0, {alpha})"
+
+
+def profile_key(slot: int) -> str:
+    # Return settings key for palette slot.
+    return f"app/ui_palette_profile_{slot}"

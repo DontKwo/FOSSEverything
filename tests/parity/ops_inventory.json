@@ -582,7 +582,8 @@
       "output_path",
       "format",
       "quality",
-      "compress_well"
+      "compress_well",
+      "extra_options"
     ],
     "resize_image": [
       "img",
@@ -658,7 +659,8 @@
       "blue_points"
     ],
     "build_annotation_preset": [
-      "name"
+      "name",
+      "kwargs"
     ],
     "apply_filter_preset": [
       "img",
@@ -1624,7 +1626,8 @@
     ],
     "save_qr_svg": [
       "payload",
-      "output_path"
+      "output_path",
+      "kwargs"
     ],
     "generate_barcode": [
       "value",

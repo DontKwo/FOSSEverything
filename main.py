@@ -107,7 +107,7 @@ def main() -> None:
         text_select=True,
         hidden=is_selftest,
     )
-    api.set_window(window)
+    api._set_window(window)
 
     def on_ipc_launch(file_path: str, mode: str) -> None:
         cmd = f"window.FOSS && window.FOSS.openPaths ? window.FOSS.openPaths([{json.dumps(file_path)}], {json.dumps(mode)}) : null"
