@@ -58,26 +58,86 @@
   "image_studio-24": null,
   "image_studio-25": null,
   "image_studio-26": null,
-  "file_converter-01": null,
-  "file_converter-02": null,
-  "file_converter-03": null,
-  "file_converter-04": null,
-  "file_converter-05": null,
-  "file_converter-06": null,
-  "file_converter-07": null,
-  "file_converter-08": null,
-  "file_converter-09": null,
+  "file_converter-01": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "tool-page-converter"
+  },
+  "file_converter-02": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-output-filename"
+  },
+  "file_converter-03": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-convert-btn"
+  },
+  "file_converter-04": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-target-select"
+  },
+  "file_converter-05": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-source-display"
+  },
+  "file_converter-06": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-summary-text"
+  },
+  "file_converter-07": {
+    "view": "converter",
+    "tab": "queue",
+    "testid": "converter-batch-start-btn"
+  },
+  "file_converter-08": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-media-info"
+  },
+  "file_converter-09": {
+    "view": "archive",
+    "tab": "create",
+    "testid": "archive-create-btn"
+  },
   "file_converter-10": {
     "view": "office",
     "tab": "main",
     "testid": "office-convert-btn"
   },
-  "file_converter-11": null,
-  "file_converter-12": null,
-  "file_converter-13": null,
-  "file_converter-14": null,
-  "file_converter-15": null,
-  "file_converter-16": null,
+  "file_converter-11": {
+    "view": "converter",
+    "tab": "compress",
+    "testid": "converter-compress-btn"
+  },
+  "file_converter-12": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-raw-badge"
+  },
+  "file_converter-13": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-font-notice"
+  },
+  "file_converter-14": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-ebook-notice"
+  },
+  "file_converter-15": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-export-enex-btn"
+  },
+  "file_converter-16": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-ics-notice"
+  },
   "metadata_tools-01": {
     "view": "metadata",
     "tab": "main",
