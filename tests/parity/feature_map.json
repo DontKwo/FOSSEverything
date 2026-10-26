@@ -74,18 +74,66 @@
   "file_converter-14": null,
   "file_converter-15": null,
   "file_converter-16": null,
-  "metadata_tools-01": null,
-  "metadata_tools-02": null,
-  "metadata_tools-03": null,
-  "metadata_tools-04": null,
-  "metadata_tools-05": null,
-  "metadata_tools-06": null,
-  "metadata_tools-07": null,
-  "metadata_tools-08": null,
-  "metadata_tools-09": null,
-  "metadata_tools-10": null,
-  "metadata_tools-11": null,
-  "metadata_tools-12": null,
+  "metadata_tools-01": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "tool-page-metadata"
+  },
+  "metadata_tools-02": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-inspect-table"
+  },
+  "metadata_tools-03": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-edit-form"
+  },
+  "metadata_tools-04": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-pdf-title-input"
+  },
+  "metadata_tools-05": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-save-btn"
+  },
+  "metadata_tools-06": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-strip-btn"
+  },
+  "metadata_tools-07": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-strip-pdf-btn"
+  },
+  "metadata_tools-08": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-warning-banner"
+  },
+  "metadata_tools-09": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-format-badge"
+  },
+  "metadata_tools-10": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-gps-card"
+  },
+  "metadata_tools-11": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-diff-table"
+  },
+  "metadata_tools-12": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-batch-cleanup-btn"
+  },
   "data_studio-01": {
     "view": "data",
     "tab": "editor",
