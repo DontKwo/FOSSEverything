@@ -86,7 +86,7 @@ def calc_tone_wav(path: Path) -> str:
 
 
 def calc_clip_mp4(path: Path) -> str:
-    # Generate 1-second synthetic MP4 video clip.
+    # Generate 1-second synthetic MP4 video clip with audio stream.
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
     cmd = [
         ffmpeg_exe,
@@ -95,10 +95,17 @@ def calc_clip_mp4(path: Path) -> str:
         "lavfi",
         "-i",
         "testsrc=duration=1:size=160x120:rate=10",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=1000:duration=1",
         "-c:v",
         "libx264",
+        "-c:a",
+        "aac",
         "-pix_fmt",
         "yuv420p",
+        "-shortest",
         str(path),
     ]
     subprocess.run(cmd, capture_output=True, check=True)

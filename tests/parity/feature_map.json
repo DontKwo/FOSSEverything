@@ -932,23 +932,91 @@
     "tab": "main",
     "testid": "collage-watermark-input"
   },
-  "media_studio-01": null,
-  "media_studio-02": null,
-  "media_studio-03": null,
-  "media_studio-04": null,
-  "media_studio-05": null,
-  "media_studio-06": null,
-  "media_studio-07": null,
-  "media_studio-08": null,
-  "media_studio-09": null,
-  "media_studio-10": null,
-  "media_studio-11": null,
-  "media_studio-12": null,
-  "media_studio-13": null,
-  "media_studio-14": null,
-  "media_studio-15": null,
-  "media_studio-16": null,
-  "media_studio-17": null,
+  "media_studio-01": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "tool-page-media"
+  },
+  "media_studio-02": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "media-trim-btn"
+  },
+  "media_studio-03": {
+    "view": "media",
+    "tab": "convert",
+    "testid": "media-convert-format"
+  },
+  "media_studio-04": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "media-mark-start-btn"
+  },
+  "media_studio-05": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "media-trim-btn"
+  },
+  "media_studio-06": {
+    "view": "media",
+    "tab": "audio",
+    "testid": "media-extract-audio-btn"
+  },
+  "media_studio-07": {
+    "view": "media",
+    "tab": "convert",
+    "testid": "media-convert-btn"
+  },
+  "media_studio-08": {
+    "view": "media",
+    "tab": "compress",
+    "testid": "media-compress-btn"
+  },
+  "media_studio-09": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-mute-btn"
+  },
+  "media_studio-10": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-capture-frame-btn"
+  },
+  "media_studio-11": {
+    "view": "metadata",
+    "tab": "inspect",
+    "testid": "tool-page-metadata"
+  },
+  "media_studio-12": {
+    "view": "converter",
+    "tab": "convert",
+    "testid": "converter-convert-btn"
+  },
+  "media_studio-13": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-gen-subtitles-btn"
+  },
+  "media_studio-14": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "media-video-player"
+  },
+  "media_studio-15": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-transcribe-btn"
+  },
+  "media_studio-16": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-gen-subtitles-btn"
+  },
+  "media_studio-17": {
+    "view": "media",
+    "tab": "timeline",
+    "testid": "media-compose-btn"
+  },
   "ocr_studio_and_text_extraction-01": {
     "view": "ocr",
     "tab": "document",

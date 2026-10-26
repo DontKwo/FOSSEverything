@@ -68,7 +68,8 @@ class MediaApiMixin:
         in_p = str(params["input_path"])
         out_p = str(params["output_path"])
         bitrate = str(params.get("bitrate", "192k"))
-        res_p = extract_audio(in_p, out_p, audio_bitrate=bitrate)
+        fmt = str(params.get("audio_format", "mp3"))
+        res_p = extract_audio(in_p, out_p, audio_format=fmt, bitrate=bitrate)
         return ok(output_path=res_p)
 
     @api_method
@@ -84,14 +85,13 @@ class MediaApiMixin:
 
     @api_method
     def media_compress(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Two-pass compress video to meet target file size limit.
+        # Compress video to meet target file size limit.
         require(params, "input_path", "output_path")
         in_p = str(params["input_path"])
         out_p = str(params["output_path"])
-        mb = float(params.get("target_size_mb", 25.0))
-        res_p = compress_video(in_p, out_p, target_size_mb=mb)
-        res_fallback = compress_media(in_p, out_p, target_size_mb=mb)
-        return ok(output_path=res_p or res_fallback)
+        preset = str(params.get("preset", "balanced"))
+        res_p = compress_media(in_p, out_p, preset=preset)
+        return ok(output_path=res_p)
 
     @api_method
     def media_mute_video(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -114,11 +114,18 @@ class MediaApiMixin:
         in_p = str(params["input_path"])
         ts = float(params["timestamp"])
         out_p = params.get("output_path")
-        img = extract_frame(in_p, ts, output_path=str(out_p) if out_p else None)
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=85)
+        if not out_p:
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
+                out_p = tmp.name
+        res_p = extract_frame(in_p, str(out_p), timestamp_sec=ts)
+        from PIL import Image
+        with Image.open(res_p) as img:
+            width, height = img.size
+            buf = io.BytesIO()
+            img.save(buf, format="JPEG", quality=85)
         data_b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-        return ok(data_url=f"data:image/jpeg;base64,{data_b64}", width=img.width, height=img.height, output_path=out_p)
+        return ok(data_url=f"data:image/jpeg;base64,{data_b64}", width=width, height=height, output_path=res_p)
 
     @api_method
     def media_capture_frame(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -146,7 +153,7 @@ class MediaApiMixin:
         v_p = str(params["video_path"])
         a_p = str(params["audio_path"])
         out_p = str(params["output_path"])
-        res_p = compose_media_with_audio(v_p, a_p, out_p)
+        res_p = compose_media_with_audio(video_input=v_p, output_path=out_p, audio_input=a_p)
         return ok(output_path=res_p)
 
     @api_method
@@ -161,23 +168,31 @@ class MediaApiMixin:
     @api_method
     def media_batch_operations(self, params: dict[str, Any]) -> dict[str, Any]:
         # Batch transcode, compress, or extract audio from media files.
-        require(params, "items", "operation")
+        require(params, "items", "operation", "output_dir")
         op = str(params["operation"]).lower()
+        out_dir = str(params["output_dir"])
         raw_items = list(params["items"])
         items = [
             BatchMediaItem(
-                source_path=str(it["source_path"]),
-                output_path=it.get("output_path"),
-                options=it.get("options", {}),
+                input_path=str(it.get("input_path") or it.get("source_path") or it),
             )
             for it in raw_items
         ]
         if op == "convert":
-            results = batch_convert_media(items)
+            tgt = str(params.get("target_format", "mp4"))
+            crf = int(params.get("crf", 23))
+            results = batch_convert_media(items, out_dir, target_format=tgt, crf=crf)
         elif op == "compress":
-            results = batch_compress_media(items)
+            preset = str(params.get("preset", "balanced"))
+            results = batch_compress_media(items, out_dir, preset=preset)
         elif op == "extract_audio":
-            results = batch_extract_audio(items)
+            fmt = str(params.get("audio_format", "mp3"))
+            bitrate = str(params.get("bitrate", "192k"))
+            results = batch_extract_audio(items, out_dir, audio_format=fmt, bitrate=bitrate)
         else:
             return fail(f"Unsupported media batch op: {op}", code="InvalidOperation")
-        return ok(results=results)
+        res_dicts = [
+            {"input_path": it.input_path, "status": it.status, "output_path": it.output_path, "error": it.error}
+            for it in results
+        ]
+        return ok(results=res_dicts)
