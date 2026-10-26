@@ -67,7 +67,11 @@
   "file_converter-07": null,
   "file_converter-08": null,
   "file_converter-09": null,
-  "file_converter-10": null,
+  "file_converter-10": {
+    "view": "office",
+    "tab": "main",
+    "testid": "office-convert-btn"
+  },
   "file_converter-11": null,
   "file_converter-12": null,
   "file_converter-13": null,
