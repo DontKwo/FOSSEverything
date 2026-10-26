@@ -324,19 +324,71 @@
     "tab": "text",
     "testid": "encoding-text-error"
   },
-  "batch_file_renamer-01": null,
-  "batch_file_renamer-02": null,
-  "batch_file_renamer-03": null,
-  "batch_file_renamer-04": null,
-  "batch_file_renamer-05": null,
-  "batch_file_renamer-06": null,
-  "batch_file_renamer-07": null,
-  "batch_file_renamer-08": null,
-  "batch_file_renamer-09": null,
-  "batch_file_renamer-10": null,
-  "batch_file_renamer-11": null,
-  "batch_file_renamer-12": null,
-  "batch_file_renamer-13": null,
+  "batch_file_renamer-01": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "tool-page-renamer"
+  },
+  "batch_file_renamer-02": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-find-input"
+  },
+  "batch_file_renamer-03": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-numbering-start"
+  },
+  "batch_file_renamer-04": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-prefix-input"
+  },
+  "batch_file_renamer-05": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-casing-select"
+  },
+  "batch_file_renamer-06": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-extension-input"
+  },
+  "batch_file_renamer-07": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-preview-table"
+  },
+  "batch_file_renamer-08": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-apply-btn"
+  },
+  "batch_file_renamer-09": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-undo-btn"
+  },
+  "batch_file_renamer-10": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-template-input"
+  },
+  "batch_file_renamer-11": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-consolidate-input"
+  },
+  "batch_file_renamer-12": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-timeline-check"
+  },
+  "batch_file_renamer-13": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-rerun-plan-btn"
+  },
   "archive_packaging-01": null,
   "archive_packaging-02": null,
   "archive_packaging-03": null,
