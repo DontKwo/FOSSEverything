@@ -589,18 +589,66 @@
     "tab": "sign",
     "testid": "hash-sign-timestamp-check"
   },
-  "palette_extractor_eyedropper-01": null,
-  "palette_extractor_eyedropper-02": null,
-  "palette_extractor_eyedropper-03": null,
-  "palette_extractor_eyedropper-04": null,
-  "palette_extractor_eyedropper-05": null,
-  "palette_extractor_eyedropper-06": null,
-  "palette_extractor_eyedropper-07": null,
-  "palette_extractor_eyedropper-08": null,
-  "palette_extractor_eyedropper-09": null,
-  "palette_extractor_eyedropper-10": null,
-  "palette_extractor_eyedropper-11": null,
-  "palette_extractor_eyedropper-12": null,
+  "palette_extractor_eyedropper-01": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "tool-page-palette"
+  },
+  "palette_extractor_eyedropper-02": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-file-picker"
+  },
+  "palette_extractor_eyedropper-03": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-preview-canvas"
+  },
+  "palette_extractor_eyedropper-04": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-hud-box"
+  },
+  "palette_extractor_eyedropper-05": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-tab-samples"
+  },
+  "palette_extractor_eyedropper-06": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-num-colors"
+  },
+  "palette_extractor_eyedropper-07": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-swatch-list"
+  },
+  "palette_extractor_eyedropper-08": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-contrast-info"
+  },
+  "palette_extractor_eyedropper-09": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-method-select"
+  },
+  "palette_extractor_eyedropper-10": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-copy-all-btn"
+  },
+  "palette_extractor_eyedropper-11": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-export-strip-btn"
+  },
+  "palette_extractor_eyedropper-12": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-multi-aggregate-btn"
+  },
   "collage_maker-01": {
     "view": "collage",
     "tab": "main",

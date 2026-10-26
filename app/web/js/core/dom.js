@@ -10,6 +10,16 @@ window.FOSS = window.FOSS || {};
           var v = attrs[k];
           if (k === "className") {
             element.className = v;
+          } else if (k === "style") {
+            if (typeof v === "object" && v !== null) {
+              for (var sk in v) {
+                if (Object.prototype.hasOwnProperty.call(v, sk)) {
+                  element.style[sk] = v[sk];
+                }
+              }
+            } else {
+              element.setAttribute("style", String(v));
+            }
           } else if (k === "text") {
             element.textContent = v;
           } else if (k === "html") {

@@ -96,7 +96,7 @@ window.FOSS = window.FOSS || {};
           input.dispatchEvent(new Event("input"));
         }
       }
-    } else if (view === "palette") {
+    } else if (view === "palette" && state === "open") {
       window.FOSS.palette.open();
     } else if (view === "settings") {
       window.FOSS.router.open("settings", state);
