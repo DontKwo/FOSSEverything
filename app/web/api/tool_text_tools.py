@@ -75,24 +75,24 @@ class TextToolsApiMixin:
         op = str(params["operation"]).lower()
 
         if op == "sort_asc":
-            res = sort_lines(text, reverse=False, case_sensitive=bool(params.get("case_sensitive", False)))
+            res = sort_lines(text, reverse=False)
         elif op == "sort_desc":
-            res = sort_lines(text, reverse=True, case_sensitive=bool(params.get("case_sensitive", False)))
+            res = sort_lines(text, reverse=True)
         elif op == "reverse":
             res = reverse_lines(text)
         elif op == "dedupe":
             res = dedupe_lines(text)
         elif op == "number":
-            res = number_lines(text, start=int(params.get("start", 1)), separator=str(params.get("separator", ". ")))
+            res = number_lines(text, start=int(params.get("start", 1)))
         elif op == "prefix_suffix":
             res = add_prefix_suffix(text, prefix=str(params.get("prefix", "")), suffix=str(params.get("suffix", "")))
         elif op == "remove_blank":
             res = remove_blank_lines(text)
         elif op == "join":
-            delimiter = str(params.get("delimiter", ", "))
+            delimiter = str(params.get("delimiter", ","))
             res = join_lines(text, delimiter=delimiter)
         elif op == "split":
-            delimiter = str(params.get("delimiter", ", "))
+            delimiter = str(params.get("delimiter", ","))
             res = split_text(text, delimiter=delimiter)
         else:
             return fail(f"Unsupported line operation: {op}", code="InvalidOperation")
@@ -117,11 +117,18 @@ class TextToolsApiMixin:
         elif op == "trim_trailing":
             res = trim_trailing_whitespace(text)
         elif op == "tabs_to_spaces":
-            res = tabs_to_spaces(text, tab_size=int(params.get("tab_size", 4)))
+            res = tabs_to_spaces(text, width=int(params.get("width", params.get("tab_size", 4))))
         elif op == "spaces_to_tabs":
-            res = spaces_to_tabs(text, tab_size=int(params.get("tab_size", 4)))
+            res = spaces_to_tabs(text, width=int(params.get("width", params.get("tab_size", 4))))
         elif op == "normalize_line_endings":
-            res = normalize_line_endings(text, ending=str(params.get("ending", "\n")))
+            style_str = str(params.get("style", params.get("ending", "lf"))).lower()
+            if style_str == "\r\n":
+                style_str = "crlf"
+            elif style_str == "\r":
+                style_str = "cr"
+            elif style_str == "\n":
+                style_str = "lf"
+            res = normalize_line_endings(text, style=style_str)
         else:
             return fail(f"Unsupported cleanup operation: {op}", code="InvalidOperation")
         return ok(result=res)
@@ -172,8 +179,8 @@ class TextToolsApiMixin:
     def text_tools_diff(self, params: dict[str, Any]) -> dict[str, Any]:
         # Compute differences between two strings.
         require(params, "text1", "text2")
-        diff_lines, additions, deletions = diff_texts(str(params["text1"]), str(params["text2"]))
-        return ok(diff=diff_lines, additions=additions, deletions=deletions)
+        diff_res = diff_texts(str(params["text1"]), str(params["text2"]))
+        return ok(diff=diff_res["diff"], additions=diff_res["added"], deletions=diff_res["removed"])
 
     @api_method
     def text_diff(self, params: dict[str, Any]) -> dict[str, Any]:

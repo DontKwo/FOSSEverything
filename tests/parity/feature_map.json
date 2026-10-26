@@ -109,14 +109,46 @@
   "data_studio-21": null,
   "data_studio-22": null,
   "data_studio-23": null,
-  "text_tools-01": null,
-  "text_tools-02": null,
-  "text_tools-03": null,
-  "text_tools-04": null,
-  "text_tools-05": null,
-  "text_tools-06": null,
-  "text_tools-07": null,
-  "text_tools-08": null,
+  "text_tools-01": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-input"
+  },
+  "text_tools-02": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-case-upper"
+  },
+  "text_tools-03": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-reverse-reverse_characters"
+  },
+  "text_tools-04": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-cleanup-collapse_spaces"
+  },
+  "text_tools-05": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-lines-sort_asc"
+  },
+  "text_tools-06": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-convert-text_to_code_points"
+  },
+  "text_tools-07": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-regex-apply"
+  },
+  "text_tools-08": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-diff-compare"
+  },
   "encoding_decoding-01": {
     "view": "encoding",
     "tab": "text",
