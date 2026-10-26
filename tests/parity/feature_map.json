@@ -13,25 +13,95 @@
   "shared_app_shell_home_and_search-12": null,
   "shared_app_shell_home_and_search-13": null,
   "shared_app_shell_home_and_search-14": null,
-  "pdf_studio-01": null,
-  "pdf_studio-02": null,
-  "pdf_studio-03": null,
-  "pdf_studio-04": null,
-  "pdf_studio-05": null,
-  "pdf_studio-06": null,
-  "pdf_studio-07": null,
-  "pdf_studio-08": null,
-  "pdf_studio-09": null,
-  "pdf_studio-10": null,
-  "pdf_studio-11": null,
-  "pdf_studio-12": null,
-  "pdf_studio-13": null,
-  "pdf_studio-14": null,
-  "pdf_studio-15": null,
-  "pdf_studio-16": null,
-  "pdf_studio-17": null,
-  "pdf_studio-18": null,
-  "pdf_studio-19": null,
+  "pdf_studio-01": {
+    "view": "pdf",
+    "tab": "organize",
+    "testid": "pdf-page-preview"
+  },
+  "pdf_studio-02": {
+    "delegated": "artcraft",
+    "feature": "annotations"
+  },
+  "pdf_studio-03": {
+    "delegated": "artcraft",
+    "feature": "annotation_manipulation"
+  },
+  "pdf_studio-04": {
+    "view": "pdf",
+    "tab": "organize",
+    "testid": "pdf-rotate-cw-btn"
+  },
+  "pdf_studio-05": {
+    "view": "pdf",
+    "tab": "security",
+    "testid": "pdf-protect-btn"
+  },
+  "pdf_studio-06": {
+    "view": "pdf",
+    "tab": "merge",
+    "testid": "pdf-merge-btn"
+  },
+  "pdf_studio-07": {
+    "view": "pdf",
+    "tab": "split",
+    "testid": "pdf-split-btn"
+  },
+  "pdf_studio-08": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-compress-btn"
+  },
+  "pdf_studio-09": {
+    "view": "pdf",
+    "tab": "split",
+    "testid": "pdf-extract-single-btn"
+  },
+  "pdf_studio-10": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-watermark-btn"
+  },
+  "pdf_studio-11": {
+    "delegated": "artcraft",
+    "feature": "image_watermark_signatures"
+  },
+  "pdf_studio-12": {
+    "view": "pdf",
+    "tab": "organize",
+    "testid": "pdf-add-numbers-btn"
+  },
+  "pdf_studio-13": {
+    "delegated": "artcraft",
+    "feature": "bookmarks_attachments"
+  },
+  "pdf_studio-14": {
+    "delegated": "artcraft",
+    "feature": "acroform_fields"
+  },
+  "pdf_studio-15": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-extract-text-btn"
+  },
+  "pdf_studio-16": {
+    "delegated": "artcraft",
+    "feature": "pdf_qa_repair"
+  },
+  "pdf_studio-17": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-use-ocr"
+  },
+  "pdf_studio-18": {
+    "view": "office",
+    "tab": "convert",
+    "testid": "office-convert-btn"
+  },
+  "pdf_studio-19": {
+    "view": "office",
+    "tab": "convert",
+    "testid": "office-ocr-check"
+  },
   "image_studio-01": {
     "view": "images",
     "tab": "convert",

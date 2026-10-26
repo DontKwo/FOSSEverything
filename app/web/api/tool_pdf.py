@@ -154,8 +154,8 @@ class PdfApiMixin:
         require(params, "file_paths", "output_path")
         paths = list(params["file_paths"])
         out_p = str(params["output_path"])
-        res_p = merge_pdfs(paths, out_p)
-        return ok(output_path=res_p)
+        merge_pdfs(paths, out_p)
+        return ok(output_path=out_p)
 
     @api_method
     def pdf_split(self, params: dict[str, Any]) -> dict[str, Any]:
