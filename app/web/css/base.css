@@ -36,6 +36,11 @@ textarea {
   color: inherit;
 }
 
+button {
+  background-color: transparent;
+  border: none;
+}
+
 .sidebar,
 .topbar,
 button,

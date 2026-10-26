@@ -154,3 +154,4 @@ def test_theme_contrast() -> None:
             violations.append(f"[{theme_name}] --focus on --bg-surface: {cr_focus:.2f} < 3.0")
 
     assert not violations, f"Theme contrast violations ({len(violations)}):\n" + "\n".join(violations[:30])
+

@@ -85,6 +85,10 @@ def make_page(
     """
     context.add_init_script(bridge_script)
 
+    api.set_setting({"key": "theme", "value": theme})
+    api.set_setting({"key": "ui_scale", "value": ui_scale})
+    api.set_setting({"key": "first_run_done", "value": True})
+
     settings_script = f"""
     (() => {{
         const applySettings = () => {{

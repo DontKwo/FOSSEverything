@@ -86,3 +86,4 @@ def test_parity_gui_coverage() -> None:
                 missing.append(f"{tab_file} -> {call_item}")
 
     assert not missing, f"Uncovered GUI calls found ({len(missing)}):\n" + "\n".join(missing[:30])
+

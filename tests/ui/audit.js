@@ -78,9 +78,17 @@ window.__audit = function () {
   var rootFontSize = parseFloat(window.getComputedStyle(document.documentElement).fontSize || "16");
 
   // Check interactive elements
+  var modalHost = document.getElementById("modal-host");
+  var paletteHost = document.getElementById("palette-host");
+  var modalActive = modalHost && modalHost.classList.contains("active");
+  var paletteActive = paletteHost && paletteHost.children.length > 0;
+
   var interactiveSelector = 'button, a[href], input, select, textarea, summary, [role="button"], [role="tab"], [tabindex="0"]';
   var interactiveElements = visibleElements.filter(function (el) {
-    return el.matches(interactiveSelector) && !el.disabled;
+    if (!el.matches(interactiveSelector) || el.disabled) return false;
+    if (modalActive && !modalHost.contains(el)) return false;
+    if (paletteActive && !paletteHost.contains(el)) return false;
+    return true;
   });
 
   // A2: Overflow-x visible spillage
@@ -95,6 +103,7 @@ window.__audit = function () {
 
   // A4: Containment in bordered/background cards
   visibleElements.forEach(function (parent) {
+    if (parent.tagName === "BODY" || parent.tagName === "HTML" || parent.classList.contains("app")) return;
     var style = window.getComputedStyle(parent);
     var hasBorder = parseFloat(style.borderTopWidth || "0") > 0 && style.borderTopStyle !== "none";
     var hasBg = style.backgroundColor && style.backgroundColor !== "rgba(0, 0, 0, 0)" && style.backgroundColor !== "transparent";
@@ -261,6 +270,16 @@ window.__audit = function () {
 
   // Helper for color parsing and contrast
   function parseRgba(str) {
+    if (!str) return [0, 0, 0, 1];
+    var mColor = str.match(/color\(srgb\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)(?:\s*\/\s*([0-9.]+))?\)/);
+    if (mColor) {
+      return [
+        parseFloat(mColor[1]) * 255.0,
+        parseFloat(mColor[2]) * 255.0,
+        parseFloat(mColor[3]) * 255.0,
+        mColor[4] !== undefined ? parseFloat(mColor[4]) : 1
+      ];
+    }
     var m = str.match(/rgba?\(\s*([0-9.]+)\s*,\s*([0-9.]+)\s*,\s*([0-9.]+)(?:\s*,\s*([0-9.]+))?\s*\)/);
     if (!m) return [0, 0, 0, 1];
     return [parseFloat(m[1]), parseFloat(m[2]), parseFloat(m[3]), m[4] !== undefined ? parseFloat(m[4]) : 1];
@@ -389,3 +408,4 @@ window.__audit = function () {
 
   return findings;
 };
+

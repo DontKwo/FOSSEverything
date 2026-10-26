@@ -28,3 +28,4 @@ def test_parity_ui_strings() -> None:
                     missing_labels.append(f"{file_path} [{cat}]: {label}")
 
     assert not missing_labels, f"Unmapped UI labels ({len(missing_labels)}):\n" + "\n".join(missing_labels[:30])
+

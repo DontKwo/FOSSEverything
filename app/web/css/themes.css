@@ -17,16 +17,16 @@ html[data-theme="light"] {
   --accent-text: #1d4ed8;
   --success: #15803d;
   --on-success: #ffffff;
-  --success-text: #166534;
+  --success-text: #14532d;
   --warning: #b45309;
   --on-warning: #ffffff;
-  --warning-text: #9a3412;
+  --warning-text: #78350f;
   --danger: #b91c1c;
   --on-danger: #ffffff;
-  --danger-text: #991b1b;
+  --danger-text: #7f1d1d;
   --info: #0369a1;
   --on-info: #ffffff;
-  --info-text: #075985;
+  --info-text: #0c4a6e;
   --focus: #1d4ed8;
 }
 
@@ -122,3 +122,4 @@ html[data-theme="cyberpunk"] {
   --info-text: #00ffff;
   --focus: #00ffff;
 }
+

@@ -313,7 +313,9 @@ select {
 
 .slider-field input[type="range"] {
   flex: 1 1 auto;
+  height: var(--control-h);
   accent-color: var(--accent);
+  cursor: pointer;
 }
 
 .slider-field output {
@@ -379,22 +381,22 @@ table.table tbody tr:hover {
 }
 
 .badge.info {
-  background-color: color-mix(in srgb, var(--info) 18%, var(--bg-surface));
+  background-color: color-mix(in srgb, var(--info) 10%, var(--bg-surface));
   color: var(--info-text);
 }
 
 .badge.success {
-  background-color: color-mix(in srgb, var(--success) 18%, var(--bg-surface));
+  background-color: color-mix(in srgb, var(--success) 10%, var(--bg-surface));
   color: var(--success-text);
 }
 
 .badge.warning {
-  background-color: color-mix(in srgb, var(--warning) 18%, var(--bg-surface));
+  background-color: color-mix(in srgb, var(--warning) 10%, var(--bg-surface));
   color: var(--warning-text);
 }
 
 .badge.danger {
-  background-color: color-mix(in srgb, var(--danger) 18%, var(--bg-surface));
+  background-color: color-mix(in srgb, var(--danger) 10%, var(--bg-surface));
   color: var(--danger-text);
 }
 
@@ -650,7 +652,8 @@ table.table tbody tr:hover {
 }
 
 /* Modal */
-#modal-host {
+#modal-host,
+#palette-host {
   position: fixed;
   inset: 0;
   z-index: 80;
@@ -660,11 +663,19 @@ table.table tbody tr:hover {
   pointer-events: none;
 }
 
-#modal-host.active {
+#palette-host {
+  align-items: flex-start;
+  padding-top: var(--space-10);
+}
+
+#modal-host.active,
+#palette-host.active,
+#palette-host:has(.modal) {
   pointer-events: auto;
 }
 
 .modal {
+  position: relative;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
@@ -676,6 +687,54 @@ table.table tbody tr:hover {
   flex-direction: column;
   gap: var(--space-4);
   z-index: 85;
+}
+
+.palette-modal {
+  max-width: 40rem;
+  padding: var(--space-4);
+  gap: var(--space-3);
+}
+
+.palette-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  max-height: 24rem;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--text);
+  gap: var(--space-3);
+  min-height: var(--control-h);
+}
+
+.palette-item:hover,
+.palette-item.selected {
+  background-color: var(--bg-raised);
+}
+
+.palette-item-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.palette-item-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.palette-item-desc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 
 /* Kbd */
@@ -716,3 +775,4 @@ table.table tbody tr:hover {
   cursor: pointer;
   opacity: 0;
 }
+

@@ -66,15 +66,16 @@ def fixtures(tmp_path_factory: pytest.TempPathFactory) -> dict[str, str]:
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     # Hook to write final UI audit report and optionally update baselines.
     try:
-        r_dir = session.config._foss_run_dir  # type: ignore
-        recs = session.config._foss_records  # type: ignore
-        write_report(r_dir, recs)
+        r_dir = getattr(session.config, "_foss_run_dir", None)
+        recs = getattr(session.config, "_foss_records", [])
+        if r_dir:
+            write_report(r_dir, recs)
 
-        if session.config.getoption("--update-baselines"):
-            baselines_dir = Path("tests/ui/baselines")
-            baselines_dir.mkdir(parents=True, exist_ok=True)
-            for png in r_dir.rglob("*.png"):
-                if not png.name.startswith("contact_"):
-                    shutil.copy(png, baselines_dir / png.name)
+            if session.config.getoption("--update-baselines"):
+                baselines_dir = Path("tests/ui/baselines")
+                baselines_dir.mkdir(parents=True, exist_ok=True)
+                for png in r_dir.rglob("*.png"):
+                    if not png.name.startswith("contact_"):
+                        shutil.copy(png, baselines_dir / png.name)
     except Exception:  # noqa: 10
         pass

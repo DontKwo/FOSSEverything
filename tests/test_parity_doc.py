@@ -25,3 +25,4 @@ def test_parity_doc_features() -> None:
             unmapped.append(f"{feat_id}: {feat_info.get('text', '')[:60]}")
 
     assert not unmapped, f"Unmapped document features ({len(unmapped)}):\n" + "\n".join(unmapped[:30])
+

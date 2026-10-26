@@ -191,3 +191,4 @@ def make_fixtures(target_dir: Path) -> dict[str, str]:
     fixtures["manifest.sha256"] = str(manifest_path.resolve())
 
     return fixtures
+
