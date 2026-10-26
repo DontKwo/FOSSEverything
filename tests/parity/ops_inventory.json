@@ -1,0 +1,1938 @@
+{
+  "app/core/file_formats.py": {
+    "normalized_format": [
+      "format_name"
+    ],
+    "extension_for_format": [
+      "format_name"
+    ],
+    "format_from_path": [
+      "path",
+      "default"
+    ]
+  },
+  "app/core/theme.py": {
+    "notify_theme_changed": [],
+    "default_palette": [
+      "theme_name"
+    ],
+    "current_theme_name": [
+      "settings"
+    ],
+    "load_ui_palette": [
+      "settings"
+    ],
+    "resolved_palette": [
+      "settings"
+    ],
+    "parse_color_value": [
+      "value",
+      "fallback"
+    ],
+    "rgba": [
+      "color_value",
+      "alpha"
+    ],
+    "profile_key": [
+      "slot"
+    ],
+    "get_font_scale": [
+      "settings"
+    ]
+  },
+  "app/core/tool_registry.py": {
+    "text_matches": [
+      "text",
+      "query"
+    ],
+    "ToolDefinition.search_text": [
+      "self"
+    ],
+    "ToolRegistry.register": [
+      "self",
+      "tool"
+    ],
+    "ToolRegistry.all": [
+      "self"
+    ],
+    "ToolRegistry.search": [
+      "self",
+      "query",
+      "limit"
+    ]
+  },
+  "app/core/tooltips.py": {
+    "TooltipEntry.search_text": [
+      "self"
+    ],
+    "get_tooltip_for": [
+      "label"
+    ],
+    "keywords_tooltip": [
+      "keywords"
+    ],
+    "copy_hex_tooltip": [
+      "hex_code"
+    ],
+    "tooltip_search": [
+      "query",
+      "limit"
+    ]
+  },
+  "app/core/workspace_registry.py": {
+    "WorkspaceDefinition.matches": [
+      "self",
+      "file_path"
+    ],
+    "WorkspaceRegistry.register": [
+      "self",
+      "workspace"
+    ],
+    "WorkspaceRegistry.all": [
+      "self"
+    ],
+    "WorkspaceRegistry.find_for_path": [
+      "self",
+      "file_path"
+    ]
+  },
+  "app/features/archive/ops.py": {
+    "archive_format_for_path": [
+      "path"
+    ],
+    "create_archive": [
+      "source_path",
+      "output_path",
+      "archive_format"
+    ],
+    "list_archive_contents": [
+      "archive_path"
+    ],
+    "extract_archive": [
+      "archive_path",
+      "destination_dir"
+    ],
+    "convert_archive_format": [
+      "input_path",
+      "output_path",
+      "archive_format",
+      "overwrite"
+    ],
+    "create_password_protected_bundle": [
+      "source_path",
+      "output_path",
+      "password",
+      "archive_format"
+    ],
+    "extract_password_protected_bundle": [
+      "bundle_path",
+      "destination_dir",
+      "password"
+    ],
+    "snapshot_directory": [
+      "source_dir",
+      "manifest_path"
+    ],
+    "compare_directory_snapshots": [
+      "previous_snapshot",
+      "current_snapshot"
+    ],
+    "create_incremental_backup": [
+      "source_dir",
+      "backup_dir",
+      "manifest_name",
+      "archive_name",
+      "archive_format"
+    ],
+    "verify_bundle_integrity": [
+      "bundle_path",
+      "password"
+    ],
+    "rotate_bundle_key": [
+      "bundle_path",
+      "old_password",
+      "new_password",
+      "output_path"
+    ]
+  },
+  "app/features/collage/ops.py": {
+    "reorder_image_paths": [
+      "image_paths",
+      "order"
+    ],
+    "add_watermark_to_image": [
+      "image",
+      "text",
+      "opacity",
+      "color",
+      "position",
+      "font_size",
+      "rotation"
+    ],
+    "make_collage": [
+      "image_paths",
+      "config",
+      "captions",
+      "layout_name",
+      "watermark_text",
+      "watermark_color",
+      "watermark_opacity"
+    ]
+  },
+  "app/features/converter/ops.py": {
+    "calibre_backend_available": [],
+    "convert_ebook": [
+      "input_path",
+      "output_path"
+    ],
+    "parse_enex": [
+      "input_path"
+    ],
+    "export_enex": [
+      "notes",
+      "output_path"
+    ],
+    "convert_font": [
+      "input_path",
+      "output_path"
+    ],
+    "source_family": [
+      "path"
+    ],
+    "available_targets": [
+      "path"
+    ],
+    "conversion_summary": [
+      "path",
+      "target_format"
+    ],
+    "convert_file": [
+      "input_path",
+      "output_dir",
+      "target_format",
+      "dpi",
+      "output_stem",
+      "progress_cb"
+    ],
+    "batch_convert_files": [
+      "items",
+      "output_dir",
+      "dpi",
+      "progress_cb"
+    ]
+  },
+  "app/features/data/ops.py": {
+    "data_format_for_path": [
+      "path"
+    ],
+    "load_data": [
+      "path"
+    ],
+    "save_data": [
+      "data",
+      "output_path",
+      "format_name"
+    ],
+    "format_json": [
+      "text",
+      "indent"
+    ],
+    "minify_json": [
+      "text"
+    ],
+    "format_yaml": [
+      "text",
+      "indent"
+    ],
+    "format_xml": [
+      "text",
+      "indent"
+    ],
+    "minify_xml": [
+      "text"
+    ],
+    "format_sql": [
+      "text"
+    ],
+    "minify_sql": [
+      "text"
+    ],
+    "format_javascript": [
+      "text"
+    ],
+    "minify_javascript": [
+      "text"
+    ],
+    "format_css": [
+      "text"
+    ],
+    "minify_css": [
+      "text"
+    ],
+    "validate_syntax": [
+      "text",
+      "format_type"
+    ],
+    "convert_data_format": [
+      "text",
+      "from_format",
+      "to_format"
+    ],
+    "convert_units": [
+      "value",
+      "from_unit",
+      "to_unit",
+      "category"
+    ],
+    "generate_random_value": [
+      "kind",
+      "length",
+      "count",
+      "min_value",
+      "max_value",
+      "include_uppercase",
+      "include_lowercase",
+      "include_digits",
+      "include_symbols",
+      "custom_alphabet"
+    ],
+    "generate_ics": [
+      "events",
+      "calendar_name"
+    ],
+    "parse_ics": [
+      "text"
+    ],
+    "markdown_to_html": [
+      "markdown_text"
+    ],
+    "render_markdown_preview": [
+      "markdown_text",
+      "text_color",
+      "panel_color",
+      "code_color",
+      "accent_color",
+      "border_color"
+    ],
+    "diff_documents": [
+      "left_text",
+      "right_text"
+    ],
+    "grammar_check_text": [
+      "text"
+    ],
+    "languagetool_backend_available": [],
+    "grammar_check_text_advanced": [
+      "text"
+    ],
+    "generate_citation": [
+      "entry",
+      "style"
+    ],
+    "generate_bibliography": [
+      "entries",
+      "style"
+    ],
+    "query_jsonpath": [
+      "data",
+      "path_expr"
+    ],
+    "infer_json_schema": [
+      "data",
+      "title"
+    ],
+    "markdown_table_to_rows": [
+      "table_text"
+    ],
+    "render_markdown_table": [
+      "rows",
+      "headers"
+    ],
+    "apply_schema_overrides": [
+      "schema",
+      "overrides"
+    ],
+    "diff_json_schema": [
+      "base_schema",
+      "candidate_schema",
+      "overrides"
+    ],
+    "clean_markdown_table": [
+      "table_text",
+      "keep_empty_columns",
+      "trim_whitespace"
+    ],
+    "normalize_markdown_table": [
+      "table_text",
+      "keep_empty_columns"
+    ],
+    "csv_to_markdown_table": [
+      "csv_text",
+      "delimiter",
+      "include_header"
+    ],
+    "validate_against_schema": [
+      "data",
+      "schema"
+    ],
+    "parse_cron_field": [
+      "field",
+      "min_val",
+      "max_val"
+    ],
+    "describe_cron": [
+      "expression"
+    ],
+    "next_cron_runs": [
+      "expression",
+      "count",
+      "from_time"
+    ]
+  },
+  "app/features/encoding/ops.py": {
+    "base64_encode_text": [
+      "text",
+      "url_safe"
+    ],
+    "base64_decode_text": [
+      "data",
+      "url_safe"
+    ],
+    "base64_encode_file": [
+      "path",
+      "url_safe"
+    ],
+    "base64_decode_to_file": [
+      "data",
+      "output_path",
+      "url_safe"
+    ],
+    "url_encode": [
+      "text",
+      "full_url"
+    ],
+    "url_decode": [
+      "text"
+    ],
+    "html_encode": [
+      "text"
+    ],
+    "html_decode": [
+      "text"
+    ],
+    "html_encode_numeric": [
+      "text"
+    ],
+    "hex_encode_text": [
+      "text",
+      "spaced"
+    ],
+    "hex_decode_text": [
+      "hex_str"
+    ],
+    "hex_encode_file": [
+      "path",
+      "spaced"
+    ],
+    "hex_decode_to_file": [
+      "hex_str",
+      "output_path"
+    ],
+    "binary_encode_bytes": [
+      "data",
+      "spaced"
+    ],
+    "binary_decode_to_bytes": [
+      "binary_str"
+    ],
+    "binary_encode_file": [
+      "path",
+      "spaced"
+    ],
+    "binary_decode_to_file": [
+      "binary_str",
+      "output_path"
+    ]
+  },
+  "app/features/hash/ops.py": {
+    "hash_file": [
+      "path",
+      "algorithm",
+      "progress_cb"
+    ],
+    "hash_text": [
+      "text",
+      "algorithm"
+    ],
+    "verify_hash": [
+      "path",
+      "expected_hex",
+      "algorithm"
+    ],
+    "compare_files": [
+      "path_a",
+      "path_b",
+      "algorithm"
+    ],
+    "hmac_digest": [
+      "message",
+      "key",
+      "algorithm"
+    ],
+    "verify_hmac": [
+      "message",
+      "key",
+      "expected_hex",
+      "algorithm"
+    ],
+    "multi_hash_file": [
+      "path",
+      "algorithms"
+    ],
+    "hash_directory_tree": [
+      "dir_path",
+      "algorithm",
+      "progress_cb"
+    ],
+    "generate_checksum_manifest": [
+      "dir_path",
+      "output_manifest_path",
+      "algorithm",
+      "progress_cb"
+    ],
+    "infer_algorithm_from_digest_length": [
+      "digest_len"
+    ],
+    "verify_checksum_manifest": [
+      "manifest_path",
+      "base_dir",
+      "progress_cb"
+    ],
+    "parse_manifest": [
+      "manifest_path"
+    ],
+    "diff_manifests": [
+      "manifest_a",
+      "manifest_b"
+    ],
+    "generate_signing_keypair": [],
+    "save_signing_keypair": [
+      "private_path",
+      "public_path"
+    ],
+    "sign_file": [
+      "path",
+      "private_key_pem"
+    ],
+    "verify_signature": [
+      "path",
+      "signature_b64",
+      "public_key_pem"
+    ],
+    "sign_file_with_timestamp": [
+      "path",
+      "private_key_pem",
+      "signer_name"
+    ],
+    "verify_timestamped_signature": [
+      "bundle",
+      "public_key_pem",
+      "path"
+    ],
+    "list_trusted_keys": [],
+    "add_trusted_key": [
+      "name",
+      "public_key_pem"
+    ],
+    "remove_trusted_key": [
+      "name"
+    ],
+    "verification_policy_presets": [],
+    "apply_verification_policy": [
+      "policy_name",
+      "manifest_path",
+      "base_dir",
+      "signature_path",
+      "public_key_path",
+      "progress_cb"
+    ]
+  },
+  "app/features/image/ops.py": {
+    "remove_background": [
+      "img",
+      "model_name"
+    ],
+    "prefetch_background_removal_models": [
+      "model_names",
+      "progress_cb"
+    ],
+    "batch_remove_background": [
+      "file_paths",
+      "output_dir",
+      "model_name",
+      "filename_template",
+      "overwrite",
+      "progress_cb"
+    ],
+    "load_image": [
+      "path"
+    ],
+    "save_image": [
+      "img",
+      "output_path",
+      "format",
+      "quality",
+      "compress_well"
+    ],
+    "resize_image": [
+      "img",
+      "width",
+      "height",
+      "keep_aspect"
+    ],
+    "crop_image": [
+      "img",
+      "box"
+    ],
+    "circle_crop_image": [
+      "img"
+    ],
+    "build_layer_mask": [
+      "size",
+      "shape",
+      "box",
+      "radius",
+      "feather",
+      "invert"
+    ],
+    "apply_non_destructive_mask": [
+      "img",
+      "mask",
+      "invert",
+      "feather",
+      "background"
+    ],
+    "perspective_crop_image": [
+      "img",
+      "corners",
+      "output_size",
+      "fill_color"
+    ],
+    "aspect_ratio_crop_box": [
+      "width",
+      "height",
+      "ratio_w",
+      "ratio_h"
+    ],
+    "rotate_image": [
+      "img",
+      "degrees"
+    ],
+    "flip_image": [
+      "img",
+      "horizontal"
+    ],
+    "adjust_image": [
+      "img",
+      "brightness",
+      "contrast",
+      "saturation",
+      "sharpness",
+      "blur_radius",
+      "grayscale",
+      "warmth"
+    ],
+    "auto_enhance": [
+      "img"
+    ],
+    "apply_color_balance": [
+      "img",
+      "red_shift",
+      "green_shift",
+      "blue_shift"
+    ],
+    "apply_curves": [
+      "img",
+      "red_points",
+      "green_points",
+      "blue_points"
+    ],
+    "build_annotation_preset": [
+      "name"
+    ],
+    "apply_filter_preset": [
+      "img",
+      "preset_name"
+    ],
+    "add_border": [
+      "img",
+      "border_size",
+      "color",
+      "polaroid"
+    ],
+    "blur_region": [
+      "img",
+      "box",
+      "radius"
+    ],
+    "pixelate_region": [
+      "img",
+      "box",
+      "pixel_size"
+    ],
+    "replace_background_color": [
+      "img",
+      "color",
+      "blur_backdrop",
+      "blur_radius"
+    ],
+    "batch_process": [
+      "paths",
+      "output_dir",
+      "target_format",
+      "quality",
+      "resize_to",
+      "keep_aspect",
+      "remove_background_enabled",
+      "bg_model",
+      "progress_cb"
+    ],
+    "image_to_ascii": [
+      "img",
+      "width",
+      "charset",
+      "contrast"
+    ],
+    "save_ascii_art": [
+      "img",
+      "output_path",
+      "width",
+      "charset",
+      "contrast"
+    ],
+    "extract_gif_frames": [
+      "path"
+    ],
+    "frames_to_gif": [
+      "frames",
+      "output_path",
+      "duration_ms",
+      "loop"
+    ],
+    "gif_to_video": [
+      "input_path",
+      "output_path",
+      "fps"
+    ]
+  },
+  "app/features/markdown/ops.py": {
+    "render_markdown_to_html": [
+      "text"
+    ],
+    "wrap_or_placeholder": [
+      "selected",
+      "marker_open",
+      "marker_close",
+      "placeholder"
+    ],
+    "toggle_heading": [
+      "line",
+      "level"
+    ],
+    "toggle_list_item": [
+      "line",
+      "ordered",
+      "number"
+    ],
+    "toggle_blockquote": [
+      "line"
+    ],
+    "make_link": [
+      "selected"
+    ],
+    "make_image": [
+      "selected"
+    ],
+    "horizontal_rule": [],
+    "code_block": [
+      "selected"
+    ],
+    "markdown_table_skeleton": [
+      "rows",
+      "cols"
+    ],
+    "html_table_skeleton": [
+      "rows",
+      "cols"
+    ]
+  },
+  "app/features/media/ops.py": {
+    "get_ffmpeg_path": [],
+    "format_timestamp": [
+      "seconds"
+    ],
+    "get_media_info": [
+      "path"
+    ],
+    "transcribe_audio": [
+      "input_path",
+      "language",
+      "model",
+      "progress_callback"
+    ],
+    "trim_media": [
+      "input_path",
+      "output_path",
+      "start_time_sec",
+      "end_time_sec",
+      "duration_sec",
+      "fast_copy",
+      "progress_cb"
+    ],
+    "extract_audio": [
+      "input_path",
+      "output_path",
+      "audio_format",
+      "bitrate"
+    ],
+    "convert_media": [
+      "input_path",
+      "output_path",
+      "target_format",
+      "crf",
+      "scale",
+      "mute",
+      "video_codec",
+      "audio_codec"
+    ],
+    "mute_video": [
+      "input_path",
+      "output_path"
+    ],
+    "extract_frame": [
+      "input_path",
+      "output_path",
+      "timestamp_sec"
+    ],
+    "compress_video": [
+      "input_path",
+      "output_path",
+      "preset",
+      "target_resolution"
+    ],
+    "compress_audio": [
+      "input_path",
+      "output_path",
+      "bitrate"
+    ],
+    "compress_media": [
+      "input_path",
+      "output_path",
+      "preset",
+      "kind",
+      "quality",
+      "max_width",
+      "max_height",
+      "audio_bitrate"
+    ],
+    "batch_convert_media": [
+      "items",
+      "output_dir",
+      "target_format",
+      "crf",
+      "progress_cb"
+    ],
+    "batch_compress_media": [
+      "items",
+      "output_dir",
+      "preset",
+      "audio_bitrate",
+      "progress_cb"
+    ],
+    "batch_extract_audio": [
+      "items",
+      "output_dir",
+      "audio_format",
+      "bitrate",
+      "progress_cb"
+    ],
+    "parse_subtitle_cues": [
+      "raw_text"
+    ],
+    "generate_subtitle_file": [
+      "cues",
+      "output_path",
+      "subtitle_format"
+    ],
+    "generate_subtitles_from_transcription": [
+      "transcription",
+      "output_path",
+      "subtitle_format"
+    ],
+    "compose_media_with_audio": [
+      "video_input",
+      "output_path",
+      "audio_input",
+      "volume",
+      "fade_in",
+      "fade_out",
+      "trim_start",
+      "trim_end",
+      "scale"
+    ],
+    "compose_timeline": [
+      "clips",
+      "output_path",
+      "export_format",
+      "target_width",
+      "target_height",
+      "fps",
+      "crossfade_duration",
+      "audio_tracks"
+    ],
+    "extract_subtitles": [
+      "input_path",
+      "output_path",
+      "stream_index"
+    ],
+    "burn_subtitles": [
+      "input_path",
+      "output_path",
+      "subtitle_file",
+      "font_size"
+    ]
+  },
+  "app/features/metadata/ops.py": {
+    "file_kind": [
+      "path"
+    ],
+    "inspect_metadata": [
+      "path"
+    ],
+    "editable_keys": [
+      "path"
+    ],
+    "save_edited_metadata": [
+      "input_path",
+      "output_path",
+      "edits"
+    ],
+    "strip_metadata": [
+      "input_path",
+      "output_path"
+    ],
+    "bulk_update_metadata": [
+      "input_path",
+      "output_path",
+      "edits"
+    ],
+    "remove_metadata_fields": [
+      "input_path",
+      "output_path",
+      "fields"
+    ],
+    "compare_metadata": [
+      "before",
+      "after"
+    ],
+    "metadata_support_report": [
+      "path"
+    ],
+    "gps_preview_for_metadata": [
+      "metadata"
+    ],
+    "camera_field_presets": [],
+    "batch_metadata_cleanup": [
+      "input_dir",
+      "output_dir",
+      "recursive",
+      "preview",
+      "progress_cb"
+    ]
+  },
+  "app/features/model3d/brep_backend.py": {
+    "brep_load": [
+      "path"
+    ],
+    "brep_cut": [
+      "shape",
+      "plane_point",
+      "plane_normal",
+      "cap"
+    ],
+    "brep_is_valid": [
+      "shape"
+    ],
+    "brep_is_empty": [
+      "shape",
+      "tol"
+    ],
+    "brep_shape_kind": [
+      "shape"
+    ],
+    "brep_tessellate": [
+      "shape",
+      "linear_deflection"
+    ],
+    "brep_export_step": [
+      "shape",
+      "path"
+    ],
+    "brep_export_iges": [
+      "shape",
+      "path"
+    ],
+    "brep_scale": [
+      "shape",
+      "factor"
+    ],
+    "mesh_to_brep": [
+      "vertices",
+      "faces",
+      "watertight"
+    ]
+  },
+  "app/features/model3d/ops.py": {
+    "brep_backend_available": [],
+    "load": [
+      "path"
+    ],
+    "info": [
+      "model"
+    ],
+    "tessellated_preview": [
+      "model",
+      "linear_deflection"
+    ],
+    "cut": [
+      "model",
+      "plane_point",
+      "plane_normal",
+      "cap"
+    ],
+    "cut_multi": [
+      "model",
+      "planes",
+      "cap"
+    ],
+    "repair": [
+      "model"
+    ],
+    "scale": [
+      "model",
+      "factor_x",
+      "factor_y",
+      "factor_z"
+    ],
+    "measure_distance": [
+      "point_a",
+      "point_b"
+    ],
+    "export": [
+      "model",
+      "path",
+      "fmt"
+    ]
+  },
+  "app/features/network_monitor/db.py": {
+    "app_data_dir": [],
+    "db_path": [],
+    "connect": [
+      "path"
+    ],
+    "now_iso": [],
+    "record_destination": [
+      "conn",
+      "ip",
+      "domain"
+    ],
+    "is_known": [
+      "conn",
+      "ip"
+    ],
+    "mark_destination_known": [
+      "conn",
+      "ip"
+    ],
+    "cached_domains": [
+      "conn"
+    ],
+    "unknown_destinations": [
+      "conn"
+    ],
+    "log_connection": [
+      "conn",
+      "event"
+    ],
+    "search_history": [
+      "conn",
+      "process_name",
+      "domain",
+      "start_date",
+      "end_date",
+      "limit"
+    ],
+    "top_processes": [
+      "conn",
+      "limit"
+    ],
+    "top_domains": [
+      "conn",
+      "limit"
+    ],
+    "connections_over_time": [
+      "conn",
+      "days"
+    ],
+    "per_app_summary": [
+      "conn"
+    ],
+    "prune_older_than": [
+      "conn",
+      "days"
+    ],
+    "wipe_all": [
+      "conn"
+    ]
+  },
+  "app/features/network_monitor/monitor.py": {
+    "ConnectionMonitor.poll": [
+      "self"
+    ],
+    "ConnectionMonitor.has_admin_visibility": [
+      "self"
+    ]
+  },
+  "app/features/network_monitor/resolver.py": {
+    "DomainResolver.preload": [
+      "self",
+      "ip_to_domain"
+    ],
+    "DomainResolver.resolve": [
+      "self",
+      "ip"
+    ]
+  },
+  "app/features/ocr/ops.py": {
+    "get_supported_languages": [],
+    "discover_tesseract_languages": [
+      "data_dir"
+    ],
+    "reconstruct_page_layout": [
+      "words"
+    ],
+    "ocr_image": [
+      "image_input",
+      "language",
+      "dpi"
+    ],
+    "ocr_pdf": [
+      "pdf_path",
+      "pages",
+      "language",
+      "dpi",
+      "progress_callback"
+    ],
+    "ocr_file": [
+      "file_path",
+      "pages",
+      "language",
+      "dpi",
+      "progress_callback"
+    ],
+    "create_searchable_pdf": [
+      "input_path",
+      "output_path",
+      "pages",
+      "language",
+      "dpi",
+      "progress_callback"
+    ],
+    "save_ocr_text": [
+      "ocr_result",
+      "output_path",
+      "as_markdown"
+    ],
+    "export_ocr_hocr": [
+      "ocr_result",
+      "output_path"
+    ],
+    "export_ocr_alto": [
+      "ocr_result",
+      "output_path"
+    ]
+  },
+  "app/features/office/ops.py": {
+    "extract_text_from_office": [
+      "path"
+    ],
+    "extract_text_docx": [
+      "path"
+    ],
+    "extract_text_pptx": [
+      "path"
+    ],
+    "extract_text_xlsx": [
+      "path"
+    ],
+    "extract_text_opendocument": [
+      "path"
+    ],
+    "get_office_metadata": [
+      "path"
+    ],
+    "strip_office_metadata": [
+      "input_path",
+      "output_path"
+    ],
+    "docx_to_markdown": [
+      "path"
+    ],
+    "docx_to_pdf": [
+      "input_path",
+      "output_path"
+    ],
+    "xlsx_to_csv": [
+      "input_path",
+      "output_path",
+      "sheet_index"
+    ],
+    "pptx_to_markdown": [
+      "input_path"
+    ]
+  },
+  "app/features/palette/ops.py": {
+    "ColorSwatch.rgb_str": [
+      "self"
+    ],
+    "ColorSwatch.css_name": [
+      "self"
+    ],
+    "nearest_named_color": [
+      "rgb"
+    ],
+    "contrast_ratio": [
+      "rgb_a",
+      "rgb_b"
+    ],
+    "kmeans_palette": [
+      "img",
+      "n_colors",
+      "max_dimension",
+      "max_iterations",
+      "sample_step"
+    ],
+    "extract_palette": [
+      "img",
+      "n_colors",
+      "max_dimension",
+      "method"
+    ],
+    "generate_palette_strip": [
+      "swatches",
+      "width",
+      "height"
+    ],
+    "sample_pixel_color": [
+      "img",
+      "x",
+      "y"
+    ]
+  },
+  "app/features/pdf/ops.py": {
+    "open_pdf": [
+      "path"
+    ],
+    "render_page": [
+      "doc",
+      "page_number",
+      "zoom"
+    ],
+    "page_count": [
+      "doc"
+    ],
+    "text_in_rect": [
+      "doc",
+      "page_number",
+      "rect"
+    ],
+    "text_in_line_range": [
+      "doc",
+      "page_number",
+      "start_x",
+      "start_y",
+      "end_x",
+      "end_y"
+    ],
+    "list_pdf_form_fields": [
+      "path"
+    ],
+    "fill_pdf_form": [
+      "input_path",
+      "output_path",
+      "field_values",
+      "flatten"
+    ],
+    "export_pdf_pages": [
+      "input_path",
+      "output_dir",
+      "target_format",
+      "dpi",
+      "output_stem",
+      "progress_cb"
+    ],
+    "merge_pdfs": [
+      "paths",
+      "output_path"
+    ],
+    "split_pdf": [
+      "path",
+      "ranges",
+      "output_dir"
+    ],
+    "break_pdf_into_pages": [
+      "path",
+      "output_dir",
+      "progress_cb"
+    ],
+    "protect_pdf": [
+      "input_path",
+      "output_path",
+      "user_password",
+      "owner_password",
+      "allow_printing"
+    ],
+    "unlock_pdf": [
+      "input_path",
+      "output_path",
+      "password"
+    ],
+    "is_pdf_encrypted": [
+      "input_path"
+    ],
+    "reorganize_pdf_pages": [
+      "input_path",
+      "output_path",
+      "page_operations"
+    ],
+    "find_ghostscript": [],
+    "compress_pdf": [
+      "input_path",
+      "output_path",
+      "dpi",
+      "quality"
+    ],
+    "base14_fontname": [
+      "family",
+      "bold",
+      "italic"
+    ],
+    "bake_annotations": [
+      "doc",
+      "page_number",
+      "annotations"
+    ],
+    "save_annotated_pdf": [
+      "doc",
+      "output_path"
+    ],
+    "extract_pdf_text": [
+      "input_path",
+      "mode",
+      "page_separator"
+    ],
+    "save_pdf_text": [
+      "input_path",
+      "output_path",
+      "mode"
+    ],
+    "add_pdf_watermark": [
+      "input_path",
+      "output_path",
+      "text",
+      "opacity",
+      "font_size",
+      "color",
+      "angle",
+      "pages"
+    ],
+    "add_image_watermark": [
+      "input_path",
+      "output_path",
+      "watermark_image_path",
+      "opacity",
+      "position",
+      "pages"
+    ],
+    "batch_compress_pdfs": [
+      "items",
+      "output_dir",
+      "dpi",
+      "quality",
+      "progress_cb"
+    ],
+    "batch_add_pdf_watermark": [
+      "items",
+      "output_dir",
+      "text",
+      "opacity",
+      "font_size",
+      "color",
+      "angle",
+      "pages",
+      "progress_cb"
+    ],
+    "batch_add_image_watermark": [
+      "items",
+      "output_dir",
+      "watermark_image_path",
+      "opacity",
+      "position",
+      "pages",
+      "progress_cb"
+    ],
+    "batch_protect_pdfs": [
+      "items",
+      "output_dir",
+      "user_password",
+      "owner_password",
+      "allow_printing",
+      "progress_cb"
+    ],
+    "list_pdf_bookmarks": [
+      "input_path"
+    ],
+    "add_pdf_bookmarks": [
+      "input_path",
+      "output_path",
+      "bookmarks"
+    ],
+    "list_pdf_attachments": [
+      "input_path"
+    ],
+    "add_pdf_attachment": [
+      "input_path",
+      "output_path",
+      "attachment_path",
+      "name",
+      "description"
+    ],
+    "add_pdf_signature": [
+      "input_path",
+      "output_path",
+      "signature_image_path",
+      "x",
+      "y",
+      "width",
+      "height",
+      "pages"
+    ],
+    "add_page_numbers": [
+      "input_path",
+      "output_path",
+      "format_str",
+      "position",
+      "font_size",
+      "color",
+      "margin_x",
+      "margin_y",
+      "start_num",
+      "pages"
+    ],
+    "convert_pdf_to_docx": [
+      "input_path",
+      "output_path",
+      "start_page",
+      "end_page"
+    ],
+    "pdf_needs_ocr": [
+      "input_path",
+      "min_chars_per_page"
+    ],
+    "convert_scanned_pdf_to_docx": [
+      "input_path",
+      "output_path",
+      "language",
+      "start_page",
+      "end_page",
+      "progress_cb"
+    ]
+  },
+  "app/features/playlist/ops.py": {
+    "PlaylistTrack.to_dict": [
+      "self"
+    ],
+    "clean_music_title": [
+      "raw_title"
+    ],
+    "build_track": [
+      "artist",
+      "title",
+      "album"
+    ],
+    "parse_tracklist_text": [
+      "text"
+    ],
+    "export_m3u8_playlist": [
+      "tracks",
+      "output_path",
+      "use_youtube_music"
+    ],
+    "export_csv_playlist": [
+      "tracks",
+      "output_path"
+    ],
+    "detect_url_platform": [
+      "url"
+    ],
+    "get_spotify_user_token": [],
+    "start_spotify_user_login": [],
+    "fetch_spotify_playlist": [
+      "url",
+      "progress_cb"
+    ],
+    "fetch_youtube_playlist": [
+      "url",
+      "progress_cb"
+    ],
+    "fetch_playlist_from_url": [
+      "url",
+      "progress_cb"
+    ]
+  },
+  "app/features/playlist/youtube_ops.py": {
+    "clear_youtube_token_cache": [],
+    "clear_import_state": [],
+    "get_resumable_import": [
+      "tracks",
+      "playlist_title"
+    ],
+    "get_youtube_credentials": [
+      "interactive"
+    ],
+    "start_youtube_login": [],
+    "has_youtube_login": [],
+    "create_youtube_playlist": [
+      "youtube",
+      "title",
+      "description",
+      "privacy_status"
+    ],
+    "add_video_to_playlist": [
+      "youtube",
+      "playlist_id",
+      "video_id"
+    ],
+    "build_youtube_playlist_from_tracks": [
+      "tracks",
+      "playlist_title",
+      "privacy_status",
+      "progress_cb"
+    ]
+  },
+  "app/features/qr/ops.py": {
+    "generate_qr_code": [
+      "payload",
+      "error_correction",
+      "box_size",
+      "border",
+      "fill_color",
+      "back_color"
+    ],
+    "make_wifi_payload": [
+      "ssid",
+      "password",
+      "security",
+      "hidden"
+    ],
+    "make_vcard_payload": [
+      "name",
+      "phone",
+      "email",
+      "org",
+      "title",
+      "url",
+      "note"
+    ],
+    "make_email_payload": [
+      "to",
+      "subject",
+      "body"
+    ],
+    "make_phone_payload": [
+      "number"
+    ],
+    "make_sms_payload": [
+      "number",
+      "message"
+    ],
+    "make_geo_payload": [
+      "latitude",
+      "longitude",
+      "altitude"
+    ],
+    "make_calendar_payload": [
+      "summary",
+      "start",
+      "end",
+      "location",
+      "description",
+      "organizer",
+      "uid"
+    ],
+    "make_mecard_payload": [
+      "name",
+      "phone",
+      "email",
+      "org",
+      "url",
+      "address"
+    ],
+    "make_whatsapp_payload": [
+      "phone",
+      "message"
+    ],
+    "make_asset_tag_payload": [
+      "asset_id",
+      "location",
+      "owner",
+      "category",
+      "notes"
+    ],
+    "save_qr_code": [
+      "img",
+      "output_path",
+      "format"
+    ],
+    "generate_qr_with_logo": [
+      "payload",
+      "logo",
+      "logo_scale",
+      "error_correction",
+      "box_size",
+      "border",
+      "fill_color",
+      "back_color"
+    ],
+    "generate_qr_svg": [
+      "payload",
+      "error_correction",
+      "box_size",
+      "border",
+      "fill_color",
+      "back_color"
+    ],
+    "save_qr_svg": [
+      "payload",
+      "output_path"
+    ],
+    "generate_barcode": [
+      "value",
+      "barcode_type",
+      "width",
+      "height",
+      "include_label",
+      "foreground",
+      "background"
+    ],
+    "parse_qr_payload": [
+      "payload"
+    ],
+    "generate_label_sheet": [
+      "codes",
+      "preset_name",
+      "output_path",
+      "labels_text"
+    ],
+    "decode_qr_and_barcodes": [
+      "source"
+    ]
+  },
+  "app/features/renamer/ops.py": {
+    "save_preset": [
+      "name",
+      "mode",
+      "params"
+    ],
+    "undo_renames": [
+      "changes"
+    ],
+    "apply_case_transform": [
+      "text",
+      "case_type"
+    ],
+    "extract_rename_metadata": [
+      "file_path"
+    ],
+    "render_rename_template": [
+      "file_path",
+      "template",
+      "extra_context"
+    ],
+    "preview_renames": [
+      "file_paths",
+      "mode",
+      "params"
+    ],
+    "capture_timestamp": [
+      "file_path"
+    ],
+    "sort_files_by_timeline": [
+      "file_paths"
+    ],
+    "save_cross_folder_plan": [
+      "name",
+      "source_folders",
+      "mode",
+      "params",
+      "target_dir",
+      "processed_files"
+    ],
+    "find_new_files_for_plan": [
+      "source_folders",
+      "previously_processed"
+    ],
+    "plan_consolidate_to_folder": [
+      "plans",
+      "target_dir"
+    ],
+    "execute_renames": [
+      "plans"
+    ]
+  },
+  "app/features/resume/ops.py": {
+    "create_sample_master_resume": [],
+    "resume_to_dict": [
+      "resume"
+    ],
+    "resume_from_dict": [
+      "d"
+    ],
+    "save_resume_file": [
+      "resume",
+      "path"
+    ],
+    "load_resume_file": [
+      "path"
+    ],
+    "extract_keywords": [
+      "text"
+    ],
+    "analyze_ats_match": [
+      "resume",
+      "job_description"
+    ],
+    "capture_profile_version": [
+      "resume",
+      "profile_name",
+      "note"
+    ],
+    "diff_profile_versions": [
+      "before",
+      "after"
+    ],
+    "export_html": [
+      "resume",
+      "theme",
+      "layout",
+      "accent_color",
+      "palette",
+      "font_scale"
+    ],
+    "save_profile": [
+      "resume",
+      "profile_name"
+    ],
+    "apply_profile": [
+      "resume",
+      "profile_name"
+    ],
+    "export_docx": [
+      "resume",
+      "output_path",
+      "theme"
+    ],
+    "export_markdown": [
+      "resume"
+    ],
+    "export_pdf": [
+      "resume",
+      "output_path",
+      "theme"
+    ]
+  },
+  "app/features/screenshot/ops.py": {
+    "capture_full_screen": [
+      "screen_index"
+    ],
+    "capture_screen_region": [
+      "x",
+      "y",
+      "width",
+      "height",
+      "screen_index"
+    ],
+    "save_screenshot": [
+      "img",
+      "output_path",
+      "format"
+    ]
+  },
+  "app/features/text_tools/ops.py": {
+    "to_uppercase": [
+      "text"
+    ],
+    "to_lowercase": [
+      "text"
+    ],
+    "to_title_case": [
+      "text"
+    ],
+    "to_sentence_case": [
+      "text"
+    ],
+    "to_camel_case": [
+      "text"
+    ],
+    "to_snake_case": [
+      "text"
+    ],
+    "to_kebab_case": [
+      "text"
+    ],
+    "to_constant_case": [
+      "text"
+    ],
+    "reverse_characters": [
+      "text"
+    ],
+    "reverse_words": [
+      "text"
+    ],
+    "reverse_lines": [
+      "text"
+    ],
+    "trim_trailing_whitespace": [
+      "text"
+    ],
+    "trim_leading_whitespace": [
+      "text"
+    ],
+    "collapse_spaces": [
+      "text"
+    ],
+    "remove_blank_lines": [
+      "text"
+    ],
+    "tabs_to_spaces": [
+      "text",
+      "width"
+    ],
+    "spaces_to_tabs": [
+      "text",
+      "width"
+    ],
+    "normalize_line_endings": [
+      "text",
+      "style"
+    ],
+    "sort_lines": [
+      "text",
+      "reverse"
+    ],
+    "dedupe_lines": [
+      "text"
+    ],
+    "number_lines": [
+      "text",
+      "start"
+    ],
+    "add_prefix_suffix": [
+      "text",
+      "prefix",
+      "suffix"
+    ],
+    "join_lines": [
+      "text",
+      "delimiter"
+    ],
+    "split_text": [
+      "text",
+      "delimiter"
+    ],
+    "text_to_code_points": [
+      "text"
+    ],
+    "code_points_to_text": [
+      "code_points_str"
+    ],
+    "text_to_binary": [
+      "text"
+    ],
+    "binary_to_text": [
+      "binary_str"
+    ],
+    "regex_replace": [
+      "text",
+      "pattern",
+      "replacement",
+      "ignore_case",
+      "multiline",
+      "dotall"
+    ],
+    "diff_texts": [
+      "left_text",
+      "right_text"
+    ]
+  },
+  "app/features/word_counter/ops.py": {
+    "count_syllables_in_word": [
+      "word"
+    ],
+    "analyze_text": [
+      "text",
+      "reading_wpm",
+      "speaking_wpm"
+    ],
+    "extract_text_from_file": [
+      "file_path"
+    ]
+  },
+  "app/system/shell_integration.py": {
+    "app_icon_path": [],
+    "resolve_workspace_id": [
+      "file_path",
+      "force_mode"
+    ],
+    "preload_workspace_module_in_background": [
+      "file_path",
+      "force_mode"
+    ],
+    "route_file": [
+      "window",
+      "file_path",
+      "force_mode"
+    ],
+    "try_forward_to_running_instance": [
+      "file_path",
+      "force_mode"
+    ],
+    "start_ipc_server": [
+      "window"
+    ],
+    "register_shell_context_menu": [
+      "exe_path"
+    ],
+    "ensure_open_with_candidacy": [],
+    "unregister_shell_context_menu": [],
+    "manual_association_instructions": [
+      "extensions"
+    ],
+    "is_default_for_extension": [
+      "ext"
+    ],
+    "set_default_for_extensions": [
+      "extensions"
+    ]
+  }
+}

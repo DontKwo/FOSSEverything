@@ -1,0 +1,1134 @@
+{
+  "app/features/collage/tab.py": {
+    "buttons": [
+      "generate collage preview",
+      "pick background color",
+      "save collage"
+    ],
+    "checks": [
+      "add filenames as captions"
+    ],
+    "radios": [],
+    "groups": [
+      "images",
+      "layout settings"
+    ],
+    "tabs": [],
+    "combo_items": [
+      "contain",
+      "cover",
+      "stretch"
+    ],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [
+      "arrange multiple images into a grid. export as png, jpeg, or webp.",
+      "collage preview",
+      "image collage builder"
+    ],
+    "shortcuts": []
+  },
+  "app/features/converter/tab.py": {
+    "buttons": [
+      "choose file",
+      "compress locally",
+      "convert locally",
+      "export notes folder to enex",
+      "start batch conversion"
+    ],
+    "checks": [],
+    "radios": [],
+    "groups": [],
+    "tabs": [
+      "batch conversion queue",
+      "compressor",
+      "single file converter"
+    ],
+    "combo_items": [
+      "csv",
+      "jpeg",
+      "json",
+      "pdf",
+      "png",
+      "webp",
+      "yaml"
+    ],
+    "placeholders": [
+      "output filename (without extension)"
+    ],
+    "tooltips": [],
+    "labels": [
+      "convert documents, images, and data formats locally with explicit engine checks.",
+      "file format converter",
+      "image, pdf, json, yaml, and csv conversions run 100% locally on your machine.",
+      "no file selected",
+      "select a file to see its detected type and current size.",
+      "shrink any image, audio, or video file locally with one preset - no need to know which studio handles which format.",
+      "target format for all"
+    ],
+    "shortcuts": []
+  },
+  "app/features/data/tab.py": {
+    "buttons": [
+      "evaluate query"
+    ],
+    "checks": [],
+    "radios": [],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [
+      "css",
+      "csv",
+      "javascript",
+      "json",
+      "sql",
+      "xml",
+      "yaml"
+    ],
+    "placeholders": [
+      "e.g. $.tools[*], store.book[0].title, $..version, [(@.local_first == true)]",
+      "paste or open json, yaml, xml, or csv data here"
+    ],
+    "tooltips": [],
+    "labels": [
+      "convert to",
+      "data studio",
+      "format",
+      "format, pretty-print, minify, validate, and convert json, yaml, csv, and xml.",
+      "indent",
+      "jsonpath query",
+      "ready"
+    ],
+    "shortcuts": []
+  },
+  "app/features/encoding/tab.py": {
+    "buttons": [],
+    "checks": [],
+    "radios": [],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [
+      "base64",
+      "binary",
+      "hex",
+      "html",
+      "url"
+    ],
+    "placeholders": [
+      "type or paste text/encoded data here"
+    ],
+    "tooltips": [],
+    "labels": [
+      "encode and decode text and files between base64, url/percent-encoding, html entities, hex, and binary.",
+      "encoding / decoding",
+      "ready",
+      "scheme"
+    ],
+    "shortcuts": []
+  },
+  "app/features/hash/tab.py": {
+    "buttons": [
+      "add trusted key",
+      "browse",
+      "browse folder",
+      "compare files",
+      "compare manifests",
+      "compute hashes",
+      "copy",
+      "generate keypair",
+      "hash directory",
+      "remove selected",
+      "sign file",
+      "verify against policy",
+      "verify integrity",
+      "verify manifest",
+      "verify signature"
+    ],
+    "checks": [
+      "include local timestamp (multi-party bundle)",
+      "this is a timestamped bundle (.sigjson)"
+    ],
+    "radios": [],
+    "groups": [
+      "algorithms to compute",
+      "checksum results",
+      "digest",
+      "policy-based manifest verification",
+      "select file",
+      "sign a file",
+      "signing keypair (ed25519)",
+      "trusted keys (local keyring)",
+      "verify a signature"
+    ],
+    "tabs": [
+      "compare files",
+      "directory manifest",
+      "file hash",
+      "manifest diff",
+      "sign & policy",
+      "text hash",
+      "verify hash"
+    ],
+    "combo_items": [
+      "(none selected)"
+    ],
+    "placeholders": [
+      "choose first file",
+      "choose newer/updated manifest",
+      "choose older/original manifest",
+      "choose second file",
+      "optional key for keyed hashing",
+      "paste the expected hash here",
+      "select a folder to hash recursively",
+      "select file to verify",
+      "select or drop a file",
+      "type or paste text here to hash in real-time"
+    ],
+    "tooltips": [],
+    "labels": [
+      "algorithm",
+      "choose two manifests to compare.",
+      "compute sha-256, md5, file hashes, and directory manifests locally. zero cloud involvement.",
+      "hash checksum",
+      "hmac key",
+      "leave the public key path blank to use the trusted key selected above instead.",
+      "no directory hashed yet.",
+      "no keypair generated yet.",
+      "select a trusted key above to use it for verification below instead of browsing a .pem file.",
+      "waiting for two files to compare."
+    ],
+    "shortcuts": []
+  },
+  "app/features/image/tab.py": {
+    "buttons": [
+      "add files",
+      "choose color",
+      "close",
+      "copy to clipboard",
+      "save as .txt"
+    ],
+    "checks": [
+      "black & white (grayscale)",
+      "keep aspect ratio",
+      "polaroid style (extra bottom padding)",
+      "remove background (local ai model)",
+      "resize"
+    ],
+    "radios": [],
+    "groups": [],
+    "tabs": [
+      "advanced",
+      "easy"
+    ],
+    "combo_items": [
+      "custom / manual",
+      "keep original"
+    ],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [
+      "all models run locally. a selected model may download once, then remains on this computer.",
+      "choose a compression level",
+      "files to process",
+      "font",
+      "format",
+      "no image open - drag and drop an image or click open",
+      "size",
+      "spacing"
+    ],
+    "shortcuts": [
+      "Ctrl+-",
+      "Ctrl+0",
+      "Ctrl+=",
+      "Ctrl+R",
+      "Ctrl+Shift+R",
+      "Ctrl+Y"
+    ]
+  },
+  "app/features/markdown/tab.py": {
+    "buttons": [],
+    "checks": [],
+    "radios": [],
+    "groups": [
+      "markdown source",
+      "preview"
+    ],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [
+      "type or paste markdown here"
+    ],
+    "tooltips": [],
+    "labels": [
+      "markdown studio"
+    ],
+    "shortcuts": []
+  },
+  "app/features/media/tab.py": {
+    "buttons": [
+      "add clip",
+      "add files",
+      "add track",
+      "browse",
+      "capture frame at current playhead",
+      "clear",
+      "compose timeline",
+      "compress video",
+      "convert media",
+      "edit selected",
+      "export muted video (strip audio)",
+      "export trimmed media",
+      "extract audio track",
+      "generate subtitle file",
+      "mark end",
+      "mark start",
+      "mix audio onto video",
+      "move down",
+      "move up",
+      "open media file",
+      "remove selected",
+      "start batch",
+      "transcribe audio (local whisper)",
+      "\u23f9 stop",
+      "\u25b6 play"
+    ],
+    "checks": [],
+    "radios": [],
+    "groups": [
+      "media details",
+      "playback & preview",
+      "range & trim points"
+    ],
+    "tabs": [
+      "batch processing",
+      "compress",
+      "convert",
+      "extract audio",
+      "frame / mute",
+      "single file",
+      "timeline composer",
+      "trim / cut"
+    ],
+    "combo_items": [
+      "128 kbps (compact)",
+      "128k",
+      "192 kbps (standard)",
+      "192k",
+      "256 kbps (very good)",
+      "256k",
+      "320 kbps (high quality)",
+      "320k",
+      "aac",
+      "aac (.aac)",
+      "avi",
+      "avi (.avi)",
+      "balanced (crf 23) - recommended",
+      "balanced (crf 24)",
+      "balanced web (720p / crf 24)",
+      "compress",
+      "convert",
+      "discord / email target (8mb limit, 480p / crf 28)",
+      "discord / email target (small, crf 28)",
+      "extract audio",
+      "fast stream copy -- lossless instantaneous (keyframe aligned)",
+      "flac",
+      "flac (.flac)",
+      "gif",
+      "high precision (re-encode) -- frame accurate cuts",
+      "high quality (1080p / crf 20)",
+      "high quality (crf 18)",
+      "high quality (crf 20)",
+      "m4a",
+      "m4a (.m4a)",
+      "mkv",
+      "mkv (.mkv)",
+      "mov",
+      "mov (.mov)",
+      "mp3",
+      "mp3 (.mp3)",
+      "mp4",
+      "mp4 (.mp4)",
+      "ogg",
+      "ogg (.ogg)",
+      "smaller file (crf 28)",
+      "wav",
+      "wav (.wav)",
+      "webm",
+      "webm (.webm)"
+    ],
+    "placeholders": [
+      "choose an output folder",
+      "select any video or audio file (mp4, mov, mkv, mp3, wav, aac, etc.)"
+    ],
+    "tooltips": [],
+    "labels": [
+      "00:00:00.0 / 00:00:00.0",
+      "audio overlay tracks (optional, mixed together over the whole timeline)",
+      "concatenate trimmed/cropped clips into one video or gif, with optional fades and a mixed-in audio track.",
+      "cut a section from the file using the start and end markers defined above.",
+      "end time (s)",
+      "extract the sound track from the video and save it as an audio file.",
+      "height",
+      "media studio",
+      "no transcription yet.",
+      "qtmultimedia video playback not available on this platform.",
+      "quick frame snapshot, subtitle generation, audio overlays, and audio removal tools",
+      "run one operation across multiple video/audio files and save the results to a folder.",
+      "selection duration: 0.000s",
+      "shrink video file size for sharing on discord, email, or web.",
+      "start time (s)",
+      "transcode media to another container or format.",
+      "trim, convert, compress, extract audio, and capture frames from video and audio offline.",
+      "volume",
+      "width"
+    ],
+    "shortcuts": []
+  },
+  "app/features/metadata/tab.py": {
+    "buttons": [
+      "browse",
+      "choose file"
+    ],
+    "checks": [
+      "include subfolders"
+    ],
+    "radios": [],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [
+      "inspect a file before sharing it. edit supported fields or write a clean copy.",
+      "metadata tools",
+      "no file selected",
+      "pdf, image, audio, and video files are supported locally.",
+      "strips metadata from every supported file in a folder. outputs are written to a separate folder; originals are untouched."
+    ],
+    "shortcuts": []
+  },
+  "app/features/model3d/tab.py": {
+    "buttons": [
+      "add plane",
+      "apply scale",
+      "cut model",
+      "cut this piece again",
+      "export all pieces",
+      "export selected piece",
+      "inch -> mm",
+      "mm -> inch",
+      "pick point a on model",
+      "pick point b on model",
+      "pick point on model",
+      "remove selected plane",
+      "use current view direction"
+    ],
+    "checks": [
+      "fill cut cross-section (solid)"
+    ],
+    "radios": [],
+    "groups": [
+      "cutting planes (add more than one to split into multiple pieces)",
+      "plane normal",
+      "plane origin"
+    ],
+    "tabs": [
+      "cut plane",
+      "inspector",
+      "measure",
+      "scale"
+    ],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [
+      "cut pieces (select one to highlight it in the viewport)",
+      "drag an arrow in the viewport to move the plane, or drag a curved handle to",
+      "open an stl, obj, ply, step, or iges model to begin.",
+      "pick two points on the model to measure the distance between them.",
+      "step/iges cuts are always solid; this option only applies to stl/obj/ply."
+    ],
+    "shortcuts": []
+  },
+  "app/features/network_monitor/tab.py": {
+    "buttons": [
+      "mark selected as known",
+      "refresh",
+      "refresh stats",
+      "search",
+      "set retention period",
+      "wipe all history"
+    ],
+    "checks": [],
+    "radios": [],
+    "groups": [],
+    "tabs": [
+      "history",
+      "live connections",
+      "per-app summary",
+      "stats"
+    ],
+    "combo_items": [],
+    "placeholders": [
+      "domain or ip contains",
+      "process name contains"
+    ],
+    "tooltips": [],
+    "labels": [
+      "connections over time (last 30 days)",
+      "domain/ip",
+      "from",
+      "new / unknown destinations",
+      "process",
+      "top domains contacted",
+      "top processes by connection count",
+      "waiting for first poll"
+    ],
+    "shortcuts": []
+  },
+  "app/features/ocr/tab.py": {
+    "buttons": [
+      "extract text (ocr)",
+      "make searchable pdf",
+      "next \u25b6",
+      "open file",
+      "output folder",
+      "run batch ocr",
+      "\u25c0 prev"
+    ],
+    "checks": [],
+    "radios": [],
+    "groups": [
+      "document preview",
+      "ocr configuration"
+    ],
+    "tabs": [
+      "batch ocr",
+      "document ocr"
+    ],
+    "combo_items": [
+      "high quality (200 dpi) - recommended",
+      "markdown (.md)",
+      "plain text (.txt)",
+      "searchable pdf (.pdf)",
+      "standard (150 dpi) - fast",
+      "ultra (300 dpi) - fine text / receipts"
+    ],
+    "placeholders": [
+      "all pages (or e.g. 1-3, 5)",
+      "extracted ocr text will appear here. you can edit and format the text directly.",
+      "save in source file folder",
+      "select a pdf or image file (png, jpg, tiff, webp, bmp, etc)"
+    ],
+    "tooltips": [],
+    "labels": [
+      "0 characters | 0 words",
+      "extract copyable text from scanned documents and images, or generate searchable pdfs offline.",
+      "extracted text",
+      "language",
+      "no document loaded",
+      "ocr studio",
+      "open a document to see preview",
+      "output format"
+    ],
+    "shortcuts": []
+  },
+  "app/features/palette/tab.py": {
+    "buttons": [
+      "clear sampled colors",
+      "copy hex",
+      "hex",
+      "rgb"
+    ],
+    "checks": [],
+    "radios": [],
+    "groups": [
+      "eyedropper tool (hover / click to sample)"
+    ],
+    "tabs": [
+      "dominant colors",
+      "eyedropper samples (0)"
+    ],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [
+      "#------",
+      "color palette extractor eyedropper",
+      "colors to extract",
+      "extract dominant colors automatically or click anywhere on the image with the eyedropper cursor.",
+      "open an image to extract palettes or sample colors with the mouse.",
+      "position: (-, -)",
+      "rgb(---, ---, ---)"
+    ],
+    "shortcuts": []
+  },
+  "app/features/pdf/tab.py": {
+    "buttons": [
+      "add files",
+      "apply sort",
+      "browse",
+      "delete page",
+      "duplicate page",
+      "remove selected",
+      "rotate 90\u00b0 ccw",
+      "rotate 90\u00b0 cw",
+      "start batch",
+      "\u25b2 move up",
+      "\u25b6",
+      "\u25bc move down",
+      "\u25c0"
+    ],
+    "checks": [
+      "add",
+      "allow printing",
+      "show and sort by full path (instead of filename only)",
+      "use ocr recognition (recommended for scanned pdfs)"
+    ],
+    "radios": [],
+    "groups": [],
+    "tabs": [
+      "advanced",
+      "easy"
+    ],
+    "combo_items": [
+      "- {n} -",
+      "blue (for review)",
+      "bottom center (standard)",
+      "bottom left",
+      "bottom right",
+      "bottom-left",
+      "bottom-right",
+      "center",
+      "dark gray (draft)",
+      "ebook",
+      "green (approved)",
+      "markdown (.md)",
+      "page {n}",
+      "page {n} of {total}",
+      "plain text (.txt)",
+      "prepress",
+      "printer",
+      "red (confidential)",
+      "screen",
+      "top center (header)",
+      "top left (header)",
+      "top right (header)",
+      "top-left",
+      "top-right",
+      "{n}",
+      "{n} / {total}"
+    ],
+    "placeholders": [
+      "e.g. 1-3,5,7-9",
+      "optional owner/master password",
+      "password required to open the pdf",
+      "repeat password"
+    ],
+    "tooltips": [],
+    "labels": [
+      "120 dpi",
+      "char spacing",
+      "choose a compression level",
+      "current pages (drag or use buttons to reorder)",
+      "each pdf page is written as a separate numbered image.",
+      "enter the password to remove protection and save a clean pdf",
+      "extract text from pdf pages into a local file (plain text or markdown).",
+      "files",
+      "files will be merged in this order (drag to reorder)",
+      "font",
+      "no file open",
+      "operation",
+      "output folder",
+      "page actions",
+      "size",
+      "sort by",
+      "stamp a transparent diagonal text watermark on each page."
+    ],
+    "shortcuts": [
+      "Ctrl+-",
+      "Ctrl+0",
+      "Ctrl+=",
+      "Ctrl+Y"
+    ]
+  },
+  "app/features/playlist/tab.py": {
+    "buttons": [
+      "fetch playlist",
+      "log in with spotify",
+      "log in with youtube",
+      "save client id",
+      "save credentials",
+      "see step-by-step instructions",
+      "spotify",
+      "yt",
+      "ytm"
+    ],
+    "checks": [],
+    "radios": [],
+    "groups": [
+      "fetch from url (spotify playlist \u00b7 youtube playlist \u00b7 youtube music playlist)",
+      "mapped tracklist & output",
+      "or paste tracklist text (artist - song, numbered lists, csv rows)",
+      "spotify login",
+      "youtube login (for creating a real youtube playlist)"
+    ],
+    "tabs": [],
+    "combo_items": [
+      "spotify -> youtube youtube music",
+      "youtube -> spotify"
+    ],
+    "placeholders": [
+      "google oauth client id",
+      "google oauth client secret",
+      "paste spotify or youtube playlist url here - e.g. https://open.spotify.com/playlist/... or https://www.youtube.com/playlist?list=",
+      "paste tracklist lines here",
+      "spotify client id"
+    ],
+    "tooltips": [],
+    "labels": [
+      "direction",
+      "no tracks loaded yet. paste a url above or enter tracks on the left.",
+      "playlist porter (spotify <-> youtube / youtube music)"
+    ],
+    "shortcuts": []
+  },
+  "app/features/qr/tab.py": {
+    "buttons": [
+      "background color",
+      "choose logo",
+      "clear",
+      "copy image to clipboard",
+      "export vector svg (lossless print)",
+      "foreground color",
+      "print label sheet (pdf)",
+      "save as .ics file",
+      "save image (png / jpeg / webp / pdf)"
+    ],
+    "checks": [
+      "show value label"
+    ],
+    "radios": [],
+    "groups": [
+      "center logo / icon embedding",
+      "content details",
+      "decoded results",
+      "export & share",
+      "input image preview",
+      "live preview",
+      "payload details",
+      "payload type",
+      "styling & resolution"
+    ],
+    "tabs": [
+      "qr generator",
+      "scan & decode"
+    ],
+    "combo_items": [
+      "asset / inventory tag",
+      "barcode",
+      "business card (mecard)",
+      "calendar event",
+      "contact card (vcard)",
+      "email address",
+      "geo location",
+      "h - highest (~30% recovery, best with logos)",
+      "l - low (~7% recovery)",
+      "m - standard (~15% recovery)",
+      "no qr codes or barcodes detected in image.",
+      "open (no password)",
+      "phone number",
+      "plain text",
+      "q - medium-high (~25% recovery)",
+      "sms message",
+      "url / web link",
+      "wep",
+      "whatsapp message",
+      "wi-fi network",
+      "wpa/wpa2/wpa3"
+    ],
+    "placeholders": [
+      "abc123",
+      "enter arbitrary text or notes",
+      "https://example.com"
+    ],
+    "tooltips": [],
+    "labels": [
+      "export size: 330x330 px",
+      "generate custom qr codes 100% offline. no internet required.",
+      "no code selected",
+      "no logo selected",
+      "open an image/pdf or paste a screenshot to detect qr codes and barcodes.",
+      "qr code generator"
+    ],
+    "shortcuts": []
+  },
+  "app/features/renamer/tab.py": {
+    "buttons": [
+      "apply renaming plan",
+      "browse",
+      "clear",
+      "re-run plan (new files only)",
+      "save as cross-folder plan",
+      "save preset",
+      "undo last rename"
+    ],
+    "checks": [
+      "append number to original filename (instead of replacing it)",
+      "apply case change to file extensions too",
+      "case sensitive",
+      "include extension in match",
+      "order files by capture date/time across all folders (timeline mode)",
+      "use regular expressions (regex)"
+    ],
+    "radios": [],
+    "groups": [
+      "cross-folder rename planning",
+      "live preview (collision-safe)",
+      "renaming rules"
+    ],
+    "tabs": [],
+    "combo_items": [
+      "add prefix / suffix",
+      "change extension",
+      "change letter case",
+      "choose cross-folder plan",
+      "choose preset",
+      "find and replace",
+      "lowercase (e.g. myfile.png)",
+      "numbering sequence",
+      "sentence case (e.g. my file.png)",
+      "title case (e.g. my file.png)",
+      "uppercase (e.g. myfile.png)"
+    ],
+    "placeholders": [
+      "e.g. jpeg, webp, bak",
+      "optional: consolidate renamed files from every source folder here",
+      "replacement text (can use $1 or \\1 for regex groups)",
+      "saved cross-folder plans",
+      "saved presets",
+      "text or regular expression to find"
+    ],
+    "tooltips": [],
+    "labels": [
+      "action mode",
+      "batch file renamer",
+      "no files loaded. click",
+      "padding",
+      "rename groups of files with regex, sequential numbers, prefixes, or case transforms.",
+      "start number"
+    ],
+    "shortcuts": []
+  },
+  "app/features/resume/tab.py": {
+    "buttons": [
+      "add bullet",
+      "add new section (experience, projects, skills, education, custom)",
+      "add role / item to section",
+      "analyze ats match score & missing keywords",
+      "delete entry",
+      "delete section",
+      "x",
+      "\u25b2",
+      "\u25b2 move up",
+      "\u25bc",
+      "\u25bc move down"
+    ],
+    "checks": [
+      "enable entry",
+      "include summary in tailored resume"
+    ],
+    "radios": [],
+    "groups": [
+      "executive summary / objective",
+      "personal & contact details"
+    ],
+    "tabs": [
+      "live preview & export"
+    ],
+    "combo_items": [
+      "full master resume (default)"
+    ],
+    "placeholders": [
+      "bullet text (e.g. achieved 40% performance gain by...)",
+      "company / institution / tech",
+      "dates (e.g. 2022 - present)",
+      "email",
+      "github",
+      "job title / degree / project name",
+      "linkedin",
+      "location",
+      "location (e.g. san francisco, ca)",
+      "paste job posting requirements, skills, and qualifications here",
+      "phone",
+      "portfolio / website",
+      "professional title",
+      "section title",
+      "write a short profile summary for this resume",
+      "your name"
+    ],
+    "tooltips": [],
+    "labels": [
+      "build a comprehensive master resume, then check/uncheck bullets and reorder sections to tailor per job.",
+      "bullet points (check to include in tailored resume)",
+      "job tailoring profile",
+      "paste target job description",
+      "resume studio",
+      "section title",
+      "sections: 0 | entries: 0 | bullets: 0"
+    ],
+    "shortcuts": []
+  },
+  "app/features/text_tools/tab.py": {
+    "buttons": [],
+    "checks": [
+      "case-insensitive",
+      "dot matches all",
+      "multiline"
+    ],
+    "radios": [],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [
+      "cr",
+      "crlf",
+      "lf"
+    ],
+    "placeholders": [
+      "paste the text you want to compare against the left side",
+      "type or paste text here to case-convert, reverse, clean up, sort, or convert it"
+    ],
+    "tooltips": [],
+    "labels": [
+      "case",
+      "case conversion, reversal, whitespace cleanup, line operations, and text/ascii/binary conversion.",
+      "cleanup",
+      "convert",
+      "delimiter",
+      "left (original)",
+      "line endings",
+      "lines",
+      "pattern",
+      "prefix",
+      "ready",
+      "replacement",
+      "reverse",
+      "right (compare against)",
+      "suffix",
+      "tab width",
+      "text tools"
+    ],
+    "shortcuts": []
+  },
+  "app/features/word_counter/tab.py": {
+    "buttons": [],
+    "checks": [],
+    "radios": [],
+    "groups": [
+      "document text",
+      "keyword density (top words)",
+      "readability & structure"
+    ],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [
+      "type, paste text, or open any document (pdf, word, excel, powerpoint, text, markdown) to analyze stats in real-time"
+    ],
+    "tooltips": [],
+    "labels": [
+      "0.0 chars",
+      "0.0 pages",
+      "0.0 words",
+      "100.0 / 100",
+      "word counter document analytics"
+    ],
+    "shortcuts": []
+  },
+  "app/ui/canvas.py": {
+    "buttons": [],
+    "checks": [],
+    "radios": [],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [],
+    "shortcuts": []
+  },
+  "app/ui/file_association_settings.py": {
+    "buttons": [],
+    "checks": [],
+    "radios": [],
+    "groups": [
+      "manual setup (if automatic registration doesn"
+    ],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [
+      "windows requires your confirmation before changing a default app. checking a box"
+    ],
+    "shortcuts": []
+  },
+  "app/ui/home_page.py": {
+    "buttons": [
+      "< move to visible",
+      "customize apps",
+      "done",
+      "move down",
+      "move to other >",
+      "move up",
+      "unfavorite",
+      "unpin"
+    ],
+    "checks": [],
+    "radios": [],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [
+      "best matching tools",
+      "drag apps to reorder within a section, or move them to other to tuck them away.",
+      "matching ui tips",
+      "no apps in other yet. use customize apps to move some here.",
+      "no favorite apps yet. tap the heart on any app tile to pin it here.",
+      "no matching tools or workspaces yet.",
+      "search every available tool by name, button, description, or intent. everything runs locally.",
+      "sort by",
+      "what do you want to do"
+    ],
+    "shortcuts": []
+  },
+  "app/ui/main_window.py": {
+    "buttons": [],
+    "checks": [],
+    "radios": [],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [],
+    "shortcuts": []
+  },
+  "app/ui/screenshot_dialog.py": {
+    "buttons": [
+      "cancel",
+      "capture"
+    ],
+    "checks": [],
+    "radios": [
+      "full screen",
+      "select region / snip (interactive)"
+    ],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [
+      "capture desktop screen or select a custom area.",
+      "delay countdown"
+    ],
+    "shortcuts": []
+  },
+  "app/ui/settings_hub.py": {
+    "buttons": [
+      "apply",
+      "choose accent color",
+      "close",
+      "export theme",
+      "import theme",
+      "load profile",
+      "pick",
+      "rename",
+      "reset",
+      "reset colors to theme defaults",
+      "reset to defaults",
+      "run setup wizard",
+      "save to profile",
+      "toggle fullscreen now"
+    ],
+    "checks": [
+      "compact toolbars (icon-only)",
+      "compact ui (reduced spacing)",
+      "keep running in the system tray for instant file opening",
+      "maximize window on startup",
+      "open app on favorites page",
+      "remember window size and position",
+      "show favorites as tiles"
+    ],
+    "radios": [],
+    "groups": [
+      "custom colors (advanced)",
+      "home & view"
+    ],
+    "tabs": [],
+    "combo_items": [
+      "alphabetical",
+      "compact list",
+      "custom order",
+      "recently used",
+      "tiles"
+    ],
+    "placeholders": [
+      "#rrggbb or rgb(r, g, b)"
+    ],
+    "tooltips": [],
+    "labels": [
+      "color profile",
+      "keybindings are unavailable."
+    ],
+    "shortcuts": []
+  },
+  "app/ui/settings_page.py": {
+    "buttons": [],
+    "checks": [],
+    "radios": [],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [],
+    "shortcuts": []
+  },
+  "app/ui/setup_wizard.py": {
+    "buttons": [
+      "download selected"
+    ],
+    "checks": [
+      "add"
+    ],
+    "radios": [],
+    "groups": [
+      "all set",
+      "choose a theme",
+      "file associations",
+      "pre-download optional models",
+      "welcome to fosseverything"
+    ],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [],
+    "shortcuts": []
+  },
+  "app/ui/ui_scaling.py": {
+    "buttons": [],
+    "checks": [],
+    "radios": [],
+    "groups": [],
+    "tabs": [],
+    "combo_items": [],
+    "placeholders": [],
+    "tooltips": [],
+    "labels": [],
+    "shortcuts": []
+  }
+}
