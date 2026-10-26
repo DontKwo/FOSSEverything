@@ -53,6 +53,26 @@ class RenamerOpsTests(unittest.TestCase):
         self.assertEqual(plans[0].new_name, "img_001.jpg")
         self.assertEqual(plans[1].new_name, "img_002.jpg")
 
+    def test_numbering_styles(self) -> None:
+        plans_prefix = renamer_ops.preview_renames(
+            self.files[:1],
+            mode="numbering",
+            params={"num_style": "prefix", "start": 5, "padding": 3},
+        )
+        self.assertEqual(plans_prefix[0].new_name, "005_IMG_001.JPG")
+
+        plans_suffix = renamer_ops.preview_renames(
+            self.files[:1],
+            mode="numbering",
+            params={"num_style": "suffix", "start": 5, "padding": 3},
+        )
+        self.assertEqual(plans_suffix[0].new_name, "IMG_001_005.JPG")
+
+    def test_extended_case_transforms(self) -> None:
+        self.assertEqual(renamer_ops.apply_case_transform("hello_world_test", "camel"), "helloWorldTest")
+        self.assertEqual(renamer_ops.apply_case_transform("helloWorldTest", "snake"), "hello_world_test")
+        self.assertEqual(renamer_ops.apply_case_transform("hello_world_test", "kebab"), "hello-world-test")
+
     def test_execute_renames(self) -> None:
         plans = renamer_ops.preview_renames(
             self.files,

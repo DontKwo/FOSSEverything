@@ -1,0 +1,94 @@
+name: Build Windows Executables & Installer
+
+on:
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - 'NOTICES.md'
+      - 'PRIVACY.md'
+      - 'CONTRIBUTING.md'
+      - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build target'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - standalone
+          - installer
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    name: Build Windows Binary
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+
+      - name: Build Standalone Executable (PyInstaller)
+        run: |
+          uv run python scripts/build_executable.py
+
+      - name: Compress Standalone Build to ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path dist\FOSSEverything\* -DestinationPath dist\FOSSEverything-Portable-win64.zip -Force
+
+      - name: Build Inno Setup Installer
+        shell: pwsh
+        run: |
+          # ISCC is preinstalled on windows-latest runner
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (Test-Path $iscc) {
+            & $iscc installer\FOSSEverything.iss
+          } else {
+            uv run python scripts/build_installer.py
+          }
+
+      - name: Upload Portable ZIP Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOSSEverything-Portable-win64
+          path: dist/FOSSEverything-Portable-win64.zip
+          retention-days: 14
+
+      - name: Upload Setup Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOSSEverything-Setup-win64
+          path: installer/Output/*.exe
+          retention-days: 14
+
+      - name: Attach Assets to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/FOSSEverything-Portable-win64.zip
+            installer/Output/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

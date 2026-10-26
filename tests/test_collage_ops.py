@@ -61,6 +61,13 @@ class CollageOpsTests(unittest.TestCase):
         self.assertEqual(result.size, (2 * 80 + 3 * 10, 2 * 80 + 3 * 10))
         self.assertEqual(result.mode, "RGB")
 
+    def test_make_collage_with_round_corners_without_cell_backgrounds(self) -> None:
+        config = collage_ops.CollageConfig(
+            cols=1, thumb_width=60, thumb_height=60, padding=10, bg_color=(0, 255, 0), corner_radius=15
+        )
+        result = collage_ops.make_collage(self.tmp_files[:1], config=config)
+        self.assertEqual(result.getpixel((10, 10)), (0, 255, 0))
+
     def test_collage_presets_reorder_and_watermark(self) -> None:
         reordered = collage_ops.reorder_image_paths(self.tmp_files, [2, 0, 3, 1])
         self.assertEqual(reordered[0], self.tmp_files[2])

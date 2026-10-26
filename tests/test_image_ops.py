@@ -5,24 +5,12 @@ import unittest
 from typing import Any
 from unittest.mock import patch
 
-from PyQt6.QtWidgets import QApplication
 from PIL import Image
 
-from app.features.image.tab import BackgroundRemovalDialog
 from app.features.image import ops as image_ops
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 
 class ImageOperationsTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls: type['ImageOperationsTests']) -> None:
-        cls.app = QApplication.instance() or QApplication([])
-
-    def test_background_removal_dialog_falls_back_for_invalid_model_name(self) -> None:
-        dialog = BackgroundRemovalDialog("corrupted\x00model", None)
-        self.assertEqual(dialog.selected_model(), "bria-rmbg")
-
     def test_remove_background_uses_local_rembg_and_converts_to_rgba(self) -> None:
         received = []
         sessions = []

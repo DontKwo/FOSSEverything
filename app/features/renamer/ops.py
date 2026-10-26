@@ -48,7 +48,7 @@ def undo_renames(changes: list[tuple[str, str]]) -> list[tuple[str, str]]:
 
 
 def apply_case_transform(text: str, case_type: str) -> str:
-    """Apply uppercase, lowercase, title case, or sentence case."""
+    """Apply uppercase, lowercase, title, sentence, camel, snake, or kebab case."""
     c = case_type.lower()
     if c == "upper":
         return text.upper()
@@ -58,6 +58,21 @@ def apply_case_transform(text: str, case_type: str) -> str:
         return text.title()
     elif c == "sentence":
         return text.capitalize()
+    elif c == "snake":
+        s1 = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1_\2", text)
+        s2 = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", s1)
+        return re.sub(r"[\s\-_]+", "_", s2).strip("_").lower()
+    elif c == "kebab":
+        s1 = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1-\2", text)
+        s2 = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", s1)
+        return re.sub(r"[\s\-_]+", "-", s2).strip("-").lower()
+    elif c == "camel":
+        words = re.findall(r"[A-Za-z0-9]+", text)
+        if not words:
+            return text
+        first_word = words[0].lower()
+        rest = "".join(w.capitalize() for w in words[1:])
+        return f"{first_word}{rest}"
     return text
 
 
@@ -209,9 +224,17 @@ def preview_renames(
             step = params.get("step", 1)
             pad = params.get("padding", 3)
             keep_name = params.get("keep_name", False)
+            num_style = params.get("num_style", "")
 
             num_str = str(start + index * step).zfill(pad)
-            body = f"{name}_{num_str}" if keep_name else f"{prefix}{num_str}{suffix}"
+            if num_style == "prefix":
+                body = f"{num_str}_{name}"
+            elif num_style == "suffix":
+                body = f"{name}_{num_str}"
+            elif num_style == "replace":
+                body = f"{prefix}{num_str}{suffix}" if (prefix or suffix) else num_str
+            else:
+                body = f"{name}_{num_str}" if keep_name else f"{prefix}{num_str}{suffix}"
             new_name = f"{body}{ext}"
 
         elif mode == "prefix_suffix":

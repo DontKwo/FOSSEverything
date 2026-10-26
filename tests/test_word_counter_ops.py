@@ -29,5 +29,14 @@ class WordCounterOpsTests(unittest.TestCase):
         top_kw = stats["top_keywords"]
         self.assertTrue(any(k["word"] == "python" and k["count"] == 3 for k in top_kw))
 
+    def test_generate_report(self) -> None:
+        text = "Quick test to verify analytics report generation."
+        stats = word_counter_ops.analyze_text(text)
+        report = word_counter_ops.generate_report(stats)
+        self.assertIn("Word Counter & Text Analytics Report", report)
+        self.assertIn("Words:", report)
+        self.assertIn("Characters:", report)
+
+
 if __name__ == "__main__":
     unittest.main()

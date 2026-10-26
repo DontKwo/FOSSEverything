@@ -1,6 +1,7 @@
 """Local metadata inspection, editing, and removal for images and PDFs."""
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -250,6 +251,14 @@ def strip_metadata(input_path: str, output_path: str) -> str:
         return office_ops.strip_office_metadata(input_path, output_path)
 
     raise ValueError(f"Metadata Tools does not support this file format ({os.path.splitext(input_path)[1]}).")
+
+
+def export_metadata(input_path: str, output_path: str) -> str:
+    """Export inspected metadata as a formatted JSON document."""
+    data = inspect_metadata(input_path)
+    with open(output_path, "w", encoding="utf-8") as fh:
+        json.dump(data, fh, indent=2)
+    return output_path
 
 
 def bulk_update_metadata(input_path: str, output_path: str, edits: dict[str, str] | list[dict[str, str]]) -> str:

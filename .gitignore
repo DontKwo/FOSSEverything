@@ -35,3 +35,8 @@ mojibake_scan.txt
 .idea/
 .DS_Store
 Thumbs.db
+
+# Test outputs
+tests/ui/_out/
+tests/parity/_cache/
+

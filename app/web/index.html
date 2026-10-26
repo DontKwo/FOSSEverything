@@ -1,0 +1,2266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOSSEverything</title>
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">F</div>
+      <div>
+        <div class="brand-title">FOSSEverything</div>
+        <div class="brand-badge">Local Power Suite</div>
+      </div>
+    </div>
+
+    <div class="nav-scroll">
+      <div class="nav-section-title">Workspaces</div>
+      <nav class="nav-items">
+        <div class="nav-item active" data-view="home">
+          <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          <span>All Tools</span>
+        </div>
+      </nav>
+
+      <div class="nav-section-title">Documents</div>
+      <nav class="nav-items">
+        <div class="nav-item" data-view="pdf">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9.5 8.5c0 .83-.67 1.5-1.5 1.5H7v2H5.5V9H8c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V9H13c.83 0 1.5.67 1.5 1.5v3zm4-3H17v1h1.5V13H17v2h-1.5V9h3v1.5z"/></svg>
+          <span>PDF Studio & Editor</span>
+        </div>
+        <div class="nav-item" data-view="ocr">
+          <svg viewBox="0 0 24 24"><path d="M9 3L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2h-3.17L15 3H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>
+          <span>OCR & Text</span>
+        </div>
+        <div class="nav-item" data-view="word_counter">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+          <span>Word Counter</span>
+        </div>
+        <div class="nav-item" data-view="markdown">
+          <svg viewBox="0 0 24 24"><path d="M20.56 18H3.44C2.65 18 2 17.37 2 16.59V7.41C2 6.63 2.65 6 3.44 6h17.12c.79 0 1.44.63 1.44 1.41v9.18c0 .78-.65 1.41-1.44 1.41zM7.5 14.5l2-2.5-2-2.5H6v5h1.5zm6 0h1.5v-3l1.5 1.5 1.5-1.5v3h1.5v-5H18l-1.5 1.5L15 8.5h-1.5v6z"/></svg>
+          <span>Markdown Studio</span>
+        </div>
+        <div class="nav-item" data-view="office">
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm-1 9V3.5L18.5 9H13z"/></svg>
+          <span>Office Extractor</span>
+        </div>
+        <div class="nav-item" data-view="resume">
+          <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+          <span>Resume & ATS</span>
+        </div>
+      </nav>
+
+      <div class="nav-section-title">Visuals & 3D</div>
+      <nav class="nav-items">
+        <div class="nav-item" data-view="images">
+          <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+          <span>Image Canvas & Editor</span>
+        </div>
+        <div class="nav-item" data-view="model3d">
+          <svg viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5zm0 2.24L5.27 8 12 11.76 18.73 8 12 4.24zM4.5 9.54v6.92l6.5 3.61v-6.92L4.5 9.54zm15 0l-6.5 3.61v6.92l6.5-3.61v-6.92z"/></svg>
+          <span>3D Model & STL Studio</span>
+        </div>
+        <div class="nav-item" data-view="palette">
+          <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.59 10.57 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-4 9c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm4 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/></svg>
+          <span>Color Palette</span>
+        </div>
+        <div class="nav-item" data-view="collage">
+          <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zm9 0h7v16h-7zm-9 9h7v7H4z"/></svg>
+          <span>Photo Collage</span>
+        </div>
+      </nav>
+
+      <div class="nav-section-title">Media & Audio</div>
+      <nav class="nav-items">
+        <div class="nav-item" data-view="media">
+          <svg viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+          <span>Video & Audio Studio</span>
+        </div>
+        <div class="nav-item" data-view="playlist">
+          <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+          <span>Playlist Porter</span>
+        </div>
+      </nav>
+
+      <div class="nav-section-title">Utilities & System</div>
+      <nav class="nav-items">
+        <div class="nav-item" data-view="converter">
+          <svg viewBox="0 0 24 24"><path d="M19 8l-4 4h3c0 3.31-2.69 6-6 6-1.01 0-1.97-.25-2.8-.7l-1.46 1.46C8.97 19.54 10.43 20 12 20c4.42 0 8-3.58 8-8h3l-4-4zM6 12c0-3.31 2.69-6 6-6 1.01 0 1.97.25 2.8.7l1.46-1.46C15.03 4.46 13.57 4 12 4 7.58 4 4 7.58 4 12H1l4 4 4-4H6z"/></svg>
+          <span>File Converter</span>
+        </div>
+        <div class="nav-item" data-view="qr">
+          <svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm13-2h3v2h-3zm-3 2h2v3h-2zm2 3h3v3h-3zm2-3h2v2h-2z"/></svg>
+          <span>QR & Barcodes</span>
+        </div>
+        <div class="nav-item" data-view="hash">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5zm4 4h-2v-2h2v2zm0-4h-2V7h2v5z"/></svg>
+          <span>Hash & Checksum</span>
+        </div>
+        <div class="nav-item" data-view="renamer">
+          <svg viewBox="0 0 24 24"><path d="M14.06 9.02l.92.92L5.92 19H5v-.92l9.06-9.06M17.66 3c-.25 0-.51.1-.7.29l-1.83 1.83 3.75 3.75 1.83-1.83c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.2-.2-.45-.29-.71-.29zm-3.6 3.19L3 17.25V21h3.75L17.81 9.94l-3.75-3.75z"/></svg>
+          <span>Batch Renamer</span>
+        </div>
+        <div class="nav-item" data-view="metadata">
+          <svg viewBox="0 0 24 24"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+          <span>Metadata Tools</span>
+        </div>
+        <div class="nav-item" data-view="archive">
+          <svg viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>
+          <span>Archive Manager</span>
+        </div>
+        <div class="nav-item" data-view="screenshot">
+          <svg viewBox="0 0 24 24"><path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></svg>
+          <span>Screen Capture</span>
+        </div>
+        <div class="nav-item" data-view="network_monitor">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          <span>Network Monitor</span>
+        </div>
+      </nav>
+
+      <div class="nav-section-title">Data & Text</div>
+      <nav class="nav-items">
+        <div class="nav-item" data-view="data">
+          <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+          <span>JSON & Data</span>
+        </div>
+        <div class="nav-item" data-view="text_tools">
+          <svg viewBox="0 0 24 24"><path d="M2.5 4v3h5v12h3V7h5V4h-13zm19 5h-9v3h3v7h3v-7h3V9z"/></svg>
+          <span>Text Tools</span>
+        </div>
+        <div class="nav-item" data-view="encoding">
+          <svg viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>
+          <span>Encoding / Decoding</span>
+        </div>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- Main Area -->
+  <div class="main-wrapper">
+    <!-- Top Bar -->
+    <header class="top-bar">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="nav-home-btn" id="nav-home-btn" title="Back to All Tools (Home)">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+          <span>Home</span>
+        </button>
+        <div class="breadcrumbs">
+          <span>FOSSEverything</span>
+          <span>/</span>
+          <strong id="current-view-title">All Tools</strong>
+        </div>
+      </div>
+
+      <select id="workspace-quick-select" class="quick-nav-select" title="Switch Workspace">
+        <option value="home">All Tools (Home)</option>
+        <option value="pdf">PDF Studio & Editor</option>
+        <option value="images">Image Canvas & Editor</option>
+        <option value="model3d">3D Model & STL Studio</option>
+        <option value="media">Video & Audio Studio</option>
+        <option value="converter">Universal File Converter</option>
+        <option value="word_counter">Word Counter & Analytics</option>
+        <option value="ocr">OCR & Text Extraction</option>
+        <option value="markdown">Markdown Studio</option>
+        <option value="palette">Color Palette Studio</option>
+        <option value="collage">Photo Collage Studio</option>
+        <option value="renamer">Batch File Renamer</option>
+        <option value="metadata">Metadata Tools</option>
+        <option value="archive">Archive Manager</option>
+        <option value="office">Office Document Extractor</option>
+        <option value="screenshot">Screen Capture</option>
+        <option value="network_monitor">Live Network Monitor</option>
+        <option value="playlist">Playlist Porter</option>
+        <option value="resume">Resume Builder & ATS</option>
+        <option value="qr">QR Code & Barcodes</option>
+        <option value="hash">Hash & Checksum Studio</option>
+        <option value="data">JSON & Data Tools</option>
+        <option value="text_tools">Text Tools</option>
+        <option value="encoding">Encoding / Decoding</option>
+      </select>
+
+      <div class="quick-favorites-bar" id="quick-favorites-bar"></div>
+
+      <div class="global-search-btn" id="open-palette-btn">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <span>Search tools & features...</span>
+        <span class="kbd-shortcut">Ctrl+K / Ctrl+P</span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <select id="theme-quick-select" class="theme-select" title="Switch Theme">
+          <option value="dark">Dark Modern</option>
+          <option value="light">Light Modern</option>
+          <option value="solarized">Solarized Dark</option>
+          <option value="monokai">Monokai Pro</option>
+          <option value="cyberpunk">Cyberpunk</option>
+        </select>
+
+        <button class="settings-hub-btn" id="open-settings-btn" title="Settings Hub">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content Views -->
+    <main class="content-view">
+
+      <!-- View: Home -->
+      <section id="view-home">
+        <div class="hero-header">
+          <h1 class="hero-title">Offline Desktop Power Tool</h1>
+          <p class="hero-subtitle">Fast, local-first workstation for documents, media, 3D modeling, and everyday workflows. 100% offline, zero telemetry.</p>
+        </div>
+
+        <div class="filter-chips" id="category-filters">
+          <div class="filter-chip active" data-filter="all">All Tools</div>
+          <div class="filter-chip" data-filter="Documents">Documents</div>
+          <div class="filter-chip" data-filter="Images">Visuals & 3D</div>
+          <div class="filter-chip" data-filter="Media">Media</div>
+          <div class="filter-chip" data-filter="Utilities">Utilities</div>
+          <div class="filter-chip" data-filter="Data">Data</div>
+        </div>
+
+        <div class="app-grid" id="apps-container"></div>
+      </section>
+
+      <!-- View: PDF Studio & Visual Editor -->
+      <section id="view-pdf" style="display: none;">
+        <div class="tool-container" style="max-width: 100%;">
+          <div class="tool-header">
+            <h2 class="tool-title">PDF Studio & Visual Editor</h2>
+            <p class="tool-desc">View, annotate, highlight, draw, redact, rotate, merge, split, watermark, protect, and compress PDFs locally.</p>
+          </div>
+
+          <div class="tool-tabs">
+            <div class="tool-tab active" data-subtab="pdf-viewer">Visual Editor & Annotator</div>
+            <div class="tool-tab" data-subtab="pdf-merge">Merge</div>
+            <div class="tool-tab" data-subtab="pdf-split">Split</div>
+            <div class="tool-tab" data-subtab="pdf-compress">Compress</div>
+            <div class="tool-tab" data-subtab="pdf-watermark">Watermark</div>
+            <div class="tool-tab" data-subtab="pdf-protect">Password Protect</div>
+            <div class="tool-tab" data-subtab="pdf-unlock">Unlock</div>
+            <div class="tool-tab" data-subtab="pdf-pagenums">Page Numbers</div>
+            <div class="tool-tab" data-subtab="pdf-reorder">Reorder Pages</div>
+            <div class="tool-tab" data-subtab="pdf-ocr">Searchable PDF (OCR)</div>
+            <div class="tool-tab" data-subtab="pdf-docx">Convert to Word (DOCX)</div>
+            <div class="tool-tab" data-subtab="pdf-extract">Extract Text</div>
+          </div>
+
+          <!-- Subtab: Visual Editor & Annotator -->
+          <div id="subtab-pdf-viewer" class="subtab-content">
+            <div class="editor-toolbar">
+              <button class="btn-primary" id="pdf-view-open-btn">Open PDF</button>
+              <div class="toolbar-sep"></div>
+
+              <div class="tool-btn-group" id="pdf-tool-group">
+                <button class="tool-btn active" data-tool="select" title="Select / Pan">Select</button>
+                <button class="tool-btn" data-tool="draw" title="Pen Drawing">Pen</button>
+                <button class="tool-btn" data-tool="highlight" title="Highlight">Highlight</button>
+                <button class="tool-btn" data-tool="text" title="Text Note">Text</button>
+                <button class="tool-btn" data-tool="rect" title="Rectangle Box">Box</button>
+                <button class="tool-btn" data-tool="line" title="Straight Line">Line</button>
+                <button class="tool-btn" data-tool="arrow" title="Arrow">Arrow</button>
+                <button class="tool-btn" data-tool="redact" title="Redact Blackout">Redact</button>
+                <button class="tool-btn" data-tool="erase" title="Eraser">Erase</button>
+              </div>
+
+              <div class="toolbar-sep"></div>
+              <input type="color" id="pdf-draw-color" value="#ef4444" title="Annotation Color" style="width: 32px; height: 32px; border: none; border-radius: var(--radius-sm); cursor: pointer; background: transparent;">
+              <select id="pdf-draw-size" style="width: 75px; padding: 4px 8px;" title="Stroke Width">
+                <option value="2">2 px</option>
+                <option value="4" selected>4 px</option>
+                <option value="8">8 px</option>
+                <option value="16">16 px</option>
+              </select>
+              <div style="display: flex; align-items: center; gap: 4px;" title="Annotation Opacity">
+                <span style="font-size: 11px; color: var(--text-muted);">Opacity:</span>
+                <input type="range" id="pdf-draw-opacity" min="0.1" max="1.0" step="0.1" value="1.0" style="width: 70px;">
+              </div>
+
+              <div class="toolbar-sep"></div>
+              <button class="btn-secondary" id="pdf-undo-btn">Undo</button>
+              <button class="btn-secondary" id="pdf-clear-btn">Clear Annotations</button>
+              <button class="btn-primary" id="pdf-save-annotated-btn">Save PDF</button>
+            </div>
+
+            <!-- Page Navigation Bar -->
+            <div class="page-nav-bar">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button class="btn-secondary" id="pdf-first-page-btn" title="First Page">&laquo;</button>
+                <button class="btn-secondary" id="pdf-prev-page-btn" title="Previous Page">&larr; Prev</button>
+                <span id="pdf-page-indicator" style="font-size: 13.5px; font-weight: 600;">Page 1 of 1</span>
+                <input type="number" id="pdf-jump-input" min="1" value="1" style="width: 50px; padding: 4px; text-align: center; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-input); color: var(--text-main);" title="Jump to page">
+                <button class="btn-secondary" id="pdf-next-page-btn" title="Next Page">Next &rarr;</button>
+                <button class="btn-secondary" id="pdf-last-page-btn" title="Last Page">&raquo;</button>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button class="btn-secondary" id="pdf-rotate-ccw-btn" title="Rotate Counter-Clockwise">&larr; 90&deg;</button>
+                <button class="btn-secondary" id="pdf-rotate-cw-btn" title="Rotate Clockwise">90&deg; &rarr;</button>
+                <button class="btn-secondary" id="pdf-delete-curr-page-btn" title="Delete Current Page">Delete Page</button>
+                <button class="btn-secondary" id="pdf-extract-curr-page-btn" title="Extract Current Page to new PDF">Extract Page</button>
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button class="btn-secondary" id="pdf-zoom-out-btn" title="Zoom Out">-</button>
+                <span id="pdf-zoom-val" style="font-size: 13px; min-width: 45px; text-align: center;">100%</span>
+                <button class="btn-secondary" id="pdf-zoom-in-btn" title="Zoom In">+</button>
+                <button class="btn-secondary" id="pdf-fit-width-btn" title="Fit to Width">Fit Width</button>
+                <button class="btn-secondary" id="pdf-fit-page-btn" title="Fit Entire Page">Fit Page</button>
+              </div>
+            </div>
+
+            <!-- Visual Canvas Stage -->
+            <div class="viewport-stage" id="pdf-stage">
+              <div id="pdf-canvas-wrapper" style="position: relative; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+                <img id="pdf-page-img" src="" alt="PDF Page" style="display: none; max-width: 100%; border-radius: var(--radius-sm);">
+                <canvas id="pdf-annotation-canvas" style="position: absolute; inset: 0; cursor: crosshair;"></canvas>
+                <div id="pdf-placeholder-msg" style="padding: 100px 40px; text-align: center; color: var(--text-muted);">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.3; margin-bottom: 12px;"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-9.5 8.5c0 .83-.67 1.5-1.5 1.5H7v2H5.5V9H8c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V9H13c.83 0 1.5.67 1.5 1.5v3zm4-3H17v1h1.5V13H17v2h-1.5V9h3v1.5z"/></svg>
+                  <p style="font-size: 15px; font-weight: 500;">No PDF opened</p>
+                  <p style="font-size: 13px; margin-top: 4px;">Click "Open PDF" above to load and view pages with full markup tools.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab: Merge -->
+          <div id="subtab-pdf-merge" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Selected PDF Files (in order of merging)</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-merge-paths" class="text-input" placeholder="Select multiple PDF files...">
+                <button class="btn-secondary" id="pdf-merge-browse-btn">Browse Files</button>
+              </div>
+              <div class="file-picker-row" style="margin-top: 12px;">
+                <input type="text" id="pdf-merge-output" class="text-input" placeholder="Output merged PDF path...">
+                <button class="btn-secondary" id="pdf-merge-save-btn">Select Destination</button>
+              </div>
+              <button class="btn-primary" id="pdf-merge-run-btn" style="margin-top: 16px;">Merge PDFs</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Split -->
+          <div id="subtab-pdf-split" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input PDF File</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-split-input" class="text-input" placeholder="Select PDF file to split...">
+                <button class="btn-secondary" id="pdf-split-browse-btn">Browse</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Page Ranges (e.g. 1, 3, 5-8 or leave empty for all individual pages)</label>
+              <input type="text" id="pdf-split-ranges" class="text-input" placeholder="1, 2, 5-8">
+              <label class="form-label" style="margin-top: 12px;">Output Folder</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-split-output-dir" class="text-input" placeholder="Select destination folder...">
+                <button class="btn-secondary" id="pdf-split-folder-btn">Browse Folder</button>
+              </div>
+              <button class="btn-primary" id="pdf-split-run-btn" style="margin-top: 16px;">Split PDF</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Compress -->
+          <div id="subtab-pdf-compress" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input PDF File</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-compress-input" class="text-input" placeholder="Select PDF to compress...">
+                <button class="btn-secondary" id="pdf-compress-browse-btn">Browse</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Compression Level</label>
+              <select id="pdf-compress-level">
+                <option value="low">Low (Maximum Quality)</option>
+                <option value="medium" selected>Medium (Balanced Size & Quality)</option>
+                <option value="high">High (Maximum Compression)</option>
+              </select>
+              <label class="form-label" style="margin-top: 12px;">Output Path</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-compress-output" class="text-input" placeholder="Destination path for compressed PDF...">
+                <button class="btn-secondary" id="pdf-compress-save-btn">Browse Save</button>
+              </div>
+              <button class="btn-primary" id="pdf-compress-run-btn" style="margin-top: 16px;">Compress PDF</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Watermark -->
+          <div id="subtab-pdf-watermark" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input PDF File</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-wm-input" class="text-input" placeholder="Select PDF to watermark...">
+                <button class="btn-secondary" id="pdf-wm-browse-btn">Browse</button>
+              </div>
+              <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; margin-top: 12px;">
+                <div>
+                  <label class="form-label">Watermark Text</label>
+                  <input type="text" id="pdf-wm-text" class="text-input" placeholder="CONFIDENTIAL / DRAFT">
+                </div>
+                <div>
+                  <label class="form-label">Font Size</label>
+                  <input type="number" id="pdf-wm-size" class="text-input" value="48" min="12" max="120">
+                </div>
+                <div>
+                  <label class="form-label">Opacity (0.1 - 1.0)</label>
+                  <input type="number" id="pdf-wm-opacity" class="text-input" value="0.3" min="0.1" max="1.0" step="0.1">
+                </div>
+                <div>
+                  <label class="form-label">Angle (&deg;)</label>
+                  <input type="number" id="pdf-wm-angle" class="text-input" value="45" min="0" max="360">
+                </div>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Output Path</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-wm-output" class="text-input" placeholder="Output path...">
+                <button class="btn-secondary" id="pdf-wm-save-btn">Browse Save</button>
+              </div>
+              <button class="btn-primary" id="pdf-wm-run-btn" style="margin-top: 16px;">Apply Watermark</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Protect -->
+          <div id="subtab-pdf-protect" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input PDF File</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-prot-input" class="text-input" placeholder="Select PDF to encrypt...">
+                <button class="btn-secondary" id="pdf-prot-browse-btn">Browse</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Encryption Password</label>
+              <input type="password" id="pdf-prot-password" class="text-input" placeholder="Enter secure password...">
+              <label class="form-label" style="margin-top: 12px;">Output Path</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-prot-output" class="text-input" placeholder="Output path...">
+                <button class="btn-secondary" id="pdf-prot-save-btn">Browse Save</button>
+              </div>
+              <button class="btn-primary" id="pdf-prot-run-btn" style="margin-top: 16px;">Protect PDF</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Unlock -->
+          <div id="subtab-pdf-unlock" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Encrypted PDF File</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-unlock-input" class="text-input" placeholder="Select password-protected PDF...">
+                <button class="btn-secondary" id="pdf-unlock-browse-btn">Browse</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Password (if required)</label>
+              <input type="password" id="pdf-unlock-password" class="text-input" placeholder="Enter PDF password (or leave blank if none)...">
+              <label class="form-label" style="margin-top: 12px;">Output Path</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-unlock-output" class="text-input" placeholder="Destination for decrypted PDF...">
+                <button class="btn-secondary" id="pdf-unlock-save-btn">Browse Save</button>
+              </div>
+              <button class="btn-primary" id="pdf-unlock-run-btn" style="margin-top: 16px;">Unlock & Decrypt PDF</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Page Numbers -->
+          <div id="subtab-pdf-pagenums" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input PDF File</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-pagenums-input" class="text-input" placeholder="Select PDF to stamp page numbers...">
+                <button class="btn-secondary" id="pdf-pagenums-browse-btn">Browse</button>
+              </div>
+              <div style="display: flex; gap: 16px; margin-top: 12px;">
+                <div style="flex: 1;">
+                  <label class="form-label">Format / Template</label>
+                  <select id="pdf-pagenums-fmt">
+                    <option value="Page {n} of {total}" selected>Page {n} of {total}</option>
+                    <option value="{n} / {total}">{n} / {total}</option>
+                    <option value="Page {n}">Page {n}</option>
+                    <option value="- {n} -">- {n} -</option>
+                    <option value="{n}">{n}</option>
+                  </select>
+                </div>
+                <div style="flex: 1;">
+                  <label class="form-label">Position</label>
+                  <select id="pdf-pagenums-pos">
+                    <option value="bottom_center" selected>Bottom Center</option>
+                    <option value="bottom_right">Bottom Right</option>
+                    <option value="bottom_left">Bottom Left</option>
+                    <option value="top_center">Top Center</option>
+                    <option value="top_right">Top Right</option>
+                    <option value="top_left">Top Left</option>
+                  </select>
+                </div>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Output Path</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-pagenums-output" class="text-input" placeholder="Destination path...">
+                <button class="btn-secondary" id="pdf-pagenums-save-btn">Browse Save</button>
+              </div>
+              <button class="btn-primary" id="pdf-pagenums-run-btn" style="margin-top: 16px;">Stamp Page Numbers</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Reorder Pages -->
+          <div id="subtab-pdf-reorder" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input PDF File</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-reorder-input" class="text-input" placeholder="Select PDF to reorganize...">
+                <button class="btn-secondary" id="pdf-reorder-browse-btn">Browse</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">New Page Order (comma-separated, 1-based, e.g. 3, 1, 2, 4)</label>
+              <input type="text" id="pdf-reorder-order" class="text-input" placeholder="3, 1, 2, 4">
+              <label class="form-label" style="margin-top: 12px;">Output Path</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-reorder-output" class="text-input" placeholder="Destination PDF path...">
+                <button class="btn-secondary" id="pdf-reorder-save-btn">Browse Save</button>
+              </div>
+              <button class="btn-primary" id="pdf-reorder-run-btn" style="margin-top: 16px;">Reorder Pages</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Searchable PDF (OCR) -->
+          <div id="subtab-pdf-ocr" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input Scanned PDF</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-ocr-input" class="text-input" placeholder="Select scanned PDF...">
+                <button class="btn-secondary" id="pdf-ocr-browse-btn">Browse</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">OCR Language</label>
+              <select id="pdf-ocr-lang" style="width: 200px;">
+                <option value="eng" selected>English (eng)</option>
+              </select>
+              <label class="form-label" style="margin-top: 12px;">Output Searchable PDF</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-ocr-output" class="text-input" placeholder="Destination path...">
+                <button class="btn-secondary" id="pdf-ocr-save-btn">Browse Save</button>
+              </div>
+              <button class="btn-primary" id="pdf-ocr-run-btn" style="margin-top: 16px;">Generate Searchable PDF</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Convert to Word (DOCX) -->
+          <div id="subtab-pdf-docx" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input PDF File</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-docx-input" class="text-input" placeholder="Select PDF to convert to Word document...">
+                <button class="btn-secondary" id="pdf-docx-browse-btn">Browse</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Output Word Document (.docx)</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-docx-output" class="text-input" placeholder="Destination DOCX path...">
+                <button class="btn-secondary" id="pdf-docx-save-btn">Browse Save</button>
+              </div>
+              <button class="btn-primary" id="pdf-docx-run-btn" style="margin-top: 16px;">Convert PDF to DOCX</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Extract Text -->
+          <div id="subtab-pdf-extract" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input PDF File</label>
+              <div class="file-picker-row">
+                <input type="text" id="pdf-ext-input" class="text-input" placeholder="Select PDF to extract text...">
+                <button class="btn-secondary" id="pdf-ext-browse-btn">Browse</button>
+              </div>
+              <button class="btn-primary" id="pdf-ext-run-btn" style="margin-top: 16px;">Extract Text</button>
+            </div>
+            <div class="tool-card" id="pdf-ext-card" style="display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label class="form-label" style="margin: 0;">Extracted Document Text</label>
+                <button class="btn-secondary" id="pdf-ext-copy-btn">Copy Text</button>
+              </div>
+              <textarea id="pdf-ext-output" class="textarea-input" rows="12" readonly></textarea>
+            </div>
+          </div>
+
+          <div class="tool-card status-box" id="pdf-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Image Studio & Interactive Canvas Editor -->
+      <section id="view-images" style="display: none;">
+        <div class="tool-container" style="max-width: 100%;">
+          <div class="tool-header">
+            <h2 class="tool-title">Image Canvas & Editor</h2>
+            <p class="tool-desc">Visual crop, draw, annotate, filter presets, color balance, background removal, borders, and high-res export.</p>
+          </div>
+
+          <div class="editor-toolbar">
+            <button class="btn-primary" id="img-open-btn">Open Image</button>
+            <div class="toolbar-sep"></div>
+
+            <div class="tool-btn-group" id="img-tool-group">
+              <button class="tool-btn active" data-imgtool="select">Select / Pan</button>
+              <button class="tool-btn" data-imgtool="crop">Crop Box</button>
+              <button class="tool-btn" data-imgtool="draw">Pen</button>
+              <button class="tool-btn" data-imgtool="rect">Box</button>
+              <button class="tool-btn" data-imgtool="line">Line</button>
+              <button class="tool-btn" data-imgtool="arrow">Arrow</button>
+              <button class="tool-btn" data-imgtool="text">Text</button>
+              <button class="tool-btn" data-imgtool="blur">Redact / Blur</button>
+              <button class="tool-btn" data-imgtool="pixelate">Pixelate</button>
+            </div>
+
+            <div class="toolbar-sep"></div>
+            <input type="color" id="img-draw-color" value="#3b82f6" title="Color" style="width: 32px; height: 32px; border: none; border-radius: var(--radius-sm); cursor: pointer; background: transparent;">
+            <select id="img-draw-size" style="width: 75px; padding: 4px 8px;" title="Size">
+              <option value="2">2 px</option>
+              <option value="4" selected>4 px</option>
+              <option value="8">8 px</option>
+              <option value="16">16 px</option>
+            </select>
+
+            <div class="toolbar-sep"></div>
+            <select id="img-crop-aspect" style="width: 130px; padding: 4px 8px;" title="Aspect Ratio">
+              <option value="free" selected>Free Crop</option>
+              <option value="1:1">1:1 Square</option>
+              <option value="4:5">4:5 Portrait</option>
+              <option value="16:9">16:9 Landscape</option>
+              <option value="9:16">9:16 Story</option>
+              <option value="4:3">4:3 Standard</option>
+              <option value="3:2">3:2 Photo</option>
+              <option value="circle">Circle Crop</option>
+            </select>
+            <button class="btn-secondary" id="img-apply-crop-btn" style="display: none; background: #10b981; color: white;">Apply Crop</button>
+
+            <div class="toolbar-sep"></div>
+            <button class="btn-secondary" id="img-rotate-left-btn" title="Rotate 90 Counter-Clockwise">&larr; 90&deg;</button>
+            <button class="btn-secondary" id="img-rotate-right-btn" title="Rotate 90 Clockwise">90&deg; &rarr;</button>
+            <button class="btn-secondary" id="img-flip-horiz-btn" title="Flip Horizontal">&#8596; Flip H</button>
+            <button class="btn-secondary" id="img-flip-vert-btn" title="Flip Vertical">&#8597; Flip V</button>
+
+            <div class="toolbar-sep"></div>
+            <button class="btn-secondary" id="img-canvas-undo-btn">Undo</button>
+            <button class="btn-primary" id="img-save-canvas-btn">Save Image As...</button>
+          </div>
+
+          <!-- Adjustments, Rotation & Filters Sub-bar -->
+          <div class="filter-bar">
+            <div class="filter-item">
+              <span>Angle:</span>
+              <input type="range" id="img-rotate-angle" min="-180" max="180" value="0" style="width: 80px;">
+              <span id="img-rotate-angle-val" style="min-width: 36px; font-size: 11px;">0&deg;</span>
+              <button class="btn-secondary" id="img-apply-angle-btn" style="padding: 2px 8px; font-size: 11px;">Apply</button>
+            </div>
+            <div class="toolbar-sep"></div>
+            <div class="filter-item">
+              <span>Brightness:</span>
+              <input type="range" id="img-filter-bright" min="0.2" max="2.0" step="0.05" value="1.0">
+            </div>
+            <div class="filter-item">
+              <span>Contrast:</span>
+              <input type="range" id="img-filter-contrast" min="0.2" max="2.0" step="0.05" value="1.0">
+            </div>
+            <div class="filter-item">
+              <span>Saturation:</span>
+              <input type="range" id="img-filter-saturate" min="0.0" max="3.0" step="0.1" value="1.0">
+            </div>
+            <div class="filter-item">
+              <span>Blur:</span>
+              <input type="range" id="img-filter-blur" min="0" max="10" step="1" value="0">
+            </div>
+
+            <div style="display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap;">
+              <button class="btn-secondary" id="img-preset-auto" style="padding: 4px 8px; font-size: 11.5px;">Auto Enhance</button>
+              <button class="btn-secondary" id="img-preset-vivid" style="padding: 4px 8px; font-size: 11.5px;">Vivid</button>
+              <button class="btn-secondary" id="img-preset-warm" style="padding: 4px 8px; font-size: 11.5px;">Warm</button>
+              <button class="btn-secondary" id="img-preset-cool" style="padding: 4px 8px; font-size: 11.5px;">Cool</button>
+              <button class="btn-secondary" id="img-preset-grayscale" style="padding: 4px 8px; font-size: 11.5px;">Grayscale</button>
+              <button class="btn-secondary" id="img-preset-bw" style="padding: 4px 8px; font-size: 11.5px;">High B&W</button>
+              <button class="btn-secondary" id="img-preset-sepia" style="padding: 4px 8px; font-size: 11.5px;">Sepia</button>
+              <button class="btn-secondary" id="img-preset-vintage" style="padding: 4px 8px; font-size: 11.5px;">Vintage</button>
+              <button class="btn-secondary" id="img-preset-invert" style="padding: 4px 8px; font-size: 11.5px;">Invert</button>
+              <button class="btn-secondary" id="img-reset-filters" style="padding: 4px 8px; font-size: 11.5px;">Reset</button>
+            </div>
+          </div>
+
+          <!-- Background Removal & Borders Sub-bar -->
+          <div class="filter-bar" style="background: rgba(19, 27, 46, 0.7);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="font-size: 12px; color: var(--accent);">AI Background:</strong>
+              <select id="img-rmbg-model" style="width: 110px; padding: 3px 6px; font-size: 12px;">
+                <option value="bria-rmbg" selected>Bria RMBG</option>
+                <option value="u2net">U2Net</option>
+              </select>
+              <button class="btn-secondary" id="img-rmbg-btn" style="padding: 4px 10px; font-size: 12px;">Remove BG</button>
+              <input type="color" id="img-bg-color" value="#ffffff" title="Replace BG Color" style="width: 28px; height: 28px; border: none; cursor: pointer; background: transparent;">
+              <button class="btn-secondary" id="img-replace-bg-btn" style="padding: 4px 10px; font-size: 12px;">Fill BG Color</button>
+            </div>
+
+            <div class="toolbar-sep"></div>
+
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="font-size: 12px; color: var(--accent);">Borders & Frame:</strong>
+              <span style="font-size: 11.5px; color: var(--text-muted);">Width:</span>
+              <input type="number" id="img-border-width" value="12" min="1" max="100" style="width: 50px; padding: 3px; font-size: 12px; text-align: center; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-input); color: var(--text-main);">
+              <input type="color" id="img-border-color" value="#ffffff" title="Border Color" style="width: 28px; height: 28px; border: none; cursor: pointer; background: transparent;">
+              <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;">
+                <input type="checkbox" id="img-polaroid-chk">
+                <span>Polaroid Frame</span>
+              </label>
+              <button class="btn-secondary" id="img-apply-border-btn" style="padding: 4px 10px; font-size: 12px;">Add Border</button>
+            </div>
+          </div>
+
+          <!-- Image Canvas Stage -->
+          <div class="viewport-stage" id="img-stage">
+            <div id="img-canvas-container" style="position: relative; display: inline-block;">
+              <canvas id="image-editor-canvas" style="display: block; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border-radius: var(--radius-sm);"></canvas>
+              <div id="img-crop-box" style="display: none; position: absolute; border: 2px dashed #3b82f6; background: rgba(59, 130, 246, 0.15); cursor: move;"></div>
+              <div id="img-placeholder-msg" style="padding: 100px 40px; text-align: center; color: var(--text-muted);">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.3; margin-bottom: 12px;"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+                <p style="font-size: 15px; font-weight: 500;">No Image Opened</p>
+                <p style="font-size: 13px; margin-top: 4px;">Click "Open Image" to view and edit PNG, JPG, WebP, or BMP files visually.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="tool-card status-box" id="img-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: 3D Model & STL Studio -->
+      <section id="view-model3d" style="display: none;">
+        <div class="tool-container" style="max-width: 100%;">
+          <div class="tool-header">
+            <h2 class="tool-title">3D Model & STL Studio</h2>
+            <p class="tool-desc">Interactive WebGL 3D model viewport: inspect, slice, repair, scale, measure, and export STL, OBJ, and PLY models.</p>
+          </div>
+
+          <div class="editor-toolbar">
+            <button class="btn-primary" id="m3d-open-file-btn">Open 3D Model (STL / OBJ / PLY)</button>
+            <div class="toolbar-sep"></div>
+
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12.5px; color: var(--text-muted);">Mode:</span>
+              <select id="m3d-render-mode" style="width: 120px; padding: 4px 8px;">
+                <option value="solid" selected>Solid Shaded</option>
+                <option value="wireframe">Wireframe</option>
+                <option value="normals">Normal Colors</option>
+                <option value="bounds">Bounding Box</option>
+              </select>
+            </div>
+
+            <button class="btn-secondary" id="m3d-reset-cam-btn">Reset View</button>
+            <button class="btn-secondary" id="m3d-repair-btn">Repair Mesh</button>
+            <button class="btn-secondary" id="m3d-measure-btn">Measure Distance</button>
+
+            <div class="toolbar-sep"></div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12.5px; color: var(--text-muted);">Scale:</span>
+              <button class="btn-secondary" id="m3d-scale-half">0.5x</button>
+              <button class="btn-secondary" id="m3d-scale-double">2.0x</button>
+              <input type="number" id="m3d-scale-val" value="1.0" step="0.1" min="0.01" style="width: 55px; padding: 3px; font-size: 12px; text-align: center; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-input); color: var(--text-main);">
+              <button class="btn-secondary" id="m3d-scale-apply-btn">Apply</button>
+            </div>
+
+            <div class="toolbar-sep"></div>
+            <select id="m3d-export-fmt" style="width: 80px; padding: 4px 8px;">
+              <option value="stl" selected>STL</option>
+              <option value="obj">OBJ</option>
+              <option value="ply">PLY</option>
+            </select>
+            <button class="btn-primary" id="m3d-export-btn">Export Mesh...</button>
+          </div>
+
+          <!-- 3D Cutting Plane Bar -->
+          <div class="filter-bar" style="gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="font-size: 13px;">Cut Plane Axis:</strong>
+              <select id="m3d-cut-axis" style="width: 100px; padding: 4px 8px;">
+                <option value="z" selected>Z (Height)</option>
+                <option value="x">X (Width)</option>
+                <option value="y">Y (Depth)</option>
+              </select>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+              <span style="font-size: 13px; color: var(--text-muted);">Cut Position (<span id="m3d-cut-ratio-val">50%</span>):</span>
+              <input type="range" id="m3d-cut-slider" min="5" max="95" value="50" style="flex: 1;">
+            </div>
+
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+              <input type="checkbox" id="m3d-cut-cap" checked>
+              <span>Cap Cut Surfaces</span>
+            </label>
+
+            <button class="btn-secondary" id="m3d-apply-cut-btn" style="background: #3b82f6; color: white;">Slice / Cut Model</button>
+          </div>
+
+          <!-- Main 3D Viewport Stage & Info Panel -->
+          <div style="display: grid; grid-template-columns: 1fr 310px; gap: 16px;">
+            <div class="viewport-stage" id="m3d-viewport-stage" style="min-height: 520px; padding: 0; position: relative;">
+              <canvas id="model3d-webgl-canvas" style="width: 100%; height: 100%; display: block; border-radius: var(--radius-md);"></canvas>
+              <div id="m3d-instructions" style="position: absolute; bottom: 12px; left: 16px; font-size: 12px; color: rgba(255,255,255,0.6); pointer-events: none;">
+                Left Drag: Rotate &bull; Right Drag: Pan &bull; Scroll: Zoom
+              </div>
+              <div id="m3d-placeholder" style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted);">
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.3; margin-bottom: 12px;"><path d="M12 2l9 5v10l-9 5-9-5V7l9-5zm0 2.24L5.27 8 12 11.76 18.73 8 12 4.24zM4.5 9.54v6.92l6.5 3.61v-6.92L4.5 9.54zm15 0l-6.5 3.61v6.92l6.5-3.61v-6.92z"/></svg>
+                <p style="font-size: 16px; font-weight: 500;">No 3D Model Loaded</p>
+                <p style="font-size: 13px; margin-top: 4px;">Click "Open 3D Model" to render STL, OBJ, or PLY files in interactive WebGL 3D.</p>
+              </div>
+            </div>
+
+            <!-- Model Details Card -->
+            <div class="tool-card" style="margin-bottom: 0;">
+              <h3 style="font-size: 15px; margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Geometry & Physics</h3>
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="stat-tile" style="padding: 8px;"><div class="stat-num" id="m3d-stat-faces">0</div><div class="stat-lbl">Faces (Triangles)</div></div>
+                <div class="stat-tile" style="padding: 8px;"><div class="stat-num" id="m3d-stat-verts">0</div><div class="stat-lbl">Vertices</div></div>
+                <div class="stat-tile" style="padding: 8px;"><div class="stat-num" id="m3d-stat-dims" style="font-size: 14px; font-family: monospace;">-</div><div class="stat-lbl">Dimensions (X &times; Y &times; Z mm)</div></div>
+                <div class="stat-tile" style="padding: 8px;"><div class="stat-num" id="m3d-stat-watertight" style="font-size: 16px;">-</div><div class="stat-lbl">Watertight Solid</div></div>
+                <div class="stat-tile" style="padding: 8px;"><div class="stat-num" id="m3d-stat-volume" style="font-size: 16px;">-</div><div class="stat-lbl">Volume (mm&sup3;)</div></div>
+                <div class="stat-tile" style="padding: 8px;"><div class="stat-num" id="m3d-stat-area" style="font-size: 16px;">-</div><div class="stat-lbl">Surface Area (mm&sup2;)</div></div>
+                <div class="stat-tile" style="padding: 8px;"><div class="stat-num" id="m3d-stat-measure" style="font-size: 14px; font-family: monospace;">-</div><div class="stat-lbl">Measured Distance</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tool-card status-box" id="m3d-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Video & Audio Studio -->
+      <section id="view-media" style="display: none;">
+        <div class="tool-container" style="max-width: 100%;">
+          <div class="tool-header">
+            <h2 class="tool-title">Video & Audio Studio</h2>
+            <p class="tool-desc">Embedded player, visual trim markers, snapshot frame grabber, audio extraction, and compression.</p>
+          </div>
+
+          <div class="editor-toolbar">
+            <button class="btn-primary" id="media-open-btn">Open Video / Audio</button>
+            <div class="toolbar-sep"></div>
+
+            <button class="btn-secondary" id="media-set-in-btn">[ Set In Point</button>
+            <button class="btn-secondary" id="media-set-out-btn">Set Out Point ]</button>
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12.5px; margin-left: 6px; cursor: pointer;">
+              <input type="checkbox" id="media-fast-copy-chk" checked>
+              <span>Stream Copy (Fast)</span>
+            </label>
+            <button class="btn-primary" id="media-trim-action-btn">Trim to Selection</button>
+
+            <div class="toolbar-sep"></div>
+            <button class="btn-secondary" id="media-snap-frame-btn">Capture Snapshot Frame</button>
+            <button class="btn-secondary" id="media-extract-audio-quick-btn">Extract Audio Track</button>
+            <button class="btn-secondary" id="media-mute-action-btn">Mute Video</button>
+            <button class="btn-secondary" id="media-compress-quick-btn">Compress Media</button>
+          </div>
+
+          <!-- Video Player Stage -->
+          <div class="viewport-stage" style="min-height: 480px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+            <video id="media-player" controls style="max-width: 100%; max-height: 480px; border-radius: var(--radius-sm); display: none;"></video>
+            <div id="media-placeholder" style="text-align: center; color: var(--text-muted); padding: 80px 20px;">
+              <svg width="56" height="56" viewBox="0 0 24 24" fill="currentColor" style="opacity: 0.3; margin-bottom: 12px;"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+              <p style="font-size: 16px; font-weight: 500;">No Media Opened</p>
+              <p style="font-size: 13px; margin-top: 4px;">Click "Open Video / Audio" to load MP4, MKV, MOV, MP3, WAV, or WebM media.</p>
+            </div>
+          </div>
+
+          <!-- Trim Range & Stream Details Bar -->
+          <div class="tool-card" style="margin-top: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+              <h3 style="font-size: 15px;">Playback & Trim Range</h3>
+              <div style="font-size: 14px; font-family: monospace;">
+                Start: <input type="text" id="media-in-time-input" value="00:00:00" style="width: 85px; padding: 2px 6px; font-size: 13px; text-align: center; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-input); color: var(--accent);"> &bull;
+                End: <input type="text" id="media-out-time-input" value="00:00:00" style="width: 85px; padding: 2px 6px; font-size: 13px; text-align: center; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-input); color: var(--accent);"> &bull;
+                Duration: <strong id="media-clip-duration">0s</strong>
+              </div>
+            </div>
+
+            <!-- Audio Extraction & Compression Controls -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border);">
+              <div>
+                <label class="form-label">Audio Extraction Settings</label>
+                <div style="display: flex; gap: 10px;">
+                  <select id="media-audio-fmt" style="flex: 1;">
+                    <option value="mp3" selected>MP3</option>
+                    <option value="wav">WAV</option>
+                    <option value="flac">FLAC</option>
+                    <option value="aac">AAC</option>
+                    <option value="ogg">OGG</option>
+                  </select>
+                  <select id="media-audio-bitrate" style="flex: 1;">
+                    <option value="128k">128 kbps</option>
+                    <option value="192k" selected>192 kbps</option>
+                    <option value="256k">256 kbps</option>
+                    <option value="320k">320 kbps</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label class="form-label">Video Compression Quality</label>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <span style="font-size: 12px; color: var(--text-muted);">CRF (<span id="media-crf-val">23</span>):</span>
+                  <input type="range" id="media-compress-crf" min="18" max="36" value="23" style="flex: 1;">
+                  <select id="media-compress-preset" style="width: 100px;">
+                    <option value="fast">Fast</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="slow">Slow (Best)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Media Info Card -->
+            <div id="media-info-card" style="display: none; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border);">
+              <h4 style="font-size: 13.5px; margin-bottom: 8px; color: var(--text-muted); text-transform: uppercase;">Media Stream Metadata</h4>
+              <div id="media-info-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px;"></div>
+            </div>
+
+            <!-- Frame Snapshot Preview Card -->
+            <div id="media-snapshot-card" style="display: none; background: var(--bg-input); padding: 16px; border-radius: var(--radius-md); margin-top: 14px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <label class="form-label" style="margin: 0;">Captured Video Frame</label>
+                <button class="btn-primary" id="media-save-snap-btn">Save Snapshot Image</button>
+              </div>
+              <canvas id="media-snapshot-canvas" style="max-width: 320px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: block;"></canvas>
+            </div>
+          </div>
+
+          <div class="tool-card status-box" id="media-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: File Converter -->
+      <section id="view-converter" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Universal File Converter</h2>
+            <p class="tool-desc">Batch convert across documents, images, video, audio, and structured data offline.</p>
+          </div>
+
+          <div class="tool-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <label class="form-label" style="margin: 0;">Conversion Batch Queue</label>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-secondary" id="conv-browse-btn">+ Add Files</button>
+                <button class="btn-secondary" id="conv-clear-queue-btn">Clear Queue</button>
+                <button class="btn-secondary" id="conv-open-folder-btn">Open Output Folder</button>
+              </div>
+            </div>
+
+            <div style="overflow-x: auto; margin-top: 12px; margin-bottom: 16px;">
+              <table class="data-table" id="conv-queue-table">
+                <thead><tr><th>File Name</th><th>Source Format</th><th>Target Format</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 24px;">No files in conversion queue. Click "+ Add Files" above to get started.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display: flex; gap: 16px; margin-top: 14px;">
+              <div style="flex: 1;">
+                <label class="form-label">Global Target Format</label>
+                <select id="conv-target-format">
+                  <option value="pdf">PDF</option>
+                  <option value="docx">DOCX</option>
+                  <option value="png">PNG</option>
+                  <option value="jpg">JPG</option>
+                  <option value="webp">WebP</option>
+                  <option value="mp3">MP3</option>
+                  <option value="mp4">MP4</option>
+                  <option value="csv">CSV</option>
+                  <option value="json">JSON</option>
+                </select>
+              </div>
+              <div style="flex: 2;">
+                <label class="form-label">Output Directory</label>
+                <div class="file-picker-row">
+                  <input type="text" id="conv-output-dir" class="text-input" placeholder="Select destination folder...">
+                  <button class="btn-secondary" id="conv-folder-btn">Browse Folder</button>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn-primary" id="conv-run-btn" style="margin-top: 18px;">Convert All Files</button>
+          </div>
+
+          <div class="tool-card status-box" id="conv-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Word Counter -->
+      <section id="view-word_counter" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Word Counter & Text Analytics</h2>
+            <p class="tool-desc">Live word count, character statistics, readability level, speaking and reading time, and keyword analytics.</p>
+          </div>
+
+          <div class="tool-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+              <label class="form-label" style="margin: 0;">Analyze Text Content</label>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn-primary" id="wc-analyze-btn">Analyze Text</button>
+                <button class="btn-secondary" id="wc-file-browse-btn">Load from File</button>
+                <button class="btn-secondary" id="wc-clear-btn">Clear Input</button>
+                <button class="btn-secondary" id="wc-copy-stats-btn">Copy Stats</button>
+                <button class="btn-secondary" id="wc-export-report-btn">Export Report</button>
+                <button class="btn-secondary" id="wc-density-toggle-btn">Word Density</button>
+              </div>
+            </div>
+            <textarea id="wc-input" class="textarea-input" rows="8" placeholder="Paste or type text here to inspect statistics in real-time..."></textarea>
+          </div>
+
+          <div class="tool-card status-box" id="wc-status-box" style="display: none;"></div>
+
+          <div class="tool-card" id="wc-stats-grid">
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px;">
+              <div class="stat-tile"><div class="stat-num" id="wc-words">0</div><div class="stat-lbl">Words</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-chars">0</div><div class="stat-lbl">Characters</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-chars-nospace">0</div><div class="stat-lbl">No Spaces</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-sentences">0</div><div class="stat-lbl">Sentences</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-paragraphs">0</div><div class="stat-lbl">Paragraphs</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-reading-time">0 min</div><div class="stat-lbl">Reading Time</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-speaking-time">0 min</div><div class="stat-lbl">Speaking Time</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-pages">0</div><div class="stat-lbl">Estimated Pages</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-readability">-</div><div class="stat-lbl">Flesch Reading Ease</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-reading-level">-</div><div class="stat-lbl">Reading Level</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-avg-word-len">0</div><div class="stat-lbl">Avg Word Length</div></div>
+              <div class="stat-tile"><div class="stat-num" id="wc-avg-sent-len">0</div><div class="stat-lbl">Avg Sentence Length</div></div>
+            </div>
+          </div>
+
+          <div class="tool-card" id="wc-density-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h3 style="margin: 0; font-size: 1rem; font-weight: 600;">Word Frequency & Keyword Density</h3>
+              <span id="wc-density-subtitle" style="font-size: 0.85rem; color: var(--text-muted);">Top frequent words (excluding common stop words)</span>
+            </div>
+            <div style="max-height: 280px; overflow-y: auto;">
+              <table class="data-table" id="wc-density-table">
+                <thead>
+                  <tr>
+                    <th>Keyword / Word</th>
+                    <th style="width: 120px; text-align: right;">Count</th>
+                    <th style="width: 140px; text-align: right;">Density</th>
+                  </tr>
+                </thead>
+                <tbody id="wc-density-tbody">
+                  <tr>
+                    <td colspan="3" style="text-align: center; color: var(--text-muted); padding: 18px;">Enter text and click Analyze to view keyword density.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: OCR & Text -->
+      <section id="view-ocr" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">OCR & Document Text Extraction</h2>
+            <p class="tool-desc">Extract text from scanned documents and images using local Tesseract OCR engine.</p>
+          </div>
+
+          <div class="tool-card">
+            <label class="form-label">Input Image or PDF Scan</label>
+            <div class="file-picker-row">
+              <input type="text" id="ocr-input-path" class="text-input" placeholder="Select scan or image to recognize...">
+              <button class="btn-secondary" id="ocr-browse-btn">Browse File</button>
+            </div>
+
+            <div style="display: flex; gap: 16px; margin-top: 12px; align-items: center;">
+              <div style="width: 200px;">
+                <label class="form-label">Language</label>
+                <select id="ocr-language-select">
+                  <option value="eng" selected>English (eng)</option>
+                </select>
+              </div>
+
+              <div style="display: flex; gap: 12px; margin-top: 20px;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="ocr-deskew" checked>
+                  <span>Auto Deskew</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="ocr-binarize" checked>
+                  <span>Binarize Contrast</span>
+                </label>
+              </div>
+            </div>
+
+            <button class="btn-primary" id="ocr-run-btn" style="margin-top: 16px;">Perform OCR Extraction</button>
+          </div>
+
+          <div class="tool-card" id="ocr-result-card" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <div>
+                <label class="form-label" style="margin: 0;">Extracted Text Content</label>
+                <span id="ocr-stats-badge" style="font-size: 12px; color: var(--text-muted); margin-left: 8px;"></span>
+              </div>
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button class="btn-secondary" id="ocr-copy-btn">Copy Text</button>
+                <button class="btn-secondary" id="ocr-save-txt-btn">Save .txt</button>
+                <button class="btn-secondary" id="ocr-save-md-btn">Save .md</button>
+                <button class="btn-secondary" id="ocr-save-pdf-btn">Searchable PDF</button>
+              </div>
+            </div>
+            <textarea id="ocr-result-text" class="textarea-input" rows="12"></textarea>
+          </div>
+          <div class="tool-card status-box" id="ocr-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Markdown Studio -->
+      <section id="view-markdown" style="display: none;">
+        <div class="tool-container" style="max-width: 100%;">
+          <div class="tool-header">
+            <h2 class="tool-title">Markdown Studio</h2>
+            <p class="tool-desc">Live side-by-side Markdown editing, formatting toolbar, and rendered HTML/PDF export.</p>
+          </div>
+
+          <div id="md-workspace-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="tool-card" id="md-editor-card" style="display: flex; flex-direction: column;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <label class="form-label" style="margin: 0;">Markdown Source</label>
+                  <button class="btn-secondary" id="md-open-file-btn" style="padding: 2px 8px; font-size: 11px;">Open</button>
+                  <button class="btn-secondary" id="md-save-file-btn" style="padding: 2px 8px; font-size: 11px;">Save</button>
+                  <button class="btn-secondary" id="md-sample-btn" style="padding: 2px 8px; font-size: 11px;">Sample</button>
+                  <button class="btn-secondary" id="md-clear-btn" style="padding: 2px 8px; font-size: 11px;">Clear</button>
+                  <button class="btn-secondary" id="md-toggle-preview-btn" style="padding: 2px 8px; font-size: 11px;" title="Toggle live preview pane">Toggle Preview</button>
+                </div>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                  <button class="btn-secondary" id="md-bold-btn" title="Bold">B</button>
+                  <button class="btn-secondary" id="md-italic-btn" title="Italic"><i>I</i></button>
+                  <button class="btn-secondary" id="md-strike-btn" title="Strikethrough"><s>S</s></button>
+                  <button class="btn-secondary" id="md-h1-btn" title="Heading 1">H1</button>
+                  <button class="btn-secondary" id="md-h2-btn" title="Heading 2">H2</button>
+                  <button class="btn-secondary" id="md-h3-btn" title="Heading 3">H3</button>
+                  <button class="btn-secondary" id="md-inline-code-btn" title="Inline Code">`Code`</button>
+                  <button class="btn-secondary" id="md-code-btn" title="Code Block">&lt;/&gt;</button>
+                  <button class="btn-secondary" id="md-quote-btn" title="Quote">&ldquo;</button>
+                  <button class="btn-secondary" id="md-list-btn" title="Bullet List">&bull; List</button>
+                  <button class="btn-secondary" id="md-numlist-btn" title="Numbered List">1. List</button>
+                  <button class="btn-secondary" id="md-table-btn" title="Table">Table</button>
+                  <button class="btn-secondary" id="md-link-btn" title="Link">Link</button>
+                  <button class="btn-secondary" id="md-img-btn" title="Image">Img</button>
+                  <button class="btn-secondary" id="md-hr-btn" title="Horizontal Rule">HR</button>
+                </div>
+              </div>
+              <textarea id="md-input" class="textarea-input" style="flex: 1; min-height: 480px; font-family: monospace;"># FOSSEverything Markdown Studio
+
+Fast, beautiful, offline Markdown writing environment.
+
+- Live preview as you type
+- Table formatting
+- Code blocks
+- Zero cloud tracking
+
+```python
+def offline_power():
+    return "100% Local"
+```
+</textarea>
+            </div>
+
+            <div class="tool-card" id="md-preview-card" style="display: flex; flex-direction: column;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label class="form-label" style="margin: 0;">Rendered HTML Preview</label>
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn-secondary" id="md-copy-html-btn">Copy HTML</button>
+                  <button class="btn-secondary" id="md-export-md-btn">Export MD</button>
+                  <button class="btn-secondary" id="md-export-html-btn">Export HTML</button>
+                  <button class="btn-secondary" id="md-export-pdf-btn">Export PDF</button>
+                </div>
+              </div>
+              <div id="md-preview" class="markdown-preview-pane" style="flex: 1; min-height: 480px; background: var(--bg-input); padding: 16px; border-radius: var(--radius-md); overflow-y: auto;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Color Palette -->
+      <section id="view-palette" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Color Palette Studio</h2>
+            <p class="tool-desc">Extract dominant color swatches, hex codes, eyedropper loupe, and palette exports from any image.</p>
+          </div>
+
+          <div class="tool-card">
+            <label class="form-label">Source Image</label>
+            <div class="file-picker-row">
+              <input type="text" id="pal-input-path" class="text-input" placeholder="Select image to extract palette...">
+              <button class="btn-secondary" id="pal-browse-btn">Browse Image</button>
+            </div>
+            <div style="margin-top: 12px; width: 220px;">
+              <label class="form-label">Number of Colors (<span id="pal-num-label">6</span>)</label>
+              <input type="range" id="pal-num-colors" min="3" max="12" value="6" style="width: 100%;">
+            </div>
+            <button class="btn-primary" id="pal-run-btn" style="margin-top: 16px;">Extract Colors</button>
+          </div>
+
+          <!-- Eyedropper Stage -->
+          <div class="tool-card" id="pal-image-card" style="display: none; text-align: center; position: relative;">
+            <label class="form-label" style="text-align: left;">Interactive Eyedropper (Hover over image to inspect pixel color)</label>
+            <div style="display: inline-block; position: relative;">
+              <canvas id="pal-eyedropper-canvas" style="max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: crosshair;"></canvas>
+              <div id="eyedropper-loupe" style="display: none; position: absolute; width: 64px; height: 64px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.6); pointer-events: none; overflow: hidden; transform: translate(-50%, -50%);"></div>
+            </div>
+            <div id="pal-eyedropper-info" style="margin-top: 8px; font-family: monospace; font-size: 13px; color: var(--accent);">Hover to sample color</div>
+          </div>
+
+          <div class="tool-card" id="pal-result-card" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <label class="form-label" style="margin: 0;">Dominant Color Swatches (Click to copy Hex code)</label>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn-secondary" id="pal-export-json-btn">Export JSON</button>
+                <button class="btn-secondary" id="pal-export-css-btn">Export CSS</button>
+                <button class="btn-secondary" id="pal-export-gpl-btn">Export GPL</button>
+              </div>
+            </div>
+            <div id="pal-swatches-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px;"></div>
+          </div>
+          <div class="tool-card status-box" id="pal-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Photo Collage -->
+      <section id="view-collage" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Photo Collage Studio</h2>
+            <p class="tool-desc">Combine photos into beautiful grid compositions, reorder, and export high-res locally.</p>
+          </div>
+
+          <div class="tool-card">
+            <label class="form-label">Selected Images</label>
+            <div class="file-picker-row">
+              <input type="text" id="col-input-paths" class="text-input" placeholder="Select image files...">
+              <button class="btn-secondary" id="col-browse-btn">Browse Images</button>
+            </div>
+
+            <!-- Photos Queue -->
+            <div id="col-queue-container" style="margin-top: 12px; max-height: 160px; overflow-y: auto; background: var(--bg-input); padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: none;">
+              <div id="col-queue-list"></div>
+            </div>
+
+            <!-- Layout Presets -->
+            <div style="display: flex; gap: 8px; align-items: center; margin-top: 14px; flex-wrap: wrap;">
+              <span class="form-label" style="margin-bottom: 0;">Presets:</span>
+              <button type="button" class="btn-secondary col-preset-btn" data-cols="2" style="padding: 3px 8px; font-size: 11.5px;">2 Columns</button>
+              <button type="button" class="btn-secondary col-preset-btn" data-cols="3" style="padding: 3px 8px; font-size: 11.5px;">3 Columns</button>
+              <button type="button" class="btn-secondary col-preset-btn" data-cols="4" style="padding: 3px 8px; font-size: 11.5px;">4 Columns</button>
+              <button type="button" class="btn-secondary col-preset-btn" data-cols="1" style="padding: 3px 8px; font-size: 11.5px;">Stacked</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; margin-top: 14px;">
+              <div>
+                <label class="form-label">Columns</label>
+                <input type="number" id="col-columns" class="text-input" value="3" min="1" max="8">
+              </div>
+              <div>
+                <label class="form-label">Spacing (px)</label>
+                <input type="number" id="col-spacing" class="text-input" value="12" min="0" max="60">
+              </div>
+              <div>
+                <label class="form-label">Corner Radius (px)</label>
+                <input type="number" id="col-radius" class="text-input" value="8" min="0" max="40">
+              </div>
+              <div>
+                <label class="form-label">Aspect Ratio</label>
+                <select id="col-aspect">
+                  <option value="1:1" selected>Square (1:1)</option>
+                  <option value="4:3">Landscape (4:3)</option>
+                  <option value="16:9">Widescreen (16:9)</option>
+                  <option value="3:4">Portrait (3:4)</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px;">
+              <label class="form-label">Background Color</label>
+              <input type="color" id="col-bg" value="#0f172a" style="width: 100%; height: 38px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-input); cursor: pointer;">
+            </div>
+
+            <label class="form-label" style="margin-top: 14px;">Output Image Path</label>
+            <div class="file-picker-row">
+              <input type="text" id="col-output-path" class="text-input" placeholder="Destination path (e.g. collage.png)...">
+              <button class="btn-secondary" id="col-save-btn">Browse Save</button>
+            </div>
+
+            <button class="btn-primary" id="col-run-btn" style="margin-top: 16px;">Generate Collage</button>
+          </div>
+          <div class="tool-card status-box" id="col-status-box" style="display: none;"></div>
+          <div class="tool-card" id="col-preview-card" style="display: none; text-align: center; margin-top: 14px;">
+            <label class="form-label" style="margin-bottom: 8px; text-align: left;">Collage Preview</label>
+            <img id="col-preview-img" style="max-width: 100%; max-height: 480px; border-radius: var(--radius-sm); border: 1px solid var(--border);" alt="Collage Preview">
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Batch Renamer -->
+      <section id="view-renamer" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Batch File Renamer</h2>
+            <p class="tool-desc">Regex replace, sequential numbering, prefix/suffix, case changer with live preview and undo support.</p>
+          </div>
+
+          <div class="tool-card">
+            <label class="form-label">Target Files</label>
+            <div class="file-picker-row">
+              <input type="text" id="ren-input-paths" class="text-input" placeholder="Select files to rename...">
+              <button class="btn-secondary" id="ren-browse-btn">Browse Files</button>
+            </div>
+
+            <div class="tool-tabs" style="margin-top: 16px;">
+              <div class="tool-tab active" data-renmode="replace">Find & Replace</div>
+              <div class="tool-tab" data-renmode="prefix">Prefix / Suffix</div>
+              <div class="tool-tab" data-renmode="number">Numbering</div>
+              <div class="tool-tab" data-renmode="case">Change Case</div>
+              <div class="tool-tab" data-renmode="ext">Extension</div>
+            </div>
+
+            <!-- Mode: Find & Replace -->
+            <div id="renpanel-replace" class="ren-panel">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div>
+                  <label class="form-label">Find Pattern</label>
+                  <input type="text" id="ren-find" class="text-input" placeholder="e.g. IMG_ or [0-9]+">
+                </div>
+                <div>
+                  <label class="form-label">Replace With</label>
+                  <input type="text" id="ren-replace" class="text-input" placeholder="e.g. Photo_">
+                </div>
+              </div>
+              <div style="display: flex; gap: 16px; margin-top: 10px;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="ren-case-chk">
+                  <span>Match Case</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="ren-regex-chk">
+                  <span>Regular Expression</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">
+                  <input type="checkbox" id="ren-ext-chk">
+                  <span>Include Extension</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Mode: Prefix & Suffix -->
+            <div id="renpanel-prefix" class="ren-panel" style="display: none;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div>
+                  <label class="form-label">Prefix (Add to start)</label>
+                  <input type="text" id="ren-prefix" class="text-input" placeholder="e.g. 2026_">
+                </div>
+                <div>
+                  <label class="form-label">Suffix (Add before extension)</label>
+                  <input type="text" id="ren-suffix" class="text-input" placeholder="e.g. _final">
+                </div>
+              </div>
+            </div>
+
+            <!-- Mode: Numbering -->
+            <div id="renpanel-number" class="ren-panel" style="display: none;">
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px;">
+                <div>
+                  <label class="form-label">Start Number</label>
+                  <input type="number" id="ren-start-num" class="text-input" value="1">
+                </div>
+                <div>
+                  <label class="form-label">Step</label>
+                  <input type="number" id="ren-step-num" class="text-input" value="1">
+                </div>
+                <div>
+                  <label class="form-label">Padding (Digits)</label>
+                  <input type="number" id="ren-pad-num" class="text-input" value="3" min="1" max="10">
+                </div>
+                <div>
+                  <label class="form-label">Format Style</label>
+                  <select id="ren-num-style">
+                    <option value="prefix">Prefix (001_file)</option>
+                    <option value="suffix" selected>Suffix (file_001)</option>
+                    <option value="replace">Replace All (001)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mode: Change Case -->
+            <div id="renpanel-case" class="ren-panel" style="display: none;">
+              <label class="form-label">Case Transformation</label>
+              <select id="ren-case-select" style="width: 250px;">
+                <option value="lower">lowercase</option>
+                <option value="upper">UPPERCASE</option>
+                <option value="title">Title Case</option>
+                <option value="camel">camelCase</option>
+                <option value="snake">snake_case</option>
+                <option value="kebab">kebab-case</option>
+              </select>
+            </div>
+
+            <!-- Mode: Extension -->
+            <div id="renpanel-ext" class="ren-panel" style="display: none;">
+              <label class="form-label">New Extension</label>
+              <input type="text" id="ren-new-ext" class="text-input" placeholder="e.g. webp or png" style="width: 250px;">
+            </div>
+
+            <div style="display: flex; gap: 12px; margin-top: 18px;">
+              <button class="btn-secondary" id="ren-preview-btn">Preview Renaming Plan</button>
+              <button class="btn-secondary" id="ren-undo-btn">Undo Last Rename</button>
+            </div>
+          </div>
+
+          <div class="tool-card" id="ren-preview-card" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <label class="form-label" style="margin: 0;">Planned Rename Operations</label>
+              <button class="btn-primary" id="ren-apply-btn">Apply Rename Changes</button>
+            </div>
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="ren-table">
+                <thead><tr><th>Original Name</th><th>Target New Name</th><th>Status</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="tool-card status-box" id="ren-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Metadata Tools -->
+      <section id="view-metadata" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Metadata Tools</h2>
+            <p class="tool-desc">Inspect and strip EXIF, ID3, document, and media metadata for privacy.</p>
+          </div>
+
+          <div class="tool-card">
+            <label class="form-label">Select File to Inspect</label>
+            <div class="file-picker-row">
+              <input type="text" id="meta-input-path" class="text-input" placeholder="Select image, PDF, audio, or office doc...">
+              <button class="btn-secondary" id="meta-browse-btn">Browse File</button>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 16px;">
+              <button class="btn-primary" id="meta-inspect-btn">Inspect Metadata</button>
+              <button class="btn-secondary" id="meta-strip-btn">Strip Metadata (Sanitize)</button>
+              <button class="btn-secondary" id="meta-export-btn">Export Metadata</button>
+            </div>
+          </div>
+
+          <div class="tool-card" id="meta-result-card" style="display: none;">
+            <label class="form-label">Metadata Fields</label>
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="meta-table">
+                <thead><tr><th>Property</th><th>Value</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="tool-card status-box" id="meta-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Archive Manager -->
+      <section id="view-archive" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Archive Manager</h2>
+            <p class="tool-desc">Create, extract, and inspect ZIP, TAR, and GZ archives completely offline.</p>
+          </div>
+
+          <div class="tool-tabs">
+            <div class="tool-tab active" data-subtab="arc-extract">Extract</div>
+            <div class="tool-tab" data-subtab="arc-create">Create Archive</div>
+            <div class="tool-tab" data-subtab="arc-list">List Contents</div>
+          </div>
+
+          <!-- Subtab: Extract -->
+          <div id="subtab-arc-extract" class="subtab-content">
+            <div class="tool-card">
+              <label class="form-label">Archive File (ZIP, TAR, GZ)</label>
+              <div class="file-picker-row">
+                <input type="text" id="arc-ext-file" class="text-input" placeholder="Select archive to unpack...">
+                <button class="btn-secondary" id="arc-ext-browse-btn">Browse Archive</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Destination Folder</label>
+              <div class="file-picker-row">
+                <input type="text" id="arc-ext-dest" class="text-input" placeholder="Select output folder...">
+                <button class="btn-secondary" id="arc-ext-dest-btn">Browse Folder</button>
+              </div>
+              <button class="btn-primary" id="arc-ext-run-btn" style="margin-top: 16px;">Extract Archive</button>
+            </div>
+          </div>
+
+          <!-- Subtab: Create -->
+          <div id="subtab-arc-create" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Files to Include</label>
+              <div class="file-picker-row">
+                <input type="text" id="arc-create-files" class="text-input" placeholder="Select files to bundle...">
+                <button class="btn-secondary" id="arc-create-browse-btn">Browse Files</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Format</label>
+              <select id="arc-create-fmt" style="width: 200px;">
+                <option value="zip" selected>ZIP</option>
+                <option value="tar">TAR</option>
+              </select>
+              <label class="form-label" style="margin-top: 12px;">Output Archive Path</label>
+              <div class="file-picker-row">
+                <input type="text" id="arc-create-output" class="text-input" placeholder="Destination path (e.g. archive.zip)...">
+                <button class="btn-secondary" id="arc-create-save-btn">Browse Save</button>
+              </div>
+              <button class="btn-primary" id="arc-create-run-btn" style="margin-top: 16px;">Create Archive</button>
+            </div>
+          </div>
+
+          <!-- Subtab: List -->
+          <div id="subtab-arc-list" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Archive File</label>
+              <div class="file-picker-row">
+                <input type="text" id="arc-list-file" class="text-input" placeholder="Select archive to inspect...">
+                <button class="btn-secondary" id="arc-list-browse-btn">Browse Archive</button>
+              </div>
+              <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button class="btn-primary" id="arc-list-run-btn">List Archive Contents</button>
+                <button class="btn-secondary" id="arc-test-btn">Test Archive</button>
+              </div>
+            </div>
+            <div class="tool-card" id="arc-list-result-card" style="display: none;">
+              <table class="data-table" id="arc-list-table">
+                <thead><tr><th>Path in Archive</th><th>Uncompressed Size</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="tool-card status-box" id="arc-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Office Docs -->
+      <section id="view-office" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Office Document Extractor & Converter</h2>
+            <p class="tool-desc">Extract text, tables, and convert DOCX, PPTX, and XLSX files offline.</p>
+          </div>
+
+          <div class="tool-card">
+            <label class="form-label">Office Document (DOCX, PPTX, XLSX)</label>
+            <div class="file-picker-row">
+              <input type="text" id="off-input-path" class="text-input" placeholder="Select Microsoft Office document...">
+              <button class="btn-secondary" id="off-browse-btn">Browse File</button>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap;">
+              <button class="btn-primary" id="off-run-btn">Extract Text</button>
+              <button class="btn-secondary" id="off-docx-to-pdf-btn">DOCX to PDF</button>
+              <button class="btn-secondary" id="off-docx-to-md-btn">DOCX to Markdown</button>
+              <button class="btn-secondary" id="off-pptx-to-md-btn">PPTX to Markdown</button>
+              <button class="btn-secondary" id="off-xlsx-to-csv-btn">XLSX to CSV</button>
+            </div>
+          </div>
+
+          <div class="tool-card" id="off-result-card" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label class="form-label" style="margin: 0;">Extracted Content</label>
+              <button class="btn-secondary" id="off-copy-btn">Copy Text</button>
+            </div>
+            <textarea id="off-output" class="textarea-input" rows="14" readonly></textarea>
+          </div>
+          <div class="tool-card status-box" id="off-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Screen Capture -->
+      <section id="view-screenshot" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Screen Capture</h2>
+            <p class="tool-desc">Capture full screen snapshots with instant preview and download.</p>
+          </div>
+
+          <div class="tool-card">
+            <button class="btn-primary" id="snip-run-btn">Capture Full Desktop</button>
+          </div>
+
+          <div class="tool-card" id="snip-result-card" style="display: none; text-align: center;">
+            <div style="background: var(--bg-card); padding: 8px; border-radius: var(--radius-md); display: inline-block; margin-bottom: 16px; border: 1px solid var(--border);">
+              <img id="snip-preview-img" src="" alt="Screen capture preview" style="max-width: 100%; max-height: 400px; border-radius: var(--radius-sm); display: block;">
+            </div>
+            <div>
+              <a id="snip-download-btn" download="screenshot.png" class="btn-primary" style="text-decoration: none; display: inline-block;">Download Image</a>
+            </div>
+          </div>
+          <div class="tool-card status-box" id="snip-status-box" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- View: Network Monitor -->
+      <section id="view-network_monitor" style="display: none;">
+        <div class="tool-container" style="max-width: 100%;">
+          <div class="tool-header">
+            <h2 class="tool-title">Live Network Monitor</h2>
+            <p class="tool-desc">Inspect active outbound connections by process with zero administrative overhead.</p>
+          </div>
+
+          <div class="tool-card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <button class="btn-primary" id="net-refresh-btn">Refresh Active Connections</button>
+              <input type="text" id="net-filter-input" class="text-input" placeholder="Filter by process or IP..." style="width: 240px;">
+            </div>
+            <div id="net-stats-bar" style="font-size: 13px; color: var(--text-muted);">
+              Total Connections: <strong id="net-count-total">0</strong>
+            </div>
+          </div>
+
+          <div class="tool-card">
+            <div style="overflow-x: auto;">
+              <table class="data-table" id="net-table">
+                <thead><tr><th>PID</th><th>Process</th><th>Local Address</th><th>Remote Address</th><th>Protocol</th><th>Status</th></tr></thead>
+                <tbody><tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Click Refresh to load connections.</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Playlist Porter -->
+      <section id="view-playlist" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Playlist Porter</h2>
+            <p class="tool-desc">Clean music titles and export tracklists between Spotify, YouTube, and local files.</p>
+          </div>
+
+          <div class="tool-card">
+            <label class="form-label">Music Track or Video Title</label>
+            <input type="text" id="pl-title-input" class="text-input" placeholder="e.g. Artist - Song Name (Official HD Music Video)">
+            <button class="btn-primary" id="pl-clean-btn" style="margin-top: 14px;">Clean Track Title</button>
+          </div>
+
+          <div class="tool-card" id="pl-result-card" style="display: none;">
+            <label class="form-label">Cleaned Metadata</label>
+            <div style="display: flex; gap: 16px;">
+              <div style="flex: 1;"><label class="form-label">Artist</label><input type="text" id="pl-res-artist" class="text-input" readonly></div>
+              <div style="flex: 2;"><label class="form-label">Song Title</label><input type="text" id="pl-res-title" class="text-input" readonly></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Resume & ATS -->
+      <section id="view-resume" style="display: none;">
+        <div class="tool-container" style="max-width: 100%;">
+          <div class="tool-header">
+            <h2 class="tool-title">Resume Builder & ATS Matcher</h2>
+            <p class="tool-desc">Master resume structure, bullet point tailoring per job description, and ATS keyword optimization.</p>
+          </div>
+
+          <div class="tool-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; gap: 10px;">
+                <button class="btn-primary" id="res-sample-btn">Load Sample Resume</button>
+                <button class="btn-secondary" id="res-open-file-btn">Open File</button>
+                <button class="btn-secondary" id="res-save-file-btn">Save File</button>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn-secondary" id="res-export-pdf-btn">Export PDF</button>
+                <button class="btn-secondary" id="res-export-docx-btn">Export DOCX</button>
+                <button class="btn-secondary" id="res-export-md-btn">Export Markdown</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <!-- Left: Editor & ATS Matcher -->
+            <div class="tool-card" style="display: flex; flex-direction: column; gap: 14px;">
+              <h3 style="font-size: 15px; border-bottom: 1px solid var(--border); padding-bottom: 8px;">Resume Editor & Data</h3>
+
+              <div class="tool-tabs" style="margin-bottom: 8px;">
+                <div class="tool-tab active" data-restab="editor">Form Editor</div>
+                <div class="tool-tab" data-restab="ats">ATS Matcher</div>
+                <div class="tool-tab" data-restab="json">Raw JSON</div>
+              </div>
+
+              <!-- Subtab: Form Editor -->
+              <div id="restab-editor">
+                <div class="form-group">
+                  <label class="form-label">Full Name</label>
+                  <input type="text" id="res-name" class="text-input" placeholder="e.g. Alex Mercer">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;" class="form-group">
+                  <div>
+                    <label class="form-label">Email</label>
+                    <input type="text" id="res-email" class="text-input" placeholder="alex@example.com">
+                  </div>
+                  <div>
+                    <label class="form-label">Phone</label>
+                    <input type="text" id="res-phone" class="text-input" placeholder="(555) 123-4567">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Professional Summary</label>
+                  <textarea id="res-summary" class="textarea-input" rows="4" placeholder="Brief professional summary..."></textarea>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Skills (comma-separated)</label>
+                  <input type="text" id="res-skills" class="text-input" placeholder="Python, JavaScript, Docker, AWS, SQL">
+                </div>
+                <button class="btn-secondary" id="res-update-preview-btn">Update Preview</button>
+              </div>
+
+              <!-- Subtab: ATS Matcher -->
+              <div id="restab-ats" style="display: none;">
+                <label class="form-label">Target Job Description</label>
+                <textarea id="res-job-desc" class="textarea-input" rows="7" placeholder="Paste target job description to analyze ATS match rate..."></textarea>
+                <button class="btn-primary" id="res-run-ats-btn" style="margin-top: 10px;">Analyze ATS Compatibility</button>
+
+                <div id="res-ats-results" style="display: none; margin-top: 14px; background: var(--bg-input); padding: 14px; border-radius: var(--radius-md);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong style="font-size: 14px;">ATS Match Score:</strong>
+                    <span id="res-ats-score" style="font-size: 20px; font-weight: 700; color: #10b981;">0%</span>
+                  </div>
+                  <div style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 6px;">Matched Keywords: <span id="res-ats-matched" style="color: var(--text-main);"></span></div>
+                  <div style="font-size: 12.5px; color: var(--text-muted);">Missing Keywords: <span id="res-ats-missing" style="color: #ef4444;"></span></div>
+                </div>
+              </div>
+
+              <!-- Subtab: Raw JSON -->
+              <div id="restab-json" style="display: none;">
+                <textarea id="res-json" class="textarea-input" rows="14" style="font-family: monospace;"></textarea>
+              </div>
+            </div>
+
+            <!-- Right: Live Preview Pane -->
+            <div class="tool-card" style="display: flex; flex-direction: column;">
+              <h3 style="font-size: 15px; border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 12px;">Live HTML Preview</h3>
+              <div id="res-preview-pane" class="markdown-preview-pane" style="flex: 1; min-height: 480px; background: #ffffff; color: #0f172a; padding: 24px; border-radius: var(--radius-md); overflow-y: auto;">
+                <p style="text-align: center; color: #64748b;">Click "Load Sample Resume" to render preview.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: QR Code & Barcodes -->
+      <section id="view-qr" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">QR Code & Barcode Studio</h2>
+            <p class="tool-desc">Generate high-resolution offline QR codes and barcodes, decode from files, and export SVG/PNG.</p>
+          </div>
+
+          <div class="tool-tabs">
+            <div class="tool-tab active" data-subtab="qr-gen">Generate QR Code</div>
+            <div class="tool-tab" data-subtab="qr-barcode">Generate Barcode</div>
+            <div class="tool-tab" data-subtab="qr-decode">Scan / Decode</div>
+          </div>
+
+          <!-- Subtab: Generate QR -->
+          <div id="subtab-qr-gen" class="subtab-content">
+            <div class="tool-card">
+              <!-- Preset tabs for QR -->
+              <div class="tool-tabs" style="margin-bottom: 12px;">
+                <div class="tool-tab active" data-qrpreset="text">URL / Text</div>
+                <div class="tool-tab" data-qrpreset="wifi">Wi-Fi Network</div>
+                <div class="tool-tab" data-qrpreset="contact">Contact Card (vCard)</div>
+                <div class="tool-tab" data-qrpreset="email">Email</div>
+                <div class="tool-tab" data-qrpreset="sms">SMS</div>
+              </div>
+
+              <div id="qrpanel-text">
+                <div class="form-group">
+                  <label class="form-label">Content / URL / Plain Text</label>
+                  <textarea id="qr-input" class="textarea-input" rows="3" placeholder="Enter text or URL to encode...">https://github.com/Josh-A-M/FOSSEverything</textarea>
+                </div>
+              </div>
+
+              <div id="qrpanel-wifi" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <div>
+                    <label class="form-label">Network SSID</label>
+                    <input type="text" id="qr-wifi-ssid" class="text-input" placeholder="MyWiFiNetwork">
+                  </div>
+                  <div>
+                    <label class="form-label">Password</label>
+                    <input type="password" id="qr-wifi-pass" class="text-input" placeholder="Password">
+                  </div>
+                  <div>
+                    <label class="form-label">Security</label>
+                    <select id="qr-wifi-sec">
+                      <option value="WPA" selected>WPA / WPA2</option>
+                      <option value="WEP">WEP</option>
+                      <option value="nopass">None (Open)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div id="qrpanel-contact" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <div><label class="form-label">Full Name</label><input type="text" id="qr-vc-name" class="text-input" placeholder="Alex Mercer"></div>
+                  <div><label class="form-label">Phone</label><input type="text" id="qr-vc-phone" class="text-input" placeholder="+1-555-1234"></div>
+                  <div><label class="form-label">Email</label><input type="text" id="qr-vc-email" class="text-input" placeholder="alex@example.com"></div>
+                  <div><label class="form-label">Organization</label><input type="text" id="qr-vc-org" class="text-input" placeholder="Company"></div>
+                </div>
+              </div>
+
+              <div id="qrpanel-email" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <div><label class="form-label">Email Address</label><input type="text" id="qr-email-addr" class="text-input" placeholder="contact@example.com"></div>
+                  <div><label class="form-label">Subject</label><input type="text" id="qr-email-sub" class="text-input" placeholder="Inquiry"></div>
+                </div>
+              </div>
+
+              <div id="qrpanel-sms" style="display: none;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <div><label class="form-label">Phone Number</label><input type="text" id="qr-sms-phone" class="text-input" placeholder="+1-555-1234"></div>
+                  <div><label class="form-label">Message</label><input type="text" id="qr-sms-msg" class="text-input" placeholder="Hello!"></div>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 20px;">
+                <div>
+                  <label class="form-label">Error Correction</label>
+                  <select id="qr-level">
+                    <option value="L">L (7% Recovery)</option>
+                    <option value="M" selected>M (15% Recovery - Standard)</option>
+                    <option value="Q">Q (25% Recovery)</option>
+                    <option value="H">H (30% Recovery - Best)</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Box Size (Scale)</label>
+                  <input type="number" id="qr-box-size" class="text-input" value="10" min="4" max="30">
+                </div>
+                <div>
+                  <label class="form-label">Foreground Color</label>
+                  <input type="color" id="qr-fg" value="#000000" style="width: 100%; height: 38px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-input); cursor: pointer;">
+                </div>
+                <div>
+                  <label class="form-label">Background Color</label>
+                  <input type="color" id="qr-bg" value="#ffffff" style="width: 100%; height: 38px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-input); cursor: pointer;">
+                </div>
+              </div>
+
+              <button id="qr-generate-btn" class="btn-primary">Generate QR Code</button>
+            </div>
+
+            <div class="tool-card" id="qr-output-card" style="text-align: center; display: none;">
+              <div style="background: #ffffff; padding: 16px; border-radius: var(--radius-md); display: inline-block; margin-bottom: 16px;">
+                <img id="qr-preview-img" src="" alt="QR Code Preview" style="display: block; max-width: 250px;">
+              </div>
+              <div style="display: flex; justify-content: center; gap: 10px;">
+                <a id="qr-download-link" download="qrcode.png" class="btn-primary" style="text-decoration: none; display: inline-block;">Download PNG</a>
+                <button class="btn-secondary" id="qr-download-svg-btn">Download Vector SVG</button>
+                <button class="btn-secondary" id="qr-copy-btn">Copy to Clipboard</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab: Generate Barcode -->
+          <div id="subtab-qr-barcode" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <div class="form-group">
+                <label class="form-label">Barcode Data / Value</label>
+                <input type="text" id="bc-input" class="text-input" placeholder="e.g. 123456789012">
+              </div>
+              <div class="form-group" style="width: 200px;">
+                <label class="form-label">Barcode Type</label>
+                <select id="bc-type">
+                  <option value="code128" selected>Code 128</option>
+                  <option value="ean13">EAN-13</option>
+                  <option value="upca">UPC-A</option>
+                  <option value="code39">Code 39</option>
+                </select>
+              </div>
+              <button id="bc-generate-btn" class="btn-primary">Generate Barcode</button>
+            </div>
+
+            <div class="tool-card" id="bc-output-card" style="text-align: center; display: none;">
+              <div style="background: #ffffff; padding: 16px; border-radius: var(--radius-md); display: inline-block; margin-bottom: 16px;">
+                <img id="bc-preview-img" src="" alt="Barcode Preview" style="display: block; max-width: 320px;">
+              </div>
+              <div>
+                <a id="bc-download-link" download="barcode.png" class="btn-primary" style="text-decoration: none; display: inline-block;">Download PNG</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab: Scan / Decode -->
+          <div id="subtab-qr-decode" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Select QR / Barcode Image to Scan</label>
+              <div class="file-picker-row">
+                <input type="text" id="qr-decode-path" class="text-input" placeholder="Select image containing QR or barcode...">
+                <button class="btn-secondary" id="qr-decode-browse-btn">Browse File</button>
+              </div>
+              <button class="btn-primary" id="qr-decode-run-btn" style="margin-top: 16px;">Scan & Decode</button>
+            </div>
+
+            <div class="tool-card" id="qr-decode-result-card" style="display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label class="form-label" style="margin: 0;">Decoded Payload Text</label>
+                <button class="btn-secondary" id="qr-decode-copy-btn">Copy Payload</button>
+              </div>
+              <textarea id="qr-decode-output" class="textarea-input" rows="6" readonly style="font-family: monospace;"></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Hash & Checksum Studio -->
+      <section id="view-hash" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Hash & Checksum Studio</h2>
+            <p class="tool-desc">Verify file integrity, multi-algorithm checksums, compare hashes, and scan directory manifests.</p>
+          </div>
+
+          <div class="tool-tabs">
+            <div class="tool-tab active" data-subtab="hash-file">File Multi-Hash</div>
+            <div class="tool-tab" data-subtab="hash-text">Text Hash</div>
+            <div class="tool-tab" data-subtab="hash-verify">Verify Checksum</div>
+            <div class="tool-tab" data-subtab="hash-manifest">Directory Manifest</div>
+          </div>
+
+          <!-- Subtab: File Multi-Hash -->
+          <div id="subtab-hash-file" class="subtab-content">
+            <div class="tool-card">
+              <label class="form-label">File to Hash</label>
+              <div class="file-picker-row">
+                <input type="text" id="hash-filepath" class="text-input" placeholder="Select file to compute checksums...">
+                <button class="btn-secondary" id="hash-browse-btn">Browse File</button>
+              </div>
+              <button id="hash-compute-btn" class="btn-primary" style="margin-top: 16px;">Compute All Checksums</button>
+            </div>
+
+            <div class="tool-card" id="hash-multi-card" style="display: none;">
+              <label class="form-label">Computed Cryptographic Hashes</label>
+              <table class="data-table" id="hash-multi-table">
+                <thead><tr><th>Algorithm</th><th>Digest Value</th><th>Action</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Subtab: Text Hash -->
+          <div id="subtab-hash-text" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Input Text to Hash</label>
+              <textarea id="hash-text-input" class="textarea-input" rows="4" placeholder="Enter text to hash..."></textarea>
+              <div style="margin-top: 12px; width: 220px;">
+                <label class="form-label">Algorithm</label>
+                <select id="hash-text-algo">
+                  <option value="sha256" selected>SHA-256</option>
+                  <option value="sha512">SHA-512</option>
+                  <option value="md5">MD5</option>
+                  <option value="sha1">SHA-1</option>
+                  <option value="blake2b">BLAKE2b</option>
+                </select>
+              </div>
+              <button class="btn-primary" id="hash-text-run-btn" style="margin-top: 14px;">Compute Text Hash</button>
+            </div>
+
+            <div class="tool-card" id="hash-text-result-card" style="display: none;">
+              <label class="form-label">Hash Result</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="hash-text-result-val" class="text-input" readonly style="font-family: monospace;">
+                <button class="btn-primary" id="hash-text-copy-btn">Copy</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subtab: Verify Checksum -->
+          <div id="subtab-hash-verify" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">File to Verify</label>
+              <div class="file-picker-row">
+                <input type="text" id="hash-vfile-path" class="text-input" placeholder="Select file...">
+                <button class="btn-secondary" id="hash-vfile-browse-btn">Browse File</button>
+              </div>
+              <label class="form-label" style="margin-top: 12px;">Expected Checksum Hash</label>
+              <input type="text" id="hash-vexpected-val" class="text-input" placeholder="Paste expected MD5, SHA-1, SHA-256, or SHA-512 hash..." style="font-family: monospace;">
+              <button class="btn-primary" id="hash-vrun-btn" style="margin-top: 16px;">Verify Checksum Match</button>
+            </div>
+
+            <div class="tool-card status-box" id="hash-vstatus-box" style="display: none;"></div>
+          </div>
+
+          <!-- Subtab: Directory Manifest -->
+          <div id="subtab-hash-manifest" class="subtab-content" style="display: none;">
+            <div class="tool-card">
+              <label class="form-label">Target Directory</label>
+              <div class="file-picker-row">
+                <input type="text" id="hash-man-dir" class="text-input" placeholder="Select folder to scan...">
+                <button class="btn-secondary" id="hash-man-browse-btn">Browse Folder</button>
+              </div>
+              <div style="display: flex; gap: 12px; margin-top: 16px;">
+                <button class="btn-primary" id="hash-man-gen-btn">Generate Manifest (SHA256)</button>
+                <button class="btn-secondary" id="hash-man-verify-btn">Verify Against Manifest File</button>
+              </div>
+            </div>
+            <div class="tool-card status-box" id="hash-man-status-box" style="display: none;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Data & JSON -->
+      <section id="view-data" style="display: none;">
+        <div class="tool-container" style="max-width: 100%;">
+          <div class="tool-header">
+            <h2 class="tool-title">JSON & Data Tools</h2>
+            <p class="tool-desc">Beautify, minify, validate, query JSONPath, infer schema, and cross-convert JSON, YAML, XML, and CSV.</p>
+          </div>
+
+          <div class="editor-toolbar">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 12.5px; color: var(--text-muted);">Indent:</span>
+              <select id="data-indent-select" style="width: 90px; padding: 4px 8px;">
+                <option value="2" selected>2 Spaces</option>
+                <option value="4">4 Spaces</option>
+                <option value="tab">Tab</option>
+              </select>
+            </div>
+
+            <button id="json-format-btn" class="btn-primary">Format JSON</button>
+            <button id="json-minify-btn" class="btn-secondary">Minify JSON</button>
+            <button id="json-validate-btn" class="btn-secondary">Validate Syntax</button>
+            <button id="json-schema-btn" class="btn-secondary">Infer Schema</button>
+
+            <div class="toolbar-sep"></div>
+            <select id="data-convert-select" style="width: 150px; padding: 4px 8px;">
+              <option value="json_to_yaml" selected>JSON &rarr; YAML</option>
+              <option value="yaml_to_json">YAML &rarr; JSON</option>
+              <option value="json_to_xml">JSON &rarr; XML</option>
+              <option value="xml_to_json">XML &rarr; JSON</option>
+              <option value="json_to_csv">JSON &rarr; CSV</option>
+              <option value="csv_to_json">CSV &rarr; JSON</option>
+            </select>
+            <button id="data-convert-btn" class="btn-secondary">Convert Format</button>
+
+            <div class="toolbar-sep"></div>
+            <button id="data-fmt-sql-btn" class="btn-secondary">Beautify SQL</button>
+            <button id="data-fmt-css-btn" class="btn-secondary">Beautify CSS</button>
+            <button id="data-fmt-js-btn" class="btn-secondary">Beautify JS</button>
+          </div>
+
+          <!-- JSONPath Bar -->
+          <div class="filter-bar" style="gap: 10px;">
+            <strong style="font-size: 13px; color: var(--accent);">JSONPath:</strong>
+            <input type="text" id="data-jsonpath-input" class="text-input" placeholder="e.g. $.store.book[*].author" style="flex: 1; padding: 6px 12px; font-family: monospace;">
+            <button id="data-jsonpath-btn" class="btn-primary" style="padding: 6px 16px;">Query</button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 14px;">
+            <div class="tool-card" style="display: flex; flex-direction: column;">
+              <label class="form-label">Input Data</label>
+              <textarea id="json-input" class="textarea-input" style="flex: 1; min-height: 480px; font-family: monospace;" placeholder='{"hello": "world", "status": true}'></textarea>
+            </div>
+            <div class="tool-card" style="display: flex; flex-direction: column;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <label class="form-label" style="margin: 0;">Output Result</label>
+                <button class="btn-secondary" id="json-copy-btn">Copy Output</button>
+              </div>
+              <textarea id="json-output" class="textarea-input" style="flex: 1; min-height: 480px; font-family: monospace;" readonly></textarea>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Text Tools -->
+      <section id="view-text_tools" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Text Tools</h2>
+            <p class="tool-desc">Case conversion, line manipulation, sorting, deduplication, and numbering.</p>
+          </div>
+
+          <div class="tool-card">
+            <label class="form-label">Input Text</label>
+            <textarea id="tt-input" class="textarea-input" rows="6" placeholder="Enter text to transform..."></textarea>
+
+            <div style="margin-top: 14px;">
+              <label class="form-label">Case Transformations</label>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <button class="btn-secondary" data-case="upper">UPPERCASE</button>
+                <button class="btn-secondary" data-case="lower">lowercase</button>
+                <button class="btn-secondary" data-case="title">Title Case</button>
+                <button class="btn-secondary" data-case="camel">camelCase</button>
+                <button class="btn-secondary" data-case="snake">snake_case</button>
+                <button class="btn-secondary" data-case="kebab">kebab-case</button>
+                <button class="btn-secondary" data-case="constant">CONSTANT_CASE</button>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px;">
+              <label class="form-label">Line Operations</label>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                <button class="btn-secondary" data-line="sort">Sort Lines</button>
+                <button class="btn-secondary" data-line="dedupe">Deduplicate</button>
+                <button class="btn-secondary" data-line="reverse">Reverse</button>
+                <button class="btn-secondary" data-line="remove_blank">Remove Blank Lines</button>
+                <button class="btn-secondary" data-line="number">Number Lines</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tool-card" id="tt-result-card" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label class="form-label" style="margin: 0;">Transformed Output</label>
+              <button class="btn-primary" id="tt-copy-btn">Copy Output</button>
+            </div>
+            <textarea id="tt-output" class="textarea-input" rows="8" readonly></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- View: Encoding & Decoding -->
+      <section id="view-encoding" style="display: none;">
+        <div class="tool-container">
+          <div class="tool-header">
+            <h2 class="tool-title">Encoding / Decoding Studio</h2>
+            <p class="tool-desc">Convert text between Base64, URL percent-encoding, HTML entities, Hex, and Binary.</p>
+          </div>
+
+          <div class="tool-card">
+            <label class="form-label">Input Text</label>
+            <textarea id="enc-input" class="textarea-input" rows="5" placeholder="Enter text to encode or decode..."></textarea>
+
+            <div style="display: flex; gap: 16px; margin-top: 14px;">
+              <div style="flex: 1;">
+                <label class="form-label">Encoding Format</label>
+                <select id="enc-method">
+                  <option value="base64" selected>Base64</option>
+                  <option value="url">URL Percent-Encoding</option>
+                  <option value="html">HTML Entities</option>
+                  <option value="hex">Hexadecimal</option>
+                  <option value="binary">Binary (0101...)</option>
+                </select>
+              </div>
+              <div style="display: flex; align-items: flex-end; gap: 10px;">
+                <button class="btn-primary" id="enc-encode-btn">Encode</button>
+                <button class="btn-secondary" id="enc-decode-btn">Decode</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tool-card" id="enc-result-card" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label class="form-label" style="margin: 0;">Result</label>
+              <button class="btn-primary" id="enc-copy-btn">Copy</button>
+            </div>
+            <textarea id="enc-output" class="textarea-input" rows="6" readonly style="font-family: monospace;"></textarea>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Command Palette Modal -->
+  <div class="palette-backdrop" id="palette-modal">
+    <div class="palette-box">
+      <input type="text" id="palette-input" class="palette-search" placeholder="Type a command or tool name (e.g. merge pdf, qr, hash, 3d)..." autofocus>
+      <div class="palette-results" id="palette-results"></div>
+    </div>
+  </div>
+
+  <!-- Settings Hub Modal -->
+  <div class="palette-backdrop" id="settings-modal" style="display: none;">
+    <div class="settings-box">
+      <div class="settings-header">
+        <h2 style="font-size: 18px; font-weight: 700;">Settings Hub</h2>
+        <button class="settings-close-btn" id="close-settings-btn">&times;</button>
+      </div>
+
+      <div class="settings-tabs">
+        <div class="settings-tab active" data-settab="appearance">Appearance</div>
+        <div class="settings-tab" data-settab="shell">Shell Integration</div>
+        <div class="settings-tab" data-settab="workspace">Workspace & Toolbar</div>
+      </div>
+
+      <!-- Tab: Appearance -->
+      <div id="settab-appearance" class="settings-panel">
+        <div class="form-group">
+          <label class="form-label">Theme Preset</label>
+          <select id="settings-theme-preset">
+            <option value="dark">Dark Modern (Default)</option>
+            <option value="light">Light Modern</option>
+            <option value="solarized">Solarized Dark</option>
+            <option value="monokai">Monokai Pro</option>
+            <option value="cyberpunk">Cyberpunk Neon</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Accent Color</label>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <input type="color" id="settings-accent-color" value="#3b82f6" style="width: 50px; height: 38px; border-radius: var(--radius-sm); border: 1px solid var(--border); cursor: pointer; background: transparent;">
+            <span id="settings-accent-hex" style="font-family: monospace; font-size: 14px;">#3b82f6</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Font Scale (<span id="settings-font-val">14px</span>)</label>
+          <input type="range" id="settings-font-scale" min="12" max="18" value="14" step="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Corner Border Radius (<span id="settings-radius-val">10px</span>)</label>
+          <input type="range" id="settings-border-radius" min="0" max="18" value="10" step="2">
+        </div>
+        <button class="btn-primary" id="settings-save-appearance-btn">Apply Appearance</button>
+      </div>
+
+      <!-- Tab: Shell Integration -->
+      <div id="settab-shell" class="settings-panel" style="display: none;">
+        <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 16px;">
+          Integrate FOSSEverything into Windows Explorer for right-click file operations.
+        </p>
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 10px; font-size: 13.5px; cursor: pointer;">
+            <input type="checkbox" id="shell-context-menu-chk" checked>
+            <span>Show "Open with FOSSEverything" in Windows Explorer context menu</span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label class="form-label">File Associations</label>
+          <div style="display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-muted);">
+            <label><input type="checkbox" id="assoc-pdf" checked> PDF Documents (.pdf)</label>
+            <label><input type="checkbox" id="assoc-img" checked> Images (.png, .jpg, .webp, .svg, .bmp)</label>
+            <label><input type="checkbox" id="assoc-media" checked> Audio & Video (.mp4, .mkv, .mp3, .wav)</label>
+            <label><input type="checkbox" id="assoc-3d" checked> 3D Models (.stl, .obj, .ply)</label>
+            <label><input type="checkbox" id="assoc-archive" checked> Archives (.zip, .tar, .gz)</label>
+            <label><input type="checkbox" id="assoc-office" checked> Office Documents (.docx, .pptx, .xlsx)</label>
+          </div>
+        </div>
+        <button class="btn-primary" id="shell-save-btn">Apply Shell Integration</button>
+      </div>
+
+      <!-- Tab: Workspace Customization -->
+      <div id="settab-workspace" class="settings-panel" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">Default Startup Workspace</label>
+          <select id="settings-default-view">
+            <option value="home">All Tools (Home)</option>
+            <option value="pdf">PDF Studio</option>
+            <option value="images">Image Editor</option>
+            <option value="converter">File Converter</option>
+            <option value="model3d">3D Studio</option>
+            <option value="media">Media Studio</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quick Pinned Tools in Header</label>
+          <div id="pinned-tools-checkboxes" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; color: var(--text-muted);"></div>
+        </div>
+        <button class="btn-primary" id="settings-save-workspace-btn">Save Workspace Preferences</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

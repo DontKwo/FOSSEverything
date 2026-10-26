@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import os
 from collections import Counter
+from typing import Any
 
 STOP_WORDS = {
     "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
@@ -194,3 +195,32 @@ def extract_text_from_file(file_path: str) -> str:
     # Text / Code / Markdown
     with open(file_path, "r", encoding="utf-8", errors="replace") as f:
         return f.read()
+
+
+def generate_report(stats: dict[str, Any]) -> str:
+    """Generate human-readable text report from document analysis statistics."""
+    r_secs = int(stats.get("reading_time_secs", 0))
+    s_secs = int(stats.get("speaking_time_secs", 0))
+    r_str = f"{r_secs // 60}m {r_secs % 60}s" if r_secs >= 60 else f"{r_secs}s"
+    s_str = f"{s_secs // 60}m {s_secs % 60}s" if s_secs >= 60 else f"{s_secs}s"
+    lines = [
+        "--- Word Counter & Text Analytics Report ---",
+        f"Words:                  {stats.get('words', 0):,}",
+        f"Characters:             {stats.get('characters', 0):,}",
+        f"Characters (no spaces): {stats.get('characters_no_spaces', 0):,}",
+        f"Sentences:              {stats.get('sentences', 0):,}",
+        f"Paragraphs:             {stats.get('paragraphs', 0):,}",
+        f"Lines:                  {stats.get('lines', 0):,}",
+        f"Estimated Pages:        ~{stats.get('pages_est', 0.0)}",
+        f"Reading Time:           {r_str}",
+        f"Speaking Time:          {s_str}",
+        f"Flesch Reading Ease:    {stats.get('flesch_reading_ease', 0.0)} / 100",
+        f"Reading Level:          Grade {stats.get('flesch_kincaid_grade', 0.0)} ({stats.get('readability_label', 'N/A')})",
+        f"Avg. Word Length:       {stats.get('avg_word_length', 0.0)} chars",
+        f"Avg. Sentence Length:   {stats.get('avg_sentence_length', 0.0)} words",
+        "",
+        "Top Keywords & Density:",
+    ]
+    for item in stats.get("top_keywords", []):
+        lines.append(f"  - {item['word']}: {item['count']} ({item['density_pct']}%)")
+    return "\n".join(lines)

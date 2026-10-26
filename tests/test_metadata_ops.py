@@ -1,4 +1,5 @@
 """Regression tests for local image and PDF metadata handling."""
+import json
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -119,6 +120,22 @@ class MetadataOperationsTests(unittest.TestCase):
             support = metadata_ops.metadata_support_report(str(source))
             self.assertTrue(support["supported"])
             self.assertTrue(support["removal_caveats"])
+
+    def test_export_metadata_to_json(self) -> None:
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "source.pdf"
+            document = fitz.open()
+            document.new_page()
+            document.set_metadata({"title": "Export Test", "author": "Tester"})
+            document.save(source)
+            document.close()
+
+            out_json = Path(directory) / "meta.json"
+            metadata_ops.export_metadata(str(source), str(out_json))
+            self.assertTrue(out_json.exists())
+            with open(out_json, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            self.assertEqual(data.get("title"), "Export Test")
 
 
 if __name__ == "__main__":

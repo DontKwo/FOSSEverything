@@ -109,6 +109,23 @@ class ArchiveOpsTests(unittest.TestCase):
             self.assertTrue(os.path.exists(converted))
             self.assertIn("src/notes.txt", archive_ops.list_archive_contents(converted))
 
+    def test_test_archive_integrity(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source_dir = os.path.join(td, "src")
+            os.makedirs(source_dir, exist_ok=True)
+            with open(os.path.join(source_dir, "test.txt"), "w", encoding="utf-8") as f:
+                f.write("content")
+
+            zip_path = os.path.join(td, "test.zip")
+            archive_ops.create_archive(source_dir, zip_path)
+            res_zip = archive_ops.test_archive(zip_path)
+            self.assertTrue(res_zip["valid"])
+
+            tar_path = os.path.join(td, "test.tar.gz")
+            archive_ops.create_archive(source_dir, tar_path)
+            res_tar = archive_ops.test_archive(tar_path)
+            self.assertTrue(res_tar["valid"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,23 @@
-# -*- mode: python ; coding: utf-8 -*-
-
+import os
+import sys
 from PyInstaller.utils.hooks import collect_all
+
+ROOT_DIR = SPECPATH
+
+# Collect ffmpeg binaries dynamically
+ffmpeg_datas = []
+try:
+    import imageio_ffmpeg
+    ffmpeg_bin_dir = os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe())
+    if os.path.exists(ffmpeg_bin_dir):
+        ffmpeg_datas.append((ffmpeg_bin_dir, 'imageio_ffmpeg/binaries'))
+except Exception:
+    pass
+
+assets_dir = os.path.join(ROOT_DIR, 'assets')
+assets_datas = [(assets_dir, 'assets')] if os.path.exists(assets_dir) else []
+web_dir = os.path.join(ROOT_DIR, 'app', 'web')
+web_datas = [(web_dir, 'app/web')] if os.path.exists(web_dir) else []
 
 # The optional CAD backend (cadquery-ocp) ships native binaries PyInstaller's
 # static analysis can't discover on its own; collect it only if installed, so
@@ -11,18 +28,12 @@ try:
 except Exception:
     pass
 
-# The 3D viewport is built on pyvista/VTK, both native-heavy with no
-# registered PyInstaller hook entry points, so collect them explicitly.
-pv_datas, pv_binaries, pv_hidden = collect_all('pyvista')
-vtk_datas, vtk_binaries, vtk_hidden = collect_all('vtkmodules')
-pvqt_datas, pvqt_binaries, pvqt_hidden = collect_all('pyvistaqt')
-
 a = Analysis(
-    ['C:/Users/Josh/projects/FOSSEverything/main.py'],
-    pathex=[],
-    binaries=[] + ocp_binaries + pv_binaries + vtk_binaries + pvqt_binaries,
-    datas=[('C:/Users/Josh/projects/FOSSEverything/.venv/Lib/site-packages/imageio_ffmpeg/binaries', 'imageio_ffmpeg/binaries')] + ocp_datas + pv_datas + vtk_datas + pvqt_datas,
-    hiddenimports=['PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 'PyQt6.QtMultimedia', 'PyQt6.QtMultimediaWidgets', 'pymupdf', 'fitz', 'PIL', 'PIL.Image', 'imageio_ffmpeg', 'mutagen', 'tinytag', 'yaml', 'cv2', 'trimesh', 'shapely', 'mapbox_earcut'] + ocp_hidden + pv_hidden + vtk_hidden + pvqt_hidden,
+    [os.path.join(ROOT_DIR, 'main.py')],
+    pathex=[ROOT_DIR],
+    binaries=[] + ocp_binaries,
+    datas=assets_datas + web_datas + ffmpeg_datas + ocp_datas,
+    hiddenimports=['webview', 'pythonnet', 'clr_loader', 'bottle', 'proxy_tools', 'pymupdf', 'fitz', 'PIL', 'PIL.Image', 'imageio_ffmpeg', 'mutagen', 'tinytag', 'yaml', 'cv2', 'trimesh', 'shapely', 'mapbox_earcut'] + ocp_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -50,6 +61,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=os.path.join(assets_dir, 'icon.ico') if os.path.exists(os.path.join(assets_dir, 'icon.ico')) else None,
 )
 coll = COLLECT(
     exe,

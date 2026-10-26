@@ -1,53 +1,53 @@
-"""Single source of truth for theme colors, font scale, and live-update notification."""
+"""Single source of truth for theme colors and palettes without PyQt dependencies."""
 from __future__ import annotations
 
 import json
 import math
 import re
+from typing import Any, Callable
 
-from PyQt6.QtCore import QObject, QSettings, pyqtSignal
-from PyQt6.QtGui import QColor
+from app.system.settings import get_setting
 
 DEFAULT_ACCENT_DARK = "#5aa8ff"
 DEFAULT_ACCENT_LIGHT = "#4a8df6"
 DEFAULT_BUTTON_RADIUS = 8
 
 _LIGHT_PALETTE = {
-    "background": "#f5f7fb",
+    "background": "#f8fafc",
     "panel": "#ffffff",
-    "text": "#1f2937",
-    "muted": "#5c6f86",
-    "border": "#dfe6f0",
-    "button": "#ffffff",
-    "input": "#f9fbff",
+    "text": "#0f172a",
+    "muted": "#64748b",
+    "border": "#e2e8f0",
+    "button": "#f1f5f9",
+    "input": "#ffffff",
     "menu": "#ffffff",
-    "toolbar": "#f2f6fb",
-    "tab": "#edf3fa",
+    "toolbar": "#ffffff",
+    "tab": "#f1f5f9",
     "accent": DEFAULT_ACCENT_LIGHT,
     "on_accent": "#ffffff",
     "selection_text": "#ffffff",
-    "success": "#1f9d61",
-    "warning": "#c77d23",
-    "danger": "#d9485f",
+    "success": "#10b981",
+    "warning": "#f59e0b",
+    "danger": "#ef4444",
 }
 
 _DARK_PALETTE = {
-    "background": "#0f1724",
-    "panel": "#1b2430",
-    "text": "#ffffff",
-    "muted": "#b6c0cf",
-    "border": "#3a475b",
-    "button": "#283548",
-    "input": "#121c2a",
-    "menu": "#182230",
-    "toolbar": "#131d2b",
-    "tab": "#1d2a39",
+    "background": "#0b0f19",
+    "panel": "#111827",
+    "text": "#f9fafb",
+    "muted": "#9ca3af",
+    "border": "#1f2937",
+    "button": "#1f2937",
+    "input": "#0f172a",
+    "menu": "#111827",
+    "toolbar": "#0f172a",
+    "tab": "#1f2937",
     "accent": DEFAULT_ACCENT_DARK,
     "on_accent": "#ffffff",
     "selection_text": "#ffffff",
-    "success": "#6cd29d",
-    "warning": "#f0b75d",
-    "danger": "#ff6b7b",
+    "success": "#34d399",
+    "warning": "#fbbf24",
+    "danger": "#f87171",
 }
 
 _HIGH_CONTRAST_PALETTE = {
@@ -146,35 +146,32 @@ _THEME_PRESETS = {
     "ut_austin": _UT_AUSTIN_PALETTE,
 }
 
-
-class _ThemeSignals(QObject):
-    """Emitted whenever theme colors, accent, palette, or font scale change."""
-
-    changed = pyqtSignal()
+_theme_listeners: list[Callable[[], None]] = []
 
 
-theme_signals = _ThemeSignals()
+def add_theme_listener(cb: Callable[[], None]) -> None:
+    _theme_listeners.append(cb)
 
 
 def notify_theme_changed() -> None:
-    theme_signals.changed.emit()
-
-
-def _settings(settings: QSettings | None) -> QSettings:
-    return settings if settings is not None else QSettings("FOSSEverything", "FOSSEverything")
+    for cb in _theme_listeners:
+        try:
+            cb()
+        except Exception:  # noqa: 10
+            pass
 
 
 def default_palette(theme_name: str) -> dict[str, str]:
     return dict(_THEME_PRESETS.get(theme_name, _DARK_PALETTE))
 
 
-def current_theme_name(settings: QSettings | None = None) -> str:
-    theme_name = str(_settings(settings).value("app/theme", "dark"))
+def current_theme_name(settings: Any = None) -> str:
+    theme_name = str(get_setting("app/theme", "dark"))
     return theme_name if theme_name in _THEME_PRESETS else "dark"
 
 
-def load_ui_palette(settings: QSettings | None = None) -> dict[str, str]:
-    raw = _settings(settings).value("app/ui_palette", "")
+def load_ui_palette(settings: Any = None) -> dict[str, str]:
+    raw = get_setting("app/ui_palette", "")
     if not raw:
         return {}
     try:
@@ -186,49 +183,18 @@ def load_ui_palette(settings: QSettings | None = None) -> dict[str, str]:
     return {key: value for key, value in palette.items() if isinstance(value, str) and bool(value.strip())}
 
 
-def resolved_palette(settings: QSettings | None = None) -> dict[str, str]:
-    settings = _settings(settings)
+def resolved_palette(settings: Any = None) -> dict[str, str]:
     palette = default_palette(current_theme_name(settings))
     palette.update(load_ui_palette(settings))
-    accent = str(settings.value("app/accent_color", "")).strip()
+    accent = str(get_setting("app/accent_color", "")).strip()
     if accent:
         palette["accent"] = accent
     return palette
 
 
-def parse_color_value(value: object, fallback: str) -> QColor:
-    if value is None:
-        return QColor(fallback)
-    text = str(value).strip()
-    if not text:
-        return QColor(fallback)
-
-    rgb_match = re.search(r"rgba?\(([^)]+)\)", text, flags=re.IGNORECASE)
-    if rgb_match:
-        parts = [part.strip() for part in rgb_match.group(1).split(',')]
-        if len(parts) >= 3 and all(part.lstrip('-').isdigit() for part in parts[:3]):
-            color = QColor(int(parts[0]), int(parts[1]), int(parts[2]))
-            if color.isValid():
-                return color
-
-    color = QColor(text)
-    if color.isValid():
-        return color
-    return QColor(fallback)
-
-
-def rgba(color_value: str, alpha: float) -> str:
-    color = QColor(color_value)
-    return f"rgba({color.red()}, {color.green()}, {color.blue()}, {alpha})"
-
-
-def profile_key(slot: int) -> str:
-    return f"app/ui_palette_profile_{slot}"
-
-
-def get_font_scale(settings: QSettings | None = None) -> float:
+def get_font_scale(settings: Any = None) -> float:
     try:
-        scale = float(_settings(settings).value("app/font_scale", 1.0))
+        scale = float(get_setting("app/font_scale", 1.0))
     except (TypeError, ValueError):
         scale = 1.0
     if not math.isfinite(scale) or scale <= 0:

@@ -199,7 +199,7 @@ def make_collage(
                 background.paste(cell, (0, 0))
                 cell = background
 
-        canvas.paste(cell, (x, y))
+        canvas.paste(cell, (x, y), mask=cell)
 
         if captions and idx < len(captions) and captions[idx]:
             caption_y = y + cell_h + 4

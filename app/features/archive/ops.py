@@ -10,6 +10,7 @@ import tarfile
 import tempfile
 import zipfile
 from pathlib import Path
+from typing import Any
 
 from app.features.hash.ops import hash_file
 
@@ -352,3 +353,27 @@ def rotate_bundle_key(bundle_path: str, old_password: str, new_password: str, ou
         return created
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def test_archive(archive_path: str) -> dict[str, Any]:
+    """Test archive integrity and return entry count or error details."""
+    archive_path = os.path.abspath(archive_path)
+    ext = os.path.splitext(archive_path)[1].lower()
+    if ext == ".zip":
+        with zipfile.ZipFile(archive_path, "r") as zf:
+            bad_file = zf.testzip()
+            if bad_file:
+                return {"valid": False, "error": f"Corrupt entry in archive: {bad_file}"}
+            return {"valid": True, "count": len(zf.infolist())}
+    if ext in (".tar", ".gz", ".tgz"):
+        mode = "r:gz" if ext in (".gz", ".tgz") else "r"
+        with tarfile.open(archive_path, mode) as tf:
+            members = tf.getmembers()
+            for member in members:
+                if member.isfile():
+                    extracted_file = tf.extractfile(member)
+                    if extracted_file:
+                        while extracted_file.read(65536):
+                            pass
+            return {"valid": True, "count": len(members)}
+    return verify_bundle_integrity(archive_path)

@@ -5,7 +5,6 @@ description = "Free, local-first, offline file suite for documents, media, data,
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.11,<4.0"
 dependencies = [
-    "PyQt6>=6.6",
     "PyMuPDF>=1.23",
     "pikepdf>=10.0",
     "Pillow>=10.0",
@@ -21,8 +20,6 @@ dependencies = [
     "trimesh>=4.4",
     "shapely>=2.0",
     "mapbox-earcut>=1.0",
-    "pyvista>=0.44",
-    "pyvistaqt>=0.11",
     "python-barcode>=0.16.1",
     "cryptography>=50.0.1",
     "pillow-heif>=1.6.0",
@@ -41,6 +38,7 @@ dependencies = [
     "google-auth-httplib2>=0.4.2",
     "psutil>=7.2.2",
     "matplotlib>=3.11.1",
+    "pywebview>=6.2.1",
 ]
 
 [project.optional-dependencies]

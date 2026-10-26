@@ -14,9 +14,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
-from PyQt6.QtCore import QSettings
-
 from app.features.playlist.ops import PlaylistTrack
+from app.system.settings import get_setting
 
 YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube"]
 
@@ -31,9 +30,8 @@ class YouTubePlaylistResult:
 
 def _load_youtube_client_config() -> dict[str, Any] | None:
     """Read the optional Google OAuth Client ID/Secret from env vars or app settings."""
-    settings = QSettings("FOSSEverything", "FOSSEverything")
-    client_id = str(os.getenv("YOUTUBE_CLIENT_ID") or settings.value("youtube/client_id", "") or "")
-    client_secret = str(os.getenv("YOUTUBE_CLIENT_SECRET") or settings.value("youtube/client_secret", "") or "")
+    client_id = str(os.getenv("YOUTUBE_CLIENT_ID") or get_setting("youtube/client_id", "") or "")
+    client_secret = str(os.getenv("YOUTUBE_CLIENT_SECRET") or get_setting("youtube/client_secret", "") or "")
     if not client_id or not client_secret:
         return None
     return {

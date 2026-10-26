@@ -2,8 +2,6 @@
 import unittest
 from PIL import Image
 from app.features.image import ops as image_ops
-from app.ui.canvas import Tool, ResizableArrowItem
-from PyQt6.QtCore import QPointF
 
 class PhotoToolsTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -52,12 +50,6 @@ class PhotoToolsTests(unittest.TestCase):
         res = image_ops.replace_background_color(cutout, color=(0, 255, 0, 255))
         self.assertEqual(res.size, (50, 50))
 
-    def test_arrow_tool_item(self) -> None:
-        arrow = ResizableArrowItem(QPointF(10, 10), QPointF(50, 50))
-        d = arrow.to_dict()
-        self.assertEqual(d["type"], "arrow")
-        self.assertEqual(d["start"], (10, 10))
-        self.assertEqual(d["end"], (50, 50))
 
 if __name__ == "__main__":
     unittest.main()

@@ -74,6 +74,22 @@ def _split_blocks(lines: list[str]) -> list[list[str]]:
             blocks.append(html_lines)
             continue
 
+        if _HEADING_RE.match(line):
+            if current:
+                blocks.append(current)
+                current = []
+            blocks.append([line])
+            i += 1
+            continue
+
+        if _HR_RE.match(line.strip()):
+            if current:
+                blocks.append(current)
+                current = []
+            blocks.append([line])
+            i += 1
+            continue
+
         current.append(line)
         i += 1
 

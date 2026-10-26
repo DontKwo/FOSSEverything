@@ -47,17 +47,20 @@ def build(onefile: bool = False) -> None:
     assets_dir = os.path.join(ROOT_DIR, "assets")
     if os.path.exists(assets_dir):
         cmd.extend(["--add-data", f"{assets_dir}{os.pathsep}assets"])
+    web_dir = os.path.join(ROOT_DIR, "app", "web")
+    if os.path.exists(web_dir):
+        cmd.extend(["--add-data", f"{web_dir}{os.pathsep}app/web"])
     icon_path = os.path.join(assets_dir, "icon.ico")
     if sys.platform == "win32" and os.path.isfile(icon_path):
         cmd.extend(["--icon", icon_path])
 
     # Add hidden imports
     hidden_imports = [
-        "PyQt6.QtCore",
-        "PyQt6.QtGui",
-        "PyQt6.QtWidgets",
-        "PyQt6.QtMultimedia",
-        "PyQt6.QtMultimediaWidgets",
+        "webview",
+        "pythonnet",
+        "clr_loader",
+        "bottle",
+        "proxy_tools",
         "pymupdf",
         "fitz",
         "PIL",
@@ -82,9 +85,7 @@ def build(onefile: bool = False) -> None:
     except ImportError:
         print("Optional CAD backend (OCP) not installed; build will support STL/OBJ/PLY only.")  # noqa: 25 (CLI status output, not debug)
 
-    # The 3D viewport (pyvista/VTK) has no registered PyInstaller hook entry points.
-    for pkg in ("pyvista", "vtkmodules", "pyvistaqt"):
-        cmd.extend(["--collect-all", pkg])
+
 
     for d in extra_data:
         cmd.extend(["--add-data", d])

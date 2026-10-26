@@ -337,7 +337,7 @@ def capture_profile_version(resume: MasterResume, profile_name: str, note: str =
     history = profile.setdefault("history", [])
     snapshot = {
         "note": note or f"Version {len(history) + 1}",
-        "timestamp": __import__("datetime").datetime.utcnow().isoformat(timespec="seconds") + "Z",
+        "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "state": _snapshot_profile_state(resume),
     }
     history.append(snapshot)

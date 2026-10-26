@@ -11,11 +11,8 @@ import subprocess
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
-from PyQt6.QtCore import QTimer
-from PyQt6.QtNetwork import QLocalServer, QLocalSocket
-
-if TYPE_CHECKING:
-    from app.ui.main_window import MainWindow
+import socket
+import threading
 
 APP_NAME = "FOSSEverything"
 APP_DESCRIPTION = "FOSSEverything - Local Desktop Power Tool"
@@ -52,14 +49,13 @@ FILE_FAMILIES: tuple[tuple[str, frozenset[str]], ...] = (
 
 
 # Mirrors MainWindow._TAB_MAKERS' import targets, so a background thread can
-# warm the module cache for the workspace a routed file will need.
 WORKSPACE_MODULE: dict[str, str] = {
-    "pdf": "app.features.pdf.tab", "images": "app.features.image.tab",
-    "media": "app.features.media.tab", "markdown": "app.features.markdown.tab",
-    "word_counter": "app.features.word_counter.tab", "data": "app.features.data.tab",
-    "model3d": "app.features.model3d.tab", "ocr": "app.features.ocr.tab",
-    "hash": "app.features.hash.tab", "converter": "app.features.converter.tab",
-    "playlist": "app.features.playlist.tab",
+    "pdf": "app.features.pdf.ops", "images": "app.features.image.ops",
+    "media": "app.features.media.ops", "markdown": "app.features.markdown.ops",
+    "word_counter": "app.features.word_counter.ops", "data": "app.features.data.ops",
+    "model3d": "app.features.model3d.ops", "ocr": "app.features.ocr.ops",
+    "hash": "app.features.hash.ops", "converter": "app.features.converter.ops",
+    "playlist": "app.features.playlist.ops",
 }
 
 
@@ -102,113 +98,61 @@ def preload_workspace_module_in_background(file_path: str, force_mode: str | Non
     threading.Thread(target=importlib.import_module, args=(module_name,), daemon=True).start()
 
 
-def _defer_load(tab: Any, file_path: str) -> None:
-    """Load the file on the next event-loop tick instead of blocking the paint
-    that follows the workspace switch that just happened."""
-    if hasattr(tab, "load_file"):
-        QTimer.singleShot(0, lambda: tab.load_file(file_path))
-
-
-def route_file(window: MainWindow, file_path: str, force_mode: str | None = None) -> bool:
+def route_file(window: Any, file_path: str, force_mode: str | None = None) -> bool:
     """Intelligently route a file passed via CLI / file association to the correct workspace."""
     if not os.path.exists(file_path):
         return False
-
-    ext = os.path.splitext(file_path)[1].lower()
-
-    if force_mode == "ocr" or ext == ".ocr":
-        window.open_workspace("ocr")
-        _defer_load(window.ocr_tab, file_path)
-        return True
-
-    if force_mode == "hash":
-        window.open_workspace("hash")
-        _defer_load(window.hash_tab, file_path)
-        return True
-
-    if ext in PDF_EXTENSIONS:
-        window.open_workspace("pdf")
-        _defer_load(window.pdf_tab, file_path)
-        return True
-
-    if ext in IMAGE_EXTENSIONS:
-        window.open_workspace("images")
-        _defer_load(window.image_tab, file_path)
-        return True
-
-    if ext in MEDIA_EXTENSIONS:
-        window.open_workspace("media")
-        _defer_load(window.media_tab, file_path)
-        return True
-
-    if ext in MARKDOWN_EXTENSIONS:
-        window.open_workspace("markdown")
-        _defer_load(window.markdown_tab, file_path)
-        return True
-
-    if ext in OFFICE_EXTENSIONS:
-        window.open_workspace("word_counter")
-        _defer_load(window.word_counter_tab, file_path)
-        return True
-
-    if ext in PLAYLIST_EXTENSIONS:
-        window.open_workspace("playlist")
-        return True
-
-    if ext in DATA_EXTENSIONS:
-        window.open_workspace("data")
-        _defer_load(window.data_tab, file_path)
-        return True
-
-    if ext in MODEL3D_EXTENSIONS:
-        window.open_workspace("model3d")
-        _defer_load(window.model3d_tab, file_path)
-        return True
-
-    window.open_workspace("converter")
-    _defer_load(window.converter_tab, file_path)
+    workspace_id = resolve_workspace_id(file_path, force_mode)
+    if hasattr(window, "evaluate_js"):
+        window.evaluate_js(f"window.openWorkspace('{workspace_id}');")
+    elif hasattr(window, "open_workspace"):
+        window.open_workspace(workspace_id)
     return True
 
 
 # ─── Single-instance IPC ──────────────────────────────────────────────────────
+IPC_PORT = 47891
+
+
 def try_forward_to_running_instance(file_path: str | None, force_mode: str | None = None) -> bool:
     """Hand a launch request to an already-running instance instead of cold-starting a new one."""
-    socket = QLocalSocket()
-    socket.connectToServer(IPC_SERVER_NAME)
-    if not socket.waitForConnected(200):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
+            client.settimeout(0.3)
+            client.connect(("127.0.0.1", IPC_PORT))
+            payload = json.dumps({"file": file_path, "force_mode": force_mode}).encode("utf-8")
+            client.sendall(payload)
+            return True
+    except OSError:
         return False
-    payload = json.dumps({"file": file_path, "force_mode": force_mode}).encode("utf-8")
-    socket.write(payload)
-    socket.waitForBytesWritten(500)
-    socket.disconnectFromServer()
-    return True
 
 
-def start_ipc_server(window: MainWindow) -> QLocalServer:
+def start_ipc_server(window: Any) -> threading.Thread:
     """Listen for launch requests from newly started processes and route them into this warm instance."""
-    QLocalServer.removeServer(IPC_SERVER_NAME)
-    server = QLocalServer()
-    server.listen(IPC_SERVER_NAME)
+    def _listen() -> None:
+        try:
+            srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            srv.bind(("127.0.0.1", IPC_PORT))
+            srv.listen(5)
+            while True:
+                conn, _ = srv.accept()
+                with conn:
+                    data = conn.recv(4096)
+                    if data:
+                        try:
+                            payload = json.loads(data.decode("utf-8"))
+                            file_path = payload.get("file")
+                            if file_path:
+                                route_file(window, file_path, force_mode=payload.get("force_mode"))
+                        except Exception:
+                            pass
+        except OSError:
+            pass
 
-    def _on_new_connection() -> None:
-        connection = server.nextPendingConnection()
-        if connection is None:
-            return
-        if connection.waitForReadyRead(500):
-            try:
-                data = json.loads(bytes(connection.readAll()).decode("utf-8"))
-            except (json.JSONDecodeError, UnicodeDecodeError):
-                data = {}
-            window.show()
-            window.raise_()
-            window.activateWindow()
-            file_path = data.get("file")
-            if file_path:
-                route_file(window, file_path, force_mode=data.get("force_mode"))
-        connection.disconnectFromServer()
-
-    server.newConnection.connect(_on_new_connection)
-    return server
+    thread = threading.Thread(target=_listen, daemon=True)
+    thread.start()
+    return thread
 
 
 # ─── Cross-Platform Shell Registration ───────────────────────────────────────

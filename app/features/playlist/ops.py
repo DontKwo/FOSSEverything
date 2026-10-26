@@ -20,7 +20,7 @@ import urllib.request
 from dataclasses import dataclass, asdict
 from typing import TYPE_CHECKING, Any, Callable
 
-from PyQt6.QtCore import QSettings
+from app.system.settings import get_setting
 
 if TYPE_CHECKING:
     from spotipy.oauth2 import SpotifyPKCE
@@ -311,11 +311,10 @@ def _spotify_track_from_api_item(item: dict[str, Any]) -> PlaylistTrack | None:
 
 def _load_spotify_client_id() -> str:
     """Read the optional Spotify app Client ID from env vars or app settings."""
-    settings = QSettings("FOSSEverything", "FOSSEverything")
     client_id = (
         os.getenv("SPOTIPY_CLIENT_ID")
         or os.getenv("SPOTIFY_CLIENT_ID")
-        or settings.value("spotify/client_id", "")
+        or get_setting("spotify/client_id", "")
     )
     return str(client_id or "")
 
