@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 from app.features.ocr.ops import (
@@ -76,3 +77,32 @@ class OcrApiMixin:
         dpi = int(params.get("dpi", 150))
         res_p = create_searchable_pdf(in_p, out_p, language=lang, dpi=dpi)
         return ok(output_path=res_p)
+
+    @api_method
+    def ocr_batch(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Process multiple files in batch OCR mode.
+        require(params, "file_paths")
+        paths = list(params["file_paths"])
+        lang = str(params.get("language", "eng"))
+        dpi = int(params.get("dpi", 150))
+        make_pdf = bool(params.get("searchable_pdf", False))
+        out_dir = params.get("output_dir")
+        results: list[dict[str, Any]] = []
+        for p in paths:
+            try:
+                p_obj = Path(p)
+                if make_pdf and out_dir:
+                    dest = str(Path(out_dir) / f"{p_obj.stem}_ocr.pdf")
+                    res_p = create_searchable_pdf(p, dest, language=lang, dpi=dpi)
+                    results.append({"path": p, "ok": True, "output_path": res_p})
+                else:
+                    txt = ocr_file(p, language=lang, dpi=dpi)
+                    if out_dir:
+                        txt_dest = str(Path(out_dir) / f"{p_obj.stem}_ocr.txt")
+                        save_ocr_text(txt, txt_dest)
+                        results.append({"path": p, "ok": True, "output_path": txt_dest, "length": len(txt)})
+                    else:
+                        results.append({"path": p, "ok": True, "length": len(txt)})
+            except Exception as e:
+                results.append({"path": p, "ok": False, "error": str(e)})
+        return ok(results=results, count=len(results))

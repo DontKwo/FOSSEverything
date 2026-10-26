@@ -949,21 +949,81 @@
   "media_studio-15": null,
   "media_studio-16": null,
   "media_studio-17": null,
-  "ocr_studio_and_text_extraction-01": null,
-  "ocr_studio_and_text_extraction-02": null,
-  "ocr_studio_and_text_extraction-03": null,
-  "ocr_studio_and_text_extraction-04": null,
-  "ocr_studio_and_text_extraction-05": null,
-  "ocr_studio_and_text_extraction-06": null,
-  "ocr_studio_and_text_extraction-07": null,
-  "ocr_studio_and_text_extraction-08": null,
-  "ocr_studio_and_text_extraction-09": null,
-  "ocr_studio_and_text_extraction-10": null,
-  "ocr_studio_and_text_extraction-11": null,
-  "ocr_studio_and_text_extraction-12": null,
-  "ocr_studio_and_text_extraction-13": null,
-  "ocr_studio_and_text_extraction-14": null,
-  "ocr_studio_and_text_extraction-15": null,
+  "ocr_studio_and_text_extraction-01": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "tool-page-ocr"
+  },
+  "ocr_studio_and_text_extraction-02": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-extract-btn"
+  },
+  "ocr_studio_and_text_extraction-03": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-file-picker"
+  },
+  "ocr_studio_and_text_extraction-04": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-language"
+  },
+  "ocr_studio_and_text_extraction-05": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-dpi"
+  },
+  "ocr_studio_and_text_extraction-06": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-preview-img"
+  },
+  "ocr_studio_and_text_extraction-07": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-copy-btn"
+  },
+  "ocr_studio_and_text_extraction-08": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-make-pdf-btn"
+  },
+  "ocr_studio_and_text_extraction-09": {
+    "view": "ocr",
+    "tab": "batch",
+    "testid": "ocr-run-batch-btn"
+  },
+  "ocr_studio_and_text_extraction-10": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-use-ocr"
+  },
+  "ocr_studio_and_text_extraction-11": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-ocr-btn"
+  },
+  "ocr_studio_and_text_extraction-12": {
+    "view": "converter",
+    "tab": "convert",
+    "testid": "converter-convert-btn"
+  },
+  "ocr_studio_and_text_extraction-13": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-format"
+  },
+  "ocr_studio_and_text_extraction-14": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-extract-btn"
+  },
+  "ocr_studio_and_text_extraction-15": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-language"
+  },
   "resume_studio-01": null,
   "resume_studio-02": null,
   "resume_studio-03": null,
