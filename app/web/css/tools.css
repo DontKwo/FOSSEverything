@@ -1,0 +1,55 @@
+/* Tool-specific styling rules */
+.tool-viewport-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-input);
+  border-radius: var(--radius-md);
+}
+
+.model3d-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pdf-thumbnails-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--space-4);
+  padding: var(--space-2);
+}
+
+.pdf-page-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.pdf-page-card.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.pdf-page-preview {
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  background-color: var(--on-accent);
+}
+
+.code-editor {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  tab-size: 2;
+  white-space: pre;
+  overflow-x: auto;
+}
