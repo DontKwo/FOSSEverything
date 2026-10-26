@@ -389,14 +389,46 @@
     "tab": "main",
     "testid": "renamer-rerun-plan-btn"
   },
-  "archive_packaging-01": null,
-  "archive_packaging-02": null,
-  "archive_packaging-03": null,
-  "archive_packaging-04": null,
-  "archive_packaging-05": null,
-  "archive_packaging-06": null,
-  "archive_packaging-07": null,
-  "archive_packaging-08": null,
+  "archive_packaging-01": {
+    "view": "archive",
+    "tab": "create",
+    "testid": "archive-create-btn"
+  },
+  "archive_packaging-02": {
+    "view": "archive",
+    "tab": "extract",
+    "testid": "archive-extract-btn"
+  },
+  "archive_packaging-03": {
+    "view": "archive",
+    "tab": "backup",
+    "testid": "archive-incremental-backup-btn"
+  },
+  "archive_packaging-04": {
+    "view": "archive",
+    "tab": "inspect",
+    "testid": "archive-member-table"
+  },
+  "archive_packaging-05": {
+    "view": "archive",
+    "tab": "protect",
+    "testid": "archive-protect-btn"
+  },
+  "archive_packaging-06": {
+    "view": "archive",
+    "tab": "protect",
+    "testid": "archive-rotate-key-btn"
+  },
+  "archive_packaging-07": {
+    "view": "archive",
+    "tab": "backup",
+    "testid": "archive-snapshot-btn"
+  },
+  "archive_packaging-08": {
+    "view": "archive",
+    "tab": "create",
+    "testid": "archive-preset-select"
+  },
   "qr_codes_barcodes-01": null,
   "qr_codes_barcodes-02": null,
   "qr_codes_barcodes-03": null,
