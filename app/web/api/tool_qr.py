@@ -28,6 +28,18 @@ from app.features.qr.ops import (
 from app.web.api.result import api_method, ok, require
 
 
+def calc_ext_format(path_str: str) -> str:
+    # Determine image format identifier from file path extension.
+    ext = Path(path_str).suffix.lstrip(".").upper()
+    if ext in ("JPG", "JPEG"):
+        return "JPEG"
+    if ext == "PDF":
+        return "PDF"
+    if ext == "WEBP":
+        return "WEBP"
+    return "PNG"
+
+
 class QrApiMixin:
     @api_method
     def qr_generate(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -62,7 +74,8 @@ class QrApiMixin:
 
         out_path = params.get("output_path")
         if out_path:
-            save_qr_code(img, str(out_path))
+            fmt = calc_ext_format(str(out_path))
+            save_qr_code(img, str(out_path), format=fmt)
 
         buf = io.BytesIO()
         img.save(buf, format="PNG")
@@ -96,7 +109,8 @@ class QrApiMixin:
         require(params, "payload")
         payload = str(params["payload"])
         bc_type = str(params.get("barcode_type", "code128"))
-        img = generate_barcode(payload, barcode_type=bc_type)
+        include_label = bool(params.get("include_label", True))
+        img = generate_barcode(payload, barcode_type=bc_type, include_label=include_label)
 
         out_path = params.get("output_path")
         if out_path:
@@ -132,27 +146,32 @@ class QrApiMixin:
         schema = str(params["schema"]).lower()
 
         if schema == "wifi":
+            sec = str(params.get("security", params.get("auth_type", "WPA")))
             payload = make_wifi_payload(
                 str(params.get("ssid", "")),
                 str(params.get("password", "")),
-                auth_type=str(params.get("auth_type", "WPA")),
+                security=sec,
                 hidden=bool(params.get("hidden", False)),
             )
         elif schema == "vcard":
+            full_name = str(params.get("name", f"{params.get('first_name', '')} {params.get('last_name', '')}".strip()))
             payload = make_vcard_payload(
-                first_name=str(params.get("first_name", "")),
-                last_name=str(params.get("last_name", "")),
+                full_name,
                 phone=str(params.get("phone", "")),
                 email=str(params.get("email", "")),
                 org=str(params.get("org", "")),
                 title=str(params.get("title", "")),
                 url=str(params.get("url", "")),
+                note=str(params.get("note", "")),
             )
         elif schema == "mecard":
             payload = make_mecard_payload(
                 str(params.get("name", "")),
                 phone=str(params.get("phone", "")),
                 email=str(params.get("email", "")),
+                org=str(params.get("org", "")),
+                url=str(params.get("url", "")),
+                address=str(params.get("address", "")),
             )
         elif schema == "email":
             payload = make_email_payload(
@@ -176,12 +195,13 @@ class QrApiMixin:
                 location=str(params.get("location", "")),
                 description=str(params.get("description", "")),
             )
-            ics_dummy = generate_ics(str(params.get("title", "")), str(params.get("start_time", "")))
         elif schema == "asset":
             payload = make_asset_tag_payload(
                 str(params.get("asset_id", "")),
-                name=str(params.get("name", "")),
-                model=str(params.get("model", "")),
+                location=str(params.get("location", "")),
+                owner=str(params.get("owner", "")),
+                category=str(params.get("category", "")),
+                notes=str(params.get("notes", "")),
             )
         else:
             payload = str(params.get("text", ""))
@@ -191,10 +211,27 @@ class QrApiMixin:
     @api_method
     def qr_label_sheet(self, params: dict[str, Any]) -> dict[str, Any]:
         # Generate printable PDF grid sheet of labels or barcodes.
-        require(params, "items", "output_path")
-        items = list(params["items"])
+        require(params, "output_path")
         out_path = str(params["output_path"])
         preset_name = str(params.get("preset", "Avery 5160"))
-        res_p = generate_label_sheet(items, out_path, preset=preset_name)
+        count = int(params.get("count", 30))
+        payload = str(params.get("payload", "https://github.com/fosseverything"))
+        bc_type = params.get("barcode_type")
+        if bc_type:
+            img = generate_barcode(payload, barcode_type=str(bc_type))
+        else:
+            img = generate_qr_code(payload)
+        res_p = generate_label_sheet([img] * count, preset_name, out_path)
         presets = list(LABEL_SHEET_PRESETS.keys())
         return ok(output_path=res_p, presets=presets)
+
+    @api_method
+    def qr_export_ics(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Export calendar event payload as standalone .ics file.
+        require(params, "title", "start_time", "output_path")
+        title = str(params["title"])
+        start = str(params["start_time"])
+        out_path = Path(str(params["output_path"])).resolve()
+        content = generate_ics(title, start)
+        out_path.write_text(content, encoding="utf-8")
+        return ok(output_path=str(out_path))

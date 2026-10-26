@@ -493,22 +493,86 @@
     "tab": "create",
     "testid": "archive-preset-select"
   },
-  "qr_codes_barcodes-01": null,
-  "qr_codes_barcodes-02": null,
-  "qr_codes_barcodes-03": null,
-  "qr_codes_barcodes-04": null,
-  "qr_codes_barcodes-05": null,
-  "qr_codes_barcodes-06": null,
-  "qr_codes_barcodes-07": null,
-  "qr_codes_barcodes-08": null,
-  "qr_codes_barcodes-09": null,
-  "qr_codes_barcodes-10": null,
-  "qr_codes_barcodes-11": null,
-  "qr_codes_barcodes-12": null,
-  "qr_codes_barcodes-13": null,
-  "qr_codes_barcodes-14": null,
-  "qr_codes_barcodes-15": null,
-  "qr_codes_barcodes-16": null,
+  "qr_codes_barcodes-01": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "tool-page-qr"
+  },
+  "qr_codes_barcodes-02": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-payload-type"
+  },
+  "qr_codes_barcodes-03": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-content-details"
+  },
+  "qr_codes_barcodes-04": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-styling-group"
+  },
+  "qr_codes_barcodes-05": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-logo-group"
+  },
+  "qr_codes_barcodes-06": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-export-svg-btn"
+  },
+  "qr_codes_barcodes-07": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-barcode-symbology"
+  },
+  "qr_codes_barcodes-08": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-scan-tab"
+  },
+  "qr_codes_barcodes-09": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-scan-file-picker"
+  },
+  "qr_codes_barcodes-10": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-scan-results"
+  },
+  "qr_codes_barcodes-11": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-scan-action-btn"
+  },
+  "qr_codes_barcodes-12": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-webcam-scan-btn"
+  },
+  "qr_codes_barcodes-13": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-templates-group"
+  },
+  "qr_codes_barcodes-14": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-barcode-toggle"
+  },
+  "qr_codes_barcodes-15": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-export-ics-btn"
+  },
+  "qr_codes_barcodes-16": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-export-labels-btn"
+  },
   "hash_verify-01": {
     "view": "hash",
     "tab": "file",
