@@ -2,7 +2,9 @@ from typing import Any
 
 from app.features.playlist import youtube_ops
 from app.features.playlist.ops import (
+    PlaylistTrack,
     _clear_spotify_user_token_cache,
+    build_track,
     detect_url_platform,
     export_csv_playlist,
     export_m3u8_playlist,
@@ -19,6 +21,7 @@ from app.features.playlist.youtube_ops import (
     has_youtube_login,
     start_youtube_login,
 )
+from app.system.settings import get_setting, set_setting
 from app.web.api.result import api_method, ok, require
 
 
@@ -35,7 +38,10 @@ class PlaylistApiMixin:
                 "title": t.title,
                 "artist": t.artist,
                 "album": t.album,
-                "duration": t.duration_ms // 1000 if t.duration_ms else 0,
+                "duration": t.duration_str,
+                "spotify_url": t.spotify_url,
+                "youtube_url": t.youtube_url,
+                "youtube_music_url": t.youtube_music_url,
             }
             for t in tracks
         ]
@@ -47,15 +53,25 @@ class PlaylistApiMixin:
         require(params, "text")
         text = str(params["text"])
         tracks = parse_tracklist_text(text)
-        track_list = [{"title": t.title, "artist": t.artist} for t in tracks]
+        track_list = [
+            {
+                "title": t.title,
+                "artist": t.artist,
+                "album": t.album,
+                "duration": t.duration_str,
+                "spotify_url": t.spotify_url,
+                "youtube_url": t.youtube_url,
+                "youtube_music_url": t.youtube_music_url,
+            }
+            for t in tracks
+        ]
         return ok(tracks=track_list, count=len(track_list))
 
     @api_method
     def playlist_export_csv(self, params: dict[str, Any]) -> dict[str, Any]:
         # Export track list to CSV spreadsheet file.
         require(params, "tracks", "output_path")
-        from app.features.playlist.ops import build_track
-        tracks = [build_track(str(t.get("title", "")), artist=str(t.get("artist", ""))) for t in params["tracks"]]
+        tracks = [build_track(artist=str(t.get("artist", "")), title=str(t.get("title", ""))) for t in params["tracks"]]
         out_p = str(params["output_path"])
         export_csv_playlist(tracks, out_p)
         return ok(output_path=out_p)
@@ -64,8 +80,7 @@ class PlaylistApiMixin:
     def playlist_export_m3u8(self, params: dict[str, Any]) -> dict[str, Any]:
         # Export track list to M3U8 multimedia playlist file.
         require(params, "tracks", "output_path")
-        from app.features.playlist.ops import build_track
-        tracks = [build_track(str(t.get("title", "")), artist=str(t.get("artist", ""))) for t in params["tracks"]]
+        tracks = [build_track(artist=str(t.get("artist", "")), title=str(t.get("title", ""))) for t in params["tracks"]]
         out_p = str(params["output_path"])
         export_m3u8_playlist(tracks, out_p)
         return ok(output_path=out_p)
@@ -74,36 +89,46 @@ class PlaylistApiMixin:
     def playlist_spotify_auth(self, params: dict[str, Any]) -> dict[str, Any]:
         # Manage Spotify authentication and user token cache.
         action = str(params.get("action", "status")).lower()
+        if "client_id" in params:
+            set_setting("spotify/client_id", str(params["client_id"]).strip())
+        if action == "save_client_id":
+            return ok(saved=True)
         if action == "login":
-            require(params, "client_id", "client_secret")
-            token = start_spotify_user_login(str(params["client_id"]), str(params["client_secret"]))
+            token = start_spotify_user_login()
             return ok(logged_in=bool(token), token=token)
         elif action == "clear":
             _clear_spotify_user_token_cache()
             return ok(cleared=True)
         token = get_spotify_user_token()
-        return ok(has_token=bool(token))
+        client_id = get_setting("spotify/client_id", "")
+        return ok(has_token=bool(token), client_id=client_id)
 
     @api_method
     def playlist_youtube_auth(self, params: dict[str, Any]) -> dict[str, Any]:
         # Manage YouTube OAuth login credentials.
         action = str(params.get("action", "status")).lower()
+        if "client_id" in params:
+            set_setting("youtube/client_id", str(params["client_id"]).strip())
+        if "client_secret" in params:
+            set_setting("youtube/client_secret", str(params["client_secret"]).strip())
+        if action == "save_credentials":
+            return ok(saved=True)
         if action == "login":
-            creds = start_youtube_login()
-            return ok(logged_in=bool(creds))
+            logged_in = start_youtube_login()
+            return ok(logged_in=bool(logged_in))
         elif action == "clear":
             clear_youtube_token_cache()
             return ok(cleared=True)
         logged_in = has_youtube_login()
-        return ok(has_login=logged_in)
+        client_id = get_setting("youtube/client_id", "")
+        return ok(has_login=logged_in, client_id=client_id)
 
     @api_method
     def playlist_youtube_build(self, params: dict[str, Any]) -> dict[str, Any]:
         # Recreate tracklist on YouTube account as new playlist.
         require(params, "playlist_title", "tracks")
         title = str(params["playlist_title"])
-        from app.features.playlist.ops import build_track
-        tracks = [build_track(str(t.get("title", "")), artist=str(t.get("artist", ""))) for t in params["tracks"]]
+        tracks = [build_track(artist=str(t.get("artist", "")), title=str(t.get("title", ""))) for t in params["tracks"]]
         res: YouTubePlaylistResult = build_youtube_playlist_from_tracks(title, tracks)
-        resumable = get_resumable_import(title)
-        return ok(playlist_id=res.playlist_id, playlist_url=res.playlist_url, added_count=res.added_count, resumable=bool(resumable))
+        resumable = get_resumable_import(tracks, title)
+        return ok(playlist_id=res.playlist_id, playlist_url=res.playlist_url, added_count=res.matched, resumable=bool(resumable))
