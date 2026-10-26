@@ -290,6 +290,7 @@ window.FOSS = window.FOSS || {};
           className: isSelected ? "active" : "",
           "aria-selected": isSelected ? "true" : "false",
           "data-testid": tool.id + "-tab-" + tDef.id,
+          "data-obscure-ok": "true",
           text: tDef.label,
           onClick: function () {
             open(tool.id, tDef.id);

@@ -313,22 +313,86 @@
   "qr_codes_barcodes-14": null,
   "qr_codes_barcodes-15": null,
   "qr_codes_barcodes-16": null,
-  "hash_verify-01": null,
-  "hash_verify-02": null,
-  "hash_verify-03": null,
-  "hash_verify-04": null,
-  "hash_verify-05": null,
-  "hash_verify-06": null,
-  "hash_verify-07": null,
-  "hash_verify-08": null,
-  "hash_verify-09": null,
-  "hash_verify-10": null,
-  "hash_verify-11": null,
-  "hash_verify-12": null,
-  "hash_verify-13": null,
-  "hash_verify-14": null,
-  "hash_verify-15": null,
-  "hash_verify-16": null,
+  "hash_verify-01": {
+    "view": "hash",
+    "tab": "file",
+    "testid": "tool-page-hash"
+  },
+  "hash_verify-02": {
+    "view": "hash",
+    "tab": "file",
+    "testid": "hash-file-compute"
+  },
+  "hash_verify-03": {
+    "view": "hash",
+    "tab": "text",
+    "testid": "hash-text-input"
+  },
+  "hash_verify-04": {
+    "view": "hash",
+    "tab": "compare",
+    "testid": "hash-compare-btn"
+  },
+  "hash_verify-05": {
+    "view": "hash",
+    "tab": "file",
+    "testid": "hash-file-multihash"
+  },
+  "hash_verify-06": {
+    "view": "hash",
+    "tab": "verify",
+    "testid": "hash-verify-btn"
+  },
+  "hash_verify-07": {
+    "view": "hash",
+    "tab": "directory",
+    "testid": "hash-directory-hash-btn"
+  },
+  "hash_verify-08": {
+    "view": "hash",
+    "tab": "directory",
+    "testid": "hash-directory-progress"
+  },
+  "hash_verify-09": {
+    "view": "hash",
+    "tab": "directory",
+    "testid": "hash-directory-export-manifest"
+  },
+  "hash_verify-10": {
+    "view": "hash",
+    "tab": "verify",
+    "testid": "hash-verify-manifest-btn"
+  },
+  "hash_verify-11": {
+    "view": "hash",
+    "tab": "verify",
+    "testid": "hash-verify-manifest-open"
+  },
+  "hash_verify-12": {
+    "view": "hash",
+    "tab": "verify",
+    "testid": "hash-manifest-results-table"
+  },
+  "hash_verify-13": {
+    "view": "hash",
+    "tab": "manifest_diff",
+    "testid": "hash-diff-compare-btn"
+  },
+  "hash_verify-14": {
+    "view": "hash",
+    "tab": "sign",
+    "testid": "hash-sign-generate-keypair"
+  },
+  "hash_verify-15": {
+    "view": "hash",
+    "tab": "sign",
+    "testid": "hash-policy-verify-btn"
+  },
+  "hash_verify-16": {
+    "view": "hash",
+    "tab": "sign",
+    "testid": "hash-sign-timestamp-check"
+  },
   "palette_extractor_eyedropper-01": null,
   "palette_extractor_eyedropper-02": null,
   "palette_extractor_eyedropper-03": null,
