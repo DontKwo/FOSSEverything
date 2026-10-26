@@ -1,16 +1,21 @@
+import json
 from typing import Any
 
 from app.features.data.ops import (
+    clean_markdown_table,
     convert_data_format,
     convert_units,
+    csv_to_markdown_table,
     describe_cron,
     diff_documents,
+    diff_json_schema,
     format_css,
     format_javascript,
     format_json,
     format_sql,
     format_xml,
     format_yaml,
+    generate_bibliography,
     generate_citation,
     generate_ics,
     generate_random_value,
@@ -18,15 +23,18 @@ from app.features.data.ops import (
     grammar_check_text_advanced,
     infer_json_schema,
     languagetool_backend_available,
+    markdown_table_to_rows,
     minify_css,
     minify_javascript,
     minify_json,
     minify_sql,
     minify_xml,
     next_cron_runs,
+    normalize_markdown_table,
     parse_ics,
     query_jsonpath,
     render_markdown_preview,
+    validate_against_schema,
     validate_syntax,
 )
 from app.web.api.result import api_method, fail, ok, require
@@ -260,3 +268,70 @@ class DataApiMixin:
         require(params, "markdown")
         html_out = render_markdown_preview(str(params["markdown"]))
         return ok(html=html_out)
+
+    @api_method
+    def data_clean_table(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Clean markdown table with whitespace trimming and optional empty column removal.
+        require(params, "content")
+        tbl = clean_markdown_table(
+            str(params["content"]),
+            keep_empty_columns=bool(params.get("keep_empty_columns", False)),
+            trim_whitespace=bool(params.get("trim_whitespace", True)),
+        )
+        return ok(result=tbl)
+
+    @api_method
+    def data_normalize_table(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Normalize markdown table column widths and padding.
+        require(params, "content")
+        tbl = normalize_markdown_table(
+            str(params["content"]),
+            keep_empty_columns=bool(params.get("keep_empty_columns", False)),
+        )
+        return ok(result=tbl)
+
+    @api_method
+    def data_csv_to_table(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Convert CSV content into Markdown table formatting.
+        require(params, "content")
+        tbl = csv_to_markdown_table(
+            str(params["content"]),
+            delimiter=str(params.get("delimiter", ",")),
+            include_header=bool(params.get("include_header", True)),
+        )
+        return ok(result=tbl)
+
+    @api_method
+    def data_table_to_rows(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Parse markdown table string into list of row dictionaries.
+        require(params, "content")
+        rows = markdown_table_to_rows(str(params["content"]))
+        return ok(rows=rows)
+
+    @api_method
+    def data_diff_schema(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Diff two JSON schemas and return structural differences.
+        require(params, "base_schema", "candidate_schema")
+        base = json.loads(params["base_schema"]) if isinstance(params["base_schema"], str) else params["base_schema"]
+        cand = json.loads(params["candidate_schema"]) if isinstance(params["candidate_schema"], str) else params["candidate_schema"]
+        overrides = params.get("overrides")
+        res = diff_json_schema(base, cand, overrides=overrides)
+        return ok(**res)
+
+    @api_method
+    def data_validate_against_schema(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Validate data object against provided JSON schema.
+        require(params, "content", "schema")
+        data = json.loads(params["content"]) if isinstance(params["content"], str) else params["content"]
+        schema = json.loads(params["schema"]) if isinstance(params["schema"], str) else params["schema"]
+        res = validate_against_schema(data, schema)
+        return ok(**res)
+
+    @api_method
+    def data_generate_bibliography(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Generate bibliography list for multiple metadata entries.
+        require(params, "entries", "style")
+        entries = list(params["entries"])
+        style = str(params["style"])
+        bib = generate_bibliography(entries, style=style)
+        return ok(bibliography=bib)

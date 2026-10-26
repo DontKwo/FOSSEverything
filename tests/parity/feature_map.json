@@ -86,29 +86,121 @@
   "metadata_tools-10": null,
   "metadata_tools-11": null,
   "metadata_tools-12": null,
-  "data_studio-01": null,
-  "data_studio-02": null,
-  "data_studio-03": null,
-  "data_studio-04": null,
-  "data_studio-05": null,
-  "data_studio-06": null,
-  "data_studio-07": null,
-  "data_studio-08": null,
-  "data_studio-09": null,
-  "data_studio-10": null,
-  "data_studio-11": null,
-  "data_studio-12": null,
-  "data_studio-13": null,
-  "data_studio-14": null,
-  "data_studio-15": null,
-  "data_studio-16": null,
-  "data_studio-17": null,
-  "data_studio-18": null,
-  "data_studio-19": null,
-  "data_studio-20": null,
-  "data_studio-21": null,
-  "data_studio-22": null,
-  "data_studio-23": null,
+  "data_studio-01": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "tool-page-data"
+  },
+  "data_studio-02": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-format"
+  },
+  "data_studio-03": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-minify"
+  },
+  "data_studio-04": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-validate"
+  },
+  "data_studio-05": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-convert-btn"
+  },
+  "data_studio-06": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-open"
+  },
+  "data_studio-07": {
+    "view": "data",
+    "tab": "query",
+    "testid": "data-query-evaluate"
+  },
+  "data_studio-08": {
+    "view": "data",
+    "tab": "query",
+    "testid": "data-query-infer-schema"
+  },
+  "data_studio-09": {
+    "view": "data",
+    "tab": "tables",
+    "testid": "data-tables-parse"
+  },
+  "data_studio-10": {
+    "view": "data",
+    "tab": "query",
+    "testid": "data-query-diff-schema"
+  },
+  "data_studio-11": {
+    "view": "data",
+    "tab": "tables",
+    "testid": "data-tables-csv-to-md"
+  },
+  "data_studio-12": {
+    "view": "data",
+    "tab": "query",
+    "testid": "data-query-validate-schema"
+  },
+  "data_studio-13": {
+    "view": "data",
+    "tab": "tables",
+    "testid": "data-tables-clean"
+  },
+  "data_studio-14": {
+    "view": "data",
+    "tab": "units",
+    "testid": "data-units-convert"
+  },
+  "data_studio-15": {
+    "view": "data",
+    "tab": "units",
+    "testid": "data-units-random-generate"
+  },
+  "data_studio-16": {
+    "view": "data",
+    "tab": "preview",
+    "testid": "data-preview-render"
+  },
+  "data_studio-17": {
+    "view": "data",
+    "tab": "calendar",
+    "testid": "data-calendar-generate"
+  },
+  "data_studio-18": {
+    "view": "data",
+    "tab": "writing",
+    "testid": "data-writing-diff-btn"
+  },
+  "data_studio-19": {
+    "view": "data",
+    "tab": "writing",
+    "testid": "data-writing-grammar-check"
+  },
+  "data_studio-20": {
+    "view": "data",
+    "tab": "writing",
+    "testid": "data-writing-citation-generate"
+  },
+  "data_studio-21": {
+    "view": "data",
+    "tab": "writing",
+    "testid": "data-writing-grammar-advanced"
+  },
+  "data_studio-22": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-format-lang"
+  },
+  "data_studio-23": {
+    "view": "data",
+    "tab": "cron",
+    "testid": "data-cron-describe-btn"
+  },
   "text_tools-01": {
     "view": "text_tools",
     "tab": "main",
