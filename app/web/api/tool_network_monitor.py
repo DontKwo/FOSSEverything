@@ -31,7 +31,10 @@ class NetworkMonitorApiMixin:
     def network_get_connections(self, params: dict[str, Any]) -> dict[str, Any]:
         # Query active TCP/UDP network connections currently open on host.
         monitor = self._get_monitor()
-        conns: list[LiveConnection] = monitor.poll()
+        try:
+            conns: list[LiveConnection] = monitor.poll()
+        except Exception:
+            conns = []
         filter_str = str(params.get("filter", "")).lower().strip()
         results: list[dict[str, Any]] = []
 
@@ -69,8 +72,10 @@ class NetworkMonitorApiMixin:
         dom = params.get("domain")
         limit = int(params.get("limit", 100))
         conn = connect()
-        events = search_history(conn, query=q, process=proc, domain=dom, limit=limit)
-        conn.close()
+        try:
+            events = search_history(conn, query=q, process=proc, domain=dom, limit=limit)
+        finally:
+            conn.close()
         path_str = db_path()
         return ok(events=[{
             "id": e.id,
@@ -88,19 +93,23 @@ class NetworkMonitorApiMixin:
     def network_stats(self, params: dict[str, Any]) -> dict[str, Any]:
         # Aggregate top contacting processes, remote domains, and timeline trends.
         conn = connect()
-        domains = [dict(r) for r in top_domains(conn, limit=int(params.get("limit", 10)))]
-        procs = [dict(r) for r in top_processes(conn, limit=int(params.get("limit", 10)))]
-        timeline = [dict(r) for r in connections_over_time(conn, days=int(params.get("days", 7)))]
-        unknowns = [dict(r) for r in unknown_destinations(conn)]
-        conn.close()
+        try:
+            domains = [dict(r) for r in top_domains(conn, limit=int(params.get("limit", 10)))]
+            procs = [dict(r) for r in top_processes(conn, limit=int(params.get("limit", 10)))]
+            timeline = [dict(r) for r in connections_over_time(conn, days=int(params.get("days", 7)))]
+            unknowns = [dict(r) for r in unknown_destinations(conn)[:50]]
+        finally:
+            conn.close()
         return ok(top_domains=domains, top_processes=procs, timeline=timeline, unknown_destinations=unknowns)
 
     @api_method
     def network_apps(self, params: dict[str, Any]) -> dict[str, Any]:
         # Query total traffic and connection count grouped per application.
         conn = connect()
-        summary = [dict(r) for r in per_app_summary(conn)]
-        conn.close()
+        try:
+            summary = [dict(r) for r in per_app_summary(conn)]
+        finally:
+            conn.close()
         return ok(summary=summary)
 
     @api_method
@@ -110,9 +119,11 @@ class NetworkMonitorApiMixin:
         dest = str(params["destination"])
         known = bool(params.get("known", True))
         conn = connect()
-        mark_destination_known(conn, dest, known=known)
-        unknowns = [dict(r) for r in unknown_destinations(conn)]
-        conn.close()
+        try:
+            mark_destination_known(conn, dest, known=known)
+            unknowns = [dict(r) for r in unknown_destinations(conn)]
+        finally:
+            conn.close()
         return ok(destination=dest, known=known, remaining_unknowns=len(unknowns))
 
     @api_method
@@ -120,11 +131,12 @@ class NetworkMonitorApiMixin:
         # Maintenance operations: prune older records or wipe network history.
         action = str(params.get("action", "prune")).lower()
         conn = connect()
-        if action == "wipe":
-            wipe_all(conn)
+        try:
+            if action == "wipe":
+                wipe_all(conn)
+                return ok(wiped=True)
+            days = int(params.get("days", 30))
+            pruned = prune_older_than(conn, days=days)
+        finally:
             conn.close()
-            return ok(wiped=True)
-        days = int(params.get("days", 30))
-        pruned = prune_older_than(conn, days=days)
-        conn.close()
         return ok(pruned_count=pruned, days=days)
