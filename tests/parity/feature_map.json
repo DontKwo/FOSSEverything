@@ -601,15 +601,51 @@
   "palette_extractor_eyedropper-10": null,
   "palette_extractor_eyedropper-11": null,
   "palette_extractor_eyedropper-12": null,
-  "collage_maker-01": null,
-  "collage_maker-02": null,
-  "collage_maker-03": null,
-  "collage_maker-04": null,
-  "collage_maker-05": null,
-  "collage_maker-06": null,
-  "collage_maker-07": null,
-  "collage_maker-08": null,
-  "collage_maker-09": null,
+  "collage_maker-01": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "tool-page-collage"
+  },
+  "collage_maker-02": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-images-list"
+  },
+  "collage_maker-03": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-columns-select"
+  },
+  "collage_maker-04": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-captions-check"
+  },
+  "collage_maker-05": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-corner-radius"
+  },
+  "collage_maker-06": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-save-btn"
+  },
+  "collage_maker-07": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-preview-btn"
+  },
+  "collage_maker-08": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-preset-select"
+  },
+  "collage_maker-09": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-watermark-input"
+  },
   "media_studio-01": null,
   "media_studio-02": null,
   "media_studio-03": null,
