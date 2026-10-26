@@ -46,6 +46,18 @@ def _calc_load_img(file_path: str) -> Image.Image:
     return img.copy()
 
 
+def calc_color_tuple(color_val: Any) -> tuple[int, int, int]:
+    # Parse color value to 3-tuple RGB channels.
+    if isinstance(color_val, (list, tuple)) and len(color_val) >= 3:
+        return (int(color_val[0]), int(color_val[1]), int(color_val[2]))
+    val = str(color_val).strip().lstrip("#")
+    if len(val) == 3:
+        val = "".join(c * 2 for c in val)
+    if len(val) == 6:
+        return (int(val[0:2], 16), int(val[2:4], 16), int(val[4:6], 16))
+    return (255, 255, 255)
+
+
 class ImagesApiMixin:
     @api_method
     def images_presets(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -267,11 +279,12 @@ class ImagesApiMixin:
         # Add decorative border frame around image.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        width = int(params.get("border_width", 10))
-        color = str(params.get("color", "#000000"))
+        width = int(params.get("border_width", params.get("border_size", 10)))
+        color_tuple = calc_color_tuple(params.get("color", "#000000"))
+        polaroid = bool(params.get("polaroid", False))
         out_p = str(params.get("output_path", file_path))
         img = _calc_load_img(file_path)
-        bordered = add_border(img, border_width=width, color=color)
+        bordered = add_border(img, border_size=width, color=color_tuple, polaroid=polaroid)
         save_image(bordered, out_p)
         return ok(output_path=out_p)
 
@@ -322,8 +335,15 @@ class ImagesApiMixin:
         require(params, "width", "height", "aspect_ratio")
         w = int(params["width"])
         h = int(params["height"])
-        ratio = str(params["aspect_ratio"])
-        box = aspect_ratio_crop_box(w, h, ratio)
+        ratio_str = str(params["aspect_ratio"]).replace("/", ":")
+        if ":" in ratio_str:
+            parts = ratio_str.split(":")
+            rw = float(parts[0])
+            rh = float(parts[1])
+        else:
+            rw = float(ratio_str)
+            rh = 1.0
+        box = aspect_ratio_crop_box(w, h, rw, rh)
         return ok(box=list(box))
 
     @api_method
@@ -332,13 +352,13 @@ class ImagesApiMixin:
         require(params, "file_path")
         file_path = str(params["file_path"])
         img = _calc_load_img(file_path)
-        cols = int(params.get("columns", 80))
+        cols = int(params.get("columns", params.get("width", 80)))
         charset = str(params.get("charset", "standard"))
         from app.features.image.ops import image_to_ascii
-        art = image_to_ascii(img, columns=cols, charset_preset=charset)
+        art = image_to_ascii(img, width=cols, charset=charset)
         out_p = params.get("output_path")
         if out_p:
-            save_ascii_art(art, str(out_p))
+            save_ascii_art(img, str(out_p), width=cols, charset=charset)
         return ok(ascii=art, output_path=out_p)
 
     @api_method
@@ -364,12 +384,28 @@ class ImagesApiMixin:
     @api_method
     def images_batch_process(self, params: dict[str, Any]) -> dict[str, Any]:
         # Batch execute pipeline operations across multiple images.
-        require(params, "file_paths", "operations")
-        paths = list(params["file_paths"])
-        ops_list = list(params["operations"])
-        out_dir = params.get("output_dir")
-        results = batch_process(paths, ops_list, output_dir=str(out_dir) if out_dir else None)
-        return ok(results=results)
+        require(params, "file_paths")
+        paths = [str(p) for p in params["file_paths"]]
+        out_dir = str(params.get("output_dir", "."))
+        target_fmt = params.get("target_format")
+        quality = int(params.get("quality", 85))
+        resize_to = None
+        if "width" in params and "height" in params:
+            resize_to = (int(params["width"]), int(params["height"]))
+        keep_aspect = bool(params.get("keep_aspect", True))
+        rm_bg = bool(params.get("remove_background", False))
+        bg_model = str(params.get("bg_model", "u2net"))
+        results = batch_process(
+            paths,
+            out_dir,
+            target_format=str(target_fmt) if target_fmt else None,
+            quality=quality,
+            resize_to=resize_to,
+            keep_aspect=keep_aspect,
+            remove_background_enabled=rm_bg,
+            bg_model=bg_model,
+        )
+        return ok(results=results, count=len(results))
 
     @api_method
     def images_ocr(self, params: dict[str, Any]) -> dict[str, Any]:

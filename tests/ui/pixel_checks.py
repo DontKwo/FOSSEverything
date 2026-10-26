@@ -29,7 +29,7 @@ def analyze(png_path: str, border_rects: list[dict[str, float]] | None = None) -
     gray = img.convert("L")
     std = float(np.std(np.array(gray)))
     thumb = img.resize((128, int(128 * h / w)), Image.Resampling.BOX)
-    distinct_colors = len(set(np.array(thumb).reshape(-1)))
+    distinct_colors = len(set(thumb.getdata()))
     if std < 3.0 or distinct_colors < 8:
         findings.append({
             "id": "P1",

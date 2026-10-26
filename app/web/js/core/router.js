@@ -87,8 +87,6 @@ window.FOSS = window.FOSS || {};
       });
     });
 
-    sidebar.appendChild(navList);
-
     // Bottom settings item
     var settingsActive = activeView === "settings";
     var settingsItem = window.FOSS.dom.el("button", {
@@ -103,7 +101,8 @@ window.FOSS = window.FOSS || {};
       window.FOSS.icons.el("settings", 18),
       window.FOSS.dom.el("span", { className: "nav-label", text: "Settings" })
     ]);
-    sidebar.appendChild(settingsItem);
+    navList.appendChild(settingsItem);
+    sidebar.appendChild(navList);
   }
 
   function renderTopbar() {

@@ -32,32 +32,136 @@
   "pdf_studio-17": null,
   "pdf_studio-18": null,
   "pdf_studio-19": null,
-  "image_studio-01": null,
-  "image_studio-02": null,
-  "image_studio-03": null,
-  "image_studio-04": null,
-  "image_studio-05": null,
-  "image_studio-06": null,
-  "image_studio-07": null,
-  "image_studio-08": null,
-  "image_studio-09": null,
-  "image_studio-10": null,
-  "image_studio-11": null,
-  "image_studio-12": null,
-  "image_studio-13": null,
-  "image_studio-14": null,
-  "image_studio-15": null,
-  "image_studio-16": null,
-  "image_studio-17": null,
-  "image_studio-18": null,
-  "image_studio-19": null,
-  "image_studio-20": null,
-  "image_studio-21": null,
-  "image_studio-22": null,
-  "image_studio-23": null,
-  "image_studio-24": null,
-  "image_studio-25": null,
-  "image_studio-26": null,
+  "image_studio-01": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "tool-page-images"
+  },
+  "image_studio-02": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-draw-tools"
+  },
+  "image_studio-03": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-auto-enhance-btn"
+  },
+  "image_studio-04": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-adjust-group"
+  },
+  "image_studio-05": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-crop-group"
+  },
+  "image_studio-06": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-rotate-group"
+  },
+  "image_studio-07": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-redact-group"
+  },
+  "image_studio-08": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-border-group"
+  },
+  "image_studio-09": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-resize-group"
+  },
+  "image_studio-10": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-copy-btn"
+  },
+  "image_studio-11": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-layers-group"
+  },
+  "image_studio-12": {
+    "view": "images",
+    "tab": "compress",
+    "testid": "image-compress-group"
+  },
+  "image_studio-13": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-batch-group"
+  },
+  "image_studio-14": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-export-format"
+  },
+  "image_studio-15": {
+    "view": "images",
+    "tab": "background",
+    "testid": "image-bg-model-select"
+  },
+  "image_studio-16": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-screenshot-group"
+  },
+  "image_studio-17": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-perspective-group"
+  },
+  "image_studio-18": {
+    "view": "images",
+    "tab": "background",
+    "testid": "image-batch-bg-btn"
+  },
+  "image_studio-19": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-curves-group"
+  },
+  "image_studio-20": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-annotation-presets"
+  },
+  "image_studio-21": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-layer-mask-group"
+  },
+  "image_studio-22": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-ocr-btn"
+  },
+  "image_studio-23": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-raw-format-info"
+  },
+  "image_studio-24": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-gif-group"
+  },
+  "image_studio-25": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-ascii-btn"
+  },
+  "image_studio-26": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-gif-video-btn"
+  },
   "file_converter-01": {
     "view": "converter",
     "tab": "single",
