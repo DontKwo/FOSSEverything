@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg_snip" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#451a03"/>
+      <stop offset="50%" stop-color="#78350f"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="accent_snip" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg_snip)"/>
+  <circle cx="500" cy="80" r="140" fill="#f59e0b" opacity="0.12"/>
+  <g transform="translate(230, 75)">
+    <rect x="0" y="0" width="180" height="135" rx="12" fill="#1c1917" stroke="url(#accent_snip)" stroke-width="3"/>
+    <circle cx="90" cy="68" r="32" fill="#292524" stroke="#fbbf24" stroke-width="2"/>
+    <circle cx="90" cy="68" r="18" fill="#451a03" stroke="#fbbf24" stroke-width="1.5"/>
+    <circle cx="96" cy="62" r="5" fill="#fef3c7"/>
+    <rect x="25" y="18" width="18" height="6" rx="3" fill="#fbbf24"/>
+    <path d="M 0 35 L 20 35 M 0 35 L 0 55" stroke="#fbbf24" stroke-width="2"/>
+    <path d="M 180 35 L 160 35 M 180 35 L 180 55" stroke="#fbbf24" stroke-width="2"/>
+    <path d="M 0 100 L 20 100 M 0 100 L 0 80" stroke="#fbbf24" stroke-width="2"/>
+    <path d="M 180 100 L 160 100 M 180 100 L 180 80" stroke="#fbbf24" stroke-width="2"/>
+  </g>
+  <text x="320" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" fill="#f1f5f9" text-anchor="middle" letter-spacing="1">SCREEN CAPTURE</text>
+  <text x="320" y="306" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#a3b1c6" text-anchor="middle">SNIP REGION - WINDOW - FULL SCREEN</text>
+</svg>

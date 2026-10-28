@@ -22,7 +22,6 @@ window.FOSS = window.FOSS || {};
     var sections = [
       { id: "appearance", label: "Appearance & Theme" },
       { id: "home", label: "Home & Workspaces" },
-      { id: "artcraft", label: "Creative Suites & ArtCraft" },
       { id: "keybindings", label: "Keybindings" },
       { id: "shell", label: "File Associations & Shell" },
       { id: "privacy", label: "Privacy & Data" },
@@ -61,8 +60,6 @@ window.FOSS = window.FOSS || {};
       renderAppearance(panel);
     } else if (secId === "home") {
       renderHomeSettings(panel);
-    } else if (secId === "artcraft") {
-      renderArtcraft(panel);
     } else if (secId === "keybindings") {
       renderKeybindings(panel);
     } else if (secId === "shell") {
@@ -90,12 +87,13 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "light", text: "Light", selected: currentTheme === "light" }),
       window.FOSS.dom.el("option", { value: "solarized", text: "Solarized", selected: currentTheme === "solarized" }),
       window.FOSS.dom.el("option", { value: "monokai", text: "Monokai", selected: currentTheme === "monokai" }),
-      window.FOSS.dom.el("option", { value: "cyberpunk", text: "Cyberpunk", selected: currentTheme === "cyberpunk" })
+      window.FOSS.dom.el("option", { value: "cyberpunk", text: "Cyberpunk", selected: currentTheme === "cyberpunk" }),
+      window.FOSS.dom.el("option", { value: "ut_austin", text: "UT Austin", selected: currentTheme === "ut_austin" || currentTheme === "ut" })
     ]);
     var themeField = window.FOSS.dom.el("div", { className: "field" }, [
       window.FOSS.dom.el("label", { text: "Color Theme" }),
       themeSelect,
-      window.FOSS.dom.el("span", { className: "hint", text: "Choose from 5 WCAG AA contrast-verified color themes." })
+      window.FOSS.dom.el("span", { className: "hint", text: "Choose from 6 WCAG AA contrast-verified color themes." })
     ]);
     panel.appendChild(themeField);
 
@@ -139,55 +137,6 @@ window.FOSS = window.FOSS || {};
       }
     });
     panel.appendChild(clearRecentsBtn);
-  }
-
-  function renderArtcraft(panel) {
-    panel.appendChild(window.FOSS.dom.el("h2", { className: "card-title", text: "External Creative Tools (ArtCraft Suite)" }));
-    panel.appendChild(window.FOSS.dom.el("p", {
-      className: "desc",
-      text: "Heavy media and creative suites belong in dedicated standalone tools. FOSSEverything seamlessly checks for installed ArtCraft desktop tools and launches them locally."
-    }));
-
-    var statusContainer = window.FOSS.dom.el("div", { className: "stack-sm", "data-testid": "artcraft-tools-list" });
-    panel.appendChild(statusContainer);
-
-    window.FOSS.api("get_artcraft_status", {}).then(function (res) {
-      if (!res || !res.ok || !res.status) return;
-      statusContainer.innerHTML = "";
-      for (var appKey in res.status) {
-        var info = res.status[appKey];
-        var isInst = info.installed;
-
-        var launchBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-sm " + (isInst ? "btn-primary" : "btn-secondary"),
-          text: isInst ? "Launch " + info.name : "Get " + info.name,
-          "data-testid": "artcraft-launch-" + appKey,
-          onClick: (function (k, inst) {
-            return function () {
-              if (inst) {
-                window.FOSS.api("launch_artcraft_app", { app_name: k });
-              } else {
-                window.FOSS.api("open_path", { path: "https://github.com/ArtCraftSuite/" + k });
-              }
-            };
-          })(appKey, isInst)
-        });
-
-        var badge = window.FOSS.dom.el("span", {
-          className: "badge " + (isInst ? "success" : "info"),
-          text: isInst ? "Installed" : "Available"
-        });
-
-        var item = window.FOSS.dom.el("div", { className: "file-list-item" }, [
-          window.FOSS.dom.el("div", { className: "stack-sm" }, [
-            window.FOSS.dom.el("span", { className: "picker-name", text: info.name }),
-            window.FOSS.dom.el("span", { className: "picker-path", text: isInst ? info.path : "Open-source standalone application" })
-          ]),
-          window.FOSS.dom.el("div", { className: "row" }, [badge, launchBtn])
-        ]);
-        statusContainer.appendChild(item);
-      }
-    });
   }
 
   function renderKeybindings(panel) {

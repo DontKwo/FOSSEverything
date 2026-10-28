@@ -1,4 +1,8 @@
+import csv
+import io
 import json
+import random
+import secrets
 from typing import Any
 
 from app.features.data.ops import (
@@ -37,6 +41,8 @@ from app.features.data.ops import (
     validate_against_schema,
     validate_syntax,
 )
+from app.web.api.data_structure import inspect_data_structure
+from app.web.api.hdf5_reader import export_hdf5_slice
 from app.web.api.result import api_method, fail, ok, require
 
 
@@ -230,11 +236,76 @@ class DataApiMixin:
         return ok(events=events)
 
     @api_method
+    def data_inspect_structure(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Analyze and explain hierarchical schema, keys, types, and values of a data file.
+        res = inspect_data_structure(
+            file_path=params.get("file_path"),
+            content=params.get("content"),
+            format_hint=params.get("format"),
+        )
+        return ok(**res)
+
+    @api_method
+    def data_hdf5_export_slice(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Extract sliced multidimensional data from HDF5 and export to CSV, JSON, or NPY.
+        require(params, "file_path", "dataset_path", "output_path")
+        file_path = str(params["file_path"])
+        dataset_path = str(params["dataset_path"])
+        output_path = str(params["output_path"])
+        slice_spec = str(params.get("slice_spec", ":"))
+        out_format = str(params.get("format", "csv"))
+        res = export_hdf5_slice(file_path, dataset_path, slice_spec, output_path, out_format)
+        return ok(**res)
+
+    @api_method
     def data_random_value(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Generate random value of specified category (uuid, string, integer, hex, lorem).
+        # Generate random values with customizable length, count, ranges, and alphabets.
         require(params, "category")
-        val = generate_random_value(str(params["category"]), length=int(params.get("length", 16)))
-        return ok(value=val)
+        category = str(params["category"]).lower()
+        length = int(params.get("length", 16))
+        count = int(params.get("count", 1))
+        min_val = int(params.get("min_value", 0))
+        max_val = int(params.get("max_value", 100))
+        inc_upper = bool(params.get("include_uppercase", True))
+        inc_lower = bool(params.get("include_lowercase", True))
+        inc_digits = bool(params.get("include_digits", True))
+        inc_symbols = bool(params.get("include_symbols", False))
+        custom_alphabet = params.get("custom_alphabet")
+
+        if category == "hex":
+            def make_hex() -> str:
+                return secrets.token_hex((length + 1) // 2)[:length]
+            values = [make_hex() for _ in range(count)]
+            return ok(value=values[0] if count <= 1 else values, values=values, count=count)
+
+        if category == "lorem":
+            words = [
+                "lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit",
+                "sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore", "et", "dolore",
+                "magna", "aliqua", "enim", "ad", "minim", "veniam", "quis", "nostrud",
+                "exercitation", "ullamco", "laboris", "nisi", "aliquip", "ex", "ea", "commodo",
+                "consequat", "duis", "aute", "irure", "in", "reprehenderit", "voluptate",
+            ]
+            def make_lorem() -> str:
+                chosen = [random.choice(words) for _ in range(max(4, length))]
+                return " ".join(chosen).capitalize() + "."
+            values = [make_lorem() for _ in range(count)]
+            return ok(value=values[0] if count <= 1 else values, values=values, count=count)
+
+        random_val = generate_random_value(
+            category,
+            length=length,
+            count=count,
+            min_value=min_val,
+            max_value=max_val,
+            include_uppercase=inc_upper,
+            include_lowercase=inc_lower,
+            include_digits=inc_digits,
+            include_symbols=inc_symbols,
+            custom_alphabet=custom_alphabet,
+        )
+        values_list = random_val if isinstance(random_val, list) else [random_val]
+        return ok(value=random_val, values=values_list, count=count)
 
     @api_method
     def data_grammar_check(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -292,14 +363,67 @@ class DataApiMixin:
 
     @api_method
     def data_csv_to_table(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Convert CSV content into Markdown table formatting.
+        # Convert CSV or delimited content into Markdown table formatting.
         require(params, "content")
+        raw_del = str(params.get("delimiter", ","))
+        delimiter_map = {
+            "tab": "\t", "\\t": "\t", "pipe": "|", "comma": ",",
+            "semicolon": ";", "colon": ":", "space": " ",
+        }
+        delim = delimiter_map.get(raw_del.lower(), raw_del)
         tbl = csv_to_markdown_table(
             str(params["content"]),
-            delimiter=str(params.get("delimiter", ",")),
+            delimiter=delim,
             include_header=bool(params.get("include_header", True)),
         )
         return ok(result=tbl)
+
+    @api_method
+    def data_table_to_csv(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Convert Markdown table into delimited text with selectable delimiter and options.
+        require(params, "content")
+        raw_del = str(params.get("delimiter", ","))
+        delimiter_map = {
+            "tab": "\t", "\\t": "\t", "pipe": "|", "comma": ",",
+            "semicolon": ";", "colon": ":", "space": " ",
+        }
+        delim = delimiter_map.get(raw_del.lower(), raw_del)
+        include_header = bool(params.get("include_header", True))
+        quote_char = str(params.get("quote_char", '"'))
+
+        content = str(params["content"])
+        rows = markdown_table_to_rows(content)
+        if not rows:
+            return ok(result="")
+        headers = list(rows[0].keys())
+        buf = io.StringIO()
+        quoting = csv.QUOTE_MINIMAL if quote_char else csv.QUOTE_NONE
+        writer = csv.writer(buf, delimiter=delim, quotechar=quote_char or '"', quoting=quoting)
+        if include_header:
+            writer.writerow(headers)
+        for r in rows:
+            writer.writerow([r.get(h, "") for h in headers])
+        return ok(result=buf.getvalue())
+
+    @api_method
+    def data_change_delimiter(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Convert delimited text from one separator to another.
+        require(params, "content", "from_delimiter", "to_delimiter")
+        del_map = {
+            "tab": "\t", "\\t": "\t", "pipe": "|", "comma": ",",
+            "semicolon": ";", "colon": ":", "space": " ",
+        }
+        src_del = del_map.get(str(params["from_delimiter"]).lower(), str(params["from_delimiter"]))
+        tgt_del = del_map.get(str(params["to_delimiter"]).lower(), str(params["to_delimiter"]))
+        quote_char = str(params.get("quote_char", '"'))
+
+        content = str(params["content"])
+        reader = csv.reader(io.StringIO(content), delimiter=src_del, quotechar=quote_char or '"')
+        buf = io.StringIO()
+        writer = csv.writer(buf, delimiter=tgt_del, quotechar=quote_char or '"')
+        for row in reader:
+            writer.writerow(row)
+        return ok(result=buf.getvalue())
 
     @api_method
     def data_table_to_rows(self, params: dict[str, Any]) -> dict[str, Any]:

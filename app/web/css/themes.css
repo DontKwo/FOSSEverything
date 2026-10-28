@@ -123,3 +123,36 @@ html[data-theme="cyberpunk"] {
   --focus: #00ffff;
 }
 
+html[data-theme="ut_austin"],
+html[data-theme="ut"] {
+  --bg-app: #ffffff;
+  --bg-sidebar: #f7f5f1;
+  --bg-surface: #f7f5f1;
+  --bg-raised: #efece4;
+  --bg-input: #faf9f6;
+  --bg-scrim: rgba(51, 63, 72, 0.45);
+  --border: #e2ddd3;
+  --border-strong: rgba(51, 63, 72, 0.35);
+  --text: #333f48;
+  --text-muted: #545b67;
+  --text-dim: #707885;
+  --accent: #bf5700;
+  --accent-hover: #9e4700;
+  --on-accent: #ffffff;
+  --accent-text: #9e4700;
+  --success: #4b7729;
+  --on-success: #ffffff;
+  --success-text: #36571d;
+  --warning: #a15c00;
+  --on-warning: #ffffff;
+  --warning-text: #704000;
+  --danger: #b3261e;
+  --on-danger: #ffffff;
+  --danger-text: #7d1a15;
+  --info: #005f73;
+  --on-info: #ffffff;
+  --info-text: #00404e;
+  --focus: #bf5700;
+}
+
+

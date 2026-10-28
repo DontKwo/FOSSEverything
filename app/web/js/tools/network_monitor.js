@@ -80,7 +80,7 @@ window.FOSS = window.FOSS || {};
             style: "cursor: pointer;",
             onclick: function () {
               selectedDestination = c.domain || c.remote_address || "";
-              var knownBtn = panel.querySelector("[data-testid='network-mark-known-btn']");
+              var knownBtn = panel.querySelector("[data-testid='network_monitor-mark-known-btn']");
               if (knownBtn) knownBtn.textContent = "Mark Selected as Known: " + (selectedDestination || "None");
             }
           }, [
@@ -105,7 +105,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var refreshBtn = window.FOSS.dom.el("button", {
-      className: "btn primary",
+      className: "btn btn-primary",
       "data-testid": "network-live-refresh-btn",
       "aria-label": "Refresh",
       title: "Refresh",
@@ -117,8 +117,8 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var markKnownBtn = window.FOSS.dom.el("button", {
-      className: "btn secondary",
-      "data-testid": "network-mark-known-btn",
+      className: "btn btn-secondary",
+      "data-testid": "network_monitor-mark-known-btn",
       "aria-label": "Mark selected as known",
       title: "Mark selected as known",
       style: "min-height: 36px;",
@@ -243,7 +243,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var searchBtn = window.FOSS.dom.el("button", {
-      className: "btn primary",
+      className: "btn btn-primary",
       "data-testid": "network-history-search-btn",
       "aria-label": "Search",
       title: "Search",
@@ -255,7 +255,7 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var retentionBtn = window.FOSS.dom.el("button", {
-      className: "btn secondary",
+      className: "btn btn-secondary",
       "data-testid": "network-history-retention-btn",
       "aria-label": "Set retention period",
       title: "Set retention period",
@@ -269,7 +269,7 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.dom.el("span", { text: "Set Retention Period" })]);
 
     var wipeBtn = window.FOSS.dom.el("button", {
-      className: "btn danger",
+      className: "btn btn-danger",
       "data-testid": "network-history-wipe-btn",
       "aria-label": "Wipe all history",
       title: "Wipe all history",
@@ -377,7 +377,7 @@ window.FOSS = window.FOSS || {};
             unknownsCard.appendChild(window.FOSS.dom.el("div", { className: "row justify-between items-center text-xs py-xs" }, [
               window.FOSS.dom.el("span", { className: "font-mono", text: destLabel }),
               window.FOSS.dom.el("button", {
-                className: "btn ghost text-xs",
+                className: "btn btn-ghost btn-sm",
                 "aria-label": "Mark selected as known",
                 title: "Mark selected as known",
                 style: "min-height: 36px; padding: 4px 10px;",
@@ -398,7 +398,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var refreshStatsBtn = window.FOSS.dom.el("button", {
-      className: "btn primary mb-md",
+      className: "btn btn-primary mb-md",
       "data-testid": "network-refresh-stats-btn",
       "aria-label": "Refresh stats",
       title: "Refresh stats",
@@ -489,7 +489,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var refreshAppsBtn = window.FOSS.dom.el("button", {
-      className: "btn primary mb-md",
+      className: "btn btn-primary mb-md",
       "data-testid": "network-apps-refresh-btn",
       "aria-label": "Refresh",
       title: "Refresh",
@@ -512,7 +512,7 @@ window.FOSS = window.FOSS || {};
     id: "network_monitor",
     title: "Network Traffic Monitor",
     navName: "Network Monitor",
-    category: "utilities",
+    category: "Utilities",
     icon: "activity",
     tabs: [
       { id: "live", label: "Live Connections", render: renderLive },

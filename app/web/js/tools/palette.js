@@ -51,8 +51,8 @@ window.FOSS = window.FOSS || {};
     }
     var ta = document.createElement("textarea");
     ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
+    ta.style.setProperty("position", "fixed");
+    ta.style.setProperty("opacity", "0");
     document.body.appendChild(ta);
     ta.select();
     try {
@@ -74,18 +74,18 @@ window.FOSS = window.FOSS || {};
     var header = window.FOSS.dom.el("div", { className: "card-header" }, [
       window.FOSS.dom.el("h2", {
         className: "card-title",
-        text: "color palette extractor eyedropper"
+        text: "Color Palette Extractor & Eyedropper"
       }),
       window.FOSS.dom.el("p", {
         className: "text-muted text-sm",
-        text: "extract dominant colors automatically or click anywhere on the image with the eyedropper cursor."
+        text: "Extract dominant colors automatically or click anywhere on the image with the eyedropper cursor."
       })
     ]);
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted",
       "data-testid": "palette-status",
-      text: "open an image to extract palettes or sample colors with the mouse."
+      text: "Open an image to extract palettes or sample colors with the mouse."
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
@@ -151,8 +151,8 @@ window.FOSS = window.FOSS || {};
       type: "number",
       className: "input",
       "data-testid": "palette-num-colors",
-      "aria-label": "colors to extract",
-      title: "colors to extract",
+      "aria-label": "Colors to extract",
+      title: "Colors to extract",
       min: "2",
       max: "32",
       value: "8",
@@ -160,7 +160,7 @@ window.FOSS = window.FOSS || {};
     });
 
     var numColorsField = window.FOSS.components.field(
-      "colors to extract",
+      "Colors to Extract",
       numColorsInput
     );
 
@@ -251,7 +251,7 @@ window.FOSS = window.FOSS || {};
 
     var eyedropperHeader = window.FOSS.dom.el("h3", {
       className: "card-title text-base",
-      text: "eyedropper tool (hover / click to sample)"
+      text: "Eyedropper Tool (Hover / Click to sample)"
     });
 
     var canvasContainer = window.FOSS.dom.el("div", {
@@ -367,27 +367,27 @@ window.FOSS = window.FOSS || {};
     var tabDominantBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
       "data-testid": "palette-tab-dominant",
-      "aria-label": "dominant colors",
-      title: "dominant colors",
+      "aria-label": "Dominant Colors",
+      title: "Dominant Colors",
       onClick: function () {
         switchTab("dominant");
       }
     }, [
       window.FOSS.icons.el("palette", 16),
-      window.FOSS.dom.el("span", { text: "dominant colors" })
+      window.FOSS.dom.el("span", { text: "Dominant Colors" })
     ]);
 
     var tabSamplesBtn = window.FOSS.dom.el("button", {
-      className: "btn",
+      className: "btn btn-secondary",
       "data-testid": "palette-tab-samples",
-      "aria-label": "eyedropper samples (0)",
-      title: "eyedropper samples (0)",
+      "aria-label": "Eyedropper Samples (0)",
+      title: "Eyedropper Samples (0)",
       onClick: function () {
         switchTab("samples");
       }
     }, [
       window.FOSS.icons.el("eyedropper", 16),
-      window.FOSS.dom.el("span", { text: "eyedropper samples (0)" })
+      window.FOSS.dom.el("span", { text: "Eyedropper Samples (0)" })
     ]);
 
     var tabNav = window.FOSS.dom.el("div", {
@@ -418,7 +418,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.icons.el("copy", 14),
-      window.FOSS.dom.el("span", { text: "copy hex" })
+      window.FOSS.dom.el("span", { text: "Copy Hex" })
     ]);
 
     var exportStripBtn = window.FOSS.dom.el("button", {
@@ -531,7 +531,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.icons.el("trash-2", 14),
-      window.FOSS.dom.el("span", { text: "clear sampled colors" })
+      window.FOSS.dom.el("span", { text: "Clear Sampled Colors" })
     ]);
 
     var samplesActionsRow = window.FOSS.dom.el("div", {
@@ -637,25 +637,25 @@ window.FOSS = window.FOSS || {};
       var copyHexBtn = window.FOSS.dom.el("button", {
         className: "btn btn-sm",
         "aria-label": "copy hex " + hexCode,
-        title: "copy hex",
+        title: "Copy Hex",
         onClick: function () {
           copyToClipboard(hexCode);
           statusBar.textContent = "Copied " + hexCode + " to clipboard.";
         }
       }, [
-        window.FOSS.dom.el("span", { text: "hex" })
+        window.FOSS.dom.el("span", { text: "HEX" })
       ]);
 
       var copyRgbBtn = window.FOSS.dom.el("button", {
         className: "btn btn-sm",
         "aria-label": "Copy RGB " + rgbStr,
-        title: "rgb",
+        title: "Copy RGB",
         onClick: function () {
           copyToClipboard(rgbStr);
           statusBar.textContent = "Copied " + rgbStr + " to clipboard.";
         }
       }, [
-        window.FOSS.dom.el("span", { text: "rgb" })
+        window.FOSS.dom.el("span", { text: "RGB" })
       ]);
 
       var btnRow = window.FOSS.dom.el("div", {
@@ -723,8 +723,8 @@ window.FOSS = window.FOSS || {};
         previewCanvas.height = img.height;
         var ctx2d = previewCanvas.getContext("2d");
         ctx2d.drawImage(img, 0, 0);
-        previewCanvas.style.display = "block";
-        emptyPlaceholder.style.display = "none";
+        previewCanvas.style.setProperty("display", "block");
+        emptyPlaceholder.style.setProperty("display", "none");
       };
       img.src = dataUrl;
     }
@@ -750,7 +750,7 @@ window.FOSS = window.FOSS || {};
       var cWhite = calcContrastRatio(r, g, b, 255, 255, 255);
       var cBlack = calcContrastRatio(r, g, b, 0, 0, 0);
 
-      hudColorSwatch.style.background = hexCode;
+      hudColorSwatch.style.setProperty("background", hexCode);
       hudHexLabel.textContent = hexCode + " - " + cssName;
       hudRgbLabel.textContent = "rgb(" + r + ", " + g + ", " + b + ")";
       hudPosLabel.textContent = "position: (" + x + ", " + y + ")";

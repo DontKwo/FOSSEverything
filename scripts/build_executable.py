@@ -19,6 +19,12 @@ def build(onefile: bool = False) -> None:
     print(f"Entry Point:  {ENTRY_POINT}")  # noqa: 25 (CLI status output, not debug)
     print()  # noqa: 25 (CLI status output, not debug)
 
+    print("Running pre-build test suite (pytest -q)...")  # noqa: 25
+    test_res = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=ROOT_DIR)
+    if test_res.returncode != 0:
+        print("PRE-BUILD TESTS FAILED. Aborting build.")  # noqa: 25
+        sys.exit(test_res.returncode)
+
     # Collect imageio-ffmpeg binaries if present
     extra_data = []
     try:
@@ -50,6 +56,12 @@ def build(onefile: bool = False) -> None:
     web_dir = os.path.join(ROOT_DIR, "app", "web")
     if os.path.exists(web_dir):
         cmd.extend(["--add-data", f"{web_dir}{os.pathsep}app/web"])
+    import webview
+    wv_lib = os.path.join(os.path.dirname(webview.__file__), "lib")
+    if os.path.exists(wv_lib):
+        cmd.extend(["--add-data", f"{wv_lib}{os.pathsep}webview/lib"])
+        cmd.extend(["--add-data", f"{wv_lib}{os.pathsep}."])
+
     icon_path = os.path.join(assets_dir, "icon.ico")
     if sys.platform == "win32" and os.path.isfile(icon_path):
         cmd.extend(["--icon", icon_path])
@@ -77,6 +89,8 @@ def build(onefile: bool = False) -> None:
     for imp in hidden_imports:
         cmd.extend(["--hidden-import", imp])
 
+    cmd.extend(["--collect-all", "language_tool_python"])
+
     # The optional CAD backend ships native binaries PyInstaller can't auto-discover.
     try:
         import OCP  # noqa: 22
@@ -87,8 +101,8 @@ def build(onefile: bool = False) -> None:
 
 
 
-    for d in extra_data:
-        cmd.extend(["--add-data", d])
+    for item in extra_data:
+        cmd.extend(["--add-data", item])
 
     cmd.append(ENTRY_POINT)
 

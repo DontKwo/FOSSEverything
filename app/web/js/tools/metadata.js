@@ -20,10 +20,10 @@ window.FOSS = window.FOSS || {};
     });
 
     var warningBanner = window.FOSS.dom.el("div", {
-      className: "banner warning",
+      className: "banner info",
       "data-testid": "metadata-warning-banner"
     }, [
-      window.FOSS.icons.el("alert", 18),
+      window.FOSS.icons.el("info", 18),
       window.FOSS.dom.el("span", {
         className: "banner-msg",
         text: "Notice: Metadata removal strips headers and tags, but does not remove visible PDF page content, annotations, or attachments."
@@ -331,7 +331,7 @@ window.FOSS = window.FOSS || {};
       }),
       window.FOSS.dom.el("label", { className: "row", gap: "xs" }, [
         recursiveCheck,
-        window.FOSS.dom.el("span", { className: "text-sm", text: "include subfolders" })
+        window.FOSS.dom.el("span", { className: "text-sm", text: "Include Subfolders" })
       ]),
       batchCleanupBtn,
       batchStatus

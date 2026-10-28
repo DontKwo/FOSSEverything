@@ -91,6 +91,24 @@ class PdfApiMixin:
         return ok(output_path=out_p)
 
     @api_method
+    def pdf_rotate_pages(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Rotate multiple PDF pages simultaneously by specified degrees.
+        require(params, "file_path", "pages", "degrees")
+        file_path = str(params["file_path"])
+        pages = [int(p) for p in params["pages"]]
+        degrees = int(params["degrees"])
+        out_p = str(params.get("output_path", file_path))
+        doc = open_pdf(file_path)
+        for page_num in pages:
+            if 0 <= page_num < len(doc):
+                current_rot = doc[page_num].rotation
+                doc[page_num].set_rotation((current_rot + degrees) % 360)
+        data = doc.tobytes()
+        doc.close()
+        Path(out_p).write_bytes(data)
+        return ok(output_path=out_p, rotated_count=len(pages))
+
+    @api_method
     def pdf_delete_page(self, params: dict[str, Any]) -> dict[str, Any]:
         # Delete page from PDF document.
         require(params, "file_path", "page_number")

@@ -52,7 +52,7 @@ window.FOSS.components = window.FOSS.components || {};
         }
       }, [
         window.FOSS.icons.el("file", 16),
-        window.FOSS.dom.el("span", { text: "Open file" })
+        window.FOSS.dom.el("span", { text: "Open File" })
       ]);
 
       var showFolderBtn = window.FOSS.dom.el("button", {
@@ -64,7 +64,7 @@ window.FOSS.components = window.FOSS.components || {};
         }
       }, [
         window.FOSS.icons.el("folder", 16),
-        window.FOSS.dom.el("span", { text: "Show in folder" })
+        window.FOSS.dom.el("span", { text: "Show in Folder" })
       ]);
 
       var actions = window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [openFileBtn, showFolderBtn]);

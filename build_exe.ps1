@@ -25,6 +25,12 @@ if ($OneFile) {
 
 $uvPath = Get-Command uv -ErrorAction SilentlyContinue
 if ($uvPath) {
+    Write-Host "[INFO] Running test suite (pytest -q)..." -ForegroundColor Green
+    & uv run python -m pytest -q
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Pre-build tests failed. Aborting build."
+        exit $LASTEXITCODE
+    }
     Write-Host "[INFO] Building with uv..." -ForegroundColor Green
     & uv run python @argsList
 } elseif (Test-Path ".venv\Scripts\python.exe") {

@@ -51,8 +51,8 @@
   --bg-raised: #1a2540;
   --bg-input: #0f172a;
   --bg-scrim: rgba(3, 6, 14, 0.66);
-  --border: rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.22);
+  --border: rgba(255, 255, 255, 0.18);
+  --border-strong: rgba(255, 255, 255, 0.35);
   --text: #f1f5f9;
   --text-muted: #a3b1c6;
   --text-dim: #64748b;

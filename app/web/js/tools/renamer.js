@@ -152,12 +152,12 @@ window.FOSS = window.FOSS || {};
         updatePreview();
       }
     }, [
-      window.FOSS.dom.el("option", { value: "find_replace", text: "find and replace" }),
-      window.FOSS.dom.el("option", { value: "numbering", text: "numbering sequence" }),
-      window.FOSS.dom.el("option", { value: "prefix_suffix", text: "add prefix / suffix" }),
-      window.FOSS.dom.el("option", { value: "change_case", text: "change letter case" }),
-      window.FOSS.dom.el("option", { value: "extension", text: "change extension" }),
-      window.FOSS.dom.el("option", { value: "template", text: "template" })
+      window.FOSS.dom.el("option", { value: "find_replace", text: "Find and Replace" }),
+      window.FOSS.dom.el("option", { value: "numbering", text: "Numbering Sequence" }),
+      window.FOSS.dom.el("option", { value: "prefix_suffix", text: "Add Prefix / Suffix" }),
+      window.FOSS.dom.el("option", { value: "change_case", text: "Change Letter Case" }),
+      window.FOSS.dom.el("option", { value: "extension", text: "Change Extension" }),
+      window.FOSS.dom.el("option", { value: "template", text: "Template" })
     ]);
 
     var modeRow = window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
@@ -195,8 +195,8 @@ window.FOSS = window.FOSS || {};
       id: "renamer-regex-checkbox",
       className: "checkbox",
       "data-testid": "renamer-regex-check",
-      "aria-label": "use regular expressions (regex)",
-      title: "use regular expressions (regex)",
+      "aria-label": "Use Regular Expressions (Regex)",
+      title: "Use Regular Expressions (Regex)",
       onChange: updatePreview
     });
 
@@ -205,8 +205,8 @@ window.FOSS = window.FOSS || {};
       id: "renamer-case-checkbox",
       className: "checkbox",
       "data-testid": "renamer-case-check",
-      "aria-label": "case sensitive",
-      title: "case sensitive",
+      "aria-label": "Case Sensitive",
+      title: "Case Sensitive",
       checked: true,
       onChange: updatePreview
     });
@@ -216,8 +216,8 @@ window.FOSS = window.FOSS || {};
       id: "renamer-ext-checkbox",
       className: "checkbox",
       "data-testid": "renamer-ext-check",
-      "aria-label": "include extension in match",
-      title: "include extension in match",
+      "aria-label": "Include Extension in Match",
+      title: "Include Extension in Match",
       onChange: updatePreview
     });
 
@@ -260,8 +260,8 @@ window.FOSS = window.FOSS || {};
       id: "renamer-append-checkbox",
       className: "checkbox",
       "data-testid": "renamer-append-check",
-      "aria-label": "append number to original filename (instead of replacing it)",
-      title: "append number to original filename (instead of replacing it)",
+      "aria-label": "Append Number to Original Filename (instead of replacing it)",
+      title: "Append Number to Original Filename (instead of replacing it)",
       onChange: updatePreview
     });
 
@@ -292,10 +292,10 @@ window.FOSS = window.FOSS || {};
       title: "Change letter case",
       onChange: updatePreview
     }, [
-      window.FOSS.dom.el("option", { value: "lower", text: "lowercase (e.g. myfile.png)" }),
-      window.FOSS.dom.el("option", { value: "upper", text: "uppercase (e.g. myfile.png)" }),
-      window.FOSS.dom.el("option", { value: "title", text: "title case (e.g. my file.png)" }),
-      window.FOSS.dom.el("option", { value: "sentence", text: "sentence case (e.g. my file.png)" })
+      window.FOSS.dom.el("option", { value: "lower", text: "Lowercase (e.g. myfile.png)" }),
+      window.FOSS.dom.el("option", { value: "upper", text: "Uppercase (e.g. myfile.png)" }),
+      window.FOSS.dom.el("option", { value: "title", text: "Title Case (e.g. My File.png)" }),
+      window.FOSS.dom.el("option", { value: "sentence", text: "Sentence Case (e.g. My file.png)" })
     ]);
 
     var extCaseCheck = window.FOSS.dom.el("input", {
@@ -303,8 +303,8 @@ window.FOSS = window.FOSS || {};
       id: "renamer-ext-case-checkbox",
       className: "checkbox",
       "data-testid": "renamer-ext-case-check",
-      "aria-label": "apply case change to file extensions too",
-      title: "apply case change to file extensions too",
+      "aria-label": "Apply Case Change to File Extensions Too",
+      title: "Apply Case Change to File Extensions Too",
       onChange: updatePreview
     });
 
@@ -341,15 +341,15 @@ window.FOSS = window.FOSS || {};
         var checksRow = window.FOSS.dom.el("div", { className: "flex items-center flex-wrap gap-4 text-sm" }, [
           window.FOSS.dom.el("label", { htmlFor: "renamer-regex-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
             regexCheck,
-            window.FOSS.dom.el("span", { text: "use regular expressions (regex)" })
+            window.FOSS.dom.el("span", { text: "Use Regular Expressions (Regex)" })
           ]),
           window.FOSS.dom.el("label", { htmlFor: "renamer-case-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
             caseCheck,
-            window.FOSS.dom.el("span", { text: "case sensitive" })
+            window.FOSS.dom.el("span", { text: "Case Sensitive" })
           ]),
           window.FOSS.dom.el("label", { htmlFor: "renamer-ext-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
             extCheck,
-            window.FOSS.dom.el("span", { text: "include extension in match" })
+            window.FOSS.dom.el("span", { text: "Include Extension in Match" })
           ])
         ]);
         modeOptionsContainer.appendChild(rowInputs);
@@ -376,7 +376,7 @@ window.FOSS = window.FOSS || {};
         var numCheckRow = window.FOSS.dom.el("div", { className: "flex items-center gap-2 text-sm" }, [
           window.FOSS.dom.el("label", { htmlFor: "renamer-append-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
             appendCheck,
-            window.FOSS.dom.el("span", { text: "append number to original filename (instead of replacing it)" })
+            window.FOSS.dom.el("span", { text: "Append Number to Original Filename" })
           ])
         ]);
         modeOptionsContainer.appendChild(numInputs);
@@ -393,7 +393,7 @@ window.FOSS = window.FOSS || {};
           casingSelect,
           window.FOSS.dom.el("label", { htmlFor: "renamer-ext-case-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
             extCaseCheck,
-            window.FOSS.dom.el("span", { text: "apply case change to file extensions too" })
+            window.FOSS.dom.el("span", { text: "Apply Case Change to File Extensions Too" })
           ])
         ]);
         modeOptionsContainer.appendChild(caseRow);
@@ -567,7 +567,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.icons.el("save", 16),
-      window.FOSS.dom.el("span", { text: "Save as cross-folder plan" })
+      window.FOSS.dom.el("span", { text: "Save Cross-Folder Plan" })
     ]);
 
     var rerunPlanBtn = window.FOSS.dom.el("button", {
@@ -601,7 +601,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Re-run plan (new files only)" })
+      window.FOSS.dom.el("span", { text: "Re-run Plan (New Files Only)" })
     ]);
 
     var planControls = window.FOSS.dom.el("div", {
@@ -613,7 +613,7 @@ window.FOSS = window.FOSS || {};
     var previewCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
     previewCard.appendChild(window.FOSS.dom.el("h3", {
       className: "card-title text-base",
-      text: "Live preview (collision-safe)"
+      text: "Live Preview (Collision-Safe)"
     }));
 
     var applyBtn = window.FOSS.dom.el("button", {
@@ -627,7 +627,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.icons.el("check", 16),
-      window.FOSS.dom.el("span", { text: "Apply renaming plan" })
+      window.FOSS.dom.el("span", { text: "Apply Renaming Plan" })
     ]);
 
     var undoBtn = window.FOSS.dom.el("button", {
@@ -642,7 +642,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.icons.el("undo", 16),
-      window.FOSS.dom.el("span", { text: "Undo last rename" })
+      window.FOSS.dom.el("span", { text: "Undo Last Rename" })
     ]);
 
     var previewActions = window.FOSS.dom.el("div", {
@@ -893,7 +893,7 @@ window.FOSS = window.FOSS || {};
     id: "renamer",
     title: "Batch File Renamer",
     navName: "Renamer",
-    category: "system",
+    category: "Utilities",
     icon: "folder",
     tabs: [
       { id: "main", label: "Renamer", render: renderMain }

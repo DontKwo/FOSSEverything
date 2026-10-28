@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg_art" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4c0519"/>
+      <stop offset="50%" stop-color="#831843"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="accent_art" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#e11d48"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg_art)"/>
+  <circle cx="500" cy="90" r="140" fill="#f43f5e" opacity="0.15"/>
+  <circle cx="120" cy="270" r="100" fill="#fb7185" opacity="0.12"/>
+  <g transform="translate(250, 75)">
+    <circle cx="70" cy="70" r="65" fill="#27101e" stroke="url(#accent_art)" stroke-width="3"/>
+    <circle cx="45" cy="45" r="10" fill="#fb7185"/>
+    <circle cx="85" cy="38" r="10" fill="#38bdf8"/>
+    <circle cx="105" cy="72" r="10" fill="#4ade80"/>
+    <circle cx="85" cy="105" r="10" fill="#fbbf24"/>
+    <circle cx="45" cy="95" r="14" fill="#0f172a" stroke="url(#accent_art)" stroke-width="2"/>
+    <path d="M 90 20 L 150 -15 L 160 -5 L 115 40 Z" fill="#f43f5e"/>
+    <polygon points="150,-15 160,-5 168,-12 155,-22" fill="#fda4af"/>
+  </g>
+  <text x="320" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" fill="#f1f5f9" text-anchor="middle" letter-spacing="1">ARTCRAFT HUB</text>
+  <text x="320" y="306" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#a3b1c6" text-anchor="middle">CREATIVE SUITE INTEGRATION</text>
+</svg>

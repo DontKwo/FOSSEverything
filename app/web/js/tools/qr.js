@@ -8,8 +8,8 @@ window.FOSS = window.FOSS || {};
     }
     var ta = document.createElement("textarea");
     ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
+    ta.style.setProperty("position", "fixed");
+    ta.style.setProperty("opacity", "0");
     document.body.appendChild(ta);
     ta.select();
     try {
@@ -35,11 +35,11 @@ window.FOSS = window.FOSS || {};
     var header = window.FOSS.dom.el("div", { className: "card-header" }, [
       window.FOSS.dom.el("h2", {
         className: "card-title",
-        text: "qr code generator"
+        text: "QR Code Generator"
       }),
       window.FOSS.dom.el("p", {
         className: "text-muted text-sm",
-        text: "generate custom qr codes 100% offline. no internet required."
+        text: "Generate custom QR codes 100% offline. No internet required."
       })
     ]);
 
@@ -89,27 +89,27 @@ window.FOSS = window.FOSS || {};
     var tabGenBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
       "data-testid": "qr-tab-generate",
-      "aria-label": "qr generator",
-      title: "qr generator",
+      "aria-label": "QR Generator",
+      title: "QR Generator",
       onClick: function () {
         switchTab("generate");
       }
     }, [
       window.FOSS.icons.el("grid", 16),
-      window.FOSS.dom.el("span", { text: "qr generator" })
+      window.FOSS.dom.el("span", { text: "QR Generator" })
     ]);
 
     var tabScanBtn = window.FOSS.dom.el("button", {
-      className: "btn",
+      className: "btn btn-secondary",
       "data-testid": "qr-tab-scan",
-      "aria-label": "scan & decode",
-      title: "scan & decode",
+      "aria-label": "Scan & Decode",
+      title: "Scan & Decode",
       onClick: function () {
         switchTab("scan");
       }
     }, [
       window.FOSS.icons.el("camera", 16),
-      window.FOSS.dom.el("span", { text: "scan & decode" })
+      window.FOSS.dom.el("span", { text: "Scan & Decode" })
     ]);
 
     var tabNav = window.FOSS.dom.el("div", {
@@ -127,9 +127,7 @@ window.FOSS = window.FOSS || {};
       tabScanBtn
     ]);
 
-    // ==========================================
     // PANE 1: QR Generator
-    // ==========================================
     var genPane = window.FOSS.dom.el("div", {
       className: "flex-col gap-4",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
@@ -147,32 +145,32 @@ window.FOSS = window.FOSS || {};
       "data-testid": "qr-templates-group",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
     });
-    var typeTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "payload type" });
+    var typeTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Payload Type" });
 
     var typeSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "qr-payload-type",
-      "aria-label": "payload type",
-      title: "payload type",
+      "aria-label": "Payload Type",
+      title: "Payload Type",
       style: { width: "100%" },
       onChange: function () {
         updateContentFields();
         refreshCode();
       }
     }, [
-      window.FOSS.dom.el("option", { value: "url", text: "url / web link" }),
-      window.FOSS.dom.el("option", { value: "wifi", text: "wi-fi network" }),
-      window.FOSS.dom.el("option", { value: "text", text: "plain text" }),
-      window.FOSS.dom.el("option", { value: "vcard", text: "contact card (vcard)" }),
-      window.FOSS.dom.el("option", { value: "mecard", text: "business card (mecard)" }),
-      window.FOSS.dom.el("option", { value: "email", text: "email address" }),
-      window.FOSS.dom.el("option", { value: "phone", text: "phone number" }),
-      window.FOSS.dom.el("option", { value: "sms", text: "sms message" }),
-      window.FOSS.dom.el("option", { value: "whatsapp", text: "whatsapp message" }),
-      window.FOSS.dom.el("option", { value: "geo", text: "geo location" }),
-      window.FOSS.dom.el("option", { value: "calendar", text: "calendar event" }),
-      window.FOSS.dom.el("option", { value: "asset", text: "asset / inventory tag" }),
-      window.FOSS.dom.el("option", { value: "barcode", text: "barcode" })
+      window.FOSS.dom.el("option", { value: "url", text: "URL / Web Link" }),
+      window.FOSS.dom.el("option", { value: "wifi", text: "Wi-Fi Network" }),
+      window.FOSS.dom.el("option", { value: "text", text: "Plain Text" }),
+      window.FOSS.dom.el("option", { value: "vcard", text: "Contact Card (vCard)" }),
+      window.FOSS.dom.el("option", { value: "mecard", text: "Business Card (MeCard)" }),
+      window.FOSS.dom.el("option", { value: "email", text: "Email Address" }),
+      window.FOSS.dom.el("option", { value: "phone", text: "Phone Number" }),
+      window.FOSS.dom.el("option", { value: "sms", text: "SMS Message" }),
+      window.FOSS.dom.el("option", { value: "whatsapp", text: "WhatsApp Message" }),
+      window.FOSS.dom.el("option", { value: "geo", text: "Geo Location" }),
+      window.FOSS.dom.el("option", { value: "calendar", text: "Calendar Event" }),
+      window.FOSS.dom.el("option", { value: "asset", text: "Asset / Inventory Tag" }),
+      window.FOSS.dom.el("option", { value: "barcode", text: "Barcode" })
     ]);
 
     typeCard.appendChild(typeTitle);
@@ -184,7 +182,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "qr-content-details",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
     });
-    var contentTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "content details" });
+    var contentTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Content Details" });
     var contentBody = window.FOSS.dom.el("div", {
       className: "flex-col gap-2",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
@@ -225,9 +223,9 @@ window.FOSS = window.FOSS || {};
       title: "Wi-Fi Security",
       onChange: refreshCode
     }, [
-      window.FOSS.dom.el("option", { value: "WPA", text: "wpa/wpa2/wpa3" }),
-      window.FOSS.dom.el("option", { value: "WEP", text: "wep" }),
-      window.FOSS.dom.el("option", { value: "nopass", text: "open (no password)" })
+      window.FOSS.dom.el("option", { value: "WPA", text: "WPA/WPA2/WPA3" }),
+      window.FOSS.dom.el("option", { value: "WEP", text: "WEP" }),
+      window.FOSS.dom.el("option", { value: "nopass", text: "Open (No Password)" })
     ]);
 
     var textInput = window.FOSS.dom.el("textarea", {
@@ -280,8 +278,8 @@ window.FOSS = window.FOSS || {};
       type: "checkbox",
       checked: true,
       "data-testid": "qr-barcode-toggle",
-      "aria-label": "show value label",
-      title: "show value label",
+      "aria-label": "Show Value Label",
+      title: "Show Value Label",
       onChange: refreshCode
     });
 
@@ -314,7 +312,7 @@ window.FOSS = window.FOSS || {};
           style: { gap: "var(--space-2)", cursor: "pointer" }
         }, [
           barcodeLabelToggle,
-          window.FOSS.dom.el("span", { text: "show value label" })
+          window.FOSS.dom.el("span", { text: "Show Value Label" })
         ]);
         contentBody.appendChild(chkRow);
       } else {
@@ -329,7 +327,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "qr-styling-group",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
     });
-    var styleTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "styling & resolution" });
+    var styleTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Styling & Resolution" });
 
     // Foreground Color Controls
     var fgInput = window.FOSS.dom.el("input", {
@@ -360,15 +358,15 @@ window.FOSS = window.FOSS || {};
     });
 
     var fgBtn = window.FOSS.dom.el("button", {
-      className: "btn",
-      "aria-label": "foreground color",
-      title: "foreground color",
+      className: "btn btn-secondary",
+      "aria-label": "Foreground Color",
+      title: "Foreground Color",
       onClick: function () {
         fgColorPicker.click();
       }
     }, [
       window.FOSS.icons.el("palette", 14),
-      window.FOSS.dom.el("span", { text: "foreground color" })
+      window.FOSS.dom.el("span", { text: "Foreground Color" })
     ]);
 
     var fgRow = window.FOSS.dom.el("div", {
@@ -409,15 +407,15 @@ window.FOSS = window.FOSS || {};
     });
 
     var bgBtn = window.FOSS.dom.el("button", {
-      className: "btn",
-      "aria-label": "background color",
-      title: "background color",
+      className: "btn btn-secondary",
+      "aria-label": "Background Color",
+      title: "Background Color",
       onClick: function () {
         bgColorPicker.click();
       }
     }, [
       window.FOSS.icons.el("palette", 14),
-      window.FOSS.dom.el("span", { text: "background color" })
+      window.FOSS.dom.el("span", { text: "Background Color" })
     ]);
 
     var bgRow = window.FOSS.dom.el("div", {
@@ -436,10 +434,10 @@ window.FOSS = window.FOSS || {};
       title: "Error Correction",
       onChange: refreshCode
     }, [
-      window.FOSS.dom.el("option", { value: "L", text: "l - low (~7% recovery)" }),
-      window.FOSS.dom.el("option", { value: "M", selected: true, text: "m - standard (~15% recovery)" }),
-      window.FOSS.dom.el("option", { value: "Q", text: "q - medium-high (~25% recovery)" }),
-      window.FOSS.dom.el("option", { value: "H", text: "h - highest (~30% recovery, best with logos)" })
+      window.FOSS.dom.el("option", { value: "L", text: "L - Low (~7% recovery)" }),
+      window.FOSS.dom.el("option", { value: "M", selected: true, text: "M - Standard (~15% recovery)" }),
+      window.FOSS.dom.el("option", { value: "Q", text: "Q - Medium-High (~25% recovery)" }),
+      window.FOSS.dom.el("option", { value: "H", text: "H - Highest (~30% recovery, best with logos)" })
     ]);
 
     // Box Size
@@ -474,17 +472,17 @@ window.FOSS = window.FOSS || {};
       "data-testid": "qr-logo-group",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
     });
-    var logoTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "center logo / icon embedding" });
+    var logoTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Center Logo / Icon Embedding" });
 
     var logoStatusLabel = window.FOSS.dom.el("span", {
       className: "text-sm text-muted",
-      text: "no logo selected"
+      text: "No logo selected"
     });
 
     var chooseLogoBtn = window.FOSS.dom.el("button", {
       className: "btn btn-sm",
-      "aria-label": "choose logo",
-      title: "choose logo",
+      "aria-label": "Choose Logo",
+      title: "Choose Logo",
       onClick: function () {
         window.FOSS.api("select_file", {
           title: "Select Logo Image",
@@ -501,21 +499,21 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.icons.el("image", 14),
-      window.FOSS.dom.el("span", { text: "choose logo" })
+      window.FOSS.dom.el("span", { text: "Choose Logo" })
     ]);
 
     var clearLogoBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-sm",
-      "aria-label": "clear logo",
-      title: "clear",
+      className: "btn btn-secondary btn-sm",
+      "aria-label": "Clear logo",
+      title: "Clear",
       onClick: function () {
         currentLogoPath = "";
-        logoStatusLabel.textContent = "no logo selected";
+        logoStatusLabel.textContent = "No logo selected";
         refreshCode();
       }
     }, [
       window.FOSS.icons.el("trash-2", 14),
-      window.FOSS.dom.el("span", { text: "clear" })
+      window.FOSS.dom.el("span", { text: "Clear" })
     ]);
 
     var logoActionsRow = window.FOSS.dom.el("div", {
@@ -546,7 +544,7 @@ window.FOSS = window.FOSS || {};
       className: "card flex-col gap-3 items-center",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
     });
-    var previewTitle = window.FOSS.dom.el("h3", { className: "card-title text-base self-start", text: "live preview" });
+    var previewTitle = window.FOSS.dom.el("h3", { className: "card-title text-base self-start", text: "Live Preview" });
 
     var previewDisplay = window.FOSS.dom.el("div", {
       style: {
@@ -595,26 +593,26 @@ window.FOSS = window.FOSS || {};
       className: "card flex-col gap-3",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
     });
-    var exportTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "export & share" });
+    var exportTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Export & Share" });
 
     var saveImageBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
       "data-testid": "qr-save-image-btn",
-      "aria-label": "save image (png / jpeg / webp / pdf)",
-      title: "save image (png / jpeg / webp / pdf)",
+      "aria-label": "Save Image (PNG / JPEG / WEBP / PDF)",
+      title: "Save Image (PNG / JPEG / WEBP / PDF)",
       onClick: function () {
         saveCodeFile("png");
       }
     }, [
       window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "save image (png / jpeg / webp / pdf)" })
+      window.FOSS.dom.el("span", { text: "Save Image (PNG / JPEG / WEBP / PDF)" })
     ]);
 
     var copyBtn = window.FOSS.dom.el("button", {
-      className: "btn",
+      className: "btn btn-secondary",
       "data-testid": "qr-copy-btn",
-      "aria-label": "copy image to clipboard",
-      title: "copy image to clipboard",
+      "aria-label": "Copy Image to Clipboard",
+      title: "Copy Image to Clipboard",
       onClick: function () {
         if (!currentImageDataUrl) {
           showError("No image available to copy.");
@@ -625,46 +623,46 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.icons.el("copy", 16),
-      window.FOSS.dom.el("span", { text: "copy image to clipboard" })
+      window.FOSS.dom.el("span", { text: "Copy Image to Clipboard" })
     ]);
 
     var exportSvgBtn = window.FOSS.dom.el("button", {
-      className: "btn",
+      className: "btn btn-secondary",
       "data-testid": "qr-export-svg-btn",
-      "aria-label": "export vector svg (lossless print)",
-      title: "export vector svg (lossless print)",
+      "aria-label": "Export Vector SVG (Lossless Print)",
+      title: "Export Vector SVG (Lossless Print)",
       onClick: function () {
         saveCodeFile("svg");
       }
     }, [
       window.FOSS.icons.el("file-text", 16),
-      window.FOSS.dom.el("span", { text: "export vector svg (lossless print)" })
+      window.FOSS.dom.el("span", { text: "Export Vector SVG (Lossless Print)" })
     ]);
 
     var exportIcsBtn = window.FOSS.dom.el("button", {
-      className: "btn",
+      className: "btn btn-secondary",
       "data-testid": "qr-export-ics-btn",
-      "aria-label": "save as .ics file",
-      title: "save as .ics file",
+      "aria-label": "Save as .ics File",
+      title: "Save as .ics File",
       onClick: function () {
         exportCalendarIcs();
       }
     }, [
       window.FOSS.icons.el("calendar", 16),
-      window.FOSS.dom.el("span", { text: "save as .ics file" })
+      window.FOSS.dom.el("span", { text: "Save as .ics File" })
     ]);
 
     var exportLabelsBtn = window.FOSS.dom.el("button", {
-      className: "btn",
+      className: "btn btn-secondary",
       "data-testid": "qr-export-labels-btn",
-      "aria-label": "print label sheet (pdf)",
-      title: "print label sheet (pdf)",
+      "aria-label": "Print Label Sheet (PDF)",
+      title: "Print Label Sheet (PDF)",
       onClick: function () {
         exportLabelSheetPdf();
       }
     }, [
       window.FOSS.icons.el("printer", 16),
-      window.FOSS.dom.el("span", { text: "print label sheet (pdf)" })
+      window.FOSS.dom.el("span", { text: "Print Label Sheet (PDF)" })
     ]);
 
     var exportActionsRow = window.FOSS.dom.el("div", {
@@ -704,9 +702,7 @@ window.FOSS = window.FOSS || {};
 
     genPane.appendChild(genColumns);
 
-    // ==========================================
     // PANE 2: Scan & Decode
-    // ==========================================
     var scanPane = window.FOSS.dom.el("div", {
       className: "flex-col gap-4",
       hidden: true,
@@ -719,7 +715,7 @@ window.FOSS = window.FOSS || {};
     }, [
       window.FOSS.dom.el("p", {
         className: "text-muted text-sm",
-        text: "open an image/pdf or paste a screenshot to detect qr codes and barcodes."
+        text: "Open an image/PDF or paste a screenshot to detect QR codes and barcodes."
       })
     ]);
 
@@ -728,7 +724,7 @@ window.FOSS = window.FOSS || {};
       className: "card flex-col gap-3",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
     });
-    var scanInputTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "input image preview" });
+    var scanInputTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Input Image Preview" });
 
     var scanPicker = window.FOSS.components.filePicker({
       testid: "qr-scan-file-picker",
@@ -783,7 +779,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "qr-scan-results",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
     });
-    var resultsTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "decoded results" });
+    var resultsTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Decoded Results" });
 
     var resultsList = window.FOSS.dom.el("div", {
       className: "flex-col gap-3 scroll-y",
@@ -798,10 +794,10 @@ window.FOSS = window.FOSS || {};
       className: "card flex-col gap-2",
       style: { width: "100%", maxWidth: "100%", minWidth: "0" }
     });
-    var detailsTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "payload details" });
+    var detailsTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Payload Details" });
     var detailsContent = window.FOSS.dom.el("div", {
       className: "text-sm text-muted",
-      text: "no code selected"
+      text: "No code selected"
     });
     detailsCard.appendChild(detailsTitle);
     detailsCard.appendChild(detailsContent);
@@ -811,9 +807,7 @@ window.FOSS = window.FOSS || {};
     scanPane.appendChild(resultsCard);
     scanPane.appendChild(detailsCard);
 
-    // ==========================================
     // Page Assembly
-    // ==========================================
     panel.appendChild(header);
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
@@ -884,8 +878,8 @@ window.FOSS = window.FOSS || {};
           if (res && res.data_url) {
             currentImageDataUrl = res.data_url;
             previewImg.src = res.data_url;
-            previewImg.style.display = "block";
-            previewEmpty.style.display = "none";
+            previewImg.style.setProperty("display", "block");
+            previewEmpty.style.setProperty("display", "none");
             infoLabel.textContent = "export size: " + res.width + "x" + res.height + " px | " + sym.toUpperCase();
           }
         }).catch(function (err) {
@@ -905,8 +899,8 @@ window.FOSS = window.FOSS || {};
           if (res && res.data_url) {
             currentImageDataUrl = res.data_url;
             previewImg.src = res.data_url;
-            previewImg.style.display = "block";
-            previewEmpty.style.display = "none";
+            previewImg.style.setProperty("display", "block");
+            previewEmpty.style.setProperty("display", "none");
             infoLabel.textContent = "export size: " + res.width + "x" + res.height + " px | Payload: " + currentPayload.length + " chars";
           }
         }).catch(function (err) {
@@ -1114,7 +1108,7 @@ window.FOSS = window.FOSS || {};
     id: "qr",
     title: "QR Code Generator",
     navName: "QR & Barcodes",
-    category: "Visuals",
+    category: "Utilities",
     icon: "grid",
     tabs: [
       { id: "main", label: "QR Generator", render: renderQR }

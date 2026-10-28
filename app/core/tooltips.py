@@ -16,6 +16,11 @@ class TooltipEntry:
     def search_text(self) -> str:
         return " ".join((self.label, self.description, *self.keywords)).lower()
 
+    @property
+    def tooltip(self) -> str:
+        # Property alias for description.
+        return self.description
+
 
 TOOLTIP_DICTIONARY: dict[str, TooltipEntry] = {
     "Home": TooltipEntry("Home", "Home", "Return to the Home dashboard and the local app launcher.", ("dashboard", "start", "workspace", "launcher")),

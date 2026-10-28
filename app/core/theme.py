@@ -144,6 +144,7 @@ _THEME_PRESETS = {
     "solarized": _SOLARIZED_PALETTE,
     "sepia": _SEPIA_PALETTE,
     "ut_austin": _UT_AUSTIN_PALETTE,
+    "ut": _UT_AUSTIN_PALETTE,
 }
 
 _theme_listeners: list[Callable[[], None]] = []
@@ -210,11 +211,11 @@ def parse_color_value(value: object, fallback: str) -> str:
 
 def rgba(color_value: str, alpha: float) -> str:
     # Format color string with opacity.
-    val = color_value.strip().lstrip("#")
-    if len(val) == 6:
-        r_val = int(val[0:2], 16)
-        g_val = int(val[2:4], 16)
-        b_val = int(val[4:6], 16)
+    hex_digits = color_value.strip().lstrip("#")
+    if len(hex_digits) == 6:
+        r_val = int(hex_digits[0:2], 16)
+        g_val = int(hex_digits[2:4], 16)
+        b_val = int(hex_digits[4:6], 16)
         return f"rgba({r_val}, {g_val}, {b_val}, {alpha})"
     return f"rgba(0, 0, 0, {alpha})"
 

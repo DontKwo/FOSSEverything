@@ -603,6 +603,349 @@ window.FOSS = window.FOSS || {};
     ]));
   }
 
+  function renderWordCounterTab(panel, ctx) {
+    panel.innerHTML = "";
+
+    var desc = window.FOSS.dom.el("p", {
+      className: "text-muted",
+      text: "Word counter document analytics: analyze words, characters, readability, and keyword density."
+    });
+
+    var editor = window.FOSS.components.codeEditor({
+      testid: "text_tools-wc-input",
+      title: "Document Text",
+      placeholder: "Type, paste text, or open any document (PDF, Word, Excel, PowerPoint, text, Markdown) to analyze stats in real-time...",
+      ariaLabel: "Document text to analyze"
+    });
+
+    var openBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "text_tools-wc-open-file",
+      type: "button",
+      onClick: function () {
+        window.FOSS.api("select_file", {
+          title: "Open Document for Word Counter",
+          file_types: [
+            ["All Supported Documents", "*.pdf;*.docx;*.pptx;*.xlsx;*.odt;*.ods;*.odp;*.txt;*.md;*.html;*.csv;*.json;*.yaml;*.py"],
+            ["All Files", "*.*"]
+          ]
+        }).then(function (res) {
+          if (res && res.paths && res.paths.length > 0) {
+            window.FOSS.api("word_counter_analyze_file", { file_path: res.paths[0] }).then(function (fres) {
+              if (fres && fres.ok && fres.extracted_text) {
+                editor.setValue(fres.extracted_text);
+                updateStats();
+              }
+            });
+          }
+        });
+      }
+    }, [
+      window.FOSS.icons.el("folder", 16),
+      window.FOSS.dom.el("span", { text: "Open File..." })
+    ]);
+
+    var pasteBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "text_tools-wc-paste",
+      type: "button",
+      onClick: function () {
+        navigator.clipboard.readText().then(function (clip) {
+          if (clip) {
+            editor.setValue(clip);
+            updateStats();
+          }
+        }).catch(function () {});
+      }
+    }, [
+      window.FOSS.icons.el("copy", 16),
+      window.FOSS.dom.el("span", { text: "Paste Clipboard" })
+    ]);
+
+    var clearBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "data-testid": "text_tools-wc-clear",
+      type: "button",
+      onClick: function () {
+        editor.setValue("");
+        updateStats();
+      }
+    }, [
+      window.FOSS.icons.el("close", 16),
+      window.FOSS.dom.el("span", { text: "Clear" })
+    ]);
+
+    var exportBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "text_tools-wc-export-report",
+      type: "button",
+      onClick: function () {
+        var txt = editor.getValue();
+        if (!txt) return;
+        window.FOSS.api("word_counter_generate_report", { text: txt }).then(function (res) {
+          if (res && res.ok && res.report) {
+            window.FOSS.api("select_save_path", {
+              default_name: "word_count_report.txt",
+              file_types: [["Text Report", "*.txt"], ["All Files", "*.*"]]
+            }).then(function (saveRes) {
+              if (saveRes && saveRes.paths && saveRes.paths.length > 0) {
+                window.FOSS.api("write_text_file", { path: saveRes.paths[0], content: res.report }).then(function () {
+                  window.FOSS.toast.show("Report saved successfully", "success");
+                });
+              }
+            });
+          }
+        });
+      }
+    }, [
+      window.FOSS.icons.el("download", 16),
+      window.FOSS.dom.el("span", { text: "Export Report" })
+    ]);
+
+    var toolbar = window.FOSS.dom.el("div", {
+      className: "row wrap",
+      gap: "sm"
+    }, [openBtn, pasteBtn, clearBtn, exportBtn]);
+
+    function makeStatCard(label, defaultVal, testid) {
+      var valEl = window.FOSS.dom.el("div", {
+        className: "text-xl font-bold font-mono",
+        "data-testid": testid,
+        text: defaultVal
+      });
+      var card = window.FOSS.dom.el("div", {
+        className: "card stack-xs text-center",
+        style: "flex: 1; min-width: 7.5rem; padding: var(--space-3);"
+      }, [
+        valEl,
+        window.FOSS.dom.el("div", { className: "text-xs text-muted", text: label })
+      ]);
+      return { el: card, valEl: valEl };
+    }
+
+    var cardWords = makeStatCard("Words", "0", "text_tools-wc-stat-words");
+    var cardChars = makeStatCard("Characters", "0", "text_tools-wc-stat-chars");
+    var cardSentences = makeStatCard("Sentences", "0", "text_tools-wc-stat-sentences");
+    var cardParagraphs = makeStatCard("Paragraphs", "0", "text_tools-wc-stat-paragraphs");
+    var cardReading = makeStatCard("Reading Time", "0s", "text_tools-wc-stat-reading");
+    var cardReadability = makeStatCard("Readability", "100.0 / 100", "text_tools-wc-stat-readability");
+
+    var statsGrid = window.FOSS.dom.el("div", {
+      className: "row wrap",
+      gap: "sm"
+    }, [
+      cardWords.el, cardChars.el, cardSentences.el, cardParagraphs.el, cardReading.el, cardReadability.el
+    ]);
+
+    var densityContainer = window.FOSS.dom.el("div", {
+      className: "card stack",
+      gap: "xs"
+    }, [
+      window.FOSS.dom.el("span", { className: "card-title", text: "Keyword Density (Top Words)" }),
+      window.FOSS.dom.el("div", {
+        className: "text-xs text-muted",
+        "data-testid": "text_tools-wc-density-list",
+        text: "Type or paste text to see keyword density frequency."
+      })
+    ]);
+
+    function updateStats() {
+      var text = editor.getValue();
+      if (!text.trim()) {
+        cardWords.valEl.textContent = "0";
+        cardChars.valEl.textContent = "0";
+        cardSentences.valEl.textContent = "0";
+        cardParagraphs.valEl.textContent = "0";
+        cardReading.valEl.textContent = "0s";
+        cardReadability.valEl.textContent = "100.0 / 100";
+        return;
+      }
+
+      window.FOSS.api("word_counter_analyze", { text: text }).then(function (res) {
+        if (!res || !res.ok) return;
+        var s = res.stats || {};
+        cardWords.valEl.textContent = String(s.word_count || 0);
+        cardChars.valEl.textContent = String(s.char_count || 0);
+        cardSentences.valEl.textContent = String(s.sentence_count || 0);
+        cardParagraphs.valEl.textContent = String(s.paragraph_count || 0);
+
+        var rSec = Math.round(s.reading_time_seconds || 0);
+        cardReading.valEl.textContent = rSec < 60 ? rSec + "s" : Math.floor(rSec / 60) + "m " + (rSec % 60) + "s";
+
+        var score = s.flesch_reading_ease !== undefined ? s.flesch_reading_ease.toFixed(1) : "100.0";
+        cardReadability.valEl.textContent = score + " / 100";
+
+        var density = s.keyword_density || [];
+        var dList = densityContainer.querySelector("[data-testid='text_tools-wc-density-list']");
+        if (dList && density.length > 0) {
+          dList.innerHTML = "";
+          var tagsWrap = window.FOSS.dom.el("div", { className: "row wrap", gap: "xs" });
+          density.slice(0, 15).forEach(function (item) {
+            tagsWrap.appendChild(window.FOSS.dom.el("span", {
+              className: "badge info",
+              text: item[0] + " (" + item[1] + ")"
+            }));
+          });
+          dList.appendChild(tagsWrap);
+        }
+      });
+    }
+
+    var inEl = editor.el.querySelector("textarea") || editor.el.querySelector("input");
+    if (inEl) {
+      inEl.addEventListener("input", updateStats);
+    }
+
+    panel.appendChild(window.FOSS.dom.el("div", {
+      className: "page stack",
+      gap: "md"
+    }, [desc, toolbar, statsGrid, editor.el, densityContainer]));
+  }
+
+  function renderGrammarTab(panel, ctx) {
+    panel.innerHTML = "";
+
+    var desc = window.FOSS.dom.el("p", {
+      className: "text-muted",
+      text: "Grammar inspection, citation generation, and unified document diffing."
+    });
+
+    var textEditor = window.FOSS.components.codeEditor({
+      testid: "text_tools-grammar-input",
+      title: "Writing & Grammar Document",
+      placeholder: "Type or paste text for offline grammar and style analysis...",
+      ariaLabel: "Writing document editor"
+    });
+
+    var statusEl = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "text_tools-grammar-status",
+      text: "Ready"
+    });
+
+    var resultsContainer = window.FOSS.dom.el("div", {
+      className: "card stack",
+      gap: "xs",
+      "data-testid": "text_tools-grammar-results"
+    }, [
+      window.FOSS.dom.el("span", { className: "card-title", text: "Analysis Results" }),
+      window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "Run Grammar Check or Citation Generator to see results here." })
+    ]);
+
+    var grammarBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "text_tools-grammar-check",
+      "aria-label": "Check grammar",
+      title: "Check grammar",
+      type: "button",
+      onClick: function () {
+        var txt = textEditor.getValue();
+        window.FOSS.api("data_grammar_check", { text: txt, advanced: false }).then(function (res) {
+          var m = res.matches || [];
+          statusEl.textContent = "[OK] Grammar check: " + m.length + " issues flagged";
+          resultsContainer.innerHTML = "";
+          resultsContainer.appendChild(window.FOSS.dom.el("span", { className: "card-title", text: "Grammar Issues (" + m.length + ")" }));
+          if (m.length === 0) {
+            resultsContainer.appendChild(window.FOSS.dom.el("div", { className: "text-sm text-success", text: "No grammar or style issues detected." }));
+          } else {
+            var list = window.FOSS.dom.el("div", { className: "stack", gap: "xs" });
+            m.forEach(function (issue) {
+              list.appendChild(window.FOSS.dom.el("div", { className: "banner warning", style: "margin: 0;" }, [
+                window.FOSS.dom.el("span", { text: issue.message || JSON.stringify(issue) })
+              ]));
+            });
+            resultsContainer.appendChild(list);
+          }
+        });
+      }
+    }, [
+      window.FOSS.icons.el("check", 16),
+      window.FOSS.dom.el("span", { text: "Grammar Check" })
+    ]);
+
+    var advancedGrammarBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "text_tools-grammar-advanced",
+      "aria-label": "LanguageTool advanced check",
+      title: "LanguageTool advanced check",
+      type: "button",
+      onClick: function () {
+        var txt = textEditor.getValue();
+        window.FOSS.api("data_grammar_check", { text: txt, advanced: true }).then(function (res) {
+          statusEl.textContent = "[OK] Advanced LanguageTool analysis complete (LT available: " + res.lt_available + ")";
+          resultsContainer.innerHTML = "";
+          resultsContainer.appendChild(window.FOSS.dom.el("span", { className: "card-title", text: "Advanced Analysis" }));
+          resultsContainer.appendChild(window.FOSS.dom.el("div", { className: "text-sm", text: "LanguageTool engine available: " + res.lt_available }));
+        });
+      }
+    }, [
+      window.FOSS.icons.el("search", 16),
+      window.FOSS.dom.el("span", { text: "Advanced Grammar" })
+    ]);
+
+    var citationSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "data-testid": "text_tools-grammar-citation-style",
+      "aria-label": "Citation style"
+    }, [
+      window.FOSS.dom.el("option", { value: "apa", text: "APA" }),
+      window.FOSS.dom.el("option", { value: "mla", text: "MLA" }),
+      window.FOSS.dom.el("option", { value: "chicago", text: "Chicago" }),
+      window.FOSS.dom.el("option", { value: "harvard", text: "Harvard" })
+    ]);
+
+    var citationBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "text_tools-grammar-citation-generate",
+      "aria-label": "Generate citation",
+      title: "Generate citation",
+      type: "button",
+      onClick: function () {
+        var meta = { author: "Smith, J.", title: "Local First Software", year: "2026", publisher: "FOSS Press" };
+        var style = citationSelect.value || "apa";
+        window.FOSS.api("data_generate_citation", { metadata: meta, style: style }).then(function (res) {
+          if (res && res.citation) {
+            textEditor.setValue(res.citation);
+            statusEl.textContent = "[OK] Generated " + style.toUpperCase() + " citation";
+          }
+        });
+      }
+    }, [
+      window.FOSS.icons.el("file", 16),
+      window.FOSS.dom.el("span", { text: "Generate Citation" })
+    ]);
+
+    var diffBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "text_tools-grammar-diff-btn",
+      "aria-label": "Diff document",
+      title: "Diff document",
+      type: "button",
+      onClick: function () {
+        var txt = textEditor.getValue();
+        window.FOSS.api("data_diff_documents", { doc1: txt, doc2: txt + "\nAdded Line" }).then(function (res) {
+          statusEl.textContent = "[OK] Unified document diff calculated";
+          resultsContainer.innerHTML = "";
+          resultsContainer.appendChild(window.FOSS.dom.el("span", { className: "card-title", text: "Unified Document Diff" }));
+          resultsContainer.appendChild(window.FOSS.dom.el("pre", { className: "font-mono text-xs", text: res.diff || "No differences found." }));
+        });
+      }
+    }, [
+      window.FOSS.icons.el("refresh", 16),
+      window.FOSS.dom.el("span", { text: "Diff Documents" })
+    ]);
+
+    var actionsRow = window.FOSS.dom.el("div", {
+      className: "row scroll-x",
+      gap: "sm"
+    }, [grammarBtn, advancedGrammarBtn, citationSelect, citationBtn, diffBtn]);
+
+    panel.appendChild(window.FOSS.dom.el("div", {
+      className: "page stack",
+      gap: "md"
+    }, [desc, actionsRow, textEditor.el, resultsContainer, statusEl]));
+  }
+
   window.FOSS.router.register({
     id: "text_tools",
     title: "Text Tools",
@@ -611,7 +954,9 @@ window.FOSS = window.FOSS || {};
     icon: "edit",
     workbench: false,
     tabs: [
-      { id: "main", label: "Text Operations", render: renderMain }
+      { id: "main", label: "Text Operations", render: renderMain },
+      { id: "word_counter", label: "Word Counter", render: renderWordCounterTab },
+      { id: "grammar", label: "Grammar & Style", render: renderGrammarTab }
     ],
     onFiles: function (paths, ctx) {
       if (paths && paths.length > 0) {

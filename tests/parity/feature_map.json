@@ -1,18 +1,73 @@
 {
-  "shared_app_shell_home_and_search-01": null,
-  "shared_app_shell_home_and_search-02": null,
-  "shared_app_shell_home_and_search-03": null,
-  "shared_app_shell_home_and_search-04": null,
-  "shared_app_shell_home_and_search-05": null,
-  "shared_app_shell_home_and_search-06": null,
-  "shared_app_shell_home_and_search-07": null,
-  "shared_app_shell_home_and_search-08": null,
-  "shared_app_shell_home_and_search-09": null,
-  "shared_app_shell_home_and_search-10": null,
-  "shared_app_shell_home_and_search-11": null,
-  "shared_app_shell_home_and_search-12": null,
-  "shared_app_shell_home_and_search-13": null,
-  "shared_app_shell_home_and_search-14": null,
+  "shared_app_shell_home_and_search-01": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-02": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-03": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-04": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-05": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-apps-grid"
+  },
+  "shared_app_shell_home_and_search-06": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-recents-section"
+  },
+  "shared_app_shell_home_and_search-07": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-view"
+  },
+  "shared_app_shell_home_and_search-08": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-view"
+  },
+  "shared_app_shell_home_and_search-09": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-theme-select"
+  },
+  "shared_app_shell_home_and_search-10": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-11": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-view"
+  },
+  "shared_app_shell_home_and_search-12": {
+    "view": "settings",
+    "tab": "keybindings",
+    "testid": "settings-nav-keybindings"
+  },
+  "shared_app_shell_home_and_search-13": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-apps-grid"
+  },
+  "shared_app_shell_home_and_search-14": {
+    "delegated": "artcraft",
+    "feature": "keyboard_annotation_editing"
+  },
   "pdf_studio-01": {
     "view": "pdf",
     "tab": "organize",
@@ -1157,11 +1212,39 @@
     "tab": "history",
     "testid": "resume-history-diff"
   },
-  "product_and_engineering_guardrails-01": null,
-  "product_and_engineering_guardrails-02": null,
-  "product_and_engineering_guardrails-03": null,
-  "product_and_engineering_guardrails-04": null,
-  "product_and_engineering_guardrails-05": null,
-  "product_and_engineering_guardrails-06": null,
-  "product_and_engineering_guardrails-07": null
+  "product_and_engineering_guardrails-01": {
+    "view": "settings",
+    "tab": "about",
+    "testid": "settings-nav-about"
+  },
+  "product_and_engineering_guardrails-02": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-open-data-dir-btn"
+  },
+  "product_and_engineering_guardrails-03": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-view"
+  },
+  "product_and_engineering_guardrails-04": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-view"
+  },
+  "product_and_engineering_guardrails-05": {
+    "view": "settings",
+    "tab": "integrations",
+    "testid": "artcraft-tools-list"
+  },
+  "product_and_engineering_guardrails-06": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-view"
+  },
+  "product_and_engineering_guardrails-07": {
+    "view": "settings",
+    "tab": "about",
+    "testid": "settings-nav-about"
+  }
 }

@@ -1050,7 +1050,7 @@ window.FOSS = window.FOSS || {};
     id: "archive",
     title: "Archive & Packaging",
     navName: "Archive",
-    category: "system",
+    category: "Utilities",
     icon: "archive",
     tabs: [
       { id: "create", label: "Create", render: renderCreate },

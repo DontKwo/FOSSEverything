@@ -11,14 +11,23 @@ window.FOSS = window.FOSS || {};
           if (k === "className") {
             element.className = v;
           } else if (k === "style") {
-            if (typeof v === "object" && v !== null) {
-              for (var sk in v) {
-                if (Object.prototype.hasOwnProperty.call(v, sk)) {
-                  element.style[sk] = v[sk];
+            if (typeof v === "string") {
+              var styleRules = v.split(";");
+              for (var ri = 0; ri < styleRules.length; ri++) {
+                var rule = styleRules[ri].trim();
+                if (!rule) continue;
+                var colon = rule.indexOf(":");
+                if (colon > 0) {
+                  element.style.setProperty(rule.substring(0, colon).trim(), rule.substring(colon + 1).trim());
                 }
               }
-            } else {
-              element.setAttribute("style", String(v));
+            } else if (typeof v === "object" && v !== null) {
+              for (var sk in v) {
+                if (Object.prototype.hasOwnProperty.call(v, sk)) {
+                  var cssProp = sk.indexOf("-") >= 0 ? sk : sk.replace(/([A-Z])/g, "-$1").toLowerCase();
+                  element.style.setProperty(cssProp, String(v[sk]));
+                }
+              }
             }
           } else if (k === "text") {
             element.textContent = v;

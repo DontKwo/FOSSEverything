@@ -17,7 +17,7 @@ def scenario_loaded(page: Page, fixtures: dict[str, str], api: Any) -> None:
     # Open Palette Extractor and verify initial loaded state.
     page.evaluate("window.FOSS.router.open('palette', 'main')")
     expect(page.locator("[data-testid='tool-page-palette']")).to_be_visible()
-    expect(page.locator("[data-testid='palette-status']")).to_contain_text("open an image to extract palettes")
+    expect(page.locator("[data-testid='palette-status']")).to_contain_text("Open an image to extract palettes")
     expect(page.locator("[data-testid='palette-swatch-list']")).to_contain_text("No palette extracted yet")
     calc_clear_overlays(page)
 

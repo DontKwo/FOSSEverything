@@ -19,6 +19,21 @@ assets_datas = [(assets_dir, 'assets')] if os.path.exists(assets_dir) else []
 web_dir = os.path.join(ROOT_DIR, 'app', 'web')
 web_datas = [(web_dir, 'app/web')] if os.path.exists(web_dir) else []
 
+# Collect pywebview interop libraries for frozen mode
+import webview
+webview_lib_dir = os.path.join(os.path.dirname(webview.__file__), 'lib')
+webview_datas = []
+if os.path.exists(webview_lib_dir):
+    webview_datas.append((webview_lib_dir, 'webview/lib'))
+    webview_datas.append((webview_lib_dir, '.'))
+
+# Collect language_tool_python package data (integrity.toml etc)
+lt_datas, lt_binaries, lt_hidden = [], [], []
+try:
+    lt_datas, lt_binaries, lt_hidden = collect_all('language_tool_python')
+except Exception:
+    pass
+
 # The optional CAD backend (cadquery-ocp) ships native binaries PyInstaller's
 # static analysis can't discover on its own; collect it only if installed, so
 # a base install without the `[cad]` extra still produces a working build.
@@ -31,9 +46,9 @@ except Exception:
 a = Analysis(
     [os.path.join(ROOT_DIR, 'main.py')],
     pathex=[ROOT_DIR],
-    binaries=[] + ocp_binaries,
-    datas=assets_datas + web_datas + ffmpeg_datas + ocp_datas,
-    hiddenimports=['webview', 'pythonnet', 'clr_loader', 'bottle', 'proxy_tools', 'pymupdf', 'fitz', 'PIL', 'PIL.Image', 'imageio_ffmpeg', 'mutagen', 'tinytag', 'yaml', 'cv2', 'trimesh', 'shapely', 'mapbox_earcut'] + ocp_hidden,
+    binaries=[] + ocp_binaries + lt_binaries,
+    datas=assets_datas + web_datas + ffmpeg_datas + ocp_datas + lt_datas + webview_datas,
+    hiddenimports=['webview', 'pythonnet', 'clr_loader', 'bottle', 'proxy_tools', 'pymupdf', 'fitz', 'PIL', 'PIL.Image', 'imageio_ffmpeg', 'mutagen', 'tinytag', 'yaml', 'cv2', 'trimesh', 'shapely', 'mapbox_earcut'] + ocp_hidden + lt_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -28,8 +28,8 @@ def calc_filter_findings(findings: list[dict[str, Any]], view: str, allowlist: l
         fid = f.get("id")
         sel = f.get("selector", "")
         is_allowed = False
-        for a in allowlist:
-            if a.get("check") == fid and a.get("view") in (view, "*"):
+        for allowed_entry in allowlist:
+            if allowed_entry.get("check") == fid and a.get("view") in (view, "*"):
                 if not a.get("selector") or a.get("selector") in sel:
                     is_allowed = True
                     break
@@ -88,8 +88,31 @@ def test_tool_scenarios(
     unallowed = calc_filter_findings(rec["findings"], tool_id, allowlist)
     errors: list[str] = []
     if unallowed:
-        for u in unallowed:
-            errors.append(f"[{vp_id}/{theme}] {tool_id}:{sc_name} -> [{u.get('id')}] {u.get('selector')}: {u.get('message')}")
+        for err_item in unallowed:
+            errors.append(f"[{vp_id}/{theme}] {tool_id}:{sc_name} -> [{err_item.get('id')}] {err_item.get('selector')}: {err_item.get('message')}")
 
     session["context"].close()
     assert not errors, f"UI audit errors in {tool_id}:{sc_name} ({len(errors)}):\n" + "\n".join(errors[:20])
+
+
+FULL_VIEWPORTS = [v["id"] for v in VIEWPORTS]
+
+
+@pytest.mark.ui_full
+@pytest.mark.parametrize("vp_id", FULL_VIEWPORTS)
+@pytest.mark.parametrize("theme", ["dark", "light"])
+@pytest.mark.parametrize("tool_id,sc_name,sc_fn", DISCOVERED_SCENARIOS, ids=[f"{t}-{n}" for t, n, _ in DISCOVERED_SCENARIOS] if DISCOVERED_SCENARIOS else ["none-none"])
+def test_tool_scenarios_full(
+    browser: Any,
+    api: Any,
+    fixtures: dict[str, str],
+    run_dir: Path,
+    records: list[dict[str, Any]],
+    vp_id: str,
+    theme: str,
+    tool_id: str,
+    sc_name: str,
+    sc_fn: Any,
+) -> None:
+    # Execute full matrix tool scenarios across all viewports.
+    test_tool_scenarios(browser, api, fixtures, run_dir, records, vp_id, theme, tool_id, sc_name, sc_fn)

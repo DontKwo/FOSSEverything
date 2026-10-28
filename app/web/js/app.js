@@ -8,6 +8,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.shortcuts.init();
       window.FOSS.dropzone.init();
       window.FOSS.tooltips.init();
+      if (window.FOSS.resizer) window.FOSS.resizer.init();
 
       // Check collapsed sidebar setting
       if (window.FOSS.store.get("sidebar_collapsed", false)) {
@@ -48,7 +49,6 @@ window.FOSS = window.FOSS || {};
       { view: "palette", state: "open" },
       { view: "settings", state: "appearance" },
       { view: "settings", state: "home" },
-      { view: "settings", state: "artcraft" },
       { view: "settings", state: "keybindings" },
       { view: "settings", state: "shell" },
       { view: "settings", state: "privacy" },
@@ -74,19 +74,6 @@ window.FOSS = window.FOSS || {};
   }
 
   function openState(view, state) {
-    if (window.FOSS.palette && window.FOSS.palette.isOpen()) {
-      window.FOSS.palette.close();
-    }
-    var modalHost = document.getElementById("modal-host");
-    if (modalHost) {
-      modalHost.innerHTML = "";
-      modalHost.classList.remove("active");
-    }
-    var appEl = document.querySelector(".app");
-    if (appEl && view !== "sidebar") {
-      appEl.classList.remove("sidebar-rail");
-    }
-
     if (view === "home") {
       window.FOSS.router.open("home");
       if (state === "empty-search") {
@@ -96,7 +83,7 @@ window.FOSS = window.FOSS || {};
           input.dispatchEvent(new Event("input"));
         }
       }
-    } else if (view === "palette" && state === "open") {
+    } else if (view === "palette") {
       window.FOSS.palette.open();
     } else if (view === "settings") {
       window.FOSS.router.open("settings", state);
@@ -128,7 +115,7 @@ window.FOSS = window.FOSS || {};
       "select_folder", "select_save_path", "read_text_file", "write_text_file",
       "open_path", "open_folder", "copy_to_clipboard", "toggle_fullscreen",
       "route_file", "get_recents", "clear_recents", "get_version",
-      "job_start", "job_poll", "job_cancel", "get_artcraft_status", "launch_artcraft_app"
+      "job_start", "job_poll", "job_cancel"
     ];
 
     if (window.pywebview && window.pywebview.api) {
@@ -150,8 +137,6 @@ window.FOSS = window.FOSS || {};
     if (paths && paths.length > 0) {
       if (mode === "ocr") {
         window.FOSS.router.open("ocr");
-      } else if (mode === "hash") {
-        window.FOSS.router.open("hash");
       } else {
         window.FOSS.router.routeFiles(paths);
       }
@@ -170,4 +155,3 @@ window.FOSS = window.FOSS || {};
     boot();
   }
 })();
-

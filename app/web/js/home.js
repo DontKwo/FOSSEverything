@@ -5,7 +5,29 @@ window.FOSS = window.FOSS || {};
   var selectedCategory = "All";
   var favoritesOnly = false;
   var searchQuery = "";
-  var allApps = [];
+  var DEFAULT_APPS = [
+    { id: "pdf", name: "PDF Tools", category: "Documents", description: "Merge, reorder, split, extract text, and password protect PDFs.", artwork_url: "assets/home/pdf.png" },
+    { id: "images", name: "Image Tools", category: "Visuals", description: "Convert formats, crop, resize, rotate, flip, remove background, and compress images.", artwork_url: "assets/home/images.png" },
+    { id: "ocr", name: "OCR Studio", category: "Documents", description: "Extract text from scans and images; create searchable PDFs completely offline.", artwork_url: "assets/home/ocr.png" },
+    { id: "resume", name: "Resume Builder", category: "Documents", description: "Build a master resume and check bullets and reorder sections to tailor per job.", artwork_url: "assets/home/resume.png" },
+    { id: "playlist", name: "Playlist Porter", category: "Media", description: "Convert playlists between Spotify, YouTube, and YouTube Music with M3U8/CSV export.", artwork_url: "assets/home/playlist.png" },
+    { id: "converter", name: "File Converter", category: "Utilities", description: "Universal file converter: convert any document, image, media, 3D, or data file format into any other.", artwork_url: "assets/home/converter.jpg" },
+    { id: "compressor", name: "File Compressor", category: "Utilities", description: "Centralized compression for PDF documents, images, video, audio, and archives.", artwork_url: "assets/home/compressor.jpg" },
+    { id: "metadata", name: "Metadata Tools", category: "Utilities", description: "Inspect, edit, or remove image/PDF/office/audio/video metadata before sharing.", artwork_url: "assets/home/metadata.png" },
+    { id: "qr", name: "QR and Barcodes", category: "Utilities", description: "Generate custom offline QR codes and scan/decode barcodes from images and PDFs.", artwork_url: "assets/home/qr.png" },
+    { id: "renamer", name: "Batch Renamer", category: "Utilities", description: "Rename files with search & replace, numbering, prefixes, casing, and undo safety.", artwork_url: "assets/home/renamer.png" },
+    { id: "data", name: "Data Studio", category: "Data", description: "Format, minify, validate, convert, and query JSON, YAML, TOML, CSV, XML, and SQL.", artwork_url: "assets/home/data.png" },
+    { id: "markdown", name: "Markdown Preview", category: "Documents", description: "Live GitHub-flavored Markdown editor with instant side-by-side preview and HTML export.", artwork_url: "assets/home/markdown.svg" },
+    { id: "palette", name: "Color Palette", category: "Visuals", description: "Extract dominant color palettes and sample exact pixel colors with mouse eyedropper.", artwork_url: "assets/home/palette.png" },
+    { id: "collage", name: "Photo Collage", category: "Visuals", description: "Create customizable photo grid collages and side-by-side compositions.", artwork_url: "assets/home/collage.png" },
+    { id: "model3d", name: "3D Model Studio", category: "Visuals", description: "Cut with planes, inspect geometry, repair mesh, scale, measure, and convert STL/OBJ/PLY/STEP.", artwork_url: "assets/home/model3d.png" },
+    { id: "text_tools", name: "Text Tools", category: "Data", description: "Case conversion, word counter, readability analytics, grammar inspection, citations, and diff.", artwork_url: "assets/home/text_tools.png" },
+    { id: "encoding", name: "Encoding / Decoding", category: "Data", description: "Encode and decode text and files between Base64, URL, HTML entities, hex, and binary.", artwork_url: "assets/home/encoding.png" },
+    { id: "network_monitor", name: "Network Monitor", category: "Utilities", description: "Watch live outbound connections by process, flag unknown destinations, and query history.", artwork_url: "assets/home/network_monitor.svg" },
+    { id: "archive", name: "Archive Studio", category: "Utilities", description: "Create, list, and extract ZIP, TAR, and TAR.GZ archives offline.", artwork_url: "assets/home/archive.svg" },
+    { id: "office", name: "Office Tools", category: "Documents", description: "Extract clean text and convert DOCX, PPTX, XLSX, ODT, ODS, ODP documents.", artwork_url: "assets/home/office.svg" }
+  ];
+  var allApps = DEFAULT_APPS.slice();
 
   function render(container) {
     container.innerHTML = "";
@@ -89,6 +111,7 @@ window.FOSS = window.FOSS || {};
     container.appendChild(page);
 
     // Load apps and render grid
+    updateGrid();
     window.FOSS.api("get_apps", {}).then(function (res) {
       if (res && res.ok && res.apps) {
         allApps = res.apps;
@@ -145,12 +168,25 @@ window.FOSS = window.FOSS || {};
         }
       }, [window.FOSS.icons.el(isFav ? "star_filled" : "star", 16)]);
 
+      var imgBox = window.FOSS.dom.el("div", { className: "tile-img-box" });
+      var preferred = app.artwork_url || ("assets/home/" + app.id + ".png");
+      var candidateExts = [preferred, "assets/home/" + app.id + ".svg", "assets/home/" + app.id + ".png", "assets/home/" + app.id + ".jpg"];
+      var extIndex = 0;
       var imgEl = window.FOSS.dom.el("img", {
         className: "tile-img",
-        src: app.artwork_url || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='90'><rect width='100%' height='100%' fill='%231a2540'/></svg>",
+        src: candidateExts[0],
         alt: app.name,
         loading: "lazy"
       });
+      imgEl.onerror = function () {
+        extIndex++;
+        if (extIndex < candidateExts.length) {
+          imgEl.src = candidateExts[extIndex];
+        } else {
+          imgBox.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 135" width="100%" height="100%"><defs><linearGradient id="fallback_' + app.id + '" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#1e293b"/><stop offset="100%" stop-color="#0f172a"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#fallback_' + app.id + ')"/><text x="50%" y="54%" font-family="sans-serif" font-size="13" font-weight="700" fill="#94a3b8" text-anchor="middle" letter-spacing="1">' + app.name.toUpperCase() + '</text></svg>';
+        }
+      };
+      imgBox.appendChild(imgEl);
 
       var tileHead = window.FOSS.dom.el("div", { className: "row tile-head" }, [
         window.FOSS.dom.el("h3", { className: "tile-title", text: app.name }),
@@ -163,6 +199,11 @@ window.FOSS = window.FOSS || {};
         title: app.description,
         "data-truncate-ok": "true"
       });
+
+      var tileBody = window.FOSS.dom.el("div", { className: "tile-body" }, [
+        tileHead,
+        tileDesc
+      ]);
 
       var tile = window.FOSS.dom.el("div", {
         className: "card app-tile",
@@ -178,7 +219,7 @@ window.FOSS = window.FOSS || {};
             window.FOSS.router.open(app.id);
           }
         }
-      }, [imgEl, tileHead, tileDesc]);
+      }, [imgBox, tileBody]);
 
       grid.appendChild(tile);
     });

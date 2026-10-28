@@ -5,6 +5,11 @@
   box-sizing: border-box;
 }
 
+[hidden],
+.hidden {
+  display: none !important;
+}
+
 html {
   font-size: calc(var(--font-base) * var(--ui-scale, 1));
   height: 100%;
@@ -41,9 +46,19 @@ button {
   border: none;
 }
 
+button {
+  font-family: inherit;
+  font-size: var(--text-sm);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
 .sidebar,
 .topbar,
-button,
 .nav-item,
 .chip,
 .badge {

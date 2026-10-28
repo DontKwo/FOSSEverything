@@ -101,7 +101,7 @@ class TestMarkdownWebApi(unittest.TestCase):
         self.api = WebApi()
 
     def test_render_markdown_api(self) -> None:
-        res = self.api.render_markdown("# Title\n\n**Body**")
+        res = self.api.render_markdown({"markdown": "# Title\n\n**Body**"})
         self.assertIn("html", res)
         self.assertIn("<h1>Title</h1>", res["html"])
         self.assertIn("<strong>Body</strong>", res["html"])
@@ -109,8 +109,8 @@ class TestMarkdownWebApi(unittest.TestCase):
     def test_export_html_api(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out_file = os.path.join(tmp_dir, "test_doc.html")
-            res = self.api.markdown_export_html("# Heading\n\nContent", out_file)
-            self.assertTrue(res.get("success"))
+            res = self.api.markdown_export_html({"markdown": "# Heading\n\nContent", "output_path": out_file})
+            self.assertTrue(res.get("ok"))
             self.assertTrue(os.path.isfile(out_file))
             with open(out_file, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -120,8 +120,8 @@ class TestMarkdownWebApi(unittest.TestCase):
     def test_export_pdf_api(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
             out_file = os.path.join(tmp_dir, "test_doc.pdf")
-            res = self.api.markdown_export_pdf("# PDF Title\n\nParagraph in PDF", out_file)
-            self.assertTrue(res.get("success"))
+            res = self.api.markdown_export_pdf({"markdown": "# PDF Title\n\nParagraph in PDF", "output_path": out_file})
+            self.assertTrue(res.get("ok"))
             self.assertTrue(os.path.isfile(out_file))
             self.assertGreater(os.path.getsize(out_file), 500)
 

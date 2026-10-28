@@ -48,6 +48,10 @@ jobs:
         run: |
           uv sync --dev
 
+      - name: Run Test Suite
+        run: |
+          uv run python -m pytest -q
+
       - name: Build Standalone Executable (PyInstaller)
         run: |
           uv run python scripts/build_executable.py

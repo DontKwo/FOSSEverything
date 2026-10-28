@@ -319,7 +319,7 @@ window.FOSS = window.FOSS || {};
     id: "office",
     title: "Office Document Studio",
     navName: "Office",
-    category: "system",
+    category: "Documents",
     icon: "file-text",
     tabs: [
       { id: "main", label: "Office Studio", render: renderMain }

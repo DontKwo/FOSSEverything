@@ -23,7 +23,7 @@ class WebApiTests(unittest.TestCase):
         ids = {app["id"] for app in apps}
         self.assertIn("pdf", ids)
         self.assertIn("images", ids)
-        self.assertIn("media", ids)
+        self.assertIn("compressor", ids)
         self.assertIn("model3d", ids)
         self.assertIn("converter", ids)
 
@@ -80,6 +80,10 @@ class WebApiTests(unittest.TestCase):
 
             res_rot_inplace = self.api.pdf_rotate_page({"file_path": merged_path, "page_number": 0, "degrees": 90})
             self.assertTrue(res_rot_inplace.get("ok"))
+
+            res_rot_multi = self.api.pdf_rotate_pages({"file_path": merged_path, "pages": [0, 1], "degrees": 90})
+            self.assertTrue(res_rot_multi.get("ok"))
+            self.assertEqual(res_rot_multi.get("rotated_count"), 2)
 
             single_path = os.path.join(tmp_dir, "single.pdf")
             res_ext_page = self.api.pdf_extract_single_page({"file_path": merged_path, "page_number": 0, "output_path": single_path})
@@ -170,6 +174,80 @@ class WebApiTests(unittest.TestCase):
         js_res = self.api.format_js({"content": "function test(){return 1;}"})
         self.assertTrue(js_res.get("ok"))
 
+        # Test structure inspection.
+        struct_res = self.api.data_inspect_structure({"content": '{"name": "Tool", "count": 5}'})
+        self.assertTrue(struct_res.get("ok"))
+        self.assertEqual(struct_res.get("format"), "JSON")
+        self.assertIn("root", struct_res)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            import struct as pystruct
+            h5_path = os.path.join(tmp_dir, "test.h5")
+            sig = b"\x89HDF\r\n\x1a\n"
+            sb = sig + bytes([0, 0, 0, 0, 0, 8, 8, 0])
+            sb += pystruct.pack("<HHIQQQQ", 4, 16, 0, 0, 0xFFFFFFFFFFFFFFFF, 512, 0xFFFFFFFFFFFFFFFF)
+            sb += pystruct.pack("<QQIIQQ", 0, 96, 0, 0, 0, 0)
+            with open(h5_path, "wb") as f:
+                f.write(sb)
+            h5_res = self.api.data_inspect_structure({"file_path": h5_path})
+            self.assertTrue(h5_res.get("ok"))
+            self.assertEqual(h5_res.get("format"), "HDF5")
+            self.assertIn("root", h5_res)
+
+            csv_slice_out = os.path.join(tmp_dir, "slice.csv")
+            slice_res = self.api.data_hdf5_export_slice({
+                "file_path": h5_path,
+                "dataset_path": "/dataset_1",
+                "slice_spec": "0:5",
+                "output_path": csv_slice_out,
+                "format": "csv",
+            })
+            self.assertTrue(slice_res.get("ok"))
+            self.assertTrue(os.path.isfile(csv_slice_out))
+            self.assertEqual(slice_res.get("format"), "CSV")
+
+            npy_slice_out = os.path.join(tmp_dir, "slice.npy")
+            npy_res = self.api.data_hdf5_export_slice({
+                "file_path": h5_path,
+                "dataset_path": "/dataset_1",
+                "slice_spec": "0:5",
+                "output_path": npy_slice_out,
+                "format": "npy",
+            })
+            self.assertTrue(npy_res.get("ok"))
+            self.assertTrue(os.path.isfile(npy_slice_out))
+
+        # Test table operations with custom delimiter.
+        md_res = self.api.data_csv_to_table({"content": "A;B\n1;2", "delimiter": ";"})
+        self.assertTrue(md_res.get("ok"))
+        self.assertIn("| A | B |", md_res.get("result", ""))
+
+        csv_res = self.api.data_table_to_csv({"content": md_res["result"], "delimiter": "\t"})
+        self.assertTrue(csv_res.get("ok"))
+        self.assertIn("A\tB", csv_res.get("result", ""))
+
+        chg_res = self.api.data_change_delimiter({"content": "A,B\n1,2", "from_delimiter": ",", "to_delimiter": ";"})
+        self.assertTrue(chg_res.get("ok"))
+        self.assertIn("A;B", chg_res.get("result", ""))
+
+        # Test random generator options.
+        hex_res = self.api.data_random_value({"category": "hex", "length": 32, "count": 2})
+        self.assertTrue(hex_res.get("ok"))
+        self.assertEqual(len(hex_res.get("values", [])), 2)
+        self.assertEqual(len(hex_res.get("values", [])[0]), 32)
+
+        lorem_res = self.api.data_random_value({"category": "lorem", "length": 8})
+        self.assertTrue(lorem_res.get("ok"))
+        self.assertIn(" ", lorem_res.get("value", ""))
+
+        # Test units conversion swap.
+        u_forward = self.api.data_convert_units({"value": 1.0, "source_unit": "m", "target_unit": "cm"})
+        self.assertTrue(u_forward.get("ok"))
+        self.assertEqual(u_forward.get("result"), 100.0)
+        u_swap = self.api.data_convert_units({"value": 100.0, "source_unit": "cm", "target_unit": "m"})
+        self.assertTrue(u_swap.get("ok"))
+        self.assertEqual(u_swap.get("result"), 1.0)
+
     def test_model3d_operations(self) -> None:
         import trimesh
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -202,6 +280,11 @@ class WebApiTests(unittest.TestCase):
             meas_res = self.api.model3d_measure({"p1": [0.0, 0.0, 0.0], "p2": [3.0, 4.0, 0.0]})
             self.assertTrue(meas_res.get("ok"))
             self.assertAlmostEqual(meas_res.get("distance", 0.0), 5.0, places=3)
+
+            centered_path = os.path.join(tmp_dir, "centered.stl")
+            center_res = self.api.model3d_center_origin({"file_path": stl_path, "output_path": centered_path})
+            self.assertTrue(center_res.get("ok"))
+            self.assertTrue(os.path.isfile(centered_path))
 
     def test_converter_and_qr_operations(self) -> None:
         targets_res = self.api.converter_available_targets({"file_path": "sample.png"})

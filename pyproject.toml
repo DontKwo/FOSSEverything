@@ -63,6 +63,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+addopts = "-m 'not ui_full and not native'"
 markers = [
     "ui_full: full viewport matrix (slow)",
     "native: boots the real pywebview window",

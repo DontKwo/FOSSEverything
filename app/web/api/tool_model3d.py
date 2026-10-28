@@ -130,3 +130,17 @@ class Model3dApiMixin:
         m3d = load(file_path)
         res_p = export(m3d, out_p, fmt=str(fmt) if fmt else None)
         return ok(output_path=res_p)
+
+    @api_method
+    def model3d_center_origin(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Re-center geometry at origin (0, 0, 0) and export centered mesh.
+        require(params, "file_path", "output_path")
+        file_path = str(params["file_path"])
+        out_p = str(params["output_path"])
+        m3d = load(file_path)
+        if m3d.backend == "mesh" and m3d.mesh is not None:
+            center = (m3d.mesh.bounds[0] + m3d.mesh.bounds[1]) / 2.0
+            m3d.mesh.apply_translation(-center)
+        export(m3d, out_p)
+        new_stats = info(m3d)
+        return ok(output_path=out_p, info=new_stats)

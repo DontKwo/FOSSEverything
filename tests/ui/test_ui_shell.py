@@ -27,8 +27,8 @@ def calc_filter_findings(findings: list[dict[str, Any]], view: str, allowlist: l
         fid = f.get("id")
         sel = f.get("selector", "")
         is_allowed = False
-        for a in allowlist:
-            if a.get("check") == fid and a.get("view") in (view, "*"):
+        for allowed_entry in allowlist:
+            if allowed_entry.get("check") == fid and a.get("view") in (view, "*"):
                 if not a.get("selector") or a.get("selector") in sel:
                     is_allowed = True
                     break
@@ -51,7 +51,6 @@ def test_shell_states(browser: Any, api: Any, run_dir: Path, records: list[dict[
         ("home", "empty-search"),
         ("palette", "open"),
         ("settings", "appearance"),
-        ("settings", "artcraft"),
         ("settings", "privacy"),
         ("modal", "confirm"),
         ("sidebar", "rail"),
@@ -65,9 +64,28 @@ def test_shell_states(browser: Any, api: Any, run_dir: Path, records: list[dict[
 
         unallowed = calc_filter_findings(rec["findings"], view, allowlist)
         if unallowed:
-            for u in unallowed:
-                errors.append(f"[{vp_id}/{theme}] {view}:{state} -> [{u.get('id')}] {u.get('selector')}: {u.get('message')}")
+            for err_item in unallowed:
+                errors.append(f"[{vp_id}/{theme}] {view}:{state} -> [{err_item.get('id')}] {err_item.get('selector')}: {err_item.get('message')}")
 
     session["context"].close()
     assert not errors, f"Shell audit errors ({len(errors)}):\n" + "\n".join(errors[:20])
+
+
+FULL_VIEWPORTS = [v["id"] for v in VIEWPORTS]
+
+
+@pytest.mark.ui_full
+@pytest.mark.parametrize("vp_id", FULL_VIEWPORTS)
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_shell_states_full(
+    browser: Any,
+    api: Any,
+    run_dir: Path,
+    records: list[dict[str, Any]],
+    vp_id: str,
+    theme: str,
+) -> None:
+    # Test shell views and states across full viewport matrix.
+    test_shell_states(browser, api, run_dir, records, vp_id, theme)
+
 

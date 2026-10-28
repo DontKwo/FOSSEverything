@@ -11,6 +11,12 @@ cd /d "%SCRIPT_DIR%"
 
 where uv >nul 2>nul
 if %ERRORLEVEL% equ 0 (
+    echo [INFO] Running test suite...
+    uv run python -m pytest -q
+    if !ERRORLEVEL! neq 0 (
+        echo [ERROR] Tests failed. Aborting build.
+        exit /b 1
+    )
     echo [INFO] Using uv runner...
     uv run python scripts/build_executable.py %*
     goto finish

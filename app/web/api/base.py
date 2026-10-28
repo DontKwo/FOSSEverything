@@ -11,6 +11,7 @@ from app.core.home_apps import HOME_APPS
 from app.core.tooltips import TOOLTIP_DICTIONARY
 from app.system.jobs import JobRunner
 from app.system.settings import (
+    calc_app_base_dir,
     calc_settings_dir,
     get_all_settings,
     get_setting,
@@ -45,7 +46,7 @@ class BaseApi:
         if not p.exists():
             return
         recents: list[dict[str, Any]] = get_setting(list_key, [])
-        recents = [r for r in recents if r.get("path") != str(p)]
+        recents = [item for item in recents if item.get("path") != str(p)]
         recents.insert(0, {
             "name": p.name,
             "path": str(p),
@@ -73,12 +74,15 @@ class BaseApi:
     def get_apps(self, params: dict[str, Any]) -> dict[str, Any]:
         # Return list of registered home workspaces with artwork URLs.
         apps_data: list[dict[str, Any]] = []
-        assets_dir = Path("assets/home")
+        base_dir = calc_app_base_dir()
+        web_assets = base_dir / "app" / "web" / "assets" / "home"
+        root_assets = base_dir / "assets" / "home"
         for app in HOME_APPS:
-            art_path = assets_dir / f"{app.id}.png"
-            if not art_path.exists():
-                art_path = assets_dir / f"{app.id}.jpg"
-            art_url = art_path.resolve().as_uri() if art_path.exists() else ""
+            art_url = ""
+            for ext in ("png", "jpg", "svg"):
+                if (web_assets / f"{app.id}.{ext}").exists() or (root_assets / f"{app.id}.{ext}").exists():
+                    art_url = f"assets/home/{app.id}.{ext}"
+                    break
             apps_data.append({
                 "id": app.id,
                 "name": app.name,
@@ -135,8 +139,8 @@ class BaseApi:
     def get_setting(self, params: dict[str, Any]) -> dict[str, Any]:
         # Retrieve setting value by key.
         require(params, "key")
-        val = get_setting(params["key"], params.get("default"))
-        return ok(value=val)
+        setting_val = get_setting(params["key"], params.get("default"))
+        return ok(value=setting_val)
 
     @api_method
     def set_setting(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -238,18 +242,18 @@ class BaseApi:
         if self._dialog_answers:
             ans = self._dialog_answers.pop(0)
             if not ans:
-                return ok(paths=[], cancelled=True)
-            return ok(paths=[str(ans)], cancelled=False)
+                return ok(paths=[], path="", cancelled=True)
+            return ok(paths=[str(ans)], path=str(ans), cancelled=False)
 
         if not self._window:
-            return ok(paths=[], cancelled=True)
+            return ok(paths=[], path="", cancelled=True)
 
         default_name = params.get("default_name", "")
         res = self._window.create_file_dialog(dialog_type=30, save_filename=default_name)
         if res:
             p_str = str(res) if isinstance(res, str) else str(res[0])
-            return ok(paths=[p_str], cancelled=False)
-        return ok(paths=[], cancelled=True)
+            return ok(paths=[p_str], path=p_str, cancelled=False)
+        return ok(paths=[], path="", cancelled=True)
 
     @api_method
     def get_theme_palette(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -405,28 +409,3 @@ class BaseApi:
         # Request cancellation for background job.
         require(params, "id")
         return self._jobs.cancel(params["id"])
-
-    @api_method
-    def get_artcraft_status(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Check local installation status of ArtCraft creative applications.
-        apps = ["photocraft", "pdfcraft", "filmcraft", "vectorcraft", "cadcraft"]
-        status: dict[str, dict[str, Any]] = {}
-        for a in apps:
-            found_path = shutil.which(a) or shutil.which(f"{a}.exe")
-            status[a] = {
-                "name": a.capitalize(),
-                "installed": bool(found_path),
-                "path": found_path or "",
-            }
-        return ok(status=status)
-
-    @api_method
-    def launch_artcraft_app(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Spawn external ArtCraft application process.
-        require(params, "app_name")
-        app_name = params["app_name"].lower()
-        exe = shutil.which(app_name) or shutil.which(f"{app_name}.exe")
-        if not exe:
-            return fail(f"Application {app_name} not found on system PATH", code="NotFound")
-        subprocess.Popen([exe], close_fds=True)
-        return ok(launched=True, executable=exe)

@@ -60,9 +60,14 @@ window.FOSS = window.FOSS || {};
 
     // Categories
     var categories = ["Documents", "Visuals", "Media", "Utilities", "Data"];
+    var registeredList = Object.values(registry);
+    var renderedIds = {};
+
     categories.forEach(function (cat) {
-      var toolsInCat = Object.values(registry).filter(function (t) {
-        return t.category === cat;
+      var toolsInCat = registeredList.filter(function (t) {
+        var c = (t.category || "").toLowerCase();
+        if (c === "system") c = "utilities";
+        return c === cat.toLowerCase();
       });
       if (toolsInCat.length === 0) return;
 
@@ -70,6 +75,7 @@ window.FOSS = window.FOSS || {};
       navList.appendChild(catHeading);
 
       toolsInCat.forEach(function (t) {
+        renderedIds[t.id] = true;
         var isAct = activeView === t.id;
         var btn = window.FOSS.dom.el("button", {
           className: "nav-item " + (isAct ? "active" : ""),
@@ -86,6 +92,30 @@ window.FOSS = window.FOSS || {};
         navList.appendChild(btn);
       });
     });
+
+    var leftovers = registeredList.filter(function (t) {
+      return !renderedIds[t.id];
+    });
+    if (leftovers.length > 0) {
+      var otherHeading = window.FOSS.dom.el("div", { className: "nav-category", text: "Other" });
+      navList.appendChild(otherHeading);
+      leftovers.forEach(function (t) {
+        var isAct = activeView === t.id;
+        var btn = window.FOSS.dom.el("button", {
+          className: "nav-item " + (isAct ? "active" : ""),
+          "data-testid": "nav-" + t.id,
+          "aria-label": t.title,
+          title: t.title,
+          onClick: function () {
+            open(t.id);
+          }
+        }, [
+          window.FOSS.icons.el(t.icon || "file", 18),
+          window.FOSS.dom.el("span", { className: "nav-label", text: t.navName || t.title })
+        ]);
+        navList.appendChild(btn);
+      });
+    }
 
     // Bottom settings item
     var settingsActive = activeView === "settings";
@@ -176,7 +206,7 @@ window.FOSS = window.FOSS || {};
     var favBar = window.FOSS.dom.el("div", { className: "row favorites-bar" }, favBtns);
 
     // Theme selector button
-    var themesList = ["dark", "light", "solarized", "monokai", "cyberpunk"];
+    var themesList = ["dark", "light", "solarized", "monokai", "cyberpunk", "ut_austin"];
     var currentTheme = window.FOSS.store.get("theme", "dark");
     var themeBtn = window.FOSS.dom.el("button", {
       className: "btn btn-icon btn-ghost btn-sm",

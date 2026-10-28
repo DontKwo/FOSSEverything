@@ -41,7 +41,7 @@ window.FOSS.components = window.FOSS.components || {};
       }
     }, [
       window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Choose file" })
+      window.FOSS.dom.el("span", { text: "Choose File" })
     ]);
 
     var clearBtn = window.FOSS.dom.el("button", {

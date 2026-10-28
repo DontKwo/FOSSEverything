@@ -46,7 +46,7 @@ window.FOSS = window.FOSS || {};
     var fetchGroup = window.FOSS.dom.el("div", { className: "card mb-md" }, [
       window.FOSS.dom.el("div", {
         className: "card-title text-sm font-semibold mb-sm",
-        text: "Fetch from URL (Spotify playlist · YouTube playlist · YouTube Music playlist)"
+        text: "Fetch from URL (Spotify playlist - YouTube playlist - YouTube Music playlist)"
       }),
       window.FOSS.dom.el("div", { className: "field" }, [
         window.FOSS.dom.el("input", {
@@ -60,7 +60,7 @@ window.FOSS = window.FOSS || {};
       ]),
       window.FOSS.dom.el("div", { className: "row mt-sm" }, [
         window.FOSS.dom.el("button", {
-          className: "btn primary",
+          className: "btn btn-primary",
           "data-testid": "playlist-fetch-btn",
           "aria-label": "Fetch playlist",
           title: "Fetch playlist",
@@ -112,7 +112,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "field mb-sm" }, [spotifyClientIdInput]),
       window.FOSS.dom.el("div", { className: "row gap-sm" }, [
         window.FOSS.dom.el("button", {
-          className: "btn secondary",
+          className: "btn btn-secondary",
           "data-testid": "playlist-spotify-save-id-btn",
           "aria-label": "Save client ID",
           title: "Save client ID",
@@ -125,7 +125,7 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.dom.el("span", { text: "Save Client ID" })]),
         window.FOSS.dom.el("button", {
-          className: "btn secondary",
+          className: "btn btn-secondary",
           "data-testid": "playlist-spotify-login-btn",
           "aria-label": "Log in with Spotify",
           title: "Log in with Spotify",
@@ -139,7 +139,7 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.dom.el("span", { text: "Log In with Spotify" })]),
         window.FOSS.dom.el("button", {
-          className: "btn ghost",
+          className: "btn btn-ghost",
           "data-testid": "playlist-spotify-instructions-btn",
           "aria-label": "See step-by-step instructions",
           title: "See step-by-step instructions",
@@ -181,7 +181,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "field mb-sm" }, [ytClientIdInput, ytClientSecretInput]),
       window.FOSS.dom.el("div", { className: "row gap-sm" }, [
         window.FOSS.dom.el("button", {
-          className: "btn secondary",
+          className: "btn btn-secondary",
           "data-testid": "playlist-yt-save-btn",
           "aria-label": "Save credentials",
           title: "Save credentials",
@@ -195,7 +195,7 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.dom.el("span", { text: "Save Credentials" })]),
         window.FOSS.dom.el("button", {
-          className: "btn secondary",
+          className: "btn btn-secondary",
           "data-testid": "playlist-yt-login-btn",
           "aria-label": "Log in with YouTube",
           title: "Log in with YouTube",
@@ -291,7 +291,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "field mb-sm" }, [textarea]),
       window.FOSS.dom.el("div", { className: "row gap-sm" }, [
         window.FOSS.dom.el("button", {
-          className: "btn primary",
+          className: "btn btn-primary",
           "data-testid": "playlist-parse-btn",
           "aria-label": "Parse tracks",
           title: "Parse tracks",
@@ -322,7 +322,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", { text: "Parse Tracks" })
         ]),
         window.FOSS.dom.el("button", {
-          className: "btn ghost",
+          className: "btn btn-ghost",
           "data-testid": "playlist-paste-clear-btn",
           "aria-label": "Clear",
           title: "Clear",
@@ -405,7 +405,7 @@ window.FOSS = window.FOSS || {};
       ]),
       window.FOSS.dom.el("div", { className: "row gap-sm" }, [
         window.FOSS.dom.el("button", {
-          className: "btn secondary text-xs",
+          className: "btn btn-secondary btn-sm",
           "data-testid": "playlist-export-csv-btn",
           "aria-label": "Export CSV",
           title: "Export CSV",
@@ -424,7 +424,7 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.dom.el("span", { text: "Export CSV" })]),
         window.FOSS.dom.el("button", {
-          className: "btn secondary text-xs",
+          className: "btn btn-secondary btn-sm",
           "data-testid": "playlist-export-m3u8-btn",
           "aria-label": "Export M3U8",
           title: "Export M3U8",
@@ -454,7 +454,7 @@ window.FOSS = window.FOSS || {};
       }, [
         window.FOSS.dom.el("p", {
           className: "text-sm",
-          text: "no tracks loaded yet. paste a url above or enter tracks on the left."
+          text: "No tracks loaded yet. Paste a URL above or enter tracks on the left."
         })
       ]));
     } else {
@@ -479,7 +479,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("td", {}, [
             window.FOSS.dom.el("div", { className: "row gap-xs" }, [
               window.FOSS.dom.el("a", {
-                className: "btn ghost text-xs",
+                className: "btn btn-ghost btn-sm",
                 href: t.spotify_url || "#",
                 target: "_blank",
                 "aria-label": "Spotify",
@@ -488,7 +488,7 @@ window.FOSS = window.FOSS || {};
                 text: "Spotify"
               }),
               window.FOSS.dom.el("a", {
-                className: "btn ghost text-xs",
+                className: "btn btn-ghost btn-sm",
                 href: t.youtube_url || "#",
                 target: "_blank",
                 "aria-label": "YT",
@@ -497,7 +497,7 @@ window.FOSS = window.FOSS || {};
                 text: "YT"
               }),
               window.FOSS.dom.el("a", {
-                className: "btn ghost text-xs",
+                className: "btn btn-ghost btn-sm",
                 href: t.youtube_music_url || "#",
                 target: "_blank",
                 "aria-label": "YTM",
@@ -528,7 +528,7 @@ window.FOSS = window.FOSS || {};
     id: "playlist",
     title: "Playlist Porter (Spotify <-> YouTube / YouTube Music)",
     navName: "Playlist Porter",
-    category: "media",
+    category: "Media",
     icon: "music",
     tabs: [
       { id: "fetch", label: "Fetch from URL", render: renderFetch },

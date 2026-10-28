@@ -1,6 +1,15 @@
 import json
 import os
+from pathlib import Path
+import sys
 from typing import Any
+
+
+def calc_app_base_dir() -> Path:
+    # Resolve root base directory for application assets.
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent.parent.parent
 
 
 def calc_settings_dir() -> str:
@@ -60,5 +69,5 @@ def reset_all_settings() -> None:
     if os.path.isfile(file_path):
         try:
             os.remove(file_path)
-        except OSError:
-            pass
+        except OSError as err:
+            _ = err

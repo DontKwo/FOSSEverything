@@ -198,9 +198,9 @@ window.FOSS = window.FOSS || {};
       title: "Fit mode",
       onChange: updatePreview
     }, [
-      window.FOSS.dom.el("option", { value: "cover", text: "cover" }),
-      window.FOSS.dom.el("option", { value: "contain", text: "contain" }),
-      window.FOSS.dom.el("option", { value: "stretch", text: "stretch" })
+      window.FOSS.dom.el("option", { value: "cover", text: "Cover" }),
+      window.FOSS.dom.el("option", { value: "contain", text: "Contain" }),
+      window.FOSS.dom.el("option", { value: "stretch", text: "Stretch" })
     ]);
 
     layoutCard.appendChild(window.FOSS.dom.el("div", { className: "row" }, [
@@ -302,7 +302,7 @@ window.FOSS = window.FOSS || {};
         className: "flex items-center gap-2 text-sm cursor-pointer"
       }, [
         captionsCheck,
-        window.FOSS.dom.el("span", { text: "add filenames as captions" })
+        window.FOSS.dom.el("span", { text: "Add Filenames as Captions" })
       ])
     ]));
 
@@ -377,7 +377,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.icons.el("save", 16),
-      window.FOSS.dom.el("span", { text: "Save collage" })
+      window.FOSS.dom.el("span", { text: "Save Collage" })
     ]);
 
     previewCard.appendChild(window.FOSS.dom.el("div", { className: "row" }, [previewBtn, saveBtn]));
@@ -425,7 +425,7 @@ window.FOSS = window.FOSS || {};
     id: "collage",
     title: "Image Collage Builder",
     navName: "Collage",
-    category: "system",
+    category: "Visuals",
     icon: "grid",
     tabs: [
       { id: "main", label: "Collage Builder", render: renderMain }

@@ -28,7 +28,17 @@ window.FOSS = window.FOSS || {};
     return overlay;
   }
 
+  function isFileDrag(e) {
+    if (!e || !e.dataTransfer || !e.dataTransfer.types) return false;
+    var types = e.dataTransfer.types;
+    for (var i = 0; i < types.length; i++) {
+      if (types[i] === "Files") return true;
+    }
+    return false;
+  }
+
   function handleDragEnter(e) {
+    if (!isFileDrag(e)) return;
     e.preventDefault();
     dragCounter++;
     if (dragCounter === 1) {
@@ -40,6 +50,7 @@ window.FOSS = window.FOSS || {};
   }
 
   function handleDragLeave(e) {
+    if (!isFileDrag(e)) return;
     e.preventDefault();
     dragCounter--;
     if (dragCounter <= 0) {
@@ -52,10 +63,12 @@ window.FOSS = window.FOSS || {};
   }
 
   function handleDragOver(e) {
+    if (!isFileDrag(e)) return;
     e.preventDefault();
   }
 
   function handleDrop(e) {
+    if (!isFileDrag(e)) return;
     e.preventDefault();
     dragCounter = 0;
     var ov = getOverlay();
@@ -68,8 +81,9 @@ window.FOSS = window.FOSS || {};
 
     var paths = [];
     for (var i = 0; i < files.length; i++) {
-      if (files[i].path) {
-        paths.push(files[i].path);
+      var p = files[i].path || files[i].name;
+      if (p) {
+        paths.push(p);
       }
     }
 

@@ -15,6 +15,7 @@ window.FOSS = window.FOSS || {};
   }
 
   function setTheme(themeName, persist) {
+    if (themeName === "ut") themeName = "ut_austin";
     document.documentElement.setAttribute("data-theme", themeName);
     if (persist !== false) {
       window.FOSS.store.set("theme", themeName);
