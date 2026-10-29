@@ -1,2 +1,5 @@
-[]
-
+[
+  { "check": "A2", "view": "network_monitor", "selector": "table.table.w-full" },
+  { "check": "A2", "view": "network_monitor", "selector": "[data-testid=\"network-apps-table\"]" },
+  { "check": "A2", "view": "network_monitor", "selector": "[data-testid=\"network-live-table\"]" }
+]

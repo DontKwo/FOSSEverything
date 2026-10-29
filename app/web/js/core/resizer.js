@@ -17,7 +17,7 @@ window.FOSS = window.FOSS || {};
     if (raw.closest("button, input, textarea, select, a, label, [role='button'], [role='tab']")) {
       return null;
     }
-    return raw.closest(".card, .panel, .model3d-canvas-container, .sidebar, .split > :first-child");
+    return raw.closest(".card, .panel, .model3d-canvas-container, .sidebar, .split > :first-child, .resize-handle-e");
   }
 
   function detectEdge(el, e) {
@@ -124,8 +124,8 @@ window.FOSS = window.FOSS || {};
     if (e.button !== 0) return;
     var target = getTarget(e);
     if (!target) return;
-
-    var edge = detectEdge(target, e);
+    var edge = null;
+    if (target.classList.contains("resize-handle-e")) { edge = "sidebar"; target = target.closest(".sidebar"); } else { edge = detectEdge(target, e); }
     if (!edge) return;
 
     e.preventDefault();

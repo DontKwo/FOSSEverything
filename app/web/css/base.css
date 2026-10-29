@@ -22,10 +22,11 @@ body {
   overflow: hidden;
   font-family: var(--font-sans);
   font-size: var(--text-md);
-  line-height: 1.45;
+  line-height: 1.5;
   color: var(--text);
   background-color: var(--bg-app);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 :focus-visible {
@@ -83,5 +84,6 @@ input[type="number"]::-webkit-outer-spin-button {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-color: var(--border) transparent;
+  transition: scrollbar-color 0.2s ease;
 }

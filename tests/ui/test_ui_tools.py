@@ -29,8 +29,8 @@ def calc_filter_findings(findings: list[dict[str, Any]], view: str, allowlist: l
         sel = f.get("selector", "")
         is_allowed = False
         for allowed_entry in allowlist:
-            if allowed_entry.get("check") == fid and a.get("view") in (view, "*"):
-                if not a.get("selector") or a.get("selector") in sel:
+            if allowed_entry.get("check") == fid and allowed_entry.get("view") in (view, "*"):
+                if not allowed_entry.get("selector") or allowed_entry.get("selector") in sel:
                     is_allowed = True
                     break
         if not is_allowed:

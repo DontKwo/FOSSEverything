@@ -55,6 +55,7 @@
   background-color: var(--accent-hover);
   border-color: var(--accent-hover);
   color: var(--on-accent);
+  box-shadow: var(--accent-glow);
 }
 
 .btn-secondary,
@@ -383,7 +384,7 @@ table.table th {
   background-color: var(--bg-raised);
   color: var(--text-muted);
   font-weight: 600;
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -663,7 +664,9 @@ table.table tbody tr:hover {
   font-size: var(--text-xs);
   pointer-events: none;
   box-shadow: var(--shadow-2);
-  max-width: 20rem;
+  max-width: calc(100vw - 1rem);
+  top: 0;
+  left: 0;
 }
 
 /* Toasts */

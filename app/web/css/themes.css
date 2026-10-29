@@ -8,8 +8,8 @@ html[data-theme="light"] {
   --bg-scrim: rgba(15, 23, 42, 0.45);
   --border: rgba(15, 23, 42, 0.14);
   --border-strong: rgba(15, 23, 42, 0.35);
-  --text: #0f172a;
-  --text-muted: #334155;
+  --text: #020617;
+  --text-muted: #475569;
   --text-dim: #64748b;
   --accent: #1d4ed8;
   --accent-hover: #1e40af;
@@ -28,6 +28,7 @@ html[data-theme="light"] {
   --on-info: #ffffff;
   --info-text: #0c4a6e;
   --focus: #1d4ed8;
+  --accent-glow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 html[data-theme="solarized"] {
@@ -59,6 +60,7 @@ html[data-theme="solarized"] {
   --on-info: #ffffff;
   --info-text: #59b2f5;
   --focus: #6cb6ff;
+  --accent-glow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 html[data-theme="monokai"] {
@@ -90,10 +92,11 @@ html[data-theme="monokai"] {
   --on-info: #ffffff;
   --info-text: #66d9ef;
   --focus: #66d9ef;
+  --accent-glow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 html[data-theme="cyberpunk"] {
-  --bg-app: #0d0221;
+  --bg-app: #090117;
   --bg-sidebar: #150534;
   --bg-surface: #1a0840;
   --bg-raised: #240c57;
@@ -121,6 +124,7 @@ html[data-theme="cyberpunk"] {
   --on-info: #ffffff;
   --info-text: #00ffff;
   --focus: #00ffff;
+  --accent-glow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 html[data-theme="ut_austin"],
@@ -153,6 +157,7 @@ html[data-theme="ut"] {
   --on-info: #ffffff;
   --info-text: #00404e;
   --focus: #bf5700;
+  --accent-glow: 0 0 12px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 

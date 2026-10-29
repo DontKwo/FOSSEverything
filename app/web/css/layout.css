@@ -17,7 +17,9 @@
   flex-direction: column;
   overflow: hidden;
   z-index: 20;
-  transition: width var(--dur) var(--ease);
+  width: var(--sidebar-w);
+  position: relative;
+  transition: width var(--dur-fast) var(--ease);
 }
 
 .sidebar-brand {
@@ -163,10 +165,10 @@
   max-width: var(--page-max);
   width: 100%;
   margin-inline: auto;
-  padding: var(--page-pad);
+  padding: calc(var(--page-pad) * 1.5) var(--page-pad);
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
   container-type: inline-size;
   min-width: 0;
 }
@@ -287,3 +289,21 @@
   backdrop-filter: blur(0.25rem);
 }
 
+#view-root {
+  transition: opacity var(--dur-fast) var(--ease);
+}
+#view-root.route-fade {
+  opacity: 0;
+}
+.resize-handle-e {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0.375rem;
+  height: 100%;
+  cursor: ew-resize;
+  z-index: 50;
+}
+.resize-handle-e:hover, .is-resizing .resize-handle-e {
+  background-color: color-mix(in srgb, var(--accent) 50%, transparent);
+}

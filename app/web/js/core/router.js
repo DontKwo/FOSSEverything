@@ -133,6 +133,9 @@ window.FOSS = window.FOSS || {};
     ]);
     navList.appendChild(settingsItem);
     sidebar.appendChild(navList);
+
+    var resizeHandle = window.FOSS.dom.el("div", { className: "resize-handle-e" });
+    sidebar.appendChild(resizeHandle);
   }
 
   function renderTopbar() {
