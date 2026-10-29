@@ -693,6 +693,16 @@ class MainWindow(QMainWindow):
         else:
             cfg = {"padding_x": 12, "padding_y": 7, "radius": 10, "spacing": 10, "toolbar_spacing": 6, "menu_padding_x": 12, "menu_padding_y": 6}
         palette = self._resolved_palette()
+
+        self._apply_stylesheet(cfg, palette)
+
+        app = QApplication.instance()
+        if app is not None:
+            self._apply_qpalette(app, palette)
+
+        notify_theme_changed()
+
+    def _apply_stylesheet(self, cfg: dict[str, int], palette: dict[str, str]) -> None:
         accent = self.accent_color if self.accent_color else palette["accent"]
         accent_hover = self._rgba(accent, 0.18)
         text_color = palette["text"]
@@ -797,28 +807,40 @@ class MainWindow(QMainWindow):
             self.setStyleSheet(css)
         self.menuBar().setStyleSheet(f"QMenuBar {{ background: {menu_bg}; color: {text_color}; border: 1px solid {border}; border-radius: 0px; }} QMenuBar::item {{ background: {menu_bg}; color: {text_color}; }} QMenuBar::item:selected {{ background: {accent_hover}; color: {text_color}; }} QMenu {{ background: {bg_panel}; color: {text_color}; border: 1px solid {border}; border-radius: 0px; }} QMenu::item {{ background: transparent; color: {text_color}; padding: {cfg['menu_padding_y']}px {cfg['menu_padding_x']}px; }} QMenu::item:selected {{ background: {accent_hover}; color: {text_color}; }}")
 
-        if app is not None:
-            palette = app.palette()
-            palette.setColor(palette.ColorRole.Window, QColor(bg_main))
-            palette.setColor(palette.ColorRole.WindowText, QColor(text_color))
-            palette.setColor(palette.ColorRole.Base, QColor(input_bg))
-            palette.setColor(palette.ColorRole.AlternateBase, QColor(bg_panel))
-            palette.setColor(palette.ColorRole.Text, QColor(text_color))
-            palette.setColor(palette.ColorRole.Button, QColor(button_bg))
-            palette.setColor(palette.ColorRole.ButtonText, QColor(text_color))
-            palette.setColor(palette.ColorRole.Light, QColor(border))
-            palette.setColor(palette.ColorRole.Mid, QColor(bg_panel))
-            palette.setColor(palette.ColorRole.Dark, QColor(bg_main))
-            palette.setColor(palette.ColorRole.Shadow, QColor(bg_main))
-            palette.setColor(palette.ColorRole.ToolTipBase, QColor(bg_panel))
-            palette.setColor(palette.ColorRole.ToolTipText, QColor(text_color))
-            palette.setColor(palette.ColorRole.Highlight, QColor(accent))
-            palette.setColor(palette.ColorRole.HighlightedText, QColor(selection_text))
-            palette.setColor(palette.ColorRole.Link, QColor(accent))
-            palette.setColor(palette.ColorRole.PlaceholderText, QColor(muted))
-            app.setPalette(palette)
+    def _apply_qpalette(self, app: QApplication, palette: dict[str, str]) -> None:
+        bg_main = palette["background"]
+        bg_panel = palette["panel"]
+        input_bg = palette["input"]
+        border = palette["border"]
+        muted = palette["muted"]
+        button_bg = palette["button"]
+        text_color = palette["text"]
+        accent = self.accent_color if self.accent_color else palette["accent"]
+        selection_text = (
+            palette.get("selection_text")
+            or self._default_palette(self.current_theme).get("selection_text")
+            or self._default_palette("dark")["selection_text"]
+        )
 
-        notify_theme_changed()
+        qpalette = app.palette()
+        qpalette.setColor(qpalette.ColorRole.Window, QColor(bg_main))
+        qpalette.setColor(qpalette.ColorRole.WindowText, QColor(text_color))
+        qpalette.setColor(qpalette.ColorRole.Base, QColor(input_bg))
+        qpalette.setColor(qpalette.ColorRole.AlternateBase, QColor(bg_panel))
+        qpalette.setColor(qpalette.ColorRole.Text, QColor(text_color))
+        qpalette.setColor(qpalette.ColorRole.Button, QColor(button_bg))
+        qpalette.setColor(qpalette.ColorRole.ButtonText, QColor(text_color))
+        qpalette.setColor(qpalette.ColorRole.Light, QColor(border))
+        qpalette.setColor(qpalette.ColorRole.Mid, QColor(bg_panel))
+        qpalette.setColor(qpalette.ColorRole.Dark, QColor(bg_main))
+        qpalette.setColor(qpalette.ColorRole.Shadow, QColor(bg_main))
+        qpalette.setColor(qpalette.ColorRole.ToolTipBase, QColor(bg_panel))
+        qpalette.setColor(qpalette.ColorRole.ToolTipText, QColor(text_color))
+        qpalette.setColor(qpalette.ColorRole.Highlight, QColor(accent))
+        qpalette.setColor(qpalette.ColorRole.HighlightedText, QColor(selection_text))
+        qpalette.setColor(qpalette.ColorRole.Link, QColor(accent))
+        qpalette.setColor(qpalette.ColorRole.PlaceholderText, QColor(muted))
+        app.setPalette(qpalette)
 
     def open_workspace(self, workspace_id: str) -> None:
         if workspace_id in self._TAB_MAKERS:
