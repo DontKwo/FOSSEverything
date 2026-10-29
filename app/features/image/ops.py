@@ -234,27 +234,52 @@ def circle_crop_image(img: Image.Image) -> Image.Image:
     return result
 
 
-def build_layer_mask(size: Union[int, Tuple[int, int]], shape: str = "rectangle", box: Optional[Tuple[int, int, int, int]] = None, radius: int = 0, feather: int = 0, invert: bool = False) -> Image.Image:
-    """Create a local alpha mask for non-destructive compositing workflows."""
+def build_rectangle_mask(size: Union[int, Tuple[int, int]], box: Optional[Tuple[int, int, int, int]] = None, feather: int = 0, invert: bool = False) -> Image.Image:
+    """Create a local rectangular alpha mask for non-destructive compositing workflows."""
     if isinstance(size, (tuple, list)):
         width, height = size
     else:
         width = height = int(size)
     mask = Image.new("L", (width, height), 0 if not invert else 255)
-    if shape == "rectangle":
-        bounds = box or (0, 0, width, height)
-        draw = ImageDraw.Draw(mask)
-        draw.rectangle(bounds, fill=255 if not invert else 0)
-    elif shape == "ellipse":
-        draw = ImageDraw.Draw(mask)
-        bounds = box or (0, 0, width, height)
-        draw.ellipse(bounds, fill=255 if not invert else 0)
-    elif shape == "circle":
-        cx = width // 2
-        cy = height // 2
-        r = max(1, min(width, height) // 2 if radius <= 0 else radius)
-        draw = ImageDraw.Draw(mask)
-        draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill=255 if not invert else 0)
+    bounds = box or (0, 0, width, height)
+    draw = ImageDraw.Draw(mask)
+    draw.rectangle(bounds, fill=255 if not invert else 0)
+    if feather:
+        mask = mask.filter(ImageFilter.GaussianBlur(feather))
+    if invert:
+        mask = ImageOps.invert(mask)
+    return mask
+
+
+def build_ellipse_mask(size: Union[int, Tuple[int, int]], box: Optional[Tuple[int, int, int, int]] = None, feather: int = 0, invert: bool = False) -> Image.Image:
+    """Create a local elliptical alpha mask for non-destructive compositing workflows."""
+    if isinstance(size, (tuple, list)):
+        width, height = size
+    else:
+        width = height = int(size)
+    mask = Image.new("L", (width, height), 0 if not invert else 255)
+    draw = ImageDraw.Draw(mask)
+    bounds = box or (0, 0, width, height)
+    draw.ellipse(bounds, fill=255 if not invert else 0)
+    if feather:
+        mask = mask.filter(ImageFilter.GaussianBlur(feather))
+    if invert:
+        mask = ImageOps.invert(mask)
+    return mask
+
+
+def build_circle_mask(size: Union[int, Tuple[int, int]], radius: int = 0, feather: int = 0, invert: bool = False) -> Image.Image:
+    """Create a local circular alpha mask for non-destructive compositing workflows."""
+    if isinstance(size, (tuple, list)):
+        width, height = size
+    else:
+        width = height = int(size)
+    mask = Image.new("L", (width, height), 0 if not invert else 255)
+    cx = width // 2
+    cy = height // 2
+    r = max(1, min(width, height) // 2 if radius <= 0 else radius)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((cx - r, cy - r, cx + r, cy + r), fill=255 if not invert else 0)
     if feather:
         mask = mask.filter(ImageFilter.GaussianBlur(feather))
     if invert:

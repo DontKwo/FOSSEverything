@@ -94,7 +94,7 @@ class ImageOperationsTests(unittest.TestCase):
 
     def test_non_destructive_layer_masks(self) -> None:
         img = Image.new("RGBA", (8, 8), (255, 0, 0, 255))
-        mask = image_ops.build_layer_mask((8, 8), box=(2, 2, 6, 6), invert=False)
+        mask = image_ops.build_rectangle_mask((8, 8), box=(2, 2, 6, 6), invert=False)
         masked = image_ops.apply_non_destructive_mask(img, mask)
         self.assertEqual(masked.mode, "RGBA")
         self.assertEqual(masked.getpixel((0, 0))[3], 0)
