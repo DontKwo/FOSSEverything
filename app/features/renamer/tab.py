@@ -447,9 +447,14 @@ class RenamerTab(QWidget):
         if not ok or not name.strip():
             return
         target_dir = self.consolidate_dir_edit.text().strip() or None
-        plan: Dict[str, Any] = renamer_ops.save_cross_folder_plan(
-            name.strip(), self.source_folders, self.mode_combo.currentText(), self._get_params(), target_dir,
+        config = renamer_ops.CrossFolderPlanConfig(
+            name=name.strip(),
+            source_folders=self.source_folders,
+            mode=self.mode_combo.currentText(),
+            params=self._get_params(),
+            target_dir=target_dir,
         )
+        plan: Dict[str, Any] = renamer_ops.save_cross_folder_plan(config)
         key = f"renamer/crossplan/{plan['name']}"
         self.settings.setValue(key, json.dumps(plan))
         self._reload_plan_options()

@@ -30,6 +30,16 @@ class RenameResult:
     error: str | None = None
 
 
+@dataclass
+class CrossFolderPlanConfig:
+    name: str
+    source_folders: list[str]
+    mode: str
+    params: dict
+    target_dir: str | None = None
+    processed_files: list[str] | None = None
+
+
 def save_preset(name: str, mode: str, params: dict) -> dict:
     """Create a serializable rename preset object for a single saved rule set."""
     clean_name = (name or "untitled").strip()
@@ -286,27 +296,20 @@ def sort_files_by_timeline(file_paths: list[str]) -> list[str]:
     return sorted(existing, key=capture_timestamp) + missing
 
 
-def save_cross_folder_plan(
-    name: str,
-    source_folders: list[str],
-    mode: str,
-    params: dict,
-    target_dir: str | None = None,
-    processed_files: list[str] | None = None,
-) -> dict:
+def save_cross_folder_plan(config: CrossFolderPlanConfig) -> dict:
     """Create a serializable cross-folder rename plan: source folders, rule config, and run history."""
-    clean_name = (name or "untitled").strip()
+    clean_name = (config.name or "untitled").strip()
     if not clean_name:
         raise ValueError("Plan name cannot be empty.")
-    if not source_folders:
+    if not config.source_folders:
         raise ValueError("A cross-folder plan needs at least one source folder.")
     return {
         "name": clean_name,
-        "source_folders": list(source_folders),
-        "mode": mode,
-        "params": params or {},
-        "target_dir": target_dir,
-        "processed_files": list(processed_files or []),
+        "source_folders": list(config.source_folders),
+        "mode": config.mode,
+        "params": config.params or {},
+        "target_dir": config.target_dir,
+        "processed_files": list(config.processed_files or []),
     }
 
 
