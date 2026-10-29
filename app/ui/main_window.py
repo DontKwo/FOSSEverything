@@ -404,6 +404,11 @@ class MainWindow(QMainWindow):
 
     def _register_current_tools(self) -> None:
         """Register existing features so the shell, not individual tabs, owns discovery."""
+        self._register_document_tools()
+        self._register_media_and_graphics_tools()
+        self._register_utility_tools()
+
+    def _register_document_tools(self) -> None:
         self._register_tab_tools("pdf", "PDF", "pdf", [
             ("open_pdf", "Open PDF", ("open", "view", "document"), "Open and view a PDF."),
             ("merge_pdfs", "Merge PDFs", ("combine", "join", "append"), "Combine PDF files in your chosen order."),
@@ -418,6 +423,32 @@ class MainWindow(QMainWindow):
             ("export_pages", "Export PDF pages as images", ("pdf to png", "pdf to jpg", "convert", "rasterize"), "Export every PDF page as a numbered image."),
             ("save_as", "Save annotated PDF", ("export", "markup", "redact"), "Bake current annotations into a PDF."),
         ])
+        self._register_tab_tools("ocr", "OCR Studio", "ocr", [
+            ("_browse_file", "Open document / image for OCR", ("ocr", "scan", "extract text", "tesseract", "recognize text", "read text"), "Extract text from any image or PDF file using local offline OCR."),
+            ("_export_searchable_pdf", "Generate Searchable PDF (OCR)", ("searchable pdf", "make searchable", "ocr pdf", "invisible text"), "Generate a searchable PDF with invisible OCR text layer."),
+            ("_run_batch_ocr", "Batch OCR documents / images", ("batch ocr", "bulk ocr", "bulk text extract"), "Run OCR on multiple images or PDFs in batch."),
+        ])
+        self._register_tab_tools("resume", "Resume Studio", "resume", [
+            ("_open_resume", "Open Master Resume JSON", ("resume", "cv", "career", "job", "tailor", "master resume"), "Open and edit your master resume locally."),
+            ("_save_preset", "Save job tailoring preset", ("preset", "tailoring", "job profile", "profile"), "Save tailored configuration preset for a specific job title."),
+            ("_analyze_ats", "Analyze ATS keyword match", ("ats", "keywords", "match score", "job description"), "Analyze resume against a job description for ATS keyword match score."),
+            ("_export_pdf", "Export tailored resume to PDF", ("export pdf", "resume pdf", "cv pdf"), "Generate a clean ATS-friendly PDF resume."),
+            ("_export_md", "Export tailored resume to Markdown", ("export md", "resume markdown"), "Export active tailored resume to Markdown."),
+        ])
+        self._register_tab_tools("word_counter", "Word Counter", "word_counter", [
+            ("_browse_file", "Open document for Word Count & Analytics", ("word count", "character count", "stats", "readability", "flesch", "reading time", "density"), "Count words, sentences, reading time, and readability score for any PDF, Word, or text document."),
+            ("_paste_clipboard", "Paste and analyze text stats", ("paste text", "count clipboard", "word count paste"), "Paste text from clipboard for instant live word count and document analytics."),
+        ])
+        self._register_tab_tools("markdown", "Markdown Studio", "markdown", [
+            ("_browse_file", "Open Markdown file", ("markdown", "md", "open", "editor"), "Open a Markdown file for side-by-side live editing and preview."),
+            ("_export_html", "Export Markdown as HTML", ("export html", "markdown to html", "convert markdown"), "Render the current Markdown to a standalone local HTML file."),
+        ])
+        self._register_tab_tools("text_tools", "Text Tools", "text_tools", [
+            ("_regex_find_replace", "Regex find and replace text", ("regex", "find replace", "pattern", "search replace"), "Apply a regular expression find-and-replace across the current text."),
+            ("_diff_checker", "Compare two blocks of text (diff)", ("diff", "compare text", "text difference"), "Compare the current text against another block and show a unified diff."),
+        ])
+
+    def _register_media_and_graphics_tools(self) -> None:
         self._register_tab_tools("image", "Images", "images", [
             ("open_image", "Open image", ("view", "photo", "picture"), "Open an image for local editing."),
             ("take_screenshot", "Take screenshot or snip region", ("screenshot", "screen capture", "snip", "desktop capture", "grab"), "Capture full desktop screen or interactively snip a custom area into the canvas."),
@@ -449,6 +480,34 @@ class MainWindow(QMainWindow):
             ("batch_process", "Batch process images", ("bulk", "folder", "convert many"), "Resize, compress, or convert a group of images."),
             ("save_as", "Save image", ("export", "markup"), "Bake annotations and save the image."),
         ])
+        self._register_tab_tools("media", "Media Studio", "media", [
+            ("_browse_file", "Open audio or video file", ("video", "audio", "media", "mp4", "mp3", "mov", "wav", "mkv", "player"), "Open video or audio file for trimming, conversion, or compression."),
+            ("_run_trim", "Trim video or audio clip", ("trim", "cut", "clip", "slice", "split video", "shorten"), "Cut video or audio with frame-accurate or lossless stream-copy trimming."),
+            ("_run_extract_audio", "Extract audio from video", ("extract audio", "video to mp3", "audio track", "rip audio", "wav", "aac"), "Extract soundtrack or audio stream from video to MP3, WAV, AAC, FLAC, or M4A."),
+            ("_run_convert", "Convert video or audio format", ("convert video", "transcode", "mp4 to mkv", "mov to mp4", "webm"), "Convert video and audio between MP4, MKV, MOV, WEBM, AVI, MP3, and WAV."),
+            ("_run_compress", "Compress video file size", ("compress video", "shrink video", "discord 8mb", "small video", "reduce video size"), "Compress video with quality presets (Discord/Email 8MB, 720p Web, 1080p)."),
+            ("_run_mute", "Mute video (remove audio)", ("mute", "strip audio", "silent video", "remove sound"), "Strip audio tracks from video locally."),
+            ("_run_capture_frame", "Capture video frame as image", ("snapshot", "frame grab", "thumbnail", "screenshot video", "save frame"), "Save current video frame at native resolution to PNG or JPG."),
+        ])
+        self._register_tab_tools("palette", "Palette Extractor", "palette", [
+            ("_open_image", "Extract color palette from image", ("palette", "colors", "extract colors", "swatches", "dominant colors", "hex"), "Extract dominant colors, hex codes, and RGB values from any image."),
+            ("_copy_all_hex", "Copy color palette hex codes", ("copy hex", "color palette", "css colors"), "Copy all extracted color hex codes to the clipboard."),
+        ])
+        self._register_tab_tools("collage", "Collage Maker", "collage", [
+            ("_add_images", "Create photo collage / grid", ("collage", "photo grid", "combine photos", "side by side", "quad"), "Arrange multiple photos into clean grid collages and side-by-side compositions."),
+            ("_generate_collage", "Render photo collage", ("render collage", "export grid", "make collage"), "Render and export photo collage to PNG, JPEG, or WEBP."),
+        ])
+        self._register_tab_tools("model3d", "3D Model Studio", "model3d", [
+            ("_browse_file", "Open 3D model (STL/OBJ/STEP)", ("3d", "mesh", "cad", "stl", "obj", "step", "iges", "ply"), "Open an STL, OBJ, PLY, STEP, or IGES 3D model."),
+            ("_apply_cut", "Cut 3D model with plane", ("cut", "slice", "plane", "split model", "cross section"), "Slice the loaded model with a single cut plane into two exportable pieces."),
+            ("_repair_mesh", "Repair mesh (fill holes, fix normals)", ("repair", "fix mesh", "watertight", "fill holes"), "Fill holes, remove degenerate faces, and fix normals on the loaded mesh."),
+            ("_export_current", "Export 3D model", ("export", "save", "stl", "obj", "step", "convert"), "Export the current model or cut piece as STL, OBJ, PLY, STEP, or IGES."),
+        ])
+        self._register_tab_tools("playlist", "Playlist Porter (NOT WORKING: YouTube Music)", "playlist", [
+            ("_browse_playlist_file", "Open playlist file to convert", ("playlist", "spotify", "youtube", "music", "convert playlist", "m3u8", "csv"), "Spotify playlist import works; YouTube Music is not working right now."),
+        ])
+
+    def _register_utility_tools(self) -> None:
         self._register_tab_tools("converter", "Converter", "converter", [
             ("choose_file", "Convert file format", ("convert", "format", "export", "pdf to image", "image to pdf"), "Convert supported images, PDFs, JSON, YAML, and CSV locally."),
             ("_batch_add_files", "Batch convert files", ("batch convert", "convert folder", "bulk convert", "multi file convert"), "Convert multiple files in a queue to a chosen output format."),
@@ -476,65 +535,15 @@ class MainWindow(QMainWindow):
             ("_convert_format", "Convert data format", ("convert data", "json to yaml", "yaml to json", "csv to json", "json to csv"), "Convert structured data between JSON, YAML, and CSV."),
             ("_open_cron_dialog", "Cron expression generator", ("cron", "schedule", "crontab", "job scheduler", "next run"), "Parse a cron expression into a human-readable description and preview its next run times."),
         ])
-        self._register_tab_tools("text_tools", "Text Tools", "text_tools", [
-            ("_regex_find_replace", "Regex find and replace text", ("regex", "find replace", "pattern", "search replace"), "Apply a regular expression find-and-replace across the current text."),
-            ("_diff_checker", "Compare two blocks of text (diff)", ("diff", "compare text", "text difference"), "Compare the current text against another block and show a unified diff."),
-        ])
         self._register_tab_tools("encoding", "Encoding / Decoding", "encoding", [
             ("_encode_text", "Encode text (Base64/URL/HTML/Hex)", ("base64", "url encode", "html entities", "hex encode", "encode"), "Encode text using Base64, URL/percent-encoding, HTML entities, or hex."),
             ("_decode_text", "Decode text (Base64/URL/HTML/Hex)", ("base64 decode", "url decode", "html decode", "hex decode", "decode"), "Decode text encoded with Base64, URL/percent-encoding, HTML entities, or hex."),
             ("_encode_file", "Encode file to Base64/Hex/Binary", ("encode file", "file to base64", "file to hex"), "Encode an arbitrary local file to Base64, hex, or binary text."),
             ("_decode_to_file", "Decode text to file", ("decode file", "base64 to file", "hex to file"), "Decode Base64, hex, or binary text back to a saved local file."),
         ])
-        self._register_tab_tools("markdown", "Markdown Studio", "markdown", [
-            ("_browse_file", "Open Markdown file", ("markdown", "md", "open", "editor"), "Open a Markdown file for side-by-side live editing and preview."),
-            ("_export_html", "Export Markdown as HTML", ("export html", "markdown to html", "convert markdown"), "Render the current Markdown to a standalone local HTML file."),
-        ])
         self._register_tab_tools("hash", "Hash & Checksum", "hash", [
             ("_select_file", "Compute file checksum / hash", ("hash", "checksum", "sha256", "md5", "sha512", "integrity"), "Calculate SHA-256, MD5, SHA-512, and other cryptographic hashes of local files."),
             ("_verify_hash", "Verify file checksum against hash", ("verify hash", "check integrity", "sha256 verify", "compare hash"), "Verify file integrity against an expected hash or checksum."),
-        ])
-        self._register_tab_tools("palette", "Palette Extractor", "palette", [
-            ("_open_image", "Extract color palette from image", ("palette", "colors", "extract colors", "swatches", "dominant colors", "hex"), "Extract dominant colors, hex codes, and RGB values from any image."),
-            ("_copy_all_hex", "Copy color palette hex codes", ("copy hex", "color palette", "css colors"), "Copy all extracted color hex codes to the clipboard."),
-        ])
-        self._register_tab_tools("collage", "Collage Maker", "collage", [
-            ("_add_images", "Create photo collage / grid", ("collage", "photo grid", "combine photos", "side by side", "quad"), "Arrange multiple photos into clean grid collages and side-by-side compositions."),
-            ("_generate_collage", "Render photo collage", ("render collage", "export grid", "make collage"), "Render and export photo collage to PNG, JPEG, or WEBP."),
-        ])
-        self._register_tab_tools("model3d", "3D Model Studio", "model3d", [
-            ("_browse_file", "Open 3D model (STL/OBJ/STEP)", ("3d", "mesh", "cad", "stl", "obj", "step", "iges", "ply"), "Open an STL, OBJ, PLY, STEP, or IGES 3D model."),
-            ("_apply_cut", "Cut 3D model with plane", ("cut", "slice", "plane", "split model", "cross section"), "Slice the loaded model with a single cut plane into two exportable pieces."),
-            ("_repair_mesh", "Repair mesh (fill holes, fix normals)", ("repair", "fix mesh", "watertight", "fill holes"), "Fill holes, remove degenerate faces, and fix normals on the loaded mesh."),
-            ("_export_current", "Export 3D model", ("export", "save", "stl", "obj", "step", "convert"), "Export the current model or cut piece as STL, OBJ, PLY, STEP, or IGES."),
-        ])
-        self._register_tab_tools("ocr", "OCR Studio", "ocr", [
-            ("_browse_file", "Open document / image for OCR", ("ocr", "scan", "extract text", "tesseract", "recognize text", "read text"), "Extract text from any image or PDF file using local offline OCR."),
-            ("_export_searchable_pdf", "Generate Searchable PDF (OCR)", ("searchable pdf", "make searchable", "ocr pdf", "invisible text"), "Generate a searchable PDF with invisible OCR text layer."),
-            ("_run_batch_ocr", "Batch OCR documents / images", ("batch ocr", "bulk ocr", "bulk text extract"), "Run OCR on multiple images or PDFs in batch."),
-        ])
-        self._register_tab_tools("media", "Media Studio", "media", [
-            ("_browse_file", "Open audio or video file", ("video", "audio", "media", "mp4", "mp3", "mov", "wav", "mkv", "player"), "Open video or audio file for trimming, conversion, or compression."),
-            ("_run_trim", "Trim video or audio clip", ("trim", "cut", "clip", "slice", "split video", "shorten"), "Cut video or audio with frame-accurate or lossless stream-copy trimming."),
-            ("_run_extract_audio", "Extract audio from video", ("extract audio", "video to mp3", "audio track", "rip audio", "wav", "aac"), "Extract soundtrack or audio stream from video to MP3, WAV, AAC, FLAC, or M4A."),
-            ("_run_convert", "Convert video or audio format", ("convert video", "transcode", "mp4 to mkv", "mov to mp4", "webm"), "Convert video and audio between MP4, MKV, MOV, WEBM, AVI, MP3, and WAV."),
-            ("_run_compress", "Compress video file size", ("compress video", "shrink video", "discord 8mb", "small video", "reduce video size"), "Compress video with quality presets (Discord/Email 8MB, 720p Web, 1080p)."),
-            ("_run_mute", "Mute video (remove audio)", ("mute", "strip audio", "silent video", "remove sound"), "Strip audio tracks from video locally."),
-            ("_run_capture_frame", "Capture video frame as image", ("snapshot", "frame grab", "thumbnail", "screenshot video", "save frame"), "Save current video frame at native resolution to PNG or JPG."),
-        ])
-        self._register_tab_tools("resume", "Resume Studio", "resume", [
-            ("_open_resume", "Open Master Resume JSON", ("resume", "cv", "career", "job", "tailor", "master resume"), "Open and edit your master resume locally."),
-            ("_save_preset", "Save job tailoring preset", ("preset", "tailoring", "job profile", "profile"), "Save tailored configuration preset for a specific job title."),
-            ("_analyze_ats", "Analyze ATS keyword match", ("ats", "keywords", "match score", "job description"), "Analyze resume against a job description for ATS keyword match score."),
-            ("_export_pdf", "Export tailored resume to PDF", ("export pdf", "resume pdf", "cv pdf"), "Generate a clean ATS-friendly PDF resume."),
-            ("_export_md", "Export tailored resume to Markdown", ("export md", "resume markdown"), "Export active tailored resume to Markdown."),
-        ])
-        self._register_tab_tools("word_counter", "Word Counter", "word_counter", [
-            ("_browse_file", "Open document for Word Count & Analytics", ("word count", "character count", "stats", "readability", "flesch", "reading time", "density"), "Count words, sentences, reading time, and readability score for any PDF, Word, or text document."),
-            ("_paste_clipboard", "Paste and analyze text stats", ("paste text", "count clipboard", "word count paste"), "Paste text from clipboard for instant live word count and document analytics."),
-        ])
-        self._register_tab_tools("playlist", "Playlist Porter (NOT WORKING: YouTube Music)", "playlist", [
-            ("_browse_playlist_file", "Open playlist file to convert", ("playlist", "spotify", "youtube", "music", "convert playlist", "m3u8", "csv"), "Spotify playlist import works; YouTube Music is not working right now."),
         ])
         self._register_tab_tools("network_monitor", "Network Monitor", "network_monitor", [
             ("_wipe_history", "Wipe network connection history", ("wipe", "clear history", "delete history", "reset"), "Permanently delete all logged connections and known destinations."),
