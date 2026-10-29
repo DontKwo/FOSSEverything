@@ -1,5 +1,6 @@
 """Image tab: view, markup, crop, resize, convert, compress, batch process, and photo editing."""
 import os
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from PyQt6.QtCore import QSettings, Qt, QPointF, QTimer
@@ -99,17 +100,24 @@ def _load_pil_font(size: int, family: str = "Helvetica", bold: bool = False, ita
     return ImageFont.load_default()
 
 
-def _draw_text_with_spacing(draw: ImageDraw.ImageDraw, pos: Tuple[float, float], text: str, font: ImageFont.FreeTypeFont, color: Tuple[int, ...], letter_spacing: int) -> None:
+@dataclass
+class TextDrawStyle:
+    font: ImageFont.FreeTypeFont
+    color: Tuple[int, ...]
+    letter_spacing: int
+
+
+def _draw_text_with_spacing(draw: ImageDraw.ImageDraw, pos: Tuple[float, float], text: str, style: TextDrawStyle) -> None:
     """Draw text with extra gap between characters."""
-    if letter_spacing == 100:
-        draw.text(pos, text, fill=color, font=font)
+    if style.letter_spacing == 100:
+        draw.text(pos, text, fill=style.color, font=style.font)
         return
     x, y = pos
-    font_size = getattr(font, "size", 14)
-    extra = (letter_spacing - 100) / 100.0 * font_size * 0.5
+    font_size = getattr(style.font, "size", 14)
+    extra = (style.letter_spacing - 100) / 100.0 * font_size * 0.5
     for ch in text:
-        draw.text((x, y), ch, fill=color, font=font)
-        x += font.getlength(ch) + extra
+        draw.text((x, y), ch, fill=style.color, font=style.font)
+        x += style.font.getlength(ch) + extra
 
 
 def _pil_to_qimage(image: Image.Image) -> QImage:
@@ -939,9 +947,13 @@ class ImageTab(QWidget):
                             bold=ann.get("bold", False),
                             italic=ann.get("italic", False),
                         )
+                        style = TextDrawStyle(
+                            font=font,
+                            color=color,
+                            letter_spacing=ann.get("letter_spacing", 100),
+                        )
                         _draw_text_with_spacing(
-                            draw, ann["pos"], ann["text"], font, color,
-                            ann.get("letter_spacing", 100),
+                            draw, ann["pos"], ann["text"], style
                         )
                     elif ann["type"] == "freehand":
                         pts = ann["points"]
