@@ -22,8 +22,8 @@ from app.ui.ui_scaling import scaled_font_pt
 
 class ClickableImagePreview(QLabel):
     """Interactive preview label with mouse tracking for pixel color sampling."""
-    color_hovered = pyqtSignal(int, int, int, int, int)  # r, g, b, orig_x, orig_y
-    color_clicked = pyqtSignal(int, int, int, int, int)
+    color_hovered = pyqtSignal(tuple, tuple)  # rgb, pos
+    color_clicked = pyqtSignal(tuple, tuple)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -38,7 +38,7 @@ class ClickableImagePreview(QLabel):
         self.rendered_pixmap = pixmap
         self.setPixmap(pixmap)
 
-    def _get_pixel_at(self, pos: QPoint) -> Optional[Tuple[int, int, int, int, int]]:
+    def _get_pixel_at(self, pos: QPoint) -> Optional[Tuple[tuple[int, int, int], tuple[int, int]]]:
         if not self.pil_image or not self.rendered_pixmap or self.rendered_pixmap.isNull():
             return None
 
@@ -56,13 +56,12 @@ class ClickableImagePreview(QLabel):
             orig_x = int(pm_x * (self.pil_image.width / pm_w))
             orig_y = int(pm_y * (self.pil_image.height / pm_h))
             swatch = palette_ops.sample_pixel_color(self.pil_image, orig_x, orig_y)
-            r, g, b = swatch.rgb
-            return r, g, b, orig_x, orig_y
+            return swatch.rgb, (orig_x, orig_y)
         return None
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         super().mouseMoveEvent(event)
-        res: Optional[Tuple[int, int, int, int, int]] = self._get_pixel_at(event.pos())
+        res = self._get_pixel_at(event.pos())
         if res:
             self.color_hovered.emit(*res)
 
@@ -257,7 +256,9 @@ class PaletteTab(QWidget):
         except Exception as exc:
             QMessageBox.critical(self, "Extraction Error", str(exc))
 
-    def _on_color_hovered(self, r: int, g: int, b: int, x: int, y: int) -> None:
+    def _on_color_hovered(self, rgb: tuple[int, int, int], pos: tuple[int, int]) -> None:
+        r, g, b = rgb
+        x, y = pos
         hex_code: str = f"#{r:02X}{g:02X}{b:02X}"
         name: str = palette_ops.nearest_named_color((r, g, b))
         contrast: float = palette_ops.contrast_ratio((r, g, b), (255, 255, 255))
@@ -267,7 +268,9 @@ class PaletteTab(QWidget):
         self.hover_rgb_lbl.setText(f"rgb({r}, {g}, {b}) - contrast {contrast:.2f}:1 vs white")
         self.hover_coord_lbl.setText(f"Pixel: ({x}, {y})")
 
-    def _on_color_clicked(self, r: int, g: int, b: int, x: int, y: int) -> None:
+    def _on_color_clicked(self, rgb: tuple[int, int, int], pos: tuple[int, int]) -> None:
+        r, g, b = rgb
+        x, y = pos
         hex_code: str = f"#{r:02X}{g:02X}{b:02X}"
         swatch: palette_ops.ColorSwatch = palette_ops.ColorSwatch(hex_code=hex_code, rgb=(r, g, b), percentage=0.0, name=palette_ops.nearest_named_color((r, g, b)))
         self.sampled_swatches.insert(0, swatch)
