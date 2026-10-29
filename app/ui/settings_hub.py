@@ -73,6 +73,13 @@ class AppearanceSettings(SettingsPage):
         self.color_fields: dict[str, QLineEdit] = {}
         self.color_previews: dict[str, QLabel] = {}
 
+        self._setup_general_settings(layout, form, initial_palette)
+        layout.addLayout(form)
+        self._setup_custom_colors(layout, initial_palette)
+
+        layout.addStretch()
+
+    def _setup_general_settings(self, layout: QVBoxLayout, form: QFormLayout, initial_palette: dict[str, str]) -> None:
         self.theme_combo = QComboBox()
         self.theme_combo.setToolTip(get_tooltip_for("Theme"))
         self.theme_combo.addItems([THEME_PRESET_LABELS[name] for name in THEME_PRESET_ORDER])
@@ -121,8 +128,7 @@ class AppearanceSettings(SettingsPage):
         self.toolbar_compact_check.setChecked(bool(self.settings.value("app/toolbar_compact", False, type=bool)))
         form.addRow("", self.toolbar_compact_check)
 
-        layout.addLayout(form)
-
+    def _setup_custom_colors(self, layout: QVBoxLayout, initial_palette: dict[str, str]) -> None:
         colors_box = QGroupBox("Custom colors (advanced)")
         colors_box.setCheckable(True)
         has_custom_colors = bool(load_ui_palette(self.settings))
@@ -187,7 +193,6 @@ class AppearanceSettings(SettingsPage):
         colors_layout.addWidget(reset_colors_btn)
 
         layout.addWidget(colors_box)
-        layout.addStretch()
 
     def _current_theme_name(self) -> str:
         return THEME_PRESET_ORDER[self.theme_combo.currentIndex()]
