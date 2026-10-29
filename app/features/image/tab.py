@@ -1123,11 +1123,12 @@ class ImageTab(QWidget):
         if vals["preset"] != "Custom / Manual":
             adjusted = image_ops.apply_filter_preset(image, vals["preset"])
         else:
-            adjusted = image_ops.adjust_image(
-                image, brightness=vals["brightness"], contrast=vals["contrast"],
+            adjustments = image_ops.ImageAdjustments(
+                brightness=vals["brightness"], contrast=vals["contrast"],
                 saturation=vals["saturation"], sharpness=vals["sharpness"],
                 blur_radius=vals["blur"], grayscale=vals["grayscale"], warmth=vals["warmth"]
             )
+            adjusted = image_ops.adjust_image(image, adjustments)
         self._replace_layer_image(layer, adjusted, keep_center=False)
         layer.setOpacity(vals["opacity"] / 100)
         self._commit_edit()
@@ -1177,11 +1178,12 @@ class ImageTab(QWidget):
             if preset != "Custom / Manual":
                 adjusted = image_ops.apply_filter_preset(image, preset)
             else:
-                adjusted = image_ops.adjust_image(
-                    image, brightness=vals["brightness"], contrast=vals["contrast"],
+                adjustments = image_ops.ImageAdjustments(
+                    brightness=vals["brightness"], contrast=vals["contrast"],
                     saturation=vals["saturation"], sharpness=vals["sharpness"],
                     blur_radius=vals["blur"], grayscale=vals["grayscale"], warmth=vals["warmth"]
                 )
+                adjusted = image_ops.adjust_image(image, adjustments)
             self._replace_layer_image(layer, adjusted, keep_center=False)
             layer.setOpacity(vals["opacity"] / 100)
             self._commit_edit()
@@ -1191,11 +1193,12 @@ class ImageTab(QWidget):
             if preset != "Custom / Manual":
                 self.pil_image = image_ops.apply_filter_preset(self.pil_image, preset)
             else:
-                self.pil_image = image_ops.adjust_image(
-                    self.pil_image, brightness=vals["brightness"], contrast=vals["contrast"],
+                adjustments = image_ops.ImageAdjustments(
+                    brightness=vals["brightness"], contrast=vals["contrast"],
                     saturation=vals["saturation"], sharpness=vals["sharpness"],
                     blur_radius=vals["blur"], grayscale=vals["grayscale"], warmth=vals["warmth"]
                 )
+                self.pil_image = image_ops.adjust_image(self.pil_image, adjustments)
             self._refresh_canvas()
             self._commit_edit()
             self.status_label.setText("Adjusted photo tones and colors")

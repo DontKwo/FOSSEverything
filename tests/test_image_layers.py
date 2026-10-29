@@ -51,7 +51,7 @@ class ImageLayerTests(unittest.TestCase):
         flipped = image_ops.flip_image(source, horizontal=True)
         self.assertEqual(flipped.getpixel((3, 0)), (0, 0, 255, 255))
         adjusted = image_ops.adjust_image(
-            source, brightness=0, contrast=100, saturation=0, sharpness=100, blur_radius=1, grayscale=True
+            source, image_ops.ImageAdjustments(brightness=0, contrast=100, saturation=0, sharpness=100, blur_radius=1, grayscale=True)
         )
         self.assertEqual(adjusted.getpixel((1, 1)), (0, 0, 0, 255))
 

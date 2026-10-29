@@ -19,9 +19,9 @@ class PhotoToolsTests(unittest.TestCase):
             self.assertEqual(res.size, (100, 80))
 
     def test_adjust_image_with_warmth(self) -> None:
-        warm = image_ops.adjust_image(self.test_img, warmth=50)
+        warm = image_ops.adjust_image(self.test_img, image_ops.ImageAdjustments(warmth=50))
         self.assertEqual(warm.size, (100, 80))
-        cool = image_ops.adjust_image(self.test_img, warmth=-50)
+        cool = image_ops.adjust_image(self.test_img, image_ops.ImageAdjustments(warmth=-50))
         self.assertEqual(cool.size, (100, 80))
 
     def test_aspect_ratio_crop_box(self) -> None:
