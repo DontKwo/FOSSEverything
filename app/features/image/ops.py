@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -343,32 +344,42 @@ def flip_image(img: Image.Image, horizontal: bool = True) -> Image.Image:
     return img.transpose(direction)
 
 
-def adjust_image(img: Image.Image, brightness: Union[int, float] = 100, contrast: Union[int, float] = 100, saturation: Union[int, float] = 100, sharpness: Union[int, float] = 100,
-                 blur_radius: Union[int, float] = 0, grayscale: bool = False, warmth: Union[int, float] = 0) -> Image.Image:
+@dataclass
+class ImageAdjustments:
+    brightness: Union[int, float] = 100
+    contrast: Union[int, float] = 100
+    saturation: Union[int, float] = 100
+    sharpness: Union[int, float] = 100
+    blur_radius: Union[int, float] = 0
+    grayscale: bool = False
+    warmth: Union[int, float] = 0
+
+
+def adjust_image(img: Image.Image, adjustments: ImageAdjustments) -> Image.Image:
     """Apply comprehensive per-image visual adjustments using percentage/offset controls."""
     result = img.convert("RGBA")
-    if brightness != 100:
-        result = ImageEnhance.Brightness(result).enhance(brightness / 100)
-    if contrast != 100:
-        result = ImageEnhance.Contrast(result).enhance(contrast / 100)
-    if saturation != 100:
-        result = ImageEnhance.Color(result).enhance(saturation / 100)
-    if sharpness != 100:
-        result = ImageEnhance.Sharpness(result).enhance(sharpness / 100)
+    if adjustments.brightness != 100:
+        result = ImageEnhance.Brightness(result).enhance(adjustments.brightness / 100)
+    if adjustments.contrast != 100:
+        result = ImageEnhance.Contrast(result).enhance(adjustments.contrast / 100)
+    if adjustments.saturation != 100:
+        result = ImageEnhance.Color(result).enhance(adjustments.saturation / 100)
+    if adjustments.sharpness != 100:
+        result = ImageEnhance.Sharpness(result).enhance(adjustments.sharpness / 100)
 
-    if warmth != 0:
+    if adjustments.warmth != 0:
         r, g, b, a = result.split()
-        shift = int(round(warmth * 0.4))
+        shift = int(round(adjustments.warmth * 0.4))
         r = r.point(lambda p: min(255, max(0, p + shift)))
         b = b.point(lambda p: min(255, max(0, p - shift)))
         result = Image.merge("RGBA", (r, g, b, a))
 
-    if blur_radius > 0:
+    if adjustments.blur_radius > 0:
         alpha = result.getchannel("A")
-        result = result.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+        result = result.filter(ImageFilter.GaussianBlur(radius=adjustments.blur_radius))
         result.putalpha(alpha)
 
-    if grayscale:
+    if adjustments.grayscale:
         alpha = result.getchannel("A")
         result = ImageOps.grayscale(result).convert("RGBA")
         result.putalpha(alpha)
@@ -475,9 +486,9 @@ def apply_filter_preset(img: Image.Image, preset_name: str) -> Image.Image:
     if preset_name == "Auto Enhance":
         return auto_enhance(img)
     if preset_name == "Grayscale":
-        return adjust_image(img, grayscale=True)
+        return adjust_image(img, ImageAdjustments(grayscale=True))
     if preset_name == "High Contrast B&W":
-        return adjust_image(img, contrast=140, grayscale=True, sharpness=120)
+        return adjust_image(img, ImageAdjustments(contrast=140, grayscale=True, sharpness=120))
     if preset_name == "Sepia":
         gray = ImageOps.grayscale(img.convert("RGB"))
         sepia = ImageOps.colorize(gray, black=(35, 20, 10), white=(255, 240, 200))
@@ -486,13 +497,13 @@ def apply_filter_preset(img: Image.Image, preset_name: str) -> Image.Image:
             sepia.putalpha(img.getchannel("A"))
         return sepia
     if preset_name == "Warm Tone":
-        return adjust_image(img, warmth=40, saturation=115, contrast=105)
+        return adjust_image(img, ImageAdjustments(warmth=40, saturation=115, contrast=105))
     if preset_name == "Cool Tone":
-        return adjust_image(img, warmth=-40, saturation=105, contrast=105)
+        return adjust_image(img, ImageAdjustments(warmth=-40, saturation=105, contrast=105))
     if preset_name == "Vivid":
-        return adjust_image(img, contrast=125, saturation=135, sharpness=130)
+        return adjust_image(img, ImageAdjustments(contrast=125, saturation=135, sharpness=130))
     if preset_name == "Vintage / Fade":
-        return adjust_image(img, contrast=85, brightness=110, saturation=85, warmth=20)
+        return adjust_image(img, ImageAdjustments(contrast=85, brightness=110, saturation=85, warmth=20))
     if preset_name == "Invert":
         has_alpha = img.mode == "RGBA"
         alpha = img.getchannel("A") if has_alpha else None
@@ -610,7 +621,7 @@ def image_to_ascii(img: Image.Image, width: int = 100, charset: str = ASCII_CHAR
     aspect_correction = 0.55
     src_w, src_h = img.size
     height = max(1, int(width * (src_h / src_w) * aspect_correction))
-    source = adjust_image(img, contrast=contrast) if contrast != 100.0 else img
+    source = adjust_image(img, ImageAdjustments(contrast=contrast)) if contrast != 100.0 else img
     small = source.convert("L").resize((max(1, width), height))
     pixels = np.array(small)
     ramp_len = len(charset) - 1
