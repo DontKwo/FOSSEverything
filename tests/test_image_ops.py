@@ -78,7 +78,8 @@ class ImageOperationsTests(unittest.TestCase):
             Image.new("RGB", (10, 10), "blue").save(p2)
 
             with patch("app.features.image.ops.remove_background", side_effect=lambda img, model_name="u2net": img.convert("RGBA")):
-                outputs = image_ops.batch_remove_background([p1, p2], output_dir=output_dir, model_name="u2net")
+                options = image_ops.BatchRemoveBackgroundOptions(output_dir=output_dir, model_name="u2net")
+                outputs = image_ops.batch_remove_background([p1, p2], options=options)
 
             self.assertEqual(len(outputs), 2)
             self.assertTrue(all(os.path.exists(path) for path in outputs))
