@@ -46,22 +46,22 @@ class NetworkMonitorDbTests(NetworkMonitorSqliteMemoryTestCase):
         )
         db.log_connection(self.conn, event)
 
-        by_process = db.search_history(self.conn, process_name="chrome")
+        by_process = db.search_history(self.conn, db.HistoryFilter(process_name="chrome"))
         self.assertEqual(len(by_process), 1)
 
-        by_domain = db.search_history(self.conn, domain="dns.google")
+        by_domain = db.search_history(self.conn, db.HistoryFilter(domain="dns.google"))
         self.assertEqual(len(by_domain), 1)
 
-        by_missing_process = db.search_history(self.conn, process_name="nope")
+        by_missing_process = db.search_history(self.conn, db.HistoryFilter(process_name="nope"))
         self.assertEqual(len(by_missing_process), 0)
 
         by_date_range = db.search_history(
-            self.conn, start_date="2026-01-01T00:00:00", end_date="2026-01-02T00:00:00"
+            self.conn, db.HistoryFilter(start_date="2026-01-01T00:00:00", end_date="2026-01-02T00:00:00")
         )
         self.assertEqual(len(by_date_range), 1)
 
         by_wrong_date_range = db.search_history(
-            self.conn, start_date="2026-02-01T00:00:00", end_date="2026-03-01T00:00:00"
+            self.conn, db.HistoryFilter(start_date="2026-02-01T00:00:00", end_date="2026-03-01T00:00:00")
         )
         self.assertEqual(len(by_wrong_date_range), 0)
 
