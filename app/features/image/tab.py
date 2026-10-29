@@ -587,9 +587,7 @@ class ImageTab(QWidget):
         self._active_crop_frame = None
         self._build_ui()
 
-    def _build_ui(self) -> None:
-        layout = QVBoxLayout(self)
-
+    def _setup_canvas(self) -> None:
         self.canvas = AnnotationCanvas()
         self.canvas.selection_changed.connect(self._on_selection_changed)
         self.canvas.image_layer_changed.connect(self._commit_edit)
@@ -599,11 +597,14 @@ class ImageTab(QWidget):
         self.canvas.crop_frame_adjusted.connect(self._apply_crop_frame)
         self.canvas.file_dropped.connect(self.load_file_path)
 
+    def _setup_toolbar(self, layout: QVBoxLayout) -> AppToolBar:
         toolbar = AppToolBar(self.settings, "image_toolbar")
         toolbar.setMovable(False)
         self.toolbar = toolbar
         layout.addWidget(toolbar)
+        return toolbar
 
+    def _add_file_and_edit_actions(self, toolbar: AppToolBar) -> None:
         toolbar.add_action("Open", self.open_image, tooltip_key="Open image")
         toolbar.add_action("Save As...", self.save_as, tooltip_key="Save As")
         toolbar.add_action("Screenshot...", self.take_screenshot, tooltip_key="Take screenshot")
@@ -615,6 +616,7 @@ class ImageTab(QWidget):
         toolbar.add_action("Delete", self.delete_selected_layer)
         toolbar.addSeparator()
 
+    def _add_drawing_tools(self, toolbar: AppToolBar) -> None:
         self.tool_group = QActionGroup(self)
         self.tool_group.setExclusive(True)
         self.tool_actions = {}
@@ -641,6 +643,7 @@ class ImageTab(QWidget):
 
         toolbar.add_action("Color...", lambda: self.canvas.prompt_and_apply_color(self), tooltip_key="Color")
 
+    def _add_text_formatting(self, toolbar: AppToolBar) -> None:
         toolbar.addWidget(QLabel(" Font: "))
         self.font_family_combo = QFontComboBox()
         self.font_family_combo.setMaximumWidth(150)
@@ -673,12 +676,14 @@ class ImageTab(QWidget):
         toolbar.addWidget(self.letter_spacing_spin)
         toolbar.addSeparator()
 
+    def _add_view_actions(self, toolbar: AppToolBar) -> None:
         toolbar.add_action("Zoom In", lambda: self.canvas.zoom_in(), shortcut=QKeySequence("Ctrl+="))
         toolbar.add_action("Zoom Out", lambda: self.canvas.zoom_out(), shortcut=QKeySequence("Ctrl+-"))
         toolbar.add_action("Fit", lambda: self.canvas.zoom_reset(), shortcut=QKeySequence("Ctrl+0"))
         toolbar.add_action("Shortcuts", lambda: show_shortcuts_dialog(self))
         toolbar.addSeparator()
 
+    def _add_image_transform_actions(self, toolbar: AppToolBar) -> None:
         toolbar.add_action("Auto Enhance", self.auto_enhance, tooltip_key="Auto enhance")
         toolbar.add_action("Adjust Tone...", self.adjust_photo, tooltip_key="Adjust")
         toolbar.addSeparator()
@@ -702,6 +707,7 @@ class ImageTab(QWidget):
         toolbar.add_action("Remove Background", self.remove_background, tooltip_key="Remove background")
         toolbar.addSeparator()
 
+    def _add_advanced_actions(self, toolbar: AppToolBar) -> None:
         toolbar.add_action("Add Layer...", self.add_image_layer, tooltip_key="Add layer")
         toolbar.add_action("Batch...", self.batch_process, tooltip_key="Batch process images")
         toolbar.add_action("Extract Text (OCR)...", self.extract_ocr_text, tooltip_key="OCR image")
@@ -709,6 +715,25 @@ class ImageTab(QWidget):
         toolbar.add_action("Build GIF...", self.build_gif_from_files)
         toolbar.add_action("Extract GIF Frames...", self.extract_gif_frames_to_files)
         toolbar.add_action("GIF to Video...", self.convert_gif_to_video)
+
+    def _build_ui(self) -> None:
+        layout = QVBoxLayout(self)
+
+        self._setup_canvas()
+
+        toolbar = self._setup_toolbar(layout)
+
+        self._add_file_and_edit_actions(toolbar)
+
+        self._add_drawing_tools(toolbar)
+
+        self._add_text_formatting(toolbar)
+
+        self._add_view_actions(toolbar)
+
+        self._add_image_transform_actions(toolbar)
+
+        self._add_advanced_actions(toolbar)
 
         toolbar.finalize()
 
