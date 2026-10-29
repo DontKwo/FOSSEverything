@@ -1,4 +1,5 @@
 """Headless batch file renaming engine with regex, numbering, and collision safety."""
+
 from __future__ import annotations
 
 import os
@@ -142,7 +143,9 @@ def extract_rename_metadata(file_path: str) -> dict[str, str]:
     return metadata
 
 
-def render_rename_template(file_path: str, template: str, extra_context: dict | None = None) -> str:
+def render_rename_template(
+    file_path: str, template: str, extra_context: dict | None = None
+) -> str:
     """Render a filename pattern using metadata tokens such as {date}, {camera}, and {artist}."""
     context = extract_rename_metadata(file_path)
     if extra_context:
@@ -152,15 +155,101 @@ def render_rename_template(file_path: str, template: str, extra_context: dict | 
         rendered = rendered.replace(f"{{{key}}}", _sanitize_token(str(value)))
     rendered = rendered.replace("{ext}", context.get("extension", ""))
     rendered = rendered.replace("{extension}", context.get("extension", ""))
-    rendered = rendered.replace("{stem}", context.get("stem", os.path.splitext(os.path.basename(file_path))[0]))
-    rendered = rendered.replace("{name}", context.get("stem", os.path.splitext(os.path.basename(file_path))[0]))
+    rendered = rendered.replace(
+        "{stem}", context.get("stem", os.path.splitext(os.path.basename(file_path))[0])
+    )
+    rendered = rendered.replace(
+        "{name}", context.get("stem", os.path.splitext(os.path.basename(file_path))[0])
+    )
     rendered = rendered.replace("{original}", os.path.basename(file_path))
     return rendered
 
 
+def _apply_find_replace(
+    name: str, ext: str, base_name: str, params: dict
+) -> tuple[str, str | None]:
+    find_txt = params.get("find", "")
+    rep_txt = params.get("replace", "")
+    use_regex = params.get("use_regex", False)
+    match_ext = params.get("include_extension", False)
+
+    target = base_name if match_ext else name
+    new_name = base_name
+    error = None
+    try:
+        if use_regex and find_txt:
+            flags = 0 if params.get("case_sensitive", True) else re.IGNORECASE
+            res = re.sub(find_txt, rep_txt, target, flags=flags)
+        elif find_txt:
+            if params.get("case_sensitive", True):
+                res = target.replace(find_txt, rep_txt)
+            else:
+                pattern = re.compile(re.escape(find_txt), re.IGNORECASE)
+                res = pattern.sub(rep_txt, target)
+        else:
+            res = target
+        new_name = res if match_ext else f"{res}{ext}"
+    except re.error as exc:
+        error = f"Regex error: {exc}"
+    return new_name, error
+
+
+def _apply_numbering(
+    name: str, ext: str, index: int, params: dict
+) -> tuple[str, str | None]:
+    prefix = params.get("prefix", "")
+    suffix = params.get("suffix", "")
+    start = params.get("start", 1)
+    step = params.get("step", 1)
+    pad = params.get("padding", 3)
+    keep_name = params.get("keep_name", False)
+
+    num_str = str(start + index * step).zfill(pad)
+    body = f"{name}_{num_str}" if keep_name else f"{prefix}{num_str}{suffix}"
+    return f"{body}{ext}", None
+
+
+def _apply_prefix_suffix(name: str, ext: str, params: dict) -> tuple[str, str | None]:
+    prefix = params.get("prefix", "")
+    suffix = params.get("suffix", "")
+    return f"{prefix}{name}{suffix}{ext}", None
+
+
+def _apply_change_case(name: str, ext: str, params: dict) -> tuple[str, str | None]:
+    case_type = params.get("case_type", "lower")
+    affect_ext = params.get("affect_ext", False)
+    new_stem = apply_case_transform(name, case_type)
+    new_extension = apply_case_transform(ext, case_type) if affect_ext else ext
+    return f"{new_stem}{new_extension}", None
+
+
+def _apply_extension(name: str, params: dict) -> tuple[str, str | None]:
+    new_ext = params.get("new_extension", "").strip()
+    if new_ext and not new_ext.startswith("."):
+        new_ext = f".{new_ext}"
+    return f"{name}{new_ext}", None
+
+
+def _apply_template(old_path: str, ext: str, params: dict) -> tuple[str, str | None]:
+    template = params.get("template", "{stem}")
+    rendered = render_rename_template(old_path, template)
+    if "{ext}" in template or "{extension}" in template:
+        new_name = rendered
+    else:
+        new_name = f"{rendered}{ext}"
+    return new_name, None
+
+
 def preview_renames(
     file_paths: list[str],
-    mode: Literal["find_replace", "numbering", "prefix_suffix", "change_case", "extension", "template"],
+    mode: Literal[
+        "find_replace",
+        "numbering",
+        "prefix_suffix",
+        "change_case",
+        "extension",
+        "template",
+    ],
     params: dict,
 ) -> list[RenamePlan]:
     """Generate preview rename plans for a list of file paths without modifying disk."""
@@ -169,7 +258,15 @@ def preview_renames(
 
     for index, old_path in enumerate(file_paths):
         if not os.path.exists(old_path):
-            plans.append(RenamePlan(old_path, os.path.basename(old_path), os.path.basename(old_path), old_path, error="File not found"))
+            plans.append(
+                RenamePlan(
+                    old_path,
+                    os.path.basename(old_path),
+                    os.path.basename(old_path),
+                    old_path,
+                    error="File not found",
+                )
+            )
             continue
 
         dir_name = os.path.dirname(old_path)
@@ -180,65 +277,17 @@ def preview_renames(
         error = None
 
         if mode == "find_replace":
-            find_txt = params.get("find", "")
-            rep_txt = params.get("replace", "")
-            use_regex = params.get("use_regex", False)
-            match_ext = params.get("include_extension", False)
-
-            target = base_name if match_ext else name
-            try:
-                if use_regex and find_txt:
-                    flags = 0 if params.get("case_sensitive", True) else re.IGNORECASE
-                    res = re.sub(find_txt, rep_txt, target, flags=flags)
-                elif find_txt:
-                    if params.get("case_sensitive", True):
-                        res = target.replace(find_txt, rep_txt)
-                    else:
-                        pattern = re.compile(re.escape(find_txt), re.IGNORECASE)
-                        res = pattern.sub(rep_txt, target)
-                else:
-                    res = target
-                new_name = res if match_ext else f"{res}{ext}"
-            except re.error as exc:
-                error = f"Regex error: {exc}"
-
+            new_name, error = _apply_find_replace(name, ext, base_name, params)
         elif mode == "numbering":
-            prefix = params.get("prefix", "")
-            suffix = params.get("suffix", "")
-            start = params.get("start", 1)
-            step = params.get("step", 1)
-            pad = params.get("padding", 3)
-            keep_name = params.get("keep_name", False)
-
-            num_str = str(start + index * step).zfill(pad)
-            body = f"{name}_{num_str}" if keep_name else f"{prefix}{num_str}{suffix}"
-            new_name = f"{body}{ext}"
-
+            new_name, error = _apply_numbering(name, ext, index, params)
         elif mode == "prefix_suffix":
-            prefix = params.get("prefix", "")
-            suffix = params.get("suffix", "")
-            new_name = f"{prefix}{name}{suffix}{ext}"
-
+            new_name, error = _apply_prefix_suffix(name, ext, params)
         elif mode == "change_case":
-            case_type = params.get("case_type", "lower")
-            affect_ext = params.get("affect_ext", False)
-            new_stem = apply_case_transform(name, case_type)
-            new_extension = apply_case_transform(ext, case_type) if affect_ext else ext
-            new_name = f"{new_stem}{new_extension}"
-
+            new_name, error = _apply_change_case(name, ext, params)
         elif mode == "extension":
-            new_ext = params.get("new_extension", "").strip()
-            if new_ext and not new_ext.startswith("."):
-                new_ext = f".{new_ext}"
-            new_name = f"{name}{new_ext}"
-
+            new_name, error = _apply_extension(name, params)
         elif mode == "template":
-            template = params.get("template", "{stem}")
-            rendered = render_rename_template(old_path, template)
-            if "{ext}" in template or "{extension}" in template:
-                new_name = rendered
-            else:
-                new_name = f"{rendered}{ext}"
+            new_name, error = _apply_template(old_path, ext, params)
 
         new_path = os.path.join(dir_name, new_name)
         has_collision = False
@@ -246,19 +295,23 @@ def preview_renames(
         if new_path.lower() in seen_destinations:
             has_collision = True
             error = "Duplicate output filename"
-        elif os.path.exists(new_path) and os.path.abspath(new_path) != os.path.abspath(old_path):
+        elif os.path.exists(new_path) and os.path.abspath(new_path) != os.path.abspath(
+            old_path
+        ):
             has_collision = True
             error = "Destination already exists on disk"
 
         seen_destinations.add(new_path.lower())
-        plans.append(RenamePlan(
-            old_path=old_path,
-            old_name=base_name,
-            new_name=new_name,
-            new_path=new_path,
-            error=error,
-            has_collision=has_collision,
-        ))
+        plans.append(
+            RenamePlan(
+                old_path=old_path,
+                old_name=base_name,
+                new_name=new_name,
+                new_path=new_path,
+                error=error,
+                has_collision=has_collision,
+            )
+        )
 
     return plans
 
@@ -310,7 +363,9 @@ def save_cross_folder_plan(
     }
 
 
-def find_new_files_for_plan(source_folders: list[str], previously_processed: list[str]) -> list[str]:
+def find_new_files_for_plan(
+    source_folders: list[str], previously_processed: list[str]
+) -> list[str]:
     """Recursively rescan source_folders and return only files not already in previously_processed."""
     processed = set(previously_processed)
     found: list[str] = []
@@ -325,7 +380,9 @@ def find_new_files_for_plan(source_folders: list[str], previously_processed: lis
     return found
 
 
-def plan_consolidate_to_folder(plans: list[RenamePlan], target_dir: str) -> list[RenamePlan]:
+def plan_consolidate_to_folder(
+    plans: list[RenamePlan], target_dir: str
+) -> list[RenamePlan]:
     """Rewrite a set of rename plans to land in a single destination folder, re-checking collisions."""
     consolidated: list[RenamePlan] = []
     seen_destinations: set[str] = set()
@@ -342,19 +399,23 @@ def plan_consolidate_to_folder(plans: list[RenamePlan], target_dir: str) -> list
         if new_path.lower() in seen_destinations:
             has_collision = True
             error = "Duplicate output filename"
-        elif os.path.exists(new_path) and os.path.abspath(new_path) != os.path.abspath(plan.old_path):
+        elif os.path.exists(new_path) and os.path.abspath(new_path) != os.path.abspath(
+            plan.old_path
+        ):
             has_collision = True
             error = "Destination already exists on disk"
 
         seen_destinations.add(new_path.lower())
-        consolidated.append(RenamePlan(
-            old_path=plan.old_path,
-            old_name=plan.old_name,
-            new_name=plan.new_name,
-            new_path=new_path,
-            error=error,
-            has_collision=has_collision,
-        ))
+        consolidated.append(
+            RenamePlan(
+                old_path=plan.old_path,
+                old_name=plan.old_name,
+                new_name=plan.new_name,
+                new_path=new_path,
+                error=error,
+                has_collision=has_collision,
+            )
+        )
 
     return consolidated
 
@@ -366,14 +427,25 @@ def execute_renames(plans: list[RenamePlan]) -> list[RenameResult]:
 
     for plan in plans:
         if plan.error or plan.old_path == plan.new_path:
-            results.append(RenameResult(plan.old_path, plan.new_path, success=(plan.error is None), error=plan.error))
+            results.append(
+                RenameResult(
+                    plan.old_path,
+                    plan.new_path,
+                    success=(plan.error is None),
+                    error=plan.error,
+                )
+            )
             continue
         temp_path = f"{plan.old_path}.tmp_ren_{os.getpid()}_{id(plan)}"
         try:
             os.rename(plan.old_path, temp_path)
             temp_mappings.append((plan, temp_path))
         except Exception as exc:
-            results.append(RenameResult(plan.old_path, plan.new_path, success=False, error=str(exc)))
+            results.append(
+                RenameResult(
+                    plan.old_path, plan.new_path, success=False, error=str(exc)
+                )
+            )
 
     for plan, temp_path in temp_mappings:
         try:
@@ -387,11 +459,19 @@ def execute_renames(plans: list[RenamePlan]) -> list[RenameResult]:
             try:
                 os.rename(temp_path, plan.old_path)
             except Exception as rollback_exc:
-                results.append(RenameResult(
-                    plan.old_path, plan.new_path, success=False,
-                    error=f"{exc}; rollback also failed, file left at {temp_path}: {rollback_exc}",
-                ))
+                results.append(
+                    RenameResult(
+                        plan.old_path,
+                        plan.new_path,
+                        success=False,
+                        error=f"{exc}; rollback also failed, file left at {temp_path}: {rollback_exc}",
+                    )
+                )
                 continue
-            results.append(RenameResult(plan.old_path, plan.new_path, success=False, error=str(exc)))
+            results.append(
+                RenameResult(
+                    plan.old_path, plan.new_path, success=False, error=str(exc)
+                )
+            )
 
     return results
