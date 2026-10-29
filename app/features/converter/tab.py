@@ -125,6 +125,19 @@ class ConverterTab(QWidget):
         output_path, _ = QFileDialog.getSaveFileName(self, "Save ENEX file", os.path.join(folder, "notes.enex"), "Evernote Notes (*.enex)")
         if not output_path:
             return
+
+        self._progress_dialog = QProgressDialog("Exporting to ENEX...", None, 0, 0, self)
+        self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self._progress_dialog.show()
+
+        self._worker = WorkerThread(
+            self._do_export_notes, folder, note_files, output_path
+        )
+        self._worker.finished_ok.connect(lambda count: self._on_export_complete(count, output_path))
+        self._worker.failed.connect(self._on_failed)
+        self._worker.start()
+
+    def _do_export_notes(self, folder: str, note_files: list[str], output_path: str) -> int:
         notes = []
         for filename in note_files:
             full_path = os.path.join(folder, filename)
@@ -139,12 +152,12 @@ class ConverterTab(QWidget):
                 "updated": created,
                 "tags": [],
             })
-        try:
-            converter_ops.export_enex(notes, output_path)
-        except Exception as exc:
-            QMessageBox.critical(self, "Export Failed", str(exc))
-            return
-        QMessageBox.information(self, "Exported", f"{len(notes)} note(s) exported to {output_path}")
+        converter_ops.export_enex(notes, output_path)
+        return len(notes)
+
+    def _on_export_complete(self, count: int, output_path: str) -> None:
+        self._progress_dialog.close()
+        QMessageBox.information(self, "Exported", f"{count} note(s) exported to {output_path}")
 
     # ─── Batch Queue Tab ──────────────────────────────────────────────────────
     def _build_batch_tab(self) -> QWidget:
@@ -338,7 +351,8 @@ class ConverterTab(QWidget):
         QMessageBox.information(self, "Conversion complete", f"Wrote {len(outputs)} file(s).")
 
     def _on_failed(self, message: str) -> None:
-        self._progress_dialog.close()
+        if hasattr(self, "_progress_dialog") and self._progress_dialog is not None:
+            self._progress_dialog.close()
         QMessageBox.critical(self, "Conversion failed", message)
 
     # ─── Batch methods ────────────────────────────────────────────────────────
