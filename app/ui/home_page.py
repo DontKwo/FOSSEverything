@@ -24,6 +24,17 @@ from app.core.tooltips import get_tooltip_for, keywords_tooltip, tooltip_search
 from app.ui.ui_scaling import scaled_font_pt, scaled_font_size
 
 
+@dataclass
+class HomeAppOrderState:
+    """Holds configuration for customizing home apps order and visibility."""
+    apps: tuple['HomeApp', ...]
+    custom_order: list[str]
+    hidden_ids: list[str]
+    pinned_ids: list[str]
+    favorite_ids: list[str]
+    sort_mode: str = "alphabetical"
+
+
 @dataclass(frozen=True)
 class HomeApp:
     """A workspace tile shown on the local FOSSEverything home screen."""
@@ -274,14 +285,14 @@ class HomeAppOrderDialog(QDialog):
     SORT_VALUES = ("alphabetical", "custom", "recent")
     SORT_LABELS = ("Alphabetical", "Custom order", "Recently used")
 
-    def __init__(self, apps: tuple[HomeApp, ...], custom_order: list[str], hidden_ids: list[str], pinned_ids: list[str], favorite_ids: list[str], sort_mode: str = "alphabetical", parent: Optional[QWidget] = None) -> None:
+    def __init__(self, state: HomeAppOrderState, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Customize apps")
         self.resize(760, 420)
         self._active_list: Optional[DragDropListWidget] = None
 
-        by_id = {app.id: app for app in apps}
-        order_index = {app_id: index for index, app_id in enumerate(custom_order)}
+        by_id = {app.id: app for app in state.apps}
+        order_index = {app_id: index for index, app_id in enumerate(state.custom_order)}
         ordered_ids = sorted(by_id, key=lambda aid: (order_index.get(aid, len(order_index)), by_id[aid].name.lower()))
 
         root_layout = QVBoxLayout(self)
@@ -292,7 +303,7 @@ class HomeAppOrderDialog(QDialog):
         self.sort_combo = QComboBox()
         self.sort_combo.setToolTip(get_tooltip_for("Sort by"))
         self.sort_combo.addItems(self.SORT_LABELS)
-        self.sort_combo.setCurrentIndex(self.SORT_VALUES.index(sort_mode) if sort_mode in self.SORT_VALUES else 0)
+        self.sort_combo.setCurrentIndex(self.SORT_VALUES.index(state.sort_mode) if state.sort_mode in self.SORT_VALUES else 0)
         sort_row.addWidget(self.sort_combo)
         sort_row.addStretch()
         root_layout.addLayout(sort_row)
@@ -317,11 +328,11 @@ class HomeAppOrderDialog(QDialog):
         for app_id in ordered_ids:
             item = QListWidgetItem(by_id[app_id].name)
             item.setData(Qt.ItemDataRole.UserRole, app_id)
-            if app_id in hidden_ids:
+            if app_id in state.hidden_ids:
                 self.hidden_list.addItem(item)
-            elif app_id in pinned_ids:
+            elif app_id in state.pinned_ids:
                 self.pinned_list.addItem(item)
-            elif app_id in favorite_ids:
+            elif app_id in state.favorite_ids:
                 self.favorites_list.addItem(item)
             else:
                 self.visible_list.addItem(item)
@@ -702,7 +713,15 @@ class HomePage(QWidget):
         self.workspace_requested.emit(app_id)
 
     def _open_customize_apps(self) -> None:
-        dialog = HomeAppOrderDialog(HOME_APPS, self.custom_order, self.hidden_ids, self.pinned, self.favorites, self.sort_mode, parent=self)
+        state = HomeAppOrderState(
+            apps=HOME_APPS,
+            custom_order=self.custom_order,
+            hidden_ids=self.hidden_ids,
+            pinned_ids=self.pinned,
+            favorite_ids=self.favorites,
+            sort_mode=self.sort_mode
+        )
+        dialog = HomeAppOrderDialog(state, parent=self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.pinned = dialog.pinned_order()
             self.favorites = dialog.favorites_order()
