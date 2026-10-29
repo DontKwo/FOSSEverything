@@ -11,6 +11,7 @@ import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from dataclasses import dataclass
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
@@ -147,30 +148,42 @@ def _render_batch_output_name(source_path: str, template: str = "{stem}_bg_remov
     return rendered
 
 
-def batch_remove_background(file_paths: List[str], output_dir: Optional[str] = None, model_name: str = "bria-rmbg", filename_template: str = "{stem}_bg_removed{ext}", overwrite: bool = False, progress_cb: Optional[Callable[[int, int, str], None]] = None) -> List[str]:
+@dataclass
+class BatchRemoveBackgroundOptions:
+    output_dir: Optional[str] = None
+    model_name: str = "bria-rmbg"
+    filename_template: str = "{stem}_bg_removed{ext}"
+    overwrite: bool = False
+    progress_cb: Optional[Callable[[int, int, str], None]] = None
+
+
+def batch_remove_background(file_paths: List[str], options: Optional[BatchRemoveBackgroundOptions] = None) -> List[str]:
     """Remove backgrounds from multiple local images and return the created file paths.
 
-    progress_cb(index, total, filename), if given, is called after each file
+    progress_cb(index, total, filename), if given in options, is called after each file
     so a caller (e.g. a worker thread) can report progress to the UI.
     """
+    if options is None:
+        options = BatchRemoveBackgroundOptions()
+
     output_paths = []
     total = len(file_paths)
     for i, file_path in enumerate(file_paths, start=1):
         img = Image.open(file_path)
-        cleaned = remove_background(img, model_name=model_name)
-        target_dir = output_dir or os.path.dirname(file_path)
+        cleaned = remove_background(img, model_name=options.model_name)
+        target_dir = options.output_dir or os.path.dirname(file_path)
         os.makedirs(target_dir, exist_ok=True)
-        target_name = _render_batch_output_name(file_path, filename_template)
+        target_name = _render_batch_output_name(file_path, options.filename_template)
         target_path = os.path.join(target_dir, target_name)
         counter = 1
-        while os.path.exists(target_path) and not overwrite:
+        while os.path.exists(target_path) and not options.overwrite:
             stem, ext = os.path.splitext(target_path)
             target_path = f"{stem}_{counter}{ext}"
             counter += 1
         save_image(cleaned, target_path, format=os.path.splitext(target_path)[1].lstrip("."), quality=95)
         output_paths.append(target_path)
-        if progress_cb:
-            progress_cb(i, total, os.path.basename(file_path))
+        if options.progress_cb:
+            options.progress_cb(i, total, os.path.basename(file_path))
     return output_paths
 
 
