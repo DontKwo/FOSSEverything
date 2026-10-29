@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -562,10 +563,18 @@ def replace_background_color(img: Image.Image, color: Tuple[int, int, int, int] 
     return bg
 
 
-def batch_process(paths: List[str], output_dir: str, target_format: Optional[str] = None, quality: int = 85,
-                   resize_to: Optional[Tuple[int, int]] = None, keep_aspect: bool = True,
-                   remove_background_enabled: bool = False, bg_model: str = "bria-rmbg",
-                   progress_cb: Optional[Callable[[int, int, str], None]] = None) -> List[str]:
+@dataclass
+class BatchOptions:
+    target_format: Optional[str] = None
+    quality: int = 85
+    resize_to: Optional[Tuple[int, int]] = None
+    keep_aspect: bool = True
+    remove_background_enabled: bool = False
+    bg_model: str = "bria-rmbg"
+
+
+def batch_process(paths: List[str], output_dir: str, options: BatchOptions,
+                  progress_cb: Optional[Callable[[int, int, str], None]] = None) -> List[str]:
     """Apply the same pipeline (remove background -> resize -> convert -> compress) to many images.
 
     progress_cb(index, total, filename), if given, is called after each file
@@ -577,16 +586,16 @@ def batch_process(paths: List[str], output_dir: str, target_format: Optional[str
     total = len(paths)
     for i, path in enumerate(paths, start=1):
         img = Image.open(path)
-        if remove_background_enabled:
-            img = remove_background(img, model_name=bg_model)
-        if resize_to:
-            img = resize_image(img, resize_to[0], resize_to[1], keep_aspect)
+        if options.remove_background_enabled:
+            img = remove_background(img, model_name=options.bg_model)
+        if options.resize_to:
+            img = resize_image(img, options.resize_to[0], options.resize_to[1], options.keep_aspect)
         base = os.path.splitext(os.path.basename(path))[0]
-        default_format = "PNG" if remove_background_enabled else (img.format or "JPEG")
-        fmt = normalized_format(target_format or default_format)
+        default_format = "PNG" if options.remove_background_enabled else (img.format or "JPEG")
+        fmt = normalized_format(options.target_format or default_format)
         ext = extension_for_format(fmt)
         out_path = os.path.join(output_dir, f"{base}{ext}")
-        save_image(img, out_path, format=fmt, quality=quality)
+        save_image(img, out_path, format=fmt, quality=options.quality)
         outputs.append(out_path)
         if progress_cb:
             progress_cb(i, total, os.path.basename(path))
