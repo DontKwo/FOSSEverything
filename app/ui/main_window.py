@@ -75,47 +75,17 @@ class MainWindow(QMainWindow):
         self.ui_palette = self._load_ui_palette()
         self.setWindowTitle("FOSSEverything - Local Desktop Power Tool")
 
-        remember_window = bool(self.settings.value("app/remember_window", True, type=bool))
-        maximize_on_start = bool(self.settings.value("app/maximize_on_start", True, type=bool))
+        self._setup_window()
+        self._setup_central_widget()
+        self._setup_actions_and_menus()
 
-        geometry_restored = False
-        if remember_window:
-            saved_geometry = self.settings.value("app/window_geometry")
-            if saved_geometry is not None:
-                geometry_restored = bool(self.restoreGeometry(saved_geometry))
+        self._apply_font_scale()
 
-        if not geometry_restored:
-            screen = QApplication.primaryScreen()
-            if screen is not None:
-                geometry = screen.availableGeometry()
-                if geometry.width() > 0 and geometry.height() > 0:
-                    self.resize(geometry.width(), geometry.height())
-            else:
-                self.resize(1200, 800)
+        self._force_quit = False
+        self.tray_icon: QSystemTrayIcon | None = None
+        self._setup_tray_icon()
 
-        if maximize_on_start and not geometry_restored:
-            self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
-
-        self.setMinimumSize(760, 520)
-
-        self.tabs = QStackedWidget()
-        self._tab_cache: dict[str, QWidget] = {}
-
-        self.tool_registry = ToolRegistry()
-        self.workspace_registry = WorkspaceRegistry()
-        self._register_workspaces()
-        self._register_current_tools()
-        # Built lazily (see the home_page property below) so a routed file-association
-        # launch skips the ~19-tile home screen's construction cost entirely.
-        self._home_page: HomePage | None = None
-        self._install_recent_file_hooks()
-
-        central_widget = QWidget()
-        central_layout = QVBoxLayout(central_widget)
-        central_layout.setContentsMargins(0, 0, 0, 0)
-        central_layout.addWidget(self.tabs)
-        self.setCentralWidget(central_widget)
-
+    def _setup_actions_and_menus(self) -> None:
         self.shortcut_defs: dict[str, dict[str, Any]] = {}
 
         self.home_action = QAction("Home", self)
@@ -159,11 +129,48 @@ class MainWindow(QMainWindow):
         tools_menu = self.menuBar().addMenu("Tools")
         tools_menu.addAction(search_action)
 
-        self._apply_font_scale()
+    def _setup_central_widget(self) -> None:
+        self.tabs = QStackedWidget()
+        self._tab_cache: dict[str, QWidget] = {}
 
-        self._force_quit = False
-        self.tray_icon: QSystemTrayIcon | None = None
-        self._setup_tray_icon()
+        self.tool_registry = ToolRegistry()
+        self.workspace_registry = WorkspaceRegistry()
+        self._register_workspaces()
+        self._register_current_tools()
+        # Built lazily (see the home_page property below) so a routed file-association
+        # launch skips the ~19-tile home screen's construction cost entirely.
+        self._home_page: HomePage | None = None
+        self._install_recent_file_hooks()
+
+        central_widget = QWidget()
+        central_layout = QVBoxLayout(central_widget)
+        central_layout.setContentsMargins(0, 0, 0, 0)
+        central_layout.addWidget(self.tabs)
+        self.setCentralWidget(central_widget)
+
+    def _setup_window(self) -> None:
+        remember_window = bool(self.settings.value("app/remember_window", True, type=bool))
+        maximize_on_start = bool(self.settings.value("app/maximize_on_start", True, type=bool))
+
+        geometry_restored = False
+        if remember_window:
+            saved_geometry = self.settings.value("app/window_geometry")
+            if saved_geometry is not None:
+                geometry_restored = bool(self.restoreGeometry(saved_geometry))
+
+        if not geometry_restored:
+            screen = QApplication.primaryScreen()
+            if screen is not None:
+                geometry = screen.availableGeometry()
+                if geometry.width() > 0 and geometry.height() > 0:
+                    self.resize(geometry.width(), geometry.height())
+            else:
+                self.resize(1200, 800)
+
+        if maximize_on_start and not geometry_restored:
+            self.setWindowState(self.windowState() | Qt.WindowState.WindowMaximized)
+
+        self.setMinimumSize(760, 520)
 
     def _get_tab(self, tab_id: str) -> QWidget:
         tab = self._tab_cache.get(tab_id)
