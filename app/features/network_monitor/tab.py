@@ -221,13 +221,13 @@ class _HistoryView(QWidget):
     def run_search(self) -> None:
         start = self.start_date.date().toString("yyyy-MM-dd") + "T00:00:00"
         end = self.end_date.date().toString("yyyy-MM-dd") + "T23:59:59"
-        rows = db.search_history(
-            self.conn,
+        filters = db.HistoryFilter(
             process_name=self.process_input.text().strip(),
             domain=self.domain_input.text().strip(),
             start_date=start,
             end_date=end,
         )
+        rows = db.search_history(self.conn, filters)
         self.table.setRowCount(len(rows))
         for row_index, row in enumerate(rows):
             values = [

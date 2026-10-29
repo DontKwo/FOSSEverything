@@ -64,6 +64,15 @@ def now_iso() -> str:
 
 
 @dataclass
+class HistoryFilter:
+    process_name: str = ""
+    domain: str = ""
+    start_date: str = ""
+    end_date: str = ""
+    limit: int = 1000
+
+
+@dataclass
 class ConnectionEvent:
     timestamp: str
     pid: int | None
@@ -132,28 +141,27 @@ def log_connection(conn: sqlite3.Connection, event: ConnectionEvent) -> None:
 
 def search_history(
     conn: sqlite3.Connection,
-    process_name: str = "",
-    domain: str = "",
-    start_date: str = "",
-    end_date: str = "",
-    limit: int = 1000,
+    filters: HistoryFilter | None = None,
 ) -> list[sqlite3.Row]:
+    if filters is None:
+        filters = HistoryFilter()
+
     query = "SELECT * FROM connection_log WHERE 1=1"
     params: list[object] = []
-    if process_name:
+    if filters.process_name:
         query += " AND process_name LIKE ?"
-        params.append(f"%{process_name}%")
-    if domain:
+        params.append(f"%{filters.process_name}%")
+    if filters.domain:
         query += " AND (remote_domain LIKE ? OR remote_ip LIKE ?)"
-        params.extend([f"%{domain}%", f"%{domain}%"])
-    if start_date:
+        params.extend([f"%{filters.domain}%", f"%{filters.domain}%"])
+    if filters.start_date:
         query += " AND timestamp >= ?"
-        params.append(start_date)
-    if end_date:
+        params.append(filters.start_date)
+    if filters.end_date:
         query += " AND timestamp <= ?"
-        params.append(end_date)
+        params.append(filters.end_date)
     query += " ORDER BY timestamp DESC LIMIT ?"
-    params.append(limit)
+    params.append(filters.limit)
     return conn.execute(query, params).fetchall()
 
 
