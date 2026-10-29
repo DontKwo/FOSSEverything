@@ -33,46 +33,8 @@ class RenamerTab(QWidget):
         self._reload_preset_options()
         self._reload_plan_options()
 
-    def _build_ui(self) -> None:
-        root = QVBoxLayout(self)
-        root.setContentsMargins(18, 18, 18, 18)
-        root.setSpacing(14)
 
-        # Header
-        title = QLabel("Batch File Renamer")
-        title.setStyleSheet("font-weight: 700;")
-        root.addWidget(title)
-        root.addWidget(QLabel("Rename groups of files with regex, sequential numbers, prefixes, or case transforms."))
-
-        top_row = AppToolBar(self.settings, "renamer_toolbar")
-        top_row.add_action("Add Files...", self._add_files, tooltip_key="Add Files")
-        top_row.add_action("Add Folder...", self._add_directory, tooltip_key="Add Folder")
-        top_row.add_action("Clear List", self._clear_files, tooltip_key="Clear All")
-        top_row.finalize()
-        root.addWidget(top_row)
-
-        splitter = QSplitter(Qt.Orientation.Vertical)
-
-        # Controls Group
-        rules_group = QGroupBox("Renaming Rules")
-        rules_layout = QVBoxLayout(rules_group)
-
-        mode_row = QHBoxLayout()
-        mode_row.addWidget(QLabel("Action Mode:"))
-        self.mode_combo = QComboBox()
-        self.mode_combo.setToolTip(get_tooltip_for("Action Mode"))
-        self.mode_combo.addItems([
-            "Find and Replace",
-            "Numbering Sequence",
-            "Add Prefix / Suffix",
-            "Change Letter Case",
-            "Change Extension",
-        ])
-        self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
-        mode_row.addWidget(self.mode_combo, stretch=1)
-        rules_layout.addLayout(mode_row)
-
-        # Form 1: Find & Replace
+    def _setup_find_replace_form(self, rules_layout: QVBoxLayout) -> None:
         self.fr_widget = QWidget()
         fr_form = QFormLayout(self.fr_widget)
         self.fr_find = QLineEdit()
@@ -101,7 +63,7 @@ class RenamerTab(QWidget):
         fr_form.addRow(fr_opts)
         rules_layout.addWidget(self.fr_widget)
 
-        # Form 2: Numbering
+    def _setup_numbering_form(self, rules_layout: QVBoxLayout) -> None:
         self.num_widget = QWidget()
         num_form = QFormLayout(self.num_widget)
         self.num_prefix = QLineEdit("Photo_")
@@ -135,7 +97,7 @@ class RenamerTab(QWidget):
         rules_layout.addWidget(self.num_widget)
         self.num_widget.hide()
 
-        # Form 3: Prefix / Suffix
+    def _setup_prefix_suffix_form(self, rules_layout: QVBoxLayout) -> None:
         self.ps_widget = QWidget()
         ps_form = QFormLayout(self.ps_widget)
         self.ps_prefix = QLineEdit("v1_")
@@ -147,7 +109,7 @@ class RenamerTab(QWidget):
         rules_layout.addWidget(self.ps_widget)
         self.ps_widget.hide()
 
-        # Form 4: Case
+    def _setup_case_form(self, rules_layout: QVBoxLayout) -> None:
         self.case_widget = QWidget()
         case_form = QFormLayout(self.case_widget)
         self.case_combo = QComboBox()
@@ -165,7 +127,7 @@ class RenamerTab(QWidget):
         rules_layout.addWidget(self.case_widget)
         self.case_widget.hide()
 
-        # Form 5: Extension
+    def _setup_extension_form(self, rules_layout: QVBoxLayout) -> None:
         self.ext_widget = QWidget()
         ext_form = QFormLayout(self.ext_widget)
         self.ext_edit = QLineEdit("png")
@@ -175,9 +137,35 @@ class RenamerTab(QWidget):
         rules_layout.addWidget(self.ext_widget)
         self.ext_widget.hide()
 
+
+    def _setup_rules_group(self, splitter: QSplitter) -> None:
+        rules_group = QGroupBox("Renaming Rules")
+        rules_layout = QVBoxLayout(rules_group)
+
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(QLabel("Action Mode:"))
+        self.mode_combo = QComboBox()
+        self.mode_combo.setToolTip(get_tooltip_for("Action Mode"))
+        self.mode_combo.addItems([
+            "Find and Replace",
+            "Numbering Sequence",
+            "Add Prefix / Suffix",
+            "Change Letter Case",
+            "Change Extension",
+        ])
+        self.mode_combo.currentIndexChanged.connect(self._on_mode_changed)
+        mode_row.addWidget(self.mode_combo, stretch=1)
+        rules_layout.addLayout(mode_row)
+
+        self._setup_find_replace_form(rules_layout)
+        self._setup_numbering_form(rules_layout)
+        self._setup_prefix_suffix_form(rules_layout)
+        self._setup_case_form(rules_layout)
+        self._setup_extension_form(rules_layout)
+
         splitter.addWidget(rules_group)
 
-        # Cross-Folder / Timeline Options
+    def _setup_cross_folder_group(self, splitter: QSplitter) -> None:
         cross_group = QGroupBox("Cross-Folder Rename Planning")
         cross_form = QFormLayout(cross_group)
 
@@ -224,7 +212,7 @@ class RenamerTab(QWidget):
 
         splitter.addWidget(cross_group)
 
-        # Preview Table
+    def _setup_preview_table(self, splitter: QSplitter) -> None:
         table_group = QGroupBox("Live Preview (Collision-Safe)")
         table_layout = QVBoxLayout(table_group)
 
@@ -237,9 +225,8 @@ class RenamerTab(QWidget):
         table_layout.addWidget(self.table)
 
         splitter.addWidget(table_group)
-        root.addWidget(splitter, stretch=1)
 
-        # Bottom actions
+    def _setup_bottom_actions(self, root: QVBoxLayout) -> None:
         bottom_row = QHBoxLayout()
         self.preset_combo = QComboBox()
         self.preset_combo.setToolTip(get_tooltip_for("Saved presets"))
@@ -270,6 +257,35 @@ class RenamerTab(QWidget):
         bottom_row.addWidget(self.apply_btn)
 
         root.addLayout(bottom_row)
+
+    def _build_ui(self) -> None:
+        root = QVBoxLayout(self)
+        root.setContentsMargins(18, 18, 18, 18)
+        root.setSpacing(14)
+
+        # Header
+        title = QLabel("Batch File Renamer")
+        title.setStyleSheet("font-weight: 700;")
+        root.addWidget(title)
+        root.addWidget(QLabel("Rename groups of files with regex, sequential numbers, prefixes, or case transforms."))
+
+        top_row = AppToolBar(self.settings, "renamer_toolbar")
+        top_row.add_action("Add Files...", self._add_files, tooltip_key="Add Files")
+        top_row.add_action("Add Folder...", self._add_directory, tooltip_key="Add Folder")
+        top_row.add_action("Clear List", self._clear_files, tooltip_key="Clear All")
+        top_row.finalize()
+        root.addWidget(top_row)
+
+        splitter = QSplitter(Qt.Orientation.Vertical)
+
+        self._setup_rules_group(splitter)
+        self._setup_cross_folder_group(splitter)
+        self._setup_preview_table(splitter)
+
+        root.addWidget(splitter, stretch=1)
+        self._setup_bottom_actions(root)
+
+
 
     def _on_mode_changed(self, index: int) -> None:
         self.fr_widget.setVisible(index == 0)
