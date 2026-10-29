@@ -1622,15 +1622,18 @@ class ImageTab(QWidget):
         self._progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
         self._progress_dialog.show()
 
-        self._worker = WorkerThread(
-            image_ops.batch_process,
-            options["paths"],
-            out_dir,
+        batch_options = image_ops.BatchOptions(
             target_format=options["target_format"],
             quality=options["quality"],
             resize_to=options["resize_to"],
             remove_background_enabled=options["remove_background_enabled"],
             bg_model=options["bg_model"],
+        )
+        self._worker = WorkerThread(
+            image_ops.batch_process,
+            options["paths"],
+            out_dir,
+            batch_options,
         )
         self._worker.progress.connect(lambda i, t, name: self._progress_dialog.setValue(i))
         self._worker.finished_ok.connect(self._on_batch_done)
