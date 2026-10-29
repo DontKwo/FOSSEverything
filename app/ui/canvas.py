@@ -11,6 +11,7 @@ about Qt internals.
 import copy
 import os
 import re
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Callable, Optional, Dict, Tuple, Any, List
 
@@ -24,6 +25,16 @@ from PyQt6.QtWidgets import (
     QGraphicsPathItem, QGraphicsTextItem, QGraphicsItem, QColorDialog, QInputDialog, QMenu,
     QMessageBox, QWidget
 )
+
+@dataclass
+class TextFormat:
+    font_size: int = 14
+    color: Optional[QColor] = None
+    font_family: str = "Helvetica"
+    bold: bool = False
+    italic: bool = False
+    letter_spacing: int = 100
+
 from spellchecker import SpellChecker
 
 _spell: Optional[SpellChecker] = None
@@ -316,20 +327,21 @@ class ResizableTextItem(ResizableMixin, QGraphicsTextItem):
     an offline dictionary) get a red squiggly underline while editing, and
     right-clicking a misspelled word offers replacement suggestions."""
 
-    def __init__(self, text: str = "Text", pos: Optional[QPointF] = None, font_size: int = 14, color: Optional[QColor] = None,
-                 font_family: str = "Helvetica", bold: bool = False, italic: bool = False, letter_spacing: int = 100) -> None:
+    def __init__(self, text: str = "Text", pos: Optional[QPointF] = None, text_format: Optional[TextFormat] = None) -> None:
         QGraphicsTextItem.__init__(self, text)
         self._init_resizable()
         self.kind = "text"
-        self.font_family = font_family
-        self.letter_spacing = letter_spacing
-        font = QFont(font_family, max(8, int(font_size)))
-        font.setBold(bold)
-        font.setItalic(italic)
+        if text_format is None:
+            text_format = TextFormat()
+        self.font_family = text_format.font_family
+        self.letter_spacing = text_format.letter_spacing
+        font = QFont(text_format.font_family, max(8, int(text_format.font_size)))
+        font.setBold(text_format.bold)
+        font.setItalic(text_format.italic)
         self._apply_letter_spacing(font)
         self.setFont(font)
         self.qcolor = QColor(30, 30, 30)
-        self.set_color(color or QColor(30, 30, 30))
+        self.set_color(text_format.color or QColor(30, 30, 30))
         if pos is not None:
             self.setPos(pos)
         self.setZValue(2)
@@ -1069,14 +1081,17 @@ class AnnotationCanvas(QGraphicsView):
             item.set_color(qcolor)
             return item
         if atype == "text":
-            item = ResizableTextItem(
-                ann.get("text", ""),
+            text_format = TextFormat(
                 font_size=ann.get("font_size", 14),
                 color=qcolor,
                 font_family=ann.get("font_family", "Helvetica"),
                 bold=ann.get("bold", False),
                 italic=ann.get("italic", False),
-                letter_spacing=ann.get("letter_spacing", 100),
+                letter_spacing=ann.get("letter_spacing", 100)
+            )
+            item = ResizableTextItem(
+                ann.get("text", ""),
+                text_format=text_format
             )
             item.setPos(*ann["pos"])
             return item
@@ -1260,11 +1275,15 @@ class AnnotationCanvas(QGraphicsView):
         if self.tool == Tool.TEXT:
             text, ok = QInputDialog.getText(self, "Add Text", "Text:")
             if ok and text:
-                item = ResizableTextItem(
-                    text, pos=pos, font_size=self.current_font_size, color=self.current_color,
-                    font_family=self.current_font_family, bold=self.current_bold,
-                    italic=self.current_italic, letter_spacing=self.current_letter_spacing,
+                text_format = TextFormat(
+                    font_size=self.current_font_size,
+                    color=self.current_color,
+                    font_family=self.current_font_family,
+                    bold=self.current_bold,
+                    italic=self.current_italic,
+                    letter_spacing=self.current_letter_spacing
                 )
+                item = ResizableTextItem(text, pos=pos, text_format=text_format)
                 self.scene_.addItem(item)
                 self._push_history()
             self._drawing = False
