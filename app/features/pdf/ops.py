@@ -606,6 +606,9 @@ def add_image_watermark(
 
     Position can be "center", "bottom-right", "bottom-left", "top-right", "top-left".
     """
+    with open(watermark_image_path, "rb") as wf:
+        img_data = wf.read()
+
     with pymupdf.open(input_path) as doc:
         for page_idx, page in enumerate(doc):
             if pages is not None and (page_idx + 1) not in pages:
@@ -631,9 +634,6 @@ def add_image_watermark(
                 y0 = 20
 
             wm_rect = pymupdf.Rect(x0, y0, x0 + wm_size, y0 + wm_size)
-
-            with open(watermark_image_path, "rb") as wf:
-                img_data = wf.read()
 
             page.insert_image(wm_rect, stream=img_data, overlay=True, fill_opacity=opacity)
 
