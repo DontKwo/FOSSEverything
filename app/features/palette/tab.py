@@ -22,8 +22,8 @@ from app.ui.ui_scaling import scaled_font_pt
 
 class ClickableImagePreview(QLabel):
     """Interactive preview label with mouse tracking for pixel color sampling."""
-    color_hovered = pyqtSignal(int, int, int, int, int)  # r, g, b, orig_x, orig_y
-    color_clicked = pyqtSignal(int, int, int, int, int)
+    color_hovered = pyqtSignal(object, int, int)  # swatch, orig_x, orig_y
+    color_clicked = pyqtSignal(object, int, int)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -38,7 +38,7 @@ class ClickableImagePreview(QLabel):
         self.rendered_pixmap = pixmap
         self.setPixmap(pixmap)
 
-    def _get_pixel_at(self, pos: QPoint) -> Optional[Tuple[int, int, int, int, int]]:
+    def _get_pixel_at(self, pos: QPoint) -> Optional[Tuple[palette_ops.ColorSwatch, int, int]]:
         if not self.pil_image or not self.rendered_pixmap or self.rendered_pixmap.isNull():
             return None
 
@@ -56,20 +56,19 @@ class ClickableImagePreview(QLabel):
             orig_x = int(pm_x * (self.pil_image.width / pm_w))
             orig_y = int(pm_y * (self.pil_image.height / pm_h))
             swatch = palette_ops.sample_pixel_color(self.pil_image, orig_x, orig_y)
-            r, g, b = swatch.rgb
-            return r, g, b, orig_x, orig_y
+            return swatch, orig_x, orig_y
         return None
 
     def mouseMoveEvent(self, event: QMouseEvent) -> None:
         super().mouseMoveEvent(event)
-        res: Optional[Tuple[int, int, int, int, int]] = self._get_pixel_at(event.pos())
+        res: Optional[Tuple[palette_ops.ColorSwatch, int, int]] = self._get_pixel_at(event.pos())
         if res:
             self.color_hovered.emit(*res)
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         super().mousePressEvent(event)
         if event.button() == Qt.MouseButton.LeftButton:
-            res = self._get_pixel_at(event.pos())
+            res: Optional[Tuple[palette_ops.ColorSwatch, int, int]] = self._get_pixel_at(event.pos())
             if res:
                 self.color_clicked.emit(*res)
 
@@ -257,23 +256,20 @@ class PaletteTab(QWidget):
         except Exception as exc:
             QMessageBox.critical(self, "Extraction Error", str(exc))
 
-    def _on_color_hovered(self, r: int, g: int, b: int, x: int, y: int) -> None:
-        hex_code: str = f"#{r:02X}{g:02X}{b:02X}"
-        name: str = palette_ops.nearest_named_color((r, g, b))
-        contrast: float = palette_ops.contrast_ratio((r, g, b), (255, 255, 255))
-        self._last_hover_rgb = (r, g, b)
+    def _on_color_hovered(self, swatch: palette_ops.ColorSwatch, x: int, y: int) -> None:
+        name: str = palette_ops.nearest_named_color(swatch.rgb)
+        contrast: float = palette_ops.contrast_ratio(swatch.rgb, (255, 255, 255))
+        self._last_hover_rgb = swatch.rgb
         self.hover_color_box.setStyleSheet(self._hover_box_stylesheet())
-        self.hover_hex_lbl.setText(f"{hex_code} - {name}")
-        self.hover_rgb_lbl.setText(f"rgb({r}, {g}, {b}) - contrast {contrast:.2f}:1 vs white")
+        self.hover_hex_lbl.setText(f"{swatch.hex_code} - {name}")
+        self.hover_rgb_lbl.setText(f"rgb({swatch.rgb[0]}, {swatch.rgb[1]}, {swatch.rgb[2]}) - contrast {contrast:.2f}:1 vs white")
         self.hover_coord_lbl.setText(f"Pixel: ({x}, {y})")
 
-    def _on_color_clicked(self, r: int, g: int, b: int, x: int, y: int) -> None:
-        hex_code: str = f"#{r:02X}{g:02X}{b:02X}"
-        swatch: palette_ops.ColorSwatch = palette_ops.ColorSwatch(hex_code=hex_code, rgb=(r, g, b), percentage=0.0, name=palette_ops.nearest_named_color((r, g, b)))
+    def _on_color_clicked(self, swatch: palette_ops.ColorSwatch, x: int, y: int) -> None:
         self.sampled_swatches.insert(0, swatch)
         self._render_sampled_swatches()
-        self._copy_hex(hex_code)
-        self.status_label.setText(f"Sampled pixel ({x}, {y}): {hex_code} ({swatch.css_name}) (Copied to clipboard)")
+        self._copy_hex(swatch.hex_code)
+        self.status_label.setText(f"Sampled pixel ({x}, {y}): {swatch.hex_code} ({swatch.css_name}) (Copied to clipboard)")
 
     def _render_swatches(self) -> None:
         while self.swatch_layout.count():
