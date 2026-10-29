@@ -1,13 +1,24 @@
 """Color Palette Extractor & Eyedropper workspace: extract dominant colors and pick pixel colors with mouse."""
+
 from __future__ import annotations
 
 from typing import Optional, Tuple
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint
 from PyQt6.QtGui import QPixmap, QGuiApplication, QPalette
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QFileDialog, QMessageBox,
-    QPushButton, QLabel, QScrollArea, QFrame, QFormLayout,
-    QGroupBox, QTabWidget, QSplitter
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QFileDialog,
+    QMessageBox,
+    QPushButton,
+    QLabel,
+    QScrollArea,
+    QFrame,
+    QFormLayout,
+    QGroupBox,
+    QTabWidget,
+    QSplitter,
 )
 from PyQt6.QtGui import QMouseEvent
 from PIL import Image
@@ -22,6 +33,7 @@ from app.ui.ui_scaling import scaled_font_pt
 
 class ClickableImagePreview(QLabel):
     """Interactive preview label with mouse tracking for pixel color sampling."""
+
     color_hovered = pyqtSignal(int, int, int, int, int)  # r, g, b, orig_x, orig_y
     color_clicked = pyqtSignal(int, int, int, int, int)
 
@@ -39,7 +51,11 @@ class ClickableImagePreview(QLabel):
         self.setPixmap(pixmap)
 
     def _get_pixel_at(self, pos: QPoint) -> Optional[Tuple[int, int, int, int, int]]:
-        if not self.pil_image or not self.rendered_pixmap or self.rendered_pixmap.isNull():
+        if (
+            not self.pil_image
+            or not self.rendered_pixmap
+            or self.rendered_pixmap.isNull()
+        ):
             return None
 
         # Calculate offset where pixmap is drawn inside label (since aligned center)
@@ -90,8 +106,12 @@ class PaletteTab(QWidget):
         self.image_preview.setStyleSheet(self._image_preview_stylesheet())
         self.hover_color_box.setStyleSheet(self._hover_box_stylesheet())
         muted = resolved_palette()["muted"]
-        self.hover_rgb_lbl.setStyleSheet(f"color: {muted}; font-size: {scaled_font_pt(11)};")
-        self.hover_coord_lbl.setStyleSheet(f"color: {muted}; font-size: {scaled_font_pt(11)};")
+        self.hover_rgb_lbl.setStyleSheet(
+            f"color: {muted}; font-size: {scaled_font_pt(11)};"
+        )
+        self.hover_coord_lbl.setStyleSheet(
+            f"color: {muted}; font-size: {scaled_font_pt(11)};"
+        )
         self.status_label.setStyleSheet(f"color: {muted};")
 
     def _image_preview_stylesheet(self) -> str:
@@ -116,8 +136,34 @@ class PaletteTab(QWidget):
         title = QLabel("Color Palette Extractor & Eyedropper")
         title.setStyleSheet("font-weight: 700;")
         root.addWidget(title)
-        root.addWidget(QLabel("Extract dominant colors automatically or click anywhere on the image with the eyedropper cursor."))
+        root.addWidget(
+            QLabel(
+                "Extract dominant colors automatically or click anywhere on the image with the eyedropper cursor."
+            )
+        )
 
+        self._create_toolbar(root)
+
+        # Splitter: Left Preview + Eyedropper HUD, Right Swatches Tabs
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+
+        left_box = self._create_left_panel()
+        splitter.addWidget(left_box)
+
+        right_box = self._create_right_panel()
+        splitter.addWidget(right_box)
+        splitter.setStretchFactor(0, 5)
+        splitter.setStretchFactor(1, 5)
+
+        root.addWidget(splitter, stretch=1)
+
+        self.status_label = QLabel(
+            "Open an image to extract palettes or sample colors with the mouse."
+        )
+        self.status_label.setStyleSheet(f"color: {resolved_palette()['muted']};")
+        root.addWidget(self.status_label)
+
+    def _create_toolbar(self, root: QVBoxLayout) -> None:
         top_row = AppToolBar(None, "palette_toolbar")
         top_row.add_action("Open Image...", self._open_image, tooltip_key="Open Image")
         top_row.addWidget(QLabel("  Colors to extract:"))
@@ -132,9 +178,7 @@ class PaletteTab(QWidget):
         top_row.finalize()
         root.addWidget(top_row)
 
-        # Splitter: Left Preview + Eyedropper HUD, Right Swatches Tabs
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-
+    def _create_left_panel(self) -> QWidget:
         # Left Column: Image Preview + Eyedropper Loupe
         left_box = QWidget()
         left_layout = QVBoxLayout(left_box)
@@ -163,11 +207,17 @@ class PaletteTab(QWidget):
 
         info_v = QVBoxLayout()
         self.hover_hex_lbl = QLabel("#------")
-        self.hover_hex_lbl.setStyleSheet(f"font-weight: 700; font-size: {scaled_font_pt(15)};")
+        self.hover_hex_lbl.setStyleSheet(
+            f"font-weight: 700; font-size: {scaled_font_pt(15)};"
+        )
         self.hover_rgb_lbl = QLabel("rgb(---, ---, ---)")
-        self.hover_rgb_lbl.setStyleSheet(f"color: {resolved_palette()['muted']}; font-size: {scaled_font_pt(11)};")
+        self.hover_rgb_lbl.setStyleSheet(
+            f"color: {resolved_palette()['muted']}; font-size: {scaled_font_pt(11)};"
+        )
         self.hover_coord_lbl = QLabel("Position: (-, -)")
-        self.hover_coord_lbl.setStyleSheet(f"color: {resolved_palette()['muted']}; font-size: {scaled_font_pt(11)};")
+        self.hover_coord_lbl.setStyleSheet(
+            f"color: {resolved_palette()['muted']}; font-size: {scaled_font_pt(11)};"
+        )
         info_v.addWidget(self.hover_hex_lbl)
         info_v.addWidget(self.hover_rgb_lbl)
         info_v.addWidget(self.hover_coord_lbl)
@@ -175,12 +225,15 @@ class PaletteTab(QWidget):
 
         copy_hover_btn = QPushButton("Copy Hex")
         copy_hover_btn.setToolTip(get_tooltip_for("Copy Hex"))
-        copy_hover_btn.clicked.connect(lambda: self._copy_hex(self.hover_hex_lbl.text()))
+        copy_hover_btn.clicked.connect(
+            lambda: self._copy_hex(self.hover_hex_lbl.text())
+        )
         eye_layout.addWidget(copy_hover_btn)
         left_layout.addWidget(self.eyedropper_card)
 
-        splitter.addWidget(left_box)
+        return left_box
 
+    def _create_right_panel(self) -> QWidget:
         # Right Column: Palette Tabs (Extracted vs Eyedropper Sampled)
         right_box = QWidget()
         right_layout = QVBoxLayout(right_box)
@@ -190,7 +243,9 @@ class PaletteTab(QWidget):
         self.palette_tabs = QTabWidget()
 
         # Tab 1: Dominant Colors
-        swatch_scroll = QScrollArea(widgetResizable=True, frameShape=QFrame.Shape.NoFrame)
+        swatch_scroll = QScrollArea(
+            widgetResizable=True, frameShape=QFrame.Shape.NoFrame
+        )
         self.swatch_widget = QWidget()
         self.swatch_layout = QVBoxLayout(self.swatch_widget)
         self.swatch_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -199,7 +254,9 @@ class PaletteTab(QWidget):
         self.palette_tabs.addTab(swatch_scroll, "Dominant Colors")
 
         # Tab 2: Sampled Colors (Eyedropper)
-        sampled_scroll = QScrollArea(widgetResizable=True, frameShape=QFrame.Shape.NoFrame)
+        sampled_scroll = QScrollArea(
+            widgetResizable=True, frameShape=QFrame.Shape.NoFrame
+        )
         self.sampled_widget = QWidget()
         self.sampled_layout = QVBoxLayout(self.sampled_widget)
         self.sampled_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -218,20 +275,15 @@ class PaletteTab(QWidget):
         self.palette_tabs.addTab(sampled_tab_container, "Eyedropper Samples (0)")
         right_layout.addWidget(self.palette_tabs, stretch=1)
 
-        splitter.addWidget(right_box)
-        splitter.setStretchFactor(0, 5)
-        splitter.setStretchFactor(1, 5)
-
-        root.addWidget(splitter, stretch=1)
-
-        self.status_label = QLabel("Open an image to extract palettes or sample colors with the mouse.")
-        self.status_label.setStyleSheet(f"color: {resolved_palette()['muted']};")
-        root.addWidget(self.status_label)
+        return right_box
 
     def _open_image(self) -> None:
         path: str
         path, _ = QFileDialog.getOpenFileName(
-            self, "Open Image", "", "Images (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.gif)"
+            self,
+            "Open Image",
+            "",
+            "Images (*.png *.jpg *.jpeg *.webp *.bmp *.tiff *.gif)",
         )
         if not path:
             return
@@ -239,10 +291,15 @@ class PaletteTab(QWidget):
             self.current_img = Image.open(path)
             pixmap = QPixmap(path)
             scaled = pixmap.scaled(
-                400, 300, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation
+                400,
+                300,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
             )
             self.image_preview.set_image(self.current_img, scaled)
-            self.status_label.setText(f"Loaded: {path}  ({self.current_img.width} × {self.current_img.height})")
+            self.status_label.setText(
+                f"Loaded: {path}  ({self.current_img.width} × {self.current_img.height})"
+            )
             self._extract_palette()
         except Exception as exc:
             QMessageBox.critical(self, "Open Error", str(exc))
@@ -264,16 +321,25 @@ class PaletteTab(QWidget):
         self._last_hover_rgb = (r, g, b)
         self.hover_color_box.setStyleSheet(self._hover_box_stylesheet())
         self.hover_hex_lbl.setText(f"{hex_code} - {name}")
-        self.hover_rgb_lbl.setText(f"rgb({r}, {g}, {b}) - contrast {contrast:.2f}:1 vs white")
+        self.hover_rgb_lbl.setText(
+            f"rgb({r}, {g}, {b}) - contrast {contrast:.2f}:1 vs white"
+        )
         self.hover_coord_lbl.setText(f"Pixel: ({x}, {y})")
 
     def _on_color_clicked(self, r: int, g: int, b: int, x: int, y: int) -> None:
         hex_code: str = f"#{r:02X}{g:02X}{b:02X}"
-        swatch: palette_ops.ColorSwatch = palette_ops.ColorSwatch(hex_code=hex_code, rgb=(r, g, b), percentage=0.0, name=palette_ops.nearest_named_color((r, g, b)))
+        swatch: palette_ops.ColorSwatch = palette_ops.ColorSwatch(
+            hex_code=hex_code,
+            rgb=(r, g, b),
+            percentage=0.0,
+            name=palette_ops.nearest_named_color((r, g, b)),
+        )
         self.sampled_swatches.insert(0, swatch)
         self._render_sampled_swatches()
         self._copy_hex(hex_code)
-        self.status_label.setText(f"Sampled pixel ({x}, {y}): {hex_code} ({swatch.css_name}) (Copied to clipboard)")
+        self.status_label.setText(
+            f"Sampled pixel ({x}, {y}): {hex_code} ({swatch.css_name}) (Copied to clipboard)"
+        )
 
     def _render_swatches(self) -> None:
         while self.swatch_layout.count():
@@ -293,12 +359,16 @@ class PaletteTab(QWidget):
             if item.widget():
                 item.widget().deleteLater()
 
-        self.palette_tabs.setTabText(1, f"Eyedropper Samples ({len(self.sampled_swatches)})")
+        self.palette_tabs.setTabText(
+            1, f"Eyedropper Samples ({len(self.sampled_swatches)})"
+        )
         for swatch in self.sampled_swatches:
             row: QWidget = self._create_swatch_row(swatch, show_pct=False)
             self.sampled_layout.addWidget(row)
 
-    def _create_swatch_row(self, swatch: palette_ops.ColorSwatch, show_pct: bool = True) -> QWidget:
+    def _create_swatch_row(
+        self, swatch: palette_ops.ColorSwatch, show_pct: bool = True
+    ) -> QWidget:
         row: QWidget = QWidget()
         row_layout: QHBoxLayout = QHBoxLayout(row)
         row_layout.setContentsMargins(6, 3, 6, 3)
@@ -310,7 +380,9 @@ class PaletteTab(QWidget):
         swatch_btn = QPushButton()
         swatch_btn.setFixedSize(44, 44)
         border = palette["border"]
-        swatch_btn.setStyleSheet(f"background: {swatch.hex_code}; border: 2px solid {border}; border-radius: 6px;")
+        swatch_btn.setStyleSheet(
+            f"background: {swatch.hex_code}; border: 2px solid {border}; border-radius: 6px;"
+        )
         swatch_btn.setToolTip(copy_hex_tooltip(swatch.hex_code))
         swatch_btn.clicked.connect(lambda _=False, h=swatch.hex_code: self._copy_hex(h))
         row_layout.addWidget(swatch_btn)
@@ -320,23 +392,31 @@ class PaletteTab(QWidget):
         hex_label = QLabel(f"{swatch.hex_code} · {swatch.css_name}")
         hex_label.setStyleSheet(f"font-weight: 700; font-size: {scaled_font_pt(14)};")
         rgb_label = QLabel(swatch.rgb_str)
-        rgb_label.setStyleSheet(f"color: {palette['muted']}; font-size: {scaled_font_pt(11)};")
+        rgb_label.setStyleSheet(
+            f"color: {palette['muted']}; font-size: {scaled_font_pt(11)};"
+        )
         info.addWidget(hex_label)
         info.addWidget(rgb_label)
         if show_pct:
             pct_label = QLabel(f"{swatch.percentage}% of pixels")
-            pct_label.setStyleSheet(f"color: {palette['muted']}; font-size: {scaled_font_pt(11)};")
+            pct_label.setStyleSheet(
+                f"color: {palette['muted']}; font-size: {scaled_font_pt(11)};"
+            )
             info.addWidget(pct_label)
         row_layout.addLayout(info, stretch=1)
 
         copy_hex_btn = QPushButton("Hex")
         copy_hex_btn.setToolTip(get_tooltip_for("Copy Hex"))
         copy_hex_btn.setFixedWidth(44)
-        copy_hex_btn.clicked.connect(lambda _=False, h=swatch.hex_code: self._copy_hex(h))
+        copy_hex_btn.clicked.connect(
+            lambda _=False, h=swatch.hex_code: self._copy_hex(h)
+        )
         copy_rgb_btn = QPushButton("RGB")
         copy_rgb_btn.setToolTip(get_tooltip_for("Copy Hex"))
         copy_rgb_btn.setFixedWidth(44)
-        copy_rgb_btn.clicked.connect(lambda _=False, s=swatch: self._copy_hex(s.rgb_str))
+        copy_rgb_btn.clicked.connect(
+            lambda _=False, s=swatch: self._copy_hex(s.rgb_str)
+        )
         row_layout.addWidget(copy_hex_btn)
         row_layout.addWidget(copy_rgb_btn)
         return row
@@ -353,4 +433,6 @@ class PaletteTab(QWidget):
             return
         all_hex: str = ", ".join(s.hex_code for s in self.swatches)
         QGuiApplication.clipboard().setText(all_hex)
-        QMessageBox.information(self, "Copied", f"Copied {len(self.swatches)} hex codes to clipboard!")
+        QMessageBox.information(
+            self, "Copied", f"Copied {len(self.swatches)} hex codes to clipboard!"
+        )
