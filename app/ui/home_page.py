@@ -119,7 +119,7 @@ class AppTile(QFrame):
     favorite_changed = pyqtSignal(str)
     pin_changed = pyqtSignal(str)
 
-    def __init__(self, app: HomeApp, favorite: bool, pinned: bool, parent: Optional[QWidget] = None, theme_palette: Optional[dict[str, str]] = None) -> None:
+    def __init__(self, app: HomeApp, parent: Optional[QWidget] = None, theme_palette: Optional[dict[str, str]] = None) -> None:
         super().__init__(parent)
         self.app = app
         self.theme_palette = theme_palette or resolved_palette()
@@ -179,16 +179,12 @@ class AppTile(QFrame):
         layout.addLayout(text_col, stretch=1)
 
         controls = QVBoxLayout()
-        favorite_button = QPushButton("Unfavorite" if favorite else "Favorite")
-        favorite_button.setStyleSheet(f"font-size: {scaled_font_pt(11)}; color: {highlight if favorite else muted};")
-        favorite_button.setToolTip(get_tooltip_for("Unfavorite" if favorite else "Favorite"))
-        favorite_button.clicked.connect(lambda: self.favorite_changed.emit(app.id))
-        pin_button = QPushButton("Unpin" if pinned else "Pin")
-        pin_button.setStyleSheet(f"font-size: {scaled_font_pt(11)};")
-        pin_button.setToolTip(get_tooltip_for("Unpin" if pinned else "Pin"))
-        pin_button.clicked.connect(lambda: self.pin_changed.emit(app.id))
-        controls.addWidget(favorite_button, alignment=Qt.AlignmentFlag.AlignHCenter)
-        controls.addWidget(pin_button)
+        self.favorite_button = QPushButton()
+        self.favorite_button.clicked.connect(lambda: self.favorite_changed.emit(app.id))
+        self.pin_button = QPushButton()
+        self.pin_button.clicked.connect(lambda: self.pin_changed.emit(app.id))
+        controls.addWidget(self.favorite_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+        controls.addWidget(self.pin_button)
         layout.addLayout(controls)
 
         self.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -196,6 +192,18 @@ class AppTile(QFrame):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setAccessibleName(app.name)
         self.setToolTip(get_tooltip_for(app.name))
+
+    def set_favorite(self, favorite: bool) -> None:
+        self.favorite_button.setText("Unfavorite" if favorite else "Favorite")
+        highlight = self.theme_palette["accent"]
+        muted = self.theme_palette["muted"]
+        self.favorite_button.setStyleSheet(f"font-size: {scaled_font_pt(11)}; color: {highlight if favorite else muted};")
+        self.favorite_button.setToolTip(get_tooltip_for("Unfavorite" if favorite else "Favorite"))
+
+    def set_pinned(self, pinned: bool) -> None:
+        self.pin_button.setText("Unpin" if pinned else "Pin")
+        self.pin_button.setStyleSheet(f"font-size: {scaled_font_pt(11)};")
+        self.pin_button.setToolTip(get_tooltip_for("Unpin" if pinned else "Pin"))
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space) and self.app.available:
@@ -800,7 +808,9 @@ class HomePage(QWidget):
         layout.addWidget(label)
         tiles = []
         for app in apps:
-            tile = AppTile(app, app.id in self.favorites, app.id in self.pinned, theme_palette=self.theme_palette)
+            tile = AppTile(app, theme_palette=self.theme_palette)
+            tile.set_favorite(app.id in self.favorites)
+            tile.set_pinned(app.id in self.pinned)
             tile.open_requested.connect(self._on_workspace_requested)
             tile.favorite_changed.connect(self._toggle_favorite)
             tile.pin_changed.connect(self._toggle_pin)
