@@ -740,6 +740,28 @@ class WebApiTests(unittest.TestCase):
             bad_res = self.api.archive_snapshot({})
             self.assertFalse(bad_res.get("ok"))
 
+    def test_archive_incremental_backup_isolated(self) -> None:
+        # Test creating incremental backup archive
+        # and handling missing parameters error.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_dir = os.path.join(tmp_dir, "src")
+            os.makedirs(src_dir)
+            with open(os.path.join(src_dir, "test.txt"), "w", encoding="utf-8") as f:
+                f.write("data")
+            backup_dir = os.path.join(tmp_dir, "backup")
+            os.makedirs(backup_dir)
+
+            res = self.api.archive_incremental_backup({
+                "directory_path": src_dir,
+                "backup_dir": backup_dir,
+            })
+            self.assertTrue(res.get("ok"))
+            self.assertIn("archive_path", res)
+            self.assertTrue(os.path.exists(res["archive_path"]))
+
+            bad_res = self.api.archive_incremental_backup({})
+            self.assertFalse(bad_res.get("ok"))
+
     def test_data_api_json_and_csv_operations(self) -> None:
         # Test data formatting for JSON content
         # and converting CSV data into JSON format.
