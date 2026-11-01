@@ -396,6 +396,21 @@ class WebApiTests(unittest.TestCase):
             self.assertTrue(center_res.get("ok"))
             self.assertTrue(os.path.isfile(centered_path))
 
+    def test_converter_summary_isolated(self) -> None:
+        # Verify converter summary execution and error handling.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_png = os.path.join(tmp_dir, "test.png")
+            Image.new("RGB", (20, 20), color="red").save(src_png)
+
+            res = self.api.converter_summary(
+                {"file_path": src_png, "target_format": "PDF (Searchable)"}
+            )
+            self.assertTrue(res.get("ok"))
+            self.assertIn("invisible OCR text layer", res.get("summary", ""))
+
+            err_res = self.api.converter_summary({"file_path": src_png})
+            self.assertFalse(err_res.get("ok"))
+
     def test_converter_convert_file_isolated(self) -> None:
         # Verify single file conversion execution and error handling.
         # Ensure it works for valid formats and errors on missing files.
@@ -423,9 +438,7 @@ class WebApiTests(unittest.TestCase):
             with open(f_path, "w", encoding="utf-8") as f:
                 f.write("batch content")
 
-            params = {
-                "items": [{"input_path": f_path, "target_format": "md"}]
-            }
+            params = {"items": [{"input_path": f_path, "target_format": "md"}]}
             res = self.api.converter_batch_convert(params)
             self.assertTrue(res.get("ok"))
             self.assertIn("Converted 1 file", res.get("summary", ""))
