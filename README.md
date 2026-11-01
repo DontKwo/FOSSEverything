@@ -87,7 +87,6 @@ Platform behavior:
 | Markdown Editor | Side-by-side Markdown editing with live HTML rendering, table formatting, and document export. |
 | Color Palette | Extract dominant palettes using median-cut and K-means clustering. Live eyedropper pixel sampler with WCAG contrast ratios. |
 | Photo Collage | Arrange photos into custom grid templates with borders, cell padding, fit modes, and captions. |
-| Hash & Verify | Checksum calculation (SHA-256, SHA-512, MD5, BLAKE2). Generate and verify directory tree manifest files. |
 | Text Tools | Case transforms, text reversal, whitespace normalization, line deduplication, regex search, and side-by-side diffing. |
 | Encoding / Decoding | Encode and decode Base64, URL percent-encoding, HTML entities, hex strings, and byte representations. |
 

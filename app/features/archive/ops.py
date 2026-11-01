@@ -12,7 +12,13 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from app.features.hash.ops import hash_file
+def hash_file(path: str, algorithm: str = "sha256") -> str:
+    # Compute cryptographic file hash using standard library hashlib.
+    hasher = hashlib.new(algorithm)
+    with open(path, "rb") as f:
+        while chunk := f.read(65536):
+            hasher.update(chunk)
+    return hasher.hexdigest()
 
 
 def archive_format_for_path(path: str) -> str:

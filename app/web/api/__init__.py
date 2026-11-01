@@ -4,7 +4,6 @@ from app.web.api.tool_collage import CollageApiMixin
 from app.web.api.tool_converter import ConverterApiMixin
 from app.web.api.tool_data import DataApiMixin
 from app.web.api.tool_encoding import EncodingApiMixin
-from app.web.api.tool_hash import HashApiMixin
 from app.web.api.tool_images import ImagesApiMixin
 from app.web.api.tool_markdown import MarkdownApiMixin
 from app.web.api.tool_media import MediaApiMixin
@@ -31,7 +30,6 @@ class WebApi(
     ConverterApiMixin,
     DataApiMixin,
     EncodingApiMixin,
-    HashApiMixin,
     ImagesApiMixin,
     MarkdownApiMixin,
     MediaApiMixin,

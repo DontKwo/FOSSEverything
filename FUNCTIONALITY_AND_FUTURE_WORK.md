@@ -406,26 +406,6 @@ Conversions between inherently incompatible or lossy formats (such as flattening
 - **Calendar event export**: Save the Calendar Event payload directly as a standalone `.ics` file, not just as a QR payload.
 - **Print-ready label sheets**: Export any generated QR/barcode onto a physically accurate, print-ready multi-label PDF sheet using standard layout presets (e.g. Avery 5160/5163), auto-paginating for large batches.
 
-## Hash & Verify
-
-### Current functionality
-
-- Dedicated local Hash & Verify workspace, accessible from Home and search (`Ctrl+K`).
-- Hash any file using SHA-256, SHA-512, SHA-1, MD5, SHA-224, SHA-384, BLAKE2b, and BLAKE2s locally.
-- Hash arbitrary text strings with real-time live digest computation, including optional keyed HMAC generation.
-- Compare two files directly for identical checksums and verify keyed digests against expected values.
-- Multi-hash panel: compute all common algorithms simultaneously in a single pass.
-- Verify file integrity: compare computed file hash against an expected hash with clear pass/fail status.
-- **Recursive Directory Tree Hashing**:
-  - Recursively hash entire folder hierarchies with real-time progress and byte throughput tracking.
-  - Generate and export standard GNU/BSD checksum manifest files (`.sha256`, `.md5`, `checksums.txt`).
-- **Checksum Manifest Verification**:
-  - Open and verify any `.sha256` or `checksums.txt` manifest against local directories.
-  - Detailed verification table highlighting `PASS`, `FAILED`, and `MISSING` files.
-- **Manifest Diffing**: Compare two checksum manifests to report added, removed, and changed files with old/new hash values.
-- **Content Signing**: Generate a local Ed25519 signing keypair, sign any file (including a checksum manifest), and verify a signature against a file and public key.
-- **Policy-Based Verification Presets**: Verify a manifest against named policies (Quick Check, Standard Release, Signed Release, Compliance Archive) that combine an algorithm requirement with an optional mandatory signature check.
-- **Signature Timestamping & Trusted-Key Management**: Bind a local UTC timestamp and signer name into a signature (a local attestation, distinct from a third-party-notarized timestamp), verify both signature validity and whether the file has changed since signing, and maintain a local named keyring of trusted public keys for multi-party release workflows.
 
 ## Palette Extractor & Eyedropper
 

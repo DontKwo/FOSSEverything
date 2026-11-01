@@ -92,8 +92,6 @@ def main() -> None:
     for arg in args:
         if arg == "--ocr":
             target_mode = "ocr"
-        elif arg == "--hash":
-            target_mode = "hash"
         elif not arg.startswith("--") and os.path.exists(arg):
             target_path = os.path.abspath(arg)
 

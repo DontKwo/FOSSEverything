@@ -150,23 +150,7 @@ class WebApiTests(unittest.TestCase):
         enc_res = self.api.encoding_transform({"text": "hello", "method": "base64", "direction": "encode"})
         self.assertEqual(enc_res.get("result"), "aGVsbG8=")
 
-    def test_hash_and_data_operations(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            file_path = os.path.join(tmp_dir, "sample.txt")
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("abc")
-            h = self.api.compute_file_hash({"file_path": file_path, "algorithm": "sha256"})
-            sha256_val = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-            self.assertEqual(h.get("hash"), sha256_val)
-
-            v_res = self.api.verify_hash({"file_path": file_path, "expected_hash": sha256_val})
-            self.assertTrue(v_res.get("matches"))
-            self.assertEqual(v_res.get("algorithm"), "sha256")
-
-            man_res = self.api.generate_manifest({"directory_path": tmp_dir})
-            self.assertTrue(man_res.get("ok"))
-            self.assertEqual(man_res.get("count"), 1)
-
+    def test_data_operations(self) -> None:
         fmt_res = self.api.format_json({"content": '{"b":2,"a":1}', "indent": 2})
         self.assertTrue(fmt_res.get("ok"))
         self.assertIn('"a": 1', fmt_res["result"])
@@ -397,6 +381,28 @@ class WebApiTests(unittest.TestCase):
             strip_path = os.path.join(tmp_dir, "clean.pdf")
             strip_res = self.api.metadata_strip({"file_path": source, "output_path": strip_path})
             self.assertTrue(strip_res.get("ok"))
+
+
+
+
+def test_qr_generate_data_url_and_svg() -> None:
+    # Verify qr_generate returns valid base64 data URL and SVG.
+    api = WebApi()
+    res_b64 = api.qr_generate({"payload": "https://example.com"})
+    assert res_b64.get("ok") is True
+    assert str(res_b64.get("data_url", "")).startswith("data:image/png;base64,")
+
+    res_svg = api.qr_generate({"payload": "https://example.com", "format": "svg"})
+    assert res_svg.get("ok") is True
+    assert "<svg" in str(res_svg.get("svg", ""))
+
+
+def test_office_extract_text_missing_file() -> None:
+    # Verify graceful error handling when extracting missing office file.
+    api = WebApi()
+    res = api.office_extract_text({"file_path": "nonexistent_office_document.docx"})
+    assert res.get("ok") is False
+    assert "error" in res
 
 
 if __name__ == "__main__":

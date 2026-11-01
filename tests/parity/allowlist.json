@@ -37,7 +37,6 @@
   "app.features.converter.tab:ConverterTab": "Qt UI component ConverterTab replaced by pywebview implementation.",
   "app.features.data.tab:DataTab": "Qt UI component DataTab replaced by pywebview implementation.",
   "app.features.encoding.tab:EncodingTab": "Qt UI component EncodingTab replaced by pywebview implementation.",
-  "app.features.hash.tab:HashTab": "Qt UI component HashTab replaced by pywebview implementation.",
   "app.features.image.tab:ImageTab": "Qt UI component ImageTab replaced by pywebview implementation.",
   "app.features.markdown.tab:MarkdownTab": "Qt UI component MarkdownTab replaced by pywebview implementation.",
   "app.features.media.tab:MediaTab": "Qt UI component MediaTab replaced by pywebview implementation.",

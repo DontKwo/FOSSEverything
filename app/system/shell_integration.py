@@ -54,7 +54,7 @@ WORKSPACE_MODULE: dict[str, str] = {
     "media": "app.features.media.ops", "markdown": "app.features.markdown.ops",
     "word_counter": "app.features.word_counter.ops", "data": "app.features.data.ops",
     "model3d": "app.features.model3d.ops", "ocr": "app.features.ocr.ops",
-    "hash": "app.features.hash.ops", "converter": "app.features.converter.ops",
+    "converter": "app.features.converter.ops",
     "playlist": "app.features.playlist.ops",
 }
 
@@ -64,8 +64,6 @@ def resolve_workspace_id(file_path: str, force_mode: str | None = None) -> str:
     ext = os.path.splitext(file_path)[1].lower()
     if force_mode == "ocr" or ext == ".ocr":
         return "ocr"
-    if force_mode == "hash":
-        return "hash"
     if ext in PDF_EXTENSIONS:
         return "pdf"
     if ext in IMAGE_EXTENSIONS:

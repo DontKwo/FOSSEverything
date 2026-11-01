@@ -24,6 +24,11 @@ class OfficeApiMixin:
         return ok(text=text, metadata=meta, file_path=file_path)
 
     @api_method
+    def office_extract_text(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Alias for office text and metadata extraction.
+        return self.office_extract(params)
+
+    @api_method
     def office_docx_to_pdf(self, params: dict[str, Any]) -> dict[str, Any]:
         # Convert DOCX word processing document to PDF.
         require(params, "input_path")

@@ -46,6 +46,9 @@ class QrApiMixin:
         # Generate QR code bitmap with custom colors and optional embedded logo.
         require(params, "payload")
         payload = str(params["payload"])
+        fmt = str(params.get("format", "")).lower()
+        if fmt == "svg":
+            return self.qr_generate_svg(params)
         box_size = int(params.get("box_size", 10))
         border = int(params.get("border", 4))
         fill_color = str(params.get("fill_color", "#000000"))
@@ -74,8 +77,8 @@ class QrApiMixin:
 
         out_path = params.get("output_path")
         if out_path:
-            fmt = calc_ext_format(str(out_path))
-            save_qr_code(img, str(out_path), format=fmt)
+            out_fmt = calc_ext_format(str(out_path))
+            save_qr_code(img, str(out_path), format=out_fmt)
 
         buf = io.BytesIO()
         img.save(buf, format="PNG")
