@@ -41,16 +41,15 @@ if it already exists.
   Find a tool, fullscreen, text-size controls) from Settings > Keybindings,
   with per-shortcut reset-to-default and persistence across restarts.
 - **Keyboard-only Home tile navigation**: Home's app-tile grid is fully
-  focusable and keyboard-operable - Tab onto a tile, use the arrow keys to
+  focusable and keyboard-operable: Tab onto a tile, use the arrow keys to
   move between tiles in any direction, and press Enter/Space to open one,
   without touching the mouse.
-- **Keyboard-only annotation editing**: PDF Studio's and Image Studio's shared
-  annotation canvas supports Tab/Shift+Tab to cycle selection between
+- **Keyboard-only annotation editing**: PDF Studio and Image Studio
+  annotation canvases support Tab/Shift+Tab to cycle selection between
   annotations, arrow keys to nudge the selected annotation (Shift for a
   larger step), and Delete/Backspace to remove it, once annotations exist.
-  Drawing a brand-new freehand/shape annotation is still inherently a
-  pointer-driven action, since there's no meaningful keyboard equivalent to
-  "draw a shape at this location."
+  Drawing a new freehand or shape annotation remains pointer-driven
+  because freeform coordinate placement requires cursor positioning.
 
 ## PDF Studio
 
@@ -64,7 +63,7 @@ if it already exists.
   when available.
 - Select, move, resize, delete, undo, and redo annotations. Saving bakes them
   into a new PDF; redactions remove underlying marked content.
-- Visual Page Organizer: Reorder pages, rotate individual pages (90Â° CW/CCW),
+- Visual Page Organizer: Reorder pages, rotate individual pages (90 deg CW/CCW),
   duplicate pages, and delete pages in a dedicated visual manager.
 - PDF Security & Passwords: Encrypt PDFs with user/open passwords and owner
   passwords with granular permissions (printing). Unlock and remove password
@@ -77,7 +76,7 @@ if it already exists.
 - Export each PDF page to numbered PNG, JPEG, WEBP, or TIFF images at a chosen
   DPI.
 - **Text Watermarking**: Stamp a customizable diagonal text watermark on all or
-  selected PDF pages - configurable text, opacity, font size, color, and rotation
+  selected PDF pages: configurable text, opacity, font size, color, and rotation
   angle using PyMuPDF's Shape API with morph-based arbitrary rotation.
 - **Image Watermarking & Signatures**: Add image-based watermarks and signature
   stamps to document pages while preserving local-only file handling.
@@ -169,7 +168,7 @@ if it already exists.
 - Convert PDF pages to numbered PNG, JPEG, WEBP, or TIFF images; the chosen
   output filename becomes the page-name prefix.
 - Convert JSON, YAML, CSV, TOML, and INI among one another locally. Nested
-  data is rejected for CSV output rather than flattened into incorrect columns.
+  data is rejected for CSV output to prevent distortion of tabular columns.
 - Shows only source/target pairs backed by installed local code.
 - **Batch Conversion Queue**: Add multiple files to a queue, assign a target
   format globally or per-file, choose an output directory, and process the entire
@@ -207,9 +206,7 @@ if it already exists.
   export them) back into structured events locally, including folded-line and
   escaped-text handling.
 
-See [CONVERSION_CAPABILITIES.md](CONVERSION_CAPABILITIES.md) for the honest
-format/backend matrix and why some conversion pairs are inherently lossy,
-proprietary, DRM-protected, or not meaningful.
+Conversions between inherently incompatible or lossy formats (such as flattening vector graphics or stripping proprietary DRM protection) are rejected with clear status messages.
 
 ## Metadata Tools
 
@@ -435,7 +432,7 @@ proprietary, DRM-protected, or not meaningful.
 ### Current functionality
 
 - Dedicated local Palette Extractor & Eyedropper workspace, accessible from Home and search (`Ctrl+K`).
-- Open any image and extract its dominant color palette using Pillow's median-cut quantizer - fully offline, no network calls.
+- Open any image and extract its dominant color palette using Pillow's median-cut quantizer completely offline with zero network calls.
 - **Interactive Eyedropper Tool**: Hover or click directly on any pixel of the loaded image with the crosshair cursor.
 - Live pixel coordinate HUD showing Hex `#RRGGBB`, RGB `rgb(r, g, b)`, and position `(X, Y)`.
 - Dedicated **Eyedropper Samples** tab: Every clicked color is automatically added to a sampled palette with 1-click clipboard copy.
@@ -459,8 +456,8 @@ proprietary, DRM-protected, or not meaningful.
 - Custom per-cell background colors and rounded-corner masks for cleaner product,
   social, or board-style layouts.
 - Export the final collage to PNG, JPEG, or WEBP via a save-as dialog.
-- All compositing runs locally with Pillow - no file uploads.
-- **Preset layouts**: Side-by-side 2-up, triptych, Instagram grid (3×3), product grid (2×2), story strip (1×4), and wide panel (2×1) framing presets are available for faster composition choices with predefined aspect ratios and spacing.
+- All compositing runs locally with Pillow with zero file uploads.
+- **Preset layouts**: Side-by-side 2-up, triptych, Instagram grid (3x3), product grid (2x2), story strip (1x4), and wide panel (2x1) framing presets are available for faster composition choices with predefined aspect ratios and spacing.
 - **Reordering and watermarking**: Drag/drop image order is preserved for grid
   composition, and exported collages can include a subtle watermark stamp.
 
