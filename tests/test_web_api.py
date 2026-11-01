@@ -869,6 +869,23 @@ class WebApiTests(unittest.TestCase):
         self.assertTrue(url_dec.get("ok"))
         self.assertEqual(url_dec["result"], "hello world?")
 
+    def test_conversion_summary_isolated(self) -> None:
+        # Verify conversion summary provides descriptive text
+        # and correctly handles missing parameters.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f1 = os.path.join(tmp_dir, "test.pdf")
+            with open(f1, "w", encoding="utf-8") as f:
+                f.write("dummy pdf")
+
+            res = self.api.conversion_summary(
+                {"file_path": f1, "target_format": "DOCX"}
+            )
+            self.assertTrue(res.get("ok"))
+            self.assertIn("Word document", res.get("summary", ""))
+
+            bad_res = self.api.conversion_summary({"file_path": f1})
+            self.assertFalse(bad_res.get("ok"))
+
 
 if __name__ == "__main__":
     unittest.main()
