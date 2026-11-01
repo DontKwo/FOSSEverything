@@ -751,16 +751,31 @@ class WebApiTests(unittest.TestCase):
             backup_dir = os.path.join(tmp_dir, "backup")
             os.makedirs(backup_dir)
 
-            res = self.api.archive_incremental_backup({
-                "directory_path": src_dir,
-                "backup_dir": backup_dir,
-            })
+            res = self.api.archive_incremental_backup(
+                {
+                    "directory_path": src_dir,
+                    "backup_dir": backup_dir,
+                }
+            )
             self.assertTrue(res.get("ok"))
             self.assertIn("archive_path", res)
             self.assertTrue(os.path.exists(res["archive_path"]))
 
             bad_res = self.api.archive_incremental_backup({})
             self.assertFalse(bad_res.get("ok"))
+
+    def test_archive_presets_isolated(self) -> None:
+        # Verify preset loading returns a valid non-empty list
+        # containing required configuration keys for each preset.
+        res = self.api.archive_presets({})
+        self.assertTrue(res.get("ok"))
+        presets = res.get("presets", [])
+        self.assertGreater(len(presets), 0)
+        self.assertIn("id", presets[0])
+        self.assertIn("format", presets[0])
+
+        bad_res = self.api.archive_presets({}, invalid_kwarg=True)
+        self.assertFalse(bad_res.get("ok"))
 
     def test_data_api_json_and_csv_operations(self) -> None:
         # Test data formatting for JSON content
