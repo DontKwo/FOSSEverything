@@ -222,7 +222,7 @@
 .split {
   display: grid;
   grid-template-columns: var(--split-left, minmax(18rem, 26rem)) minmax(0, 1fr);
-  gap: var(--space-5);
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -230,9 +230,14 @@
   grid-template-columns: var(--split-left, minmax(0, 1fr)) minmax(0, 1fr);
 }
 
-@container (max-width: 56rem) {
+.split.split-main-first {
+  grid-template-columns: minmax(0, 1fr) var(--split-right, minmax(18rem, 26rem));
+}
+
+@container (max-width: 42rem) {
   .split,
-  .split.even {
+  .split.even,
+  .split.split-main-first {
     grid-template-columns: minmax(0, 1fr);
   }
 }

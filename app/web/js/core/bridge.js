@@ -25,24 +25,42 @@ window.FOSS = window.FOSS || {};
     return readyPromise;
   }
 
+  function resolveMethod(name) {
+    return waitForReady().then(function () {
+      if (window.pywebview && window.pywebview.api && typeof window.pywebview.api[name] === "function") {
+        return window.pywebview.api[name];
+      }
+      return new Promise(function (resolve, reject) {
+        var elapsed = 0;
+        var timer = setInterval(function () {
+          if (window.pywebview && window.pywebview.api && typeof window.pywebview.api[name] === "function") {
+            clearInterval(timer);
+            resolve(window.pywebview.api[name]);
+            return;
+          }
+          elapsed += 40;
+          if (elapsed >= 2000) {
+            clearInterval(timer);
+            reject(new Error("API method not available: " + name));
+          }
+        }, 40);
+      });
+    });
+  }
+
   function api(name, params) {
     var p = params || {};
-    return waitForReady().then(function () {
-      if (!window.pywebview || !window.pywebview.api || typeof window.pywebview.api[name] !== "function") {
-        var err = "API method not available: " + name;
-        if (window.FOSS.toast) window.FOSS.toast.show(err, "error");
-        return { ok: false, error: err };
-      }
-      return window.pywebview.api[name](p).then(function (res) {
+    return resolveMethod(name).then(function (fn) {
+      return fn(p).then(function (res) {
         if (res && res.ok === false && res.error) {
           if (window.FOSS.toast) window.FOSS.toast.show(res.error, "error");
         }
         return res;
-      }).catch(function (exc) {
-        var msg = exc && exc.message ? exc.message : String(exc);
-        if (window.FOSS.toast) window.FOSS.toast.show(msg, "error");
-        return { ok: false, error: msg };
       });
+    }).catch(function (exc) {
+      var msg = exc && exc.message ? exc.message : String(exc);
+      if (window.FOSS.toast) window.FOSS.toast.show(msg, "error");
+      return { ok: false, error: msg };
     });
   }
 

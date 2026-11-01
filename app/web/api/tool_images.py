@@ -50,11 +50,11 @@ def calc_color_tuple(color_val: Any) -> tuple[int, int, int]:
     # Parse color value to 3-tuple RGB channels.
     if isinstance(color_val, (list, tuple)) and len(color_val) >= 3:
         return (int(color_val[0]), int(color_val[1]), int(color_val[2]))
-    val = str(color_val).strip().lstrip("#")
-    if len(val) == 3:
-        val = "".join(c * 2 for c in val)
-    if len(val) == 6:
-        return (int(val[0:2], 16), int(val[2:4], 16), int(val[4:6], 16))
+    clean_hex = str(color_val).strip().lstrip("#")
+    if len(clean_hex) == 3:
+        clean_hex = "".join(char_code * 2 for char_code in clean_hex)
+    if len(clean_hex) == 6:
+        return (int(clean_hex[0:2], 16), int(clean_hex[2:4], 16), int(clean_hex[4:6], 16))
     return (255, 255, 255)
 
 
@@ -413,3 +413,19 @@ class ImagesApiMixin:
         require(params, "file_path")
         text = ocr_image(str(params["file_path"]), language=str(params.get("language", "eng")))
         return ok(text=text)
+
+    @api_method
+    def images_compress(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Compress image file with specified quality.
+        require(params, "file_path", "output_path")
+        file_path = str(params["file_path"])
+        output_path = str(params["output_path"])
+        quality = int(params.get("quality", 80))
+        img = _calc_load_img(file_path)
+        save_image(img, output_path, quality=quality, compress_well=True)
+        return ok(output_path=output_path)
+
+    @api_method
+    def image_compress(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Alias for image compression.
+        return self.images_compress(params)

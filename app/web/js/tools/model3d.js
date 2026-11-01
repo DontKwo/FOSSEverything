@@ -156,8 +156,8 @@ window.FOSS = window.FOSS || {};
     var showMeasure = !!options.showMeasure;
 
     var container = window.FOSS.dom.el("div", {
-      className: "card flex-col",
-      style: "width: 100%; height: 100%; min-height: 480px; position: relative; padding: 0; overflow: hidden; background: var(--bg-surface-sunken);"
+      className: "model3d-viewport-container flex-col",
+      style: "width: 100%; height: 100%; min-height: 480px; position: relative; padding: 0; overflow: hidden; background: var(--bg-surface-sunken); border-radius: var(--radius-md); border: 1px solid var(--border);"
     });
 
     var canvas = window.FOSS.dom.el("canvas", {
@@ -1160,8 +1160,8 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var sidebar = window.FOSS.dom.el("div", {
-      className: "flex-col gap-sm",
-      style: "flex: 1 1 45%; min-width: 320px;"
+      className: "model3d-sidebar panel flex-col gap-sm",
+      style: "width: 100%; max-height: calc(100vh - 12rem); overflow-y: auto;"
     }, [
       controlsRow,
       infoCard,
@@ -1170,10 +1170,13 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var layoutRow = window.FOSS.dom.el("div", {
-      className: "row gap-md items-start",
-      style: "display: flex; flex-wrap: wrap; width: 100%;"
+      className: "split split-main-first",
+      style: "width: 100%; min-height: 520px; align-items: stretch;"
     }, [
-      window.FOSS.dom.el("div", { style: "flex: 1 1 50%; min-width: 360px;" }, [viewport.el]),
+      window.FOSS.dom.el("div", {
+        className: "model3d-viewport-wrapper",
+        style: "width: 100%; height: 100%; min-height: 480px; position: relative;"
+      }, [viewport.el]),
       sidebar
     ]);
 
@@ -1560,8 +1563,8 @@ window.FOSS = window.FOSS || {};
     });
 
     var sidebar = window.FOSS.dom.el("div", {
-      className: "flex-col gap-sm",
-      style: "flex: 1 1 45%; min-width: 320px;"
+      className: "model3d-sidebar panel flex-col gap-sm",
+      style: "width: 100%; max-height: calc(100vh - 12rem); overflow-y: auto;"
     }, [
       picker.el,
       window.FOSS.dom.el("div", { className: "row gap-xs mb-sm" }, [pickOriginBtn, useViewDirBtn]),
@@ -1575,10 +1578,13 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var layoutRow = window.FOSS.dom.el("div", {
-      className: "row gap-md items-start",
-      style: "display: flex; flex-wrap: wrap; width: 100%;"
+      className: "split split-main-first",
+      style: "width: 100%; min-height: 520px; align-items: stretch;"
     }, [
-      window.FOSS.dom.el("div", { style: "flex: 1 1 50%; min-width: 360px;" }, [viewport.el]),
+      window.FOSS.dom.el("div", {
+        className: "model3d-viewport-wrapper",
+        style: "width: 100%; height: 100%; min-height: 480px; position: relative;"
+      }, [viewport.el]),
       sidebar
     ]);
 
@@ -1652,7 +1658,8 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.dom.el("span", { text: "Export 3D Model" })]);
 
     var sidebar = window.FOSS.dom.el("div", {
-      style: "flex: 1 1 45%; min-width: 300px;"
+      className: "model3d-sidebar panel flex-col gap-sm",
+      style: "width: 100%;"
     }, [
       window.FOSS.dom.el("div", { className: "card mb-md" }, [
         window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "Export Format" }),
@@ -1662,10 +1669,13 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var layoutRow = window.FOSS.dom.el("div", {
-      className: "row gap-md items-start",
-      style: "display: flex; flex-wrap: wrap; width: 100%;"
+      className: "split split-main-first",
+      style: "width: 100%; min-height: 520px; align-items: stretch;"
     }, [
-      window.FOSS.dom.el("div", { style: "flex: 1 1 50%; min-width: 360px;" }, [viewport.el]),
+      window.FOSS.dom.el("div", {
+        className: "model3d-viewport-wrapper",
+        style: "width: 100%; height: 100%; min-height: 480px; position: relative;"
+      }, [viewport.el]),
       sidebar
     ]);
 

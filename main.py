@@ -34,12 +34,12 @@ def calc_initial_window_size() -> tuple[int, int]:
         screens = webview.screens
         if screens:
             scr = screens[0]
-            win_w = min(1400, max(800, int(scr.width * 0.85)))
-            win_h = min(900, max(600, int(scr.height * 0.85)))
+            win_w = min(1160, max(760, int(scr.width * 0.65)))
+            win_h = min(760, max(560, int(scr.height * 0.70)))
             return win_w, win_h
     except Exception:  # noqa: 10
         pass
-    return 1320, 880
+    return 1120, 720
 
 
 def calc_app_base_dir() -> Path:
@@ -118,7 +118,7 @@ def main() -> None:
         js_api=api,
         width=win_w,
         height=win_h,
-        min_size=(800, 600),
+        min_size=(760, 540),
         background_color=bg_color,
         text_select=True,
         hidden=is_selftest,

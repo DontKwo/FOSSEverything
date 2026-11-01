@@ -278,16 +278,25 @@ class BaseApi:
     @api_method
     def write_text_file(self, params: dict[str, Any]) -> dict[str, Any]:
         # Write text content to given file path.
-        require(params, "file_path", "content")
-        p = Path(params["file_path"])
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(params["content"], encoding="utf-8")
-        self._record_recent("recent_outputs", str(p))
-        return ok(file_path=str(p.resolve()))
+        target_path_str = params.get("file_path") or params.get("path")
+        if not target_path_str:
+            return fail("Missing required parameter: file_path or path")
+        require(params, "content")
+        target_path = Path(str(target_path_str))
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text(params["content"], encoding="utf-8")
+        self._record_recent("recent_outputs", str(target_path))
+        resolved_path = str(target_path.resolve())
+        return ok(file_path=resolved_path, path=resolved_path)
 
     @api_method
     def save_file(self, params: dict[str, Any]) -> dict[str, Any]:
         # Alias for writing text content.
+        return self.write_text_file(params)
+
+    @api_method
+    def save_file_text(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Alias for saving text file.
         return self.write_text_file(params)
 
     @api_method

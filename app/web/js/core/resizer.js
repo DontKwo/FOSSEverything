@@ -1,4 +1,4 @@
-// Universal box resizer allowing panels and cards to be dragged and resized at will.
+// Universal box resizer allowing panels and splits to be dragged and resized at will.
 window.FOSS = window.FOSS || {};
 
 (function () {
@@ -17,7 +17,7 @@ window.FOSS = window.FOSS || {};
     if (raw.closest("button, input, textarea, select, a, label, [role='button'], [role='tab']")) {
       return null;
     }
-    return raw.closest(".card, .panel, .model3d-canvas-container, .sidebar, .split > :first-child, .resize-handle-e");
+    return raw.closest(".split > *, .workbench > *, .sidebar, .panel, .tool-sidebar, .model3d-sidebar, .resizable, .resize-handle-e");
   }
 
   function detectEdge(el, e) {
@@ -26,14 +26,23 @@ window.FOSS = window.FOSS || {};
     var x = e.clientX;
     var y = e.clientY;
 
-    if (el.classList.contains("sidebar")) {
+    if (el.classList.contains("sidebar") || el.classList.contains("resize-handle-e")) {
       if (Math.abs(x - rect.right) <= M) return "sidebar";
       return null;
     }
 
-    var isSplitChild = el.parentElement && el.parentElement.classList.contains("split");
-    if (isSplitChild) {
-      if (Math.abs(x - rect.right) <= M) return "split";
+    var parent = el.parentElement;
+    if (parent && parent.classList.contains("split")) {
+      var isMainFirst = parent.classList.contains("split-main-first");
+      if (el === parent.firstElementChild) {
+        if (Math.abs(x - rect.right) <= M) {
+          return isMainFirst ? "split-right" : "split-left";
+        }
+      } else if (el === parent.lastElementChild) {
+        if (Math.abs(x - rect.left) <= M) {
+          return isMainFirst ? "split-right" : "split-left";
+        }
+      }
     }
 
     var nearL = Math.abs(x - rect.left) <= M;
@@ -54,7 +63,7 @@ window.FOSS = window.FOSS || {};
 
   function getCursor(edge) {
     if (!edge) return "";
-    if (edge === "sidebar" || edge === "split" || edge === "e" || edge === "w") return "ew-resize";
+    if (edge === "sidebar" || edge === "split-left" || edge === "split-right" || edge === "e" || edge === "w") return "ew-resize";
     if (edge === "n" || edge === "s") return "ns-resize";
     if (edge === "nw" || edge === "se") return "nwse-resize";
     if (edge === "ne" || edge === "sw") return "nesw-resize";
@@ -74,16 +83,32 @@ window.FOSS = window.FOSS || {};
         return;
       }
 
-      if (edge === "split") {
-        var sw = Math.max(180, Math.min(window.innerWidth - 300, activeDrag.startW + dx));
-        if (el.parentElement) {
-          el.parentElement.style.setProperty("--split-left", sw + "px");
+      if (edge === "split-left") {
+        var parentEl = el.parentElement;
+        if (parentEl) {
+          var parentRect = parentEl.getBoundingClientRect();
+          var sw = Math.max(180, Math.min(parentRect.width - 200, e.clientX - parentRect.left));
+          parentEl.style.setProperty("--split-left", sw + "px");
         }
         return;
       }
 
+      if (edge === "split-right") {
+        var parentEl2 = el.parentElement;
+        if (parentEl2) {
+          var parentRect2 = parentEl2.getBoundingClientRect();
+          var rw = Math.max(180, Math.min(parentRect2.width - 200, parentRect2.right - e.clientX));
+          parentEl2.style.setProperty("--split-right", rw + "px");
+        }
+        return;
+      }
+
+      var parentW = el.parentElement ? el.parentElement.clientWidth : window.innerWidth;
+      var maxW = Math.max(180, parentW - 24);
+      var parentH = el.parentElement ? el.parentElement.clientHeight : window.innerHeight;
+      var maxH = Math.max(120, Math.max(parentH, 400));
+
       if (edge.indexOf("e") !== -1) {
-        var maxW = Math.max(300, window.innerWidth - 60);
         var nw = Math.min(maxW, Math.max(140, activeDrag.startW + dx));
         el.style.setProperty("width", nw + "px");
         el.style.setProperty("max-width", "none");
@@ -96,7 +121,6 @@ window.FOSS = window.FOSS || {};
       }
 
       if (edge.indexOf("s") !== -1) {
-        var maxH = Math.max(200, window.innerHeight - 60);
         var nh = Math.min(maxH, Math.max(60, activeDrag.startH + dy));
         el.style.setProperty("height", nh + "px");
         el.style.setProperty("min-height", nh + "px");
@@ -160,4 +184,3 @@ window.FOSS = window.FOSS || {};
     init: init
   };
 })();
-
