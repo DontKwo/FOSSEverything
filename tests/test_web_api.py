@@ -840,6 +840,18 @@ class WebApiTests(unittest.TestCase):
         self.assertTrue(c_res.get("ok"))
         self.assertIn('"a": "1"', c_res["result"])
 
+    def test_convert_data_format_isolated(self) -> None:
+        # Test data conversion via convert_data_format alias
+        # covering success cases and parameter errors.
+        res = self.api.convert_data_format(
+            {"content": '{"a": 1}', "source_format": "json", "target_format": "yaml"}
+        )
+        self.assertTrue(res.get("ok"))
+        self.assertIn("a: 1", res.get("result", ""))
+
+        err_res = self.api.convert_data_format({"content": '{"a": 1}'})
+        self.assertFalse(err_res.get("ok"))
+
     def test_collage_presets_isolated(self) -> None:
         # Verify collage preset loading returns presets and handles
         # invalid keyword arguments smoothly via exception catch.
