@@ -409,19 +409,20 @@ def save_ocr_text(
     """Save extracted OCR text to a .txt or .md file."""
     page_texts = ocr_result.get("page_texts", [ocr_result.get("text", "")])
 
+    parts = []
+    if as_markdown:
+        parts.append("# OCR Extracted Document\n\n")
+        for idx, pt in enumerate(page_texts, start=1):
+            parts.extend((f"## Page {idx}\n\n", pt, "\n\n---\n\n"))
+    else:
+        multipage = len(page_texts) > 1
+        for idx, pt in enumerate(page_texts, start=1):
+            if multipage:
+                parts.append(f"=== Page {idx} ===\n\n")
+            parts.extend((pt, "\n\n"))
+
     with open(output_path, "w", encoding="utf-8") as f:
-        if as_markdown:
-            f.write("# OCR Extracted Document\n\n")
-            for idx, pt in enumerate(page_texts, start=1):
-                f.write(f"## Page {idx}\n\n")
-                f.write(pt)
-                f.write("\n\n---\n\n")
-        else:
-            for idx, pt in enumerate(page_texts, start=1):
-                if len(page_texts) > 1:
-                    f.write(f"=== Page {idx} ===\n\n")
-                f.write(pt)
-                f.write("\n\n")
+        f.write("".join(parts))
 
     return output_path
 
