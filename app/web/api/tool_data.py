@@ -55,7 +55,6 @@ class DataApiMixin:
             str(params["content"]),
             str(params["source_format"]),
             str(params["target_format"]),
-            indent=int(params.get("indent", 2)),
         )
         return ok(result=res)
 
@@ -97,7 +96,11 @@ class DataApiMixin:
     def format_json(self, params: dict[str, Any]) -> dict[str, Any]:
         # Format JSON text.
         require(params, "content")
-        return ok(result=format_json(str(params["content"]), indent=int(params.get("indent", 2))))
+        return ok(
+            result=format_json(
+                str(params["content"]), indent=int(params.get("indent", 2))
+            )
+        )
 
     @api_method
     def format_sql(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -109,7 +112,11 @@ class DataApiMixin:
     def format_css(self, params: dict[str, Any]) -> dict[str, Any]:
         # Format CSS stylesheet string.
         require(params, "content")
-        return ok(result=format_css(str(params["content"]), indent=int(params.get("indent", 2))))
+        return ok(
+            result=format_css(
+                str(params["content"]), indent=int(params.get("indent", 2))
+            )
+        )
 
     @api_method
     def format_javascript(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -126,13 +133,21 @@ class DataApiMixin:
     def format_xml(self, params: dict[str, Any]) -> dict[str, Any]:
         # Format XML document string.
         require(params, "content")
-        return ok(result=format_xml(str(params["content"]), indent=int(params.get("indent", 2))))
+        return ok(
+            result=format_xml(
+                str(params["content"]), indent=int(params.get("indent", 2))
+            )
+        )
 
     @api_method
     def format_yaml(self, params: dict[str, Any]) -> dict[str, Any]:
         # Format YAML document string.
         require(params, "content")
-        return ok(result=format_yaml(str(params["content"]), indent=int(params.get("indent", 2))))
+        return ok(
+            result=format_yaml(
+                str(params["content"]), indent=int(params.get("indent", 2))
+            )
+        )
 
     @api_method
     def data_minify_code(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -165,7 +180,9 @@ class DataApiMixin:
     def data_validate_syntax(self, params: dict[str, Any]) -> dict[str, Any]:
         # Validate syntax of data formats (json, yaml, xml, toml, csv, sql).
         require(params, "content", "format")
-        valid, msg, line = validate_syntax(str(params["content"]), str(params["format"]))
+        valid, msg, line = validate_syntax(
+            str(params["content"]), str(params["format"])
+        )
         return ok(valid=valid, message=msg, line=line)
 
     @api_method
@@ -190,7 +207,9 @@ class DataApiMixin:
     def data_infer_schema(self, params: dict[str, Any]) -> dict[str, Any]:
         # Infer JSON schema definition from JSON instance data.
         require(params, "content")
-        schema = infer_json_schema(str(params["content"]), title=str(params.get("title", "Root")))
+        schema = infer_json_schema(
+            str(params["content"]), title=str(params.get("title", "Root"))
+        )
         return ok(schema=schema)
 
     @api_method
@@ -202,7 +221,11 @@ class DataApiMixin:
     def data_convert_units(self, params: dict[str, Any]) -> dict[str, Any]:
         # Convert numerical values between physical measurement units.
         require(params, "value", "source_unit", "target_unit")
-        res = convert_units(float(params["value"]), str(params["source_unit"]), str(params["target_unit"]))
+        res = convert_units(
+            float(params["value"]),
+            str(params["source_unit"]),
+            str(params["target_unit"]),
+        )
         return ok(result=res)
 
     @api_method
@@ -254,7 +277,9 @@ class DataApiMixin:
         output_path = str(params["output_path"])
         slice_spec = str(params.get("slice_spec", ":"))
         out_format = str(params.get("format", "csv"))
-        res = export_hdf5_slice(file_path, dataset_path, slice_spec, output_path, out_format)
+        res = export_hdf5_slice(
+            file_path, dataset_path, slice_spec, output_path, out_format
+        )
         return ok(**res)
 
     @api_method
@@ -273,24 +298,67 @@ class DataApiMixin:
         custom_alphabet = params.get("custom_alphabet")
 
         if category == "hex":
+
             def make_hex() -> str:
                 return secrets.token_hex((length + 1) // 2)[:length]
+
             values = [make_hex() for _ in range(count)]
-            return ok(value=values[0] if count <= 1 else values, values=values, count=count)
+            return ok(
+                value=values[0] if count <= 1 else values, values=values, count=count
+            )
 
         if category == "lorem":
             words = [
-                "lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing", "elit",
-                "sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore", "et", "dolore",
-                "magna", "aliqua", "enim", "ad", "minim", "veniam", "quis", "nostrud",
-                "exercitation", "ullamco", "laboris", "nisi", "aliquip", "ex", "ea", "commodo",
-                "consequat", "duis", "aute", "irure", "in", "reprehenderit", "voluptate",
+                "lorem",
+                "ipsum",
+                "dolor",
+                "sit",
+                "amet",
+                "consectetur",
+                "adipiscing",
+                "elit",
+                "sed",
+                "do",
+                "eiusmod",
+                "tempor",
+                "incididunt",
+                "ut",
+                "labore",
+                "et",
+                "dolore",
+                "magna",
+                "aliqua",
+                "enim",
+                "ad",
+                "minim",
+                "veniam",
+                "quis",
+                "nostrud",
+                "exercitation",
+                "ullamco",
+                "laboris",
+                "nisi",
+                "aliquip",
+                "ex",
+                "ea",
+                "commodo",
+                "consequat",
+                "duis",
+                "aute",
+                "irure",
+                "in",
+                "reprehenderit",
+                "voluptate",
             ]
+
             def make_lorem() -> str:
                 chosen = [random.choice(words) for _ in range(max(4, length))]
                 return " ".join(chosen).capitalize() + "."
+
             values = [make_lorem() for _ in range(count)]
-            return ok(value=values[0] if count <= 1 else values, values=values, count=count)
+            return ok(
+                value=values[0] if count <= 1 else values, values=values, count=count
+            )
 
         random_val = generate_random_value(
             category,
@@ -314,7 +382,9 @@ class DataApiMixin:
         text = str(params["text"])
         advanced = bool(params.get("advanced", False))
         if advanced and languagetool_backend_available():
-            matches = grammar_check_text_advanced(text, language=str(params.get("language", "en-US")))
+            matches = grammar_check_text_advanced(
+                text, language=str(params.get("language", "en-US"))
+            )
         else:
             matches = grammar_check_text(text)
         return ok(matches=matches, lt_available=languagetool_backend_available())
@@ -367,8 +437,13 @@ class DataApiMixin:
         require(params, "content")
         raw_del = str(params.get("delimiter", ","))
         delimiter_map = {
-            "tab": "\t", "\\t": "\t", "pipe": "|", "comma": ",",
-            "semicolon": ";", "colon": ":", "space": " ",
+            "tab": "\t",
+            "\\t": "\t",
+            "pipe": "|",
+            "comma": ",",
+            "semicolon": ";",
+            "colon": ":",
+            "space": " ",
         }
         delim = delimiter_map.get(raw_del.lower(), raw_del)
         tbl = csv_to_markdown_table(
@@ -384,8 +459,13 @@ class DataApiMixin:
         require(params, "content")
         raw_del = str(params.get("delimiter", ","))
         delimiter_map = {
-            "tab": "\t", "\\t": "\t", "pipe": "|", "comma": ",",
-            "semicolon": ";", "colon": ":", "space": " ",
+            "tab": "\t",
+            "\\t": "\t",
+            "pipe": "|",
+            "comma": ",",
+            "semicolon": ";",
+            "colon": ":",
+            "space": " ",
         }
         delim = delimiter_map.get(raw_del.lower(), raw_del)
         include_header = bool(params.get("include_header", True))
@@ -398,7 +478,9 @@ class DataApiMixin:
         headers = list(rows[0].keys())
         buf = io.StringIO()
         quoting = csv.QUOTE_MINIMAL if quote_char else csv.QUOTE_NONE
-        writer = csv.writer(buf, delimiter=delim, quotechar=quote_char or '"', quoting=quoting)
+        writer = csv.writer(
+            buf, delimiter=delim, quotechar=quote_char or '"', quoting=quoting
+        )
         if include_header:
             writer.writerow(headers)
         for r in rows:
@@ -410,15 +492,26 @@ class DataApiMixin:
         # Convert delimited text from one separator to another.
         require(params, "content", "from_delimiter", "to_delimiter")
         del_map = {
-            "tab": "\t", "\\t": "\t", "pipe": "|", "comma": ",",
-            "semicolon": ";", "colon": ":", "space": " ",
+            "tab": "\t",
+            "\\t": "\t",
+            "pipe": "|",
+            "comma": ",",
+            "semicolon": ";",
+            "colon": ":",
+            "space": " ",
         }
-        src_del = del_map.get(str(params["from_delimiter"]).lower(), str(params["from_delimiter"]))
-        tgt_del = del_map.get(str(params["to_delimiter"]).lower(), str(params["to_delimiter"]))
+        src_del = del_map.get(
+            str(params["from_delimiter"]).lower(), str(params["from_delimiter"])
+        )
+        tgt_del = del_map.get(
+            str(params["to_delimiter"]).lower(), str(params["to_delimiter"])
+        )
         quote_char = str(params.get("quote_char", '"'))
 
         content = str(params["content"])
-        reader = csv.reader(io.StringIO(content), delimiter=src_del, quotechar=quote_char or '"')
+        reader = csv.reader(
+            io.StringIO(content), delimiter=src_del, quotechar=quote_char or '"'
+        )
         buf = io.StringIO()
         writer = csv.writer(buf, delimiter=tgt_del, quotechar=quote_char or '"')
         for row in reader:
@@ -436,8 +529,16 @@ class DataApiMixin:
     def data_diff_schema(self, params: dict[str, Any]) -> dict[str, Any]:
         # Diff two JSON schemas and return structural differences.
         require(params, "base_schema", "candidate_schema")
-        base = json.loads(params["base_schema"]) if isinstance(params["base_schema"], str) else params["base_schema"]
-        cand = json.loads(params["candidate_schema"]) if isinstance(params["candidate_schema"], str) else params["candidate_schema"]
+        base = (
+            json.loads(params["base_schema"])
+            if isinstance(params["base_schema"], str)
+            else params["base_schema"]
+        )
+        cand = (
+            json.loads(params["candidate_schema"])
+            if isinstance(params["candidate_schema"], str)
+            else params["candidate_schema"]
+        )
         overrides = params.get("overrides")
         res = diff_json_schema(base, cand, overrides=overrides)
         return ok(**res)
@@ -446,8 +547,16 @@ class DataApiMixin:
     def data_validate_against_schema(self, params: dict[str, Any]) -> dict[str, Any]:
         # Validate data object against provided JSON schema.
         require(params, "content", "schema")
-        data = json.loads(params["content"]) if isinstance(params["content"], str) else params["content"]
-        schema = json.loads(params["schema"]) if isinstance(params["schema"], str) else params["schema"]
+        data = (
+            json.loads(params["content"])
+            if isinstance(params["content"], str)
+            else params["content"]
+        )
+        schema = (
+            json.loads(params["schema"])
+            if isinstance(params["schema"], str)
+            else params["schema"]
+        )
         res = validate_against_schema(data, schema)
         return ok(**res)
 
