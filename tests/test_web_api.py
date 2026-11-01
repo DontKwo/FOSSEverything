@@ -886,6 +886,22 @@ class WebApiTests(unittest.TestCase):
             bad_res = self.api.conversion_summary({"file_path": f1})
             self.assertFalse(bad_res.get("ok"))
 
+    def test_converter_export_enex_isolated(self) -> None:
+        # Verify successful export of notes to ENEX XML format,
+        # ensuring output file exists and edge cases are handled.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_path = os.path.join(tmp_dir, "export.enex")
+            notes = [{"title": "Note 1", "content": "Content 1", "tags": ["tag1"]}]
+
+            res = self.api.converter_export_enex(
+                {"notes": notes, "output_path": out_path}
+            )
+            self.assertTrue(res.get("ok"))
+            self.assertTrue(os.path.exists(out_path))
+
+            bad_res = self.api.converter_export_enex({"notes": notes})
+            self.assertFalse(bad_res.get("ok"))
+
 
 if __name__ == "__main__":
     unittest.main()
