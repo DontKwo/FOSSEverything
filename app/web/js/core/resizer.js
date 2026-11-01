@@ -83,23 +83,23 @@ window.FOSS = window.FOSS || {};
       }
 
       if (edge.indexOf("e") !== -1) {
-        var nw = Math.max(140, activeDrag.startW + dx);
+        var nw = Math.min(window.innerWidth, Math.max(140, activeDrag.startW + dx));
         el.style.setProperty("width", nw + "px");
         el.style.setProperty("max-width", "none");
         el.style.setProperty("flex", "0 0 " + nw + "px");
       } else if (edge.indexOf("w") !== -1) {
-        var nw2 = Math.max(140, activeDrag.startW - dx);
+        var nw2 = Math.min(activeDrag.startRect.right, Math.max(140, activeDrag.startW - dx));
         el.style.setProperty("width", nw2 + "px");
         el.style.setProperty("max-width", "none");
         el.style.setProperty("flex", "0 0 " + nw2 + "px");
       }
 
       if (edge.indexOf("s") !== -1) {
-        var nh = Math.max(60, activeDrag.startH + dy);
+        var nh = Math.min(window.innerHeight, Math.max(60, activeDrag.startH + dy));
         el.style.setProperty("height", nh + "px");
         el.style.setProperty("min-height", nh + "px");
       } else if (edge.indexOf("n") !== -1) {
-        var nh2 = Math.max(60, activeDrag.startH - dy);
+        var nh2 = Math.min(window.innerHeight, Math.max(60, activeDrag.startH - dy));
         el.style.setProperty("height", nh2 + "px");
         el.style.setProperty("min-height", nh2 + "px");
       }
@@ -136,7 +136,8 @@ window.FOSS = window.FOSS || {};
       startX: e.clientX,
       startY: e.clientY,
       startW: rect.width,
-      startH: rect.height
+      startH: rect.height,
+      startRect: rect
     };
 
     document.body.style.setProperty("user-select", "none");
@@ -156,4 +157,3 @@ window.FOSS = window.FOSS || {};
     init: init
   };
 })();
-
