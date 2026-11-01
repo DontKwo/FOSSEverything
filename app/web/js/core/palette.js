@@ -86,6 +86,15 @@ window.FOSS = window.FOSS || {};
       return;
     }
 
+    var inputEl = document.querySelector(".palette-input");
+    if (inputEl && inputEl.value.trim() === "") {
+      var suggestedLabel = window.FOSS.dom.el("div", {
+        className: "palette-category-label",
+        text: "Suggested Tools"
+      });
+      resultsList.appendChild(suggestedLabel);
+    }
+
     currentResults.forEach(function (r, idx) {
       var isSel = idx === selectedIndex;
       var itemEl = window.FOSS.dom.el("div", {
