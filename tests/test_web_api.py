@@ -415,6 +415,24 @@ class WebApiTests(unittest.TestCase):
             )
             self.assertFalse(err_res.get("ok"))
 
+    def test_converter_batch_convert_isolated(self) -> None:
+        # Verify batch conversion execution and error handling.
+        # Ensure it works for valid inputs and errors on missing items.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f_path = os.path.join(tmp_dir, "doc.txt")
+            with open(f_path, "w", encoding="utf-8") as f:
+                f.write("batch content")
+
+            params = {
+                "items": [{"input_path": f_path, "target_format": "md"}]
+            }
+            res = self.api.converter_batch_convert(params)
+            self.assertTrue(res.get("ok"))
+            self.assertIn("Converted 1 file", res.get("summary", ""))
+
+            bad_res = self.api.converter_batch_convert({})
+            self.assertFalse(bad_res.get("ok"))
+
     def test_converter_and_qr_operations(self) -> None:
         targets_res = self.api.converter_available_targets({"file_path": "sample.png"})
         self.assertTrue(targets_res.get("ok"))
