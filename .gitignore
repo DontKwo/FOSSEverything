@@ -40,3 +40,7 @@ Thumbs.db
 tests/ui/_out/
 tests/parity/_cache/
 
+
+# Orchestrator
+.orchestrator_state.json
+tasks.json
