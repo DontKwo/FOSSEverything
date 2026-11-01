@@ -790,6 +790,16 @@ class WebApiTests(unittest.TestCase):
         self.assertTrue(c_res.get("ok"))
         self.assertIn('"a": "1"', c_res["result"])
 
+    def test_collage_presets_isolated(self) -> None:
+        # Verify collage preset loading returns presets and handles
+        # invalid keyword arguments smoothly via exception catch.
+        res = self.api.collage_presets({})
+        self.assertTrue(res.get("ok"))
+        self.assertGreater(len(res.get("presets", {})), 0)
+
+        bad_res = self.api.collage_presets({}, invalid_kwarg=True)
+        self.assertFalse(bad_res.get("ok"))
+
     def test_encoding_api_base64_and_url(self) -> None:
         # Test encoding and decoding text using base64,
         # as well as encoding and decoding URLs.
