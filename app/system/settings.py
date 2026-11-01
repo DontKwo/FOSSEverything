@@ -71,3 +71,12 @@ def reset_all_settings() -> None:
             os.remove(file_path)
         except OSError as err:
             _ = err
+
+
+def reset_user_preferences() -> None:
+    # Reset user preferences in settings while preserving application defaults.
+    defaults: dict[str, Any] = {
+        "theme": "dark",
+        "ui_scale": 1.0,
+    }
+    calc_write_settings(defaults)

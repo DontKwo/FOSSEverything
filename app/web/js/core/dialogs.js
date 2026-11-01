@@ -12,7 +12,7 @@ window.FOSS = window.FOSS || {};
   }
 
   function confirm(options) {
-    var opts = options || {};
+    var opts = typeof options === "string" ? { message: options } : (options || {});
     var title = opts.title || "Confirm Action";
     var message = opts.message || "Are you sure you want to proceed?";
     var confirmText = opts.confirmText || "Confirm";

@@ -16,6 +16,7 @@ from app.system.settings import (
     get_all_settings,
     get_setting,
     reset_all_settings,
+    reset_user_preferences,
     set_setting,
 )
 from app.system.shell_integration import (
@@ -159,6 +160,12 @@ class BaseApi:
         # Reset all stored settings to defaults.
         reset_all_settings()
         return ok()
+
+    @api_method
+    def reset_settings_defaults(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Reset user preferences in settings while preserving defaults.
+        reset_user_preferences()
+        return ok(message="Settings reset to defaults")
 
     @api_method
     def get_recents(self, params: dict[str, Any]) -> dict[str, Any]:

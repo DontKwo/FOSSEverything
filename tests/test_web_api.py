@@ -39,6 +39,12 @@ class WebApiTests(unittest.TestCase):
         self.assertTrue(get_res.get("ok"))
         self.assertEqual(get_res.get("value"), "test_val")
 
+        reset_defaults_res = self.api.reset_settings_defaults({})
+        self.assertTrue(reset_defaults_res.get("ok"))
+        self.assertEqual(reset_defaults_res.get("message"), "Settings reset to defaults")
+        self.assertEqual(self.api.get_setting({"key": "theme"}).get("value"), "dark")
+        self.assertIsNone(self.api.get_setting({"key": "test_key"}).get("value"))
+
     def test_search_tools(self) -> None:
         res = self.api.search_tools({"query": "pdf"})
         self.assertTrue(res.get("ok"))

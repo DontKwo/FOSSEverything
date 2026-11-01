@@ -111,11 +111,11 @@ window.FOSS = window.FOSS || {};
 
     var requiredApis = [
       "ping", "get_apps", "get_tooltips", "get_setting", "set_setting",
-      "get_settings_all", "reset_settings", "select_file", "select_files",
-      "select_folder", "select_save_path", "read_text_file", "write_text_file",
-      "open_path", "open_folder", "copy_to_clipboard", "toggle_fullscreen",
-      "route_file", "get_recents", "clear_recents", "get_version",
-      "job_start", "job_poll", "job_cancel"
+      "get_settings_all", "reset_settings", "reset_settings_defaults",
+      "select_file", "select_files", "select_folder", "select_save_path",
+      "read_text_file", "write_text_file", "open_path", "open_folder",
+      "copy_to_clipboard", "toggle_fullscreen", "route_file", "get_recents",
+      "clear_recents", "get_version", "job_start", "job_poll", "job_cancel"
     ];
 
     if (window.pywebview && window.pywebview.api) {

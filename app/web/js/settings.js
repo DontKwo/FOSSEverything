@@ -202,28 +202,26 @@ window.FOSS = window.FOSS || {};
       }
     });
 
-    var resetBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-danger",
+    var resetDefaultsBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
       text: "Reset All Settings",
-      "data-testid": "settings-reset-all-btn",
+      "data-testid": "settings-reset-defaults-btn",
       onClick: function () {
-        window.FOSS.confirm({
-          title: "Reset All Settings?",
-          message: "This will remove all saved settings, recents, and color overrides.",
-          confirmText: "Reset",
-          danger: true
-        }).then(function (confirmed) {
+        window.FOSS.dialogs.confirm("Reset all settings to defaults?").then(function (confirmed) {
           if (confirmed) {
-            window.FOSS.api("reset_settings", {}).then(function () {
-              window.FOSS.toast.show("Settings reset to defaults", "info");
-              location.reload();
+            window.FOSS.api("reset_settings_defaults", {}).then(function (res) {
+              window.FOSS.store.loadAll().then(function () {
+                window.FOSS.theme.init();
+                var msg = (res && res.message) ? res.message : "Settings reset to defaults";
+                window.FOSS.toast.show(msg, "success");
+              });
             });
           }
         });
       }
     });
 
-    panel.appendChild(window.FOSS.dom.el("div", { className: "row" }, [openDataBtn, resetBtn]));
+    panel.appendChild(window.FOSS.dom.el("div", { className: "row" }, [openDataBtn, resetDefaultsBtn]));
   }
 
   function renderAbout(panel) {
