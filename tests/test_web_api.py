@@ -629,6 +629,31 @@ class WebApiTests(unittest.TestCase):
             )
             self.assertFalse(bad_res.get("ok"))
 
+    def test_archive_rotate_key_isolated(self) -> None:
+        # Verify bundle key rotation execution.
+        # Ensure password update handles valid and invalid scenarios.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f1 = os.path.join(tmp_dir, "secret.txt")
+            with open(f1, "w", encoding="utf-8") as f:
+                f.write("confidential")
+
+            p_res = self.api.archive_protect(
+                {"source_paths": [f1], "password": "old_pass", "format": "zip"}
+            )
+            out_path = p_res.get("output_path", "")
+            rot_path = os.path.join(tmp_dir, "rotated.zip")
+
+            r_res = self.api.archive_rotate_key(
+                {"bundle_path": out_path, "old_password": "old_pass", "new_password": "new_pass", "output_path": rot_path}
+            )
+            self.assertTrue(r_res.get("ok"))
+            self.assertTrue(os.path.exists(rot_path))
+
+            bad_res = self.api.archive_rotate_key(
+                {"bundle_path": out_path, "old_password": "wrong", "new_password": "new_pass", "output_path": rot_path}
+            )
+            self.assertFalse(bad_res.get("ok"))
+
     def test_archive_convert_isolated(self) -> None:
         # Test archive format conversion
         # and edge-case handling for unsupported formats.
