@@ -644,13 +644,23 @@ class WebApiTests(unittest.TestCase):
             rot_path = os.path.join(tmp_dir, "rotated.zip")
 
             r_res = self.api.archive_rotate_key(
-                {"bundle_path": out_path, "old_password": "old_pass", "new_password": "new_pass", "output_path": rot_path}
+                {
+                    "bundle_path": out_path,
+                    "old_password": "old_pass",
+                    "new_password": "new_pass",
+                    "output_path": rot_path,
+                }
             )
             self.assertTrue(r_res.get("ok"))
             self.assertTrue(os.path.exists(rot_path))
 
             bad_res = self.api.archive_rotate_key(
-                {"bundle_path": out_path, "old_password": "wrong", "new_password": "new_pass", "output_path": rot_path}
+                {
+                    "bundle_path": out_path,
+                    "old_password": "wrong",
+                    "new_password": "new_pass",
+                    "output_path": rot_path,
+                }
             )
             self.assertFalse(bad_res.get("ok"))
 
@@ -677,6 +687,28 @@ class WebApiTests(unittest.TestCase):
             bad_res = self.api.archive_convert(
                 {"archive_path": tar_path, "output_path": bad_path}
             )
+            self.assertFalse(bad_res.get("ok"))
+
+    def test_archive_snapshot_isolated(self) -> None:
+        # Test archive snapshot generation and file counting
+        # with optional manifest saving and missing directory error.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f1 = os.path.join(tmp_dir, "file1.txt")
+            with open(f1, "w", encoding="utf-8") as f:
+                f.write("content")
+
+            s_res = self.api.archive_snapshot({"directory_path": tmp_dir})
+            self.assertTrue(s_res.get("ok"))
+            self.assertGreater(s_res.get("file_count", 0), 0)
+
+            manifest_path = os.path.join(tmp_dir, "manifest.json")
+            sm_res = self.api.archive_snapshot(
+                {"directory_path": tmp_dir, "manifest_path": manifest_path}
+            )
+            self.assertTrue(sm_res.get("ok"))
+            self.assertTrue(os.path.exists(manifest_path))
+
+            bad_res = self.api.archive_snapshot({})
             self.assertFalse(bad_res.get("ok"))
 
     def test_data_api_json_and_csv_operations(self) -> None:
