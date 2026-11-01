@@ -48,11 +48,11 @@ a = Analysis(
     pathex=[ROOT_DIR],
     binaries=[] + ocp_binaries + lt_binaries,
     datas=assets_datas + web_datas + ffmpeg_datas + ocp_datas + lt_datas + webview_datas,
-    hiddenimports=['webview', 'pythonnet', 'clr_loader', 'bottle', 'proxy_tools', 'pymupdf', 'fitz', 'PIL', 'PIL.Image', 'imageio_ffmpeg', 'mutagen', 'tinytag', 'yaml', 'cv2', 'trimesh', 'shapely', 'mapbox_earcut'] + ocp_hidden + lt_hidden,
+    hiddenimports=['webview', 'pythonnet', 'clr_loader', 'bottle', 'proxy_tools', 'pymupdf', 'fitz', 'PIL', 'PIL.Image', 'imageio_ffmpeg', 'mutagen', 'tinytag', 'yaml', 'cv2', 'trimesh', 'shapely', 'mapbox_earcut', 'psutil', 'matplotlib'] + ocp_hidden + lt_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['PyQt6', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 'PyQt5', 'PySide6', 'PySide2', 'tkinter', 'wx'],
     noarchive=False,
     optimize=0,
 )

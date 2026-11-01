@@ -85,9 +85,14 @@ def build(onefile: bool = False) -> None:
         "trimesh",
         "shapely",
         "mapbox_earcut",
+        "psutil",
+        "matplotlib",
     ]
     for imp in hidden_imports:
         cmd.extend(["--hidden-import", imp])
+
+    for exc in ["PyQt6", "PySide6", "tkinter"]:
+        cmd.extend(["--exclude-module", exc])
 
     cmd.extend(["--collect-all", "language_tool_python"])
 
