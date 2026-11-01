@@ -396,6 +396,25 @@ class WebApiTests(unittest.TestCase):
             self.assertTrue(center_res.get("ok"))
             self.assertTrue(os.path.isfile(centered_path))
 
+    def test_converter_convert_file_isolated(self) -> None:
+        # Verify single file conversion execution and error handling.
+        # Ensure it works for valid formats and errors on missing files.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            src_png = os.path.join(tmp_dir, "test.png")
+            Image.new("RGB", (20, 20), color="red").save(src_png)
+            out_file = os.path.join(tmp_dir, "converted.jpg")
+
+            res = self.api.converter_convert_file(
+                {"file_path": src_png, "target_format": "jpg", "output_path": out_file}
+            )
+            self.assertTrue(res.get("ok"))
+            self.assertTrue(os.path.isfile(res.get("output_path", "")))
+
+            err_res = self.api.converter_convert_file(
+                {"file_path": "nonexistent_file.xyz", "target_format": "jpg"}
+            )
+            self.assertFalse(err_res.get("ok"))
+
     def test_converter_and_qr_operations(self) -> None:
         targets_res = self.api.converter_available_targets({"file_path": "sample.png"})
         self.assertTrue(targets_res.get("ok"))
