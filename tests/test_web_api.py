@@ -902,6 +902,21 @@ class WebApiTests(unittest.TestCase):
             bad_res = self.api.converter_export_enex({"notes": notes})
             self.assertFalse(bad_res.get("ok"))
 
+    def test_converter_source_family_isolated(self) -> None:
+        # Test identifying source media family of a given file,
+        # verifying edge-case error handling for missing parameters.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f1 = os.path.join(tmp_dir, "test.jpg")
+            with open(f1, "w", encoding="utf-8") as f:
+                f.write("dummy")
+
+            res = self.api.converter_source_family({"file_path": f1})
+            self.assertTrue(res.get("ok"))
+            self.assertEqual(res.get("family"), "Image")
+
+            bad_res = self.api.converter_source_family({})
+            self.assertFalse(bad_res.get("ok"))
+
 
 if __name__ == "__main__":
     unittest.main()
