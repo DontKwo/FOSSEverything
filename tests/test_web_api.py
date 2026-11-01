@@ -564,6 +564,23 @@ class WebApiTests(unittest.TestCase):
             self.assertTrue(e_res.get("ok"))
             self.assertTrue(os.path.exists(os.path.join(ext_dir, "file1.txt")))
 
+    def test_archive_protect_isolated(self) -> None:
+        # Verify archive protect execution and error handling.
+        # Ensure password enforcement and valid output creation.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f1 = os.path.join(tmp_dir, "secret.txt")
+            with open(f1, "w", encoding="utf-8") as f:
+                f.write("confidential")
+
+            p_res = self.api.archive_protect(
+                {"source_paths": [f1], "password": "pass", "format": "zip"}
+            )
+            self.assertTrue(p_res.get("ok"))
+            self.assertTrue(os.path.exists(p_res.get("output_path", "")))
+
+            bad_res = self.api.archive_protect({"source_paths": [f1]})
+            self.assertFalse(bad_res.get("ok"))
+
     def test_archive_convert_isolated(self) -> None:
         # Test archive format conversion
         # and edge-case handling for unsupported formats.
