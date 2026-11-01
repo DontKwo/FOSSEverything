@@ -689,6 +689,35 @@ class WebApiTests(unittest.TestCase):
             )
             self.assertFalse(bad_res.get("ok"))
 
+    def test_archive_compare_snapshots_isolated(self) -> None:
+        # Test snapshot comparison behavior for tracking changes,
+        # detecting added, modified, and removed files.
+        old_s = {
+            "files": {
+                "file1.txt": {"sha256": "hash1", "size": 10},
+                "file2.txt": {"sha256": "hash2", "size": 20},
+                "file3.txt": {"sha256": "hash3", "size": 30},
+            }
+        }
+        new_s = {
+            "files": {
+                "file1.txt": {"sha256": "hash1", "size": 10},
+                "file2.txt": {"sha256": "hash2_new", "size": 20},
+                "file4.txt": {"sha256": "hash4", "size": 40},
+            }
+        }
+        res = self.api.archive_compare_snapshots(
+            {"old_snapshot": old_s, "new_snapshot": new_s}
+        )
+        self.assertTrue(res.get("ok"))
+        self.assertIn("file4.txt", res["added"])
+        self.assertIn("file2.txt", res["modified"])
+        self.assertIn("file3.txt", res["removed"])
+        self.assertEqual(res["total_changed"], 3)
+
+        bad_res = self.api.archive_compare_snapshots({"old_snapshot": old_s})
+        self.assertFalse(bad_res.get("ok"))
+
     def test_archive_snapshot_isolated(self) -> None:
         # Test archive snapshot generation and file counting
         # with optional manifest saving and missing directory error.
