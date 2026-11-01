@@ -581,6 +581,29 @@ class WebApiTests(unittest.TestCase):
             bad_res = self.api.archive_protect({"source_paths": [f1]})
             self.assertFalse(bad_res.get("ok"))
 
+    def test_archive_unprotect_isolated(self) -> None:
+        # Verify archive unprotect execution and error handling.
+        # Ensure extraction succeeds with correct password.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f1 = os.path.join(tmp_dir, "secret.txt")
+            with open(f1, "w", encoding="utf-8") as f:
+                f.write("confidential")
+
+            p_res = self.api.archive_protect(
+                {"source_paths": [f1], "password": "pass", "format": "zip"}
+            )
+            out_path = p_res.get("output_path", "")
+
+            ext_dir = os.path.join(tmp_dir, "extracted")
+            u_res = self.api.archive_unprotect(
+                {"bundle_path": out_path, "password": "pass", "target_dir": ext_dir}
+            )
+            self.assertTrue(u_res.get("ok"))
+            self.assertTrue(os.path.exists(os.path.join(ext_dir, "secret.txt")))
+
+            bad_res = self.api.archive_unprotect({"bundle_path": out_path})
+            self.assertFalse(bad_res.get("ok"))
+
     def test_archive_convert_isolated(self) -> None:
         # Test archive format conversion
         # and edge-case handling for unsupported formats.
