@@ -564,6 +564,31 @@ class WebApiTests(unittest.TestCase):
             self.assertTrue(e_res.get("ok"))
             self.assertTrue(os.path.exists(os.path.join(ext_dir, "file1.txt")))
 
+    def test_archive_convert_isolated(self) -> None:
+        # Test archive format conversion
+        # and edge-case handling for unsupported formats.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            f1 = os.path.join(tmp_dir, "file1.txt")
+            with open(f1, "w", encoding="utf-8") as f:
+                f.write("content")
+            tar_path = os.path.join(tmp_dir, "archive.tar")
+            self.api.archive_create(
+                {"sources": [f1], "output_path": tar_path, "format": "tar"}
+            )
+
+            zip_path = os.path.join(tmp_dir, "converted.zip")
+            conv_res = self.api.archive_convert(
+                {"archive_path": tar_path, "output_path": zip_path}
+            )
+            self.assertTrue(conv_res.get("ok"))
+            self.assertTrue(os.path.exists(zip_path))
+
+            bad_path = os.path.join(tmp_dir, "bad.xyz")
+            bad_res = self.api.archive_convert(
+                {"archive_path": tar_path, "output_path": bad_path}
+            )
+            self.assertFalse(bad_res.get("ok"))
+
     def test_data_api_json_and_csv_operations(self) -> None:
         # Test data formatting for JSON content
         # and converting CSV data into JSON format.
