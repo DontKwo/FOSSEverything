@@ -223,7 +223,7 @@ class PdfApiMixin:
         text = str(params["text"])
         f_size = int(params.get("font_size", 48))
         op = float(params.get("opacity", 0.25))
-        res_p = add_pdf_watermark(file_path, text, out_p, font_size=f_size, opacity=op)
+        res_p = add_pdf_watermark(file_path, out_p, text=text, font_size=f_size, opacity=op)
         return ok(output_path=res_p)
 
     @api_method
@@ -319,14 +319,15 @@ class PdfApiMixin:
             )
             for it in params["items"]
         ]
+        out_dir = str(params.get("output_dir", "."))
         if op == "watermark_text":
-            results = batch_add_pdf_watermark(items, str(params.get("watermark_text", "")))
+            results = batch_add_pdf_watermark(items, out_dir, text=str(params.get("watermark_text", "CONFIDENTIAL")))
         elif op == "watermark_image":
-            results = batch_add_image_watermark(items, str(params.get("image_path", "")))
+            results = batch_add_image_watermark(items, out_dir, watermark_image_path=str(params.get("image_path", "")))
         elif op == "protect":
-            results = batch_protect_pdfs(items, str(params.get("password", "")))
+            results = batch_protect_pdfs(items, out_dir, user_password=str(params.get("password", "")))
         elif op == "compress":
-            results = batch_compress_pdfs(items)
+            results = batch_compress_pdfs(items, out_dir)
         else:
             return fail(f"Unsupported batch op: {op}", code="InvalidOperation")
         return ok(results=results)
