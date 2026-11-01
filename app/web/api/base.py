@@ -100,13 +100,13 @@ class BaseApi:
     def search_tools(self, params: dict[str, Any]) -> dict[str, Any]:
         # Perform ranking search over registered tools and actions.
         query = str(params.get("query", "")).strip().lower()
-        if not query:
-            return ok(results=[])
 
         results: list[dict[str, Any]] = []
         for app in HOME_APPS:
             score = 0
-            if query == app.id or query == app.name.lower():
+            if not query:
+                score = 10
+            elif query == app.id or query == app.name.lower():
                 score += 100
             elif query in app.name.lower():
                 score += 50
