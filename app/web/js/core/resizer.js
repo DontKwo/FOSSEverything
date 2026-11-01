@@ -83,23 +83,25 @@ window.FOSS = window.FOSS || {};
       }
 
       if (edge.indexOf("e") !== -1) {
-        var nw = Math.max(140, activeDrag.startW + dx);
+        var maxW = Math.max(300, window.innerWidth - 60);
+        var nw = Math.min(maxW, Math.max(140, activeDrag.startW + dx));
         el.style.setProperty("width", nw + "px");
         el.style.setProperty("max-width", "none");
         el.style.setProperty("flex", "0 0 " + nw + "px");
       } else if (edge.indexOf("w") !== -1) {
-        var nw2 = Math.max(140, activeDrag.startW - dx);
+        var nw2 = Math.min(maxW, Math.max(140, activeDrag.startW - dx));
         el.style.setProperty("width", nw2 + "px");
         el.style.setProperty("max-width", "none");
         el.style.setProperty("flex", "0 0 " + nw2 + "px");
       }
 
       if (edge.indexOf("s") !== -1) {
-        var nh = Math.max(60, activeDrag.startH + dy);
+        var maxH = Math.max(200, window.innerHeight - 60);
+        var nh = Math.min(maxH, Math.max(60, activeDrag.startH + dy));
         el.style.setProperty("height", nh + "px");
         el.style.setProperty("min-height", nh + "px");
       } else if (edge.indexOf("n") !== -1) {
-        var nh2 = Math.max(60, activeDrag.startH - dy);
+        var nh2 = Math.min(maxH, Math.max(60, activeDrag.startH - dy));
         el.style.setProperty("height", nh2 + "px");
         el.style.setProperty("min-height", nh2 + "px");
       }
@@ -140,12 +142,14 @@ window.FOSS = window.FOSS || {};
     };
 
     document.body.style.setProperty("user-select", "none");
+    document.documentElement.classList.add("is-resizing");
     target.classList.add("is-resizing");
   }
 
   function handleMouseUp() {
     if (activeDrag) {
       activeDrag.el.classList.remove("is-resizing");
+      document.documentElement.classList.remove("is-resizing");
       activeDrag = null;
       document.body.style.removeProperty("user-select");
       document.body.style.removeProperty("cursor");

@@ -307,3 +307,9 @@
 .resize-handle-e:hover, .is-resizing .resize-handle-e {
   background-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
+
+.is-resizing,
+.is-resizing * {
+  user-select: none !important;
+  transition: none !important;
+}
