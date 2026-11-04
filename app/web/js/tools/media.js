@@ -142,13 +142,13 @@ window.FOSS = window.FOSS || {};
       className: "flex-col gap-3 media-stage-pane",
       style: "width: 100%; min-width: 0;"
     }, [
+      videoEl,
+      waveformCanvas,
       window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
         window.FOSS.dom.el("div", { className: "row gap-2" }, [chooseBtn, openBtn]),
         fileBadge,
         timeLabel
       ]),
-      videoEl,
-      waveformCanvas,
       metaCard
     ]);
 
