@@ -80,13 +80,34 @@ window.FOSS = window.FOSS || {};
 
     function updateRatioEstimate() {
       var val = presetSelect.value;
+      var totalBytes = 0;
+      queueItems.forEach(function (it) {
+        if (it.status !== "Done" && it.status !== "Failed") {
+          totalBytes += it.size_bytes || 0;
+        }
+      });
+
+      var minPct = 30;
+      var maxPct = 50;
+      var label = "Medium / Balanced";
+
       if (val === "light") {
-        ratioEstimateReadout.textContent = "Estimated ratio: ~15-30% reduction (Low / Fast)";
+        minPct = 15;
+        maxPct = 30;
+        label = "Low / Fast";
       } else if (val === "aggressive") {
-        ratioEstimateReadout.textContent = "Estimated ratio: ~50-75% reduction (High / Maximum Compression)";
-      } else {
-        ratioEstimateReadout.textContent = "Estimated ratio: ~30-50% reduction (Medium / Balanced)";
+        minPct = 50;
+        maxPct = 75;
+        label = "High / Maximum Compression";
       }
+
+      var text = "Estimated reduction: ~" + minPct + "-" + maxPct + "% (" + label + ")";
+      if (totalBytes > 0) {
+        var minSaved = totalBytes * (minPct / 100);
+        var maxSaved = totalBytes * (maxPct / 100);
+        text += " | Est. savings: " + formatBytes(minSaved) + " - " + formatBytes(maxSaved);
+      }
+      ratioEstimateReadout.textContent = text;
     }
 
     var pngQuantizeCheck = window.FOSS.dom.el("input", {
@@ -252,6 +273,7 @@ window.FOSS = window.FOSS || {};
     });
 
     function renderQueueTable() {
+      updateRatioEstimate();
       tableHost.innerHTML = "";
       if (queueItems.length === 0) {
         tableHost.appendChild(window.FOSS.dom.el("div", {
@@ -300,10 +322,16 @@ window.FOSS = window.FOSS || {};
             text: "Working..."
           });
         } else {
+          var estMin = 30; var estMax = 50;
+          if (presetSelect.value === "light") { estMin = 15; estMax = 30; }
+          else if (presetSelect.value === "aggressive") { estMin = 50; estMax = 75; }
+          var estMinBytes = (it.size_bytes || 0) * (estMin / 100);
+          var estMaxBytes = (it.size_bytes || 0) * (estMax / 100);
           savingsBadge = window.FOSS.dom.el("span", {
             className: "badge badge-neutral text-xs",
             style: "white-space: nowrap;",
-            text: "Queued"
+            title: "Est: ~" + estMin + "-" + estMax + "% (" + formatBytes(estMinBytes) + " - " + formatBytes(estMaxBytes) + ")",
+            text: "~" + estMin + "-" + estMax + "%"
           });
         }
 
@@ -419,8 +447,8 @@ window.FOSS = window.FOSS || {};
             });
             statusBar.textContent = "Compression complete (" + (res.succeeded || 0) + " succeeded, " + (res.failed || 0) + " failed)";
             if (res.total_original_bytes > 0) {
-              var bannerText = "Total Reduced: " + formatBytes(res.total_original_bytes) + " -> " + formatBytes(res.total_compressed_bytes) +
-                " (Saved " + formatBytes(res.total_saved_bytes) + " / " + res.total_saved_pct + "%)";
+              var bannerText = "Final Savings: " + formatBytes(res.total_saved_bytes) + " (" + res.total_saved_pct + "% reduction) | " +
+                "Total Reduced: " + formatBytes(res.total_original_bytes) + " -> " + formatBytes(res.total_compressed_bytes);
               savingsBanner.textContent = bannerText;
               savingsBanner.classList.remove("hidden");
             }
