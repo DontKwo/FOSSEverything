@@ -23,8 +23,7 @@ def scenario_loaded(page: Page, fixtures: dict[str, str], api: Any) -> None:
 
 def scenario_barcode(page: Page, fixtures: dict[str, str], api: Any) -> None:
     # Switch payload type to Barcode and verify symbology options.
-    page.evaluate("window.FOSS.router.open('qr', 'main')")
-    page.select_option("[data-testid='qr-payload-type']", "barcode")
+    page.evaluate("window.FOSS.router.open('qr', 'barcode')")
     page.wait_for_timeout(300)
 
     expect(page.locator("[data-testid='qr-barcode-symbology']")).to_be_visible()
