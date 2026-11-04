@@ -115,7 +115,7 @@ def route_file(window: Any, file_path: str, force_mode: str | None = None) -> bo
     return True
 
 
-# ─── Single-instance IPC ──────────────────────────────────────────────────────
+
 IPC_PORT = 47891
 
 
@@ -160,7 +160,7 @@ def start_ipc_server(window: Any) -> threading.Thread:
     return thread
 
 
-# ─── Cross-Platform Shell Registration ───────────────────────────────────────
+
 def register_shell_context_menu(exe_path: str | None = None) -> tuple[bool, str]:
     """Register 'Open in OmniDeck' in the operating system's file manager context menu."""
     if sys.platform == "win32":
@@ -196,7 +196,7 @@ def unregister_shell_context_menu() -> tuple[bool, str]:
     return False, f"Unsupported operating system: {sys.platform}"
 
 
-# ─── Windows ─────────────────────────────────────────────────────────────────
+
 def _resolve_windows_command(exe_path: str | None = None) -> str:
     if not exe_path:
         if getattr(sys, "frozen", False):
@@ -275,7 +275,7 @@ def _unregister_windows() -> tuple[bool, str]:
         return False, f"Failed to unregister context menu: {exc}"
 
 
-# ─── Default-app registration ────────────────────────────────────────────────
+
 def manual_association_instructions(extensions: Iterable[str]) -> str:
     ext_list = ", ".join(sorted(extensions))
     if sys.platform == "darwin":
@@ -482,7 +482,7 @@ def _set_default_macos(extensions: Iterable[str]) -> tuple[bool, str]:
     ) + manual_association_instructions(extensions)
 
 
-# ─── Linux ───────────────────────────────────────────────────────────────────
+
 def _register_linux(exe_path: str | None = None) -> tuple[bool, str]:
     """Install XDG Desktop entry and KDE/GNOME context menu action."""
     if not exe_path:
@@ -527,7 +527,7 @@ def _unregister_linux() -> tuple[bool, str]:
         return False, f"Failed to remove desktop entry: {exc}"
 
 
-# ─── macOS ───────────────────────────────────────────────────────────────────
+
 def _register_macos(exe_path: str | None = None) -> tuple[bool, str]:
     """Create local user launcher in ~/.local/bin/fosseverything."""
     if not exe_path:

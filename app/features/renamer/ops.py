@@ -297,7 +297,7 @@ def preview_renames(
     return plans
 
 
-# ─── Cross-Folder Rename Planning & Timeline Ordering ────────────────────────
+
 def capture_timestamp(file_path: str) -> float:
     """Return the best-known capture time: embedded EXIF/ID3 date, else full-precision mtime."""
     mtime = os.path.getmtime(file_path)

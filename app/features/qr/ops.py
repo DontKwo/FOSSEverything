@@ -484,7 +484,7 @@ def generate_barcode(
     return image
 
 
-# ─── Decoding & Parsing ──────────────────────────────────────────────────────
+
 def parse_qr_payload(payload: str) -> dict:
     """Parse standard payload prefixes (URL, Wi-Fi, vCard, Email, SMS, Phone)."""
     text = payload.strip()
@@ -553,7 +553,7 @@ def parse_qr_payload(payload: str) -> dict:
     return {"type": "text", "title": "Plain Text", "raw": text}
 
 
-# ─── Print-Ready Label Sheets ────────────────────────────────────────────────
+
 # Dimensions in PDF points (72pt = 1 inch), matching published Avery template specs.
 LABEL_SHEET_PRESETS: dict[str, dict[str, float | int]] = {
     "Avery 5160 (30-up Address, 1\" x 2.625\")": {

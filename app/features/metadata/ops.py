@@ -29,7 +29,7 @@ class DimensionText(str):
     """A display-safe dimension string that compares reliably across character encodings."""
 
     def __new__(cls: type, width: Any, height: Any) -> str:
-        return super().__new__(cls, f"{width} × {height}")
+        return super().__new__(cls, f"{width} x {height}")
 
     def __eq__(self, other: Any) -> bool:
         if isinstance(other, str):
@@ -494,7 +494,7 @@ def batch_metadata_cleanup(input_dir: str, output_dir: str, recursive: bool = Tr
 
     return results
 
-# ─── Office Metadata Operations ─────────────────────────────────────────────
+
 
 NS_CP = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
 NS_DC = "http://purl.org/dc/elements/1.1/"
