@@ -97,23 +97,26 @@ window.FOSS = window.FOSS || {};
       selectedCategory = "All";
     }
 
-    var chipBtns = categories.map(function (catName) {
-      var isAct = selectedCategory === catName;
-      return window.FOSS.dom.el("button", {
-        className: "chip " + (isAct ? "active" : ""),
-        "aria-pressed": isAct ? "true" : "false",
-        "data-testid": "home-filter-" + catName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
-        text: catName,
+    var filterRow = window.FOSS.dom.el('div', { className: 'row gap-2 flex-wrap mb-3' });
+    categories.forEach(function (cat) {
+      var chip = window.FOSS.dom.el('button', {
+        className: 'chip ' + (selectedCategory === cat ? 'active' : ''),
+        text: cat,
+        "aria-pressed": selectedCategory === cat ? "true" : "false",
+        "data-testid": "home-filter-" + cat.toLowerCase().replace(/[^a-z0-9]/g, "-"),
         onClick: function () {
-          selectedCategory = catName;
-          chipBtns.forEach(function (btn) {
-            var active = btn.textContent === catName;
-            btn.className = "chip " + (active ? "active" : "");
-            btn.setAttribute("aria-pressed", active ? "true" : "false");
+          selectedCategory = cat;
+          Array.from(filterRow.children).forEach(function (child) {
+            if (child.tagName === 'BUTTON') {
+              var isActive = child.textContent === cat;
+              child.className = 'chip ' + (isActive ? 'active' : '');
+              child.setAttribute("aria-pressed", isActive ? "true" : "false");
+            }
           });
           updateGrid();
         }
       });
+      filterRow.appendChild(chip);
     });
 
     var favCheckbox = window.FOSS.dom.el("input", {
@@ -132,8 +135,9 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("span", { text: "Favorites only" })
     ]);
 
-    var filtersRow = window.FOSS.dom.el("div", { className: "row" }, chipBtns.concat([favLabel]));
-    page.appendChild(filtersRow);
+    filterRow.appendChild(favLabel);
+
+    page.appendChild(filterRow);
 
     // Grid container
     var grid = window.FOSS.dom.el("div", { className: "grid-auto home-grid", "data-testid": "home-apps-grid" });
