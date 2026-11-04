@@ -172,6 +172,7 @@ window.FOSS = window.FOSS || {};
 
     // Top Section: Inputs and Primary Action
     var topRow = window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+      window.FOSS.components.field("Physical Dimension", categorySelect),
       window.FOSS.components.field("Quantity Value", valueInput),
       window.FOSS.components.field("From Unit", fromUnitSelect),
       swapBtn,
@@ -198,7 +199,6 @@ window.FOSS = window.FOSS || {};
 
     // Bottom Section: Dimension and Notation Options
     var optionsRow = window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap" }, [
-      window.FOSS.components.field("Physical Dimension", categorySelect),
       window.FOSS.components.field("Prefix Multiplier", prefixSelect),
       window.FOSS.components.field("Output Notation", notationSelect),
       window.FOSS.components.field("Significant Digits", precisionSelect)
