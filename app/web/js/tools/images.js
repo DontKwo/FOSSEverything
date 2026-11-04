@@ -897,7 +897,7 @@ window.FOSS = window.FOSS || {};
     var asciiPre = window.FOSS.dom.el("pre", {
       className: "code-block",
       "data-testid": "images-ascii-preview",
-      style: "font-family: monospace; white-space: pre; overflow: auto; max-height: 24rem; font-size: 0.5rem; line-height: 1;"
+      style: "font-family: monospace; white-space: pre; overflow: auto; max-height: 24rem; font-size: 0.75rem; line-height: 1;"
     });
 
     var charsetSelect = window.FOSS.dom.el("select", {

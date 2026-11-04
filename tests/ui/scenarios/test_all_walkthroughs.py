@@ -27,11 +27,11 @@ def test_full_application_walkthrough(page: Page, api: Any, tmp_path: Path) -> N
     ocr_out = str(tmp_path / "out_ocr.pdf")
     api._dialog_answers.extend([sample_png, ocr_out])
     page.evaluate("window.FOSS.router.open('ocr', 'document')")
-    page.click("[data-testid='ocr-choose-file']")
+    page.click("[data-testid='ocr-file-picker-browse']")
     page.fill("[data-testid='ocr-page-range']", "1")
-    page.click("[data-testid='ocr-run-btn']")
+    page.click("[data-testid='ocr-extract-btn']")
     page.wait_for_timeout(300)
-    page.click("[data-testid='ocr-export-pdf-btn']")
+    page.click("[data-testid='ocr-make-pdf-btn']")
     page.wait_for_timeout(250)
     assert Path(ocr_out).exists()
 
@@ -39,6 +39,8 @@ def test_full_application_walkthrough(page: Page, api: Any, tmp_path: Path) -> N
     md_out = str(tmp_path / "out_markdown.html")
     api._dialog_answers.append(md_out)
     page.evaluate("window.FOSS.router.open('markdown', 'editor')")
+    page.wait_for_timeout(200)
+    page.locator('textarea').first.fill('Sample markdown text to ensure not empty')
     page.select_option("[data-testid='markdown-flavor-select']", "gfm")
     page.click("[data-testid='markdown-export-html-btn']")
     page.wait_for_timeout(200)
@@ -53,11 +55,12 @@ def test_full_application_walkthrough(page: Page, api: Any, tmp_path: Path) -> N
     assert Path(docx_out).exists()
 
     # 5. Image Studio
-    img_out = str(tmp_path / "out_img.webp")
+    img_out = str(tmp_path / "out_img.png")
     api._dialog_answers.extend([sample_png, img_out])
     page.evaluate("window.FOSS.router.open('images', 'transform')")
-    page.click("[data-testid='images-choose-file']")
-    page.click("[data-testid='images-save-btn']")
+    page.click("[data-testid='images-tf-picker-browse']")
+    page.wait_for_timeout(250)
+    page.click("[data-testid='images-tf-save']")
     page.wait_for_timeout(250)
     assert Path(img_out).exists()
 
@@ -65,22 +68,23 @@ def test_full_application_walkthrough(page: Page, api: Any, tmp_path: Path) -> N
     col_out = str(tmp_path / "out_collage.png")
     api._dialog_answers.extend([[sample_png], col_out])
     page.evaluate("window.FOSS.router.open('collage', 'freeform')")
-    page.click("[data-testid='collage-add-images-btn']")
-    page.click("[data-testid='collage-export-btn']")
+    page.click("[data-testid='collage-add-images']")
+    page.wait_for_timeout(250)
+    page.click("[data-testid='collage-save-btn']")
     page.wait_for_timeout(250)
     assert Path(col_out).exists()
 
     # 7. Color Palette
     api._dialog_answers.append(sample_png)
     page.evaluate("window.FOSS.router.open('palette', 'extract')")
-    page.click("[data-testid='palette-choose-file']")
+    page.click("[data-testid='palette-file-picker-browse']")
     page.wait_for_timeout(250)
     expect(page.locator("[data-testid='palette-swatch-grid']")).to_be_visible()
 
     # 8. 3D Model Studio
     api._dialog_answers.append(cube_stl)
     page.evaluate("window.FOSS.router.open('model3d', 'inspector')")
-    page.click("[data-testid='model3d-load-file']")
+    page.click("[data-testid='model3d-open-btn']")
     page.wait_for_timeout(250)
     expect(page.locator("[data-testid='model3d-sidebar']")).to_be_visible()
 
@@ -103,13 +107,13 @@ def test_full_application_walkthrough(page: Page, api: Any, tmp_path: Path) -> N
     assert Path(pl_out).exists()
 
     # 11. Universal Converter
-    conv_out = str(tmp_path / "out_conv.jpg")
+    conv_out = str(tmp_path / "out_conv")
     api._dialog_answers.extend([sample_png, conv_out])
     page.evaluate("window.FOSS.router.open('converter', 'single')")
     page.click("[data-testid='converter-choose-file']")
     page.click("[data-testid='converter-convert-btn']")
     page.wait_for_timeout(250)
-    assert Path(conv_out).exists()
+    assert Path(conv_out + ".jpg").exists()
 
     # 12. File Compressor
     comp_out = str(tmp_path / "out_comp.pdf")
