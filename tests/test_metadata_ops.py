@@ -76,7 +76,7 @@ class MetadataOperationsTests(unittest.TestCase):
 
             meta = metadata_ops.inspect_metadata(str(source))
             self.assertEqual(meta["Kind"], "Video")
-            self.assertEqual(meta["Video dimensions"], "320 × 240")
+            self.assertEqual(meta["Video dimensions"], "320 x 240")
 
     def test_bulk_metadata_updates_and_diff_report(self) -> None:
         with TemporaryDirectory() as directory:

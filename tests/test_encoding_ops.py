@@ -65,7 +65,7 @@ class HtmlOpsTests(unittest.TestCase):
         self.assertEqual(encoding_ops.html_decode(encoded), text)
 
     def test_numeric_character_references(self) -> None:
-        text = "café <b>"
+        text = "caf\xe9 <b>"
         encoded = encoding_ops.html_encode_numeric(text)
         self.assertIn("&#233;", encoded)
         self.assertIn("&lt;b&gt;", encoded)

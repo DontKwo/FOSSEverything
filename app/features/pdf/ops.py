@@ -31,11 +31,7 @@ def open_pdf(path: str) -> pymupdf.Document:
 
 
 def render_page(doc: pymupdf.Document, page_number: int, zoom: float = 3.0) -> tuple[int, int, bytes]:
-    """Render a page to a raw RGB buffer.
-
-    Returns (width, height, bytes) suitable for wrapping in a QImage with
-    Format_RGB888.
-    """
+    """Render a page to a raw RGB buffer. Returns (width, height, bytes) suitable for wrapping in a QImage with Format_RGB888."""
     page = doc.load_page(page_number)
     matrix = pymupdf.Matrix(zoom, zoom)
     pix = page.get_pixmap(matrix=matrix, alpha=False)
@@ -49,11 +45,7 @@ def page_count(doc: pymupdf.Document) -> int:
 def text_in_rect(
     doc: pymupdf.Document, page_number: int, rect: tuple[float, float, float, float]
 ) -> tuple[str, list[tuple[float, float, float, float]]]:
-    """Extract real embedded PDF text within a page-point rectangle (x0, y0, x1, y1).
-
-    Returns the joined text plus per-word bounding boxes, so a Qt canvas can
-    both copy the text and draw browser-style selection highlights, without OCR.
-    """
+    """Extract real embedded PDF text within a page-point rectangle (x0, y0, x1, y1). Returns the joined text plus per-word bounding boxes, so a Qt canvas can both copy the text and draw browser-style selection highlights, without OCR."""
     page = doc.load_page(page_number)
     clip = pymupdf.Rect(*rect)
     text = page.get_text("text", clip=clip).strip()
@@ -532,10 +524,7 @@ def extract_pdf_text(input_path: str, mode: str = "plain", page_separator: bool 
 
 
 def save_pdf_text(input_path: str, output_path: str, mode: str = "plain") -> str:
-    """Extract text from *input_path* and write it to *output_path*.
-
-    Returns the output path.
-    """
+    """Extract text from *input_path* and write it to *output_path*. Returns the output path."""
     content = extract_pdf_text(input_path, mode=mode)
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(content)
