@@ -1010,7 +1010,9 @@ window.FOSS = window.FOSS || {};
     var uniformCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
       checked: true,
-      "data-testid": "model3d-uniform-scale-check"
+      "data-testid": "model3d-uniform-scale-check",
+      "aria-label": "Uniform scale across axes",
+      title: "Uniform scale across axes"
     });
 
     factorInput.addEventListener("input", function () {
@@ -1211,11 +1213,11 @@ window.FOSS = window.FOSS || {};
 
     var divider = window.FOSS.components.splitDivider({ vertical: true });
     divider.addEventListener("mousedown", function () {
-      if (viewport && viewport.canvas) {
-        viewport.canvas.style.setProperty("pointer-events", "none");
+      if (viewport && viewport.el) {
+        viewport.el.style.setProperty("pointer-events", "none");
         function onUp() {
-          if (viewport && viewport.canvas) {
-            viewport.canvas.style.removeProperty("pointer-events");
+          if (viewport && viewport.el) {
+            viewport.el.style.removeProperty("pointer-events");
           }
           window.removeEventListener("mouseup", onUp);
         }
@@ -1506,11 +1508,11 @@ window.FOSS = window.FOSS || {};
 
     var dividerCut = window.FOSS.components.splitDivider({ vertical: true });
     dividerCut.addEventListener("mousedown", function () {
-      if (viewport && viewport.canvas) {
-        viewport.canvas.style.setProperty("pointer-events", "none");
+      if (viewport && viewport.el) {
+        viewport.el.style.setProperty("pointer-events", "none");
         function onUp() {
-          if (viewport && viewport.canvas) {
-            viewport.canvas.style.removeProperty("pointer-events");
+          if (viewport && viewport.el) {
+            viewport.el.style.removeProperty("pointer-events");
           }
           window.removeEventListener("mouseup", onUp);
         }
@@ -1603,11 +1605,11 @@ window.FOSS = window.FOSS || {};
 
     var dividerExport = window.FOSS.components.splitDivider({ vertical: true });
     dividerExport.addEventListener("mousedown", function () {
-      if (viewport && viewport.canvas) {
-        viewport.canvas.style.setProperty("pointer-events", "none");
+      if (viewport && viewport.el) {
+        viewport.el.style.setProperty("pointer-events", "none");
         function onUp() {
-          if (viewport && viewport.canvas) {
-            viewport.canvas.style.removeProperty("pointer-events");
+          if (viewport && viewport.el) {
+            viewport.el.style.removeProperty("pointer-events");
           }
           window.removeEventListener("mouseup", onUp);
         }
