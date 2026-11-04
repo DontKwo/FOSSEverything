@@ -962,6 +962,9 @@ window.FOSS = window.FOSS || {};
         var dz = modelBounds.max[2] - modelBounds.min[2];
         lwhEl.textContent = dx.toFixed(2) + " x " + dy.toFixed(2) + " x " + dz.toFixed(2);
       }
+      if (typeof updateDimReadouts === "function") {
+        updateDimReadouts();
+      }
     }
 
     // Scale Model Card
@@ -986,6 +989,8 @@ window.FOSS = window.FOSS || {};
       title: "Scale X Factor",
       style: "min-width: 0; width: 100%;"
     });
+    var dimXReadout = window.FOSS.dom.el("div", { className: "text-xs text-muted font-mono mt-1", "data-testid": "model3d-dim-x", text: "X: --" });
+
     var scaleYInput = window.FOSS.dom.el("input", {
       type: "number",
       step: "0.1",
@@ -996,6 +1001,8 @@ window.FOSS = window.FOSS || {};
       title: "Scale Y Factor",
       style: "min-width: 0; width: 100%;"
     });
+    var dimYReadout = window.FOSS.dom.el("div", { className: "text-xs text-muted font-mono mt-1", "data-testid": "model3d-dim-y", text: "Y: --" });
+
     var scaleZInput = window.FOSS.dom.el("input", {
       type: "number",
       step: "0.1",
@@ -1006,6 +1013,7 @@ window.FOSS = window.FOSS || {};
       title: "Scale Z Factor",
       style: "min-width: 0; width: 100%;"
     });
+    var dimZReadout = window.FOSS.dom.el("div", { className: "text-xs text-muted font-mono mt-1", "data-testid": "model3d-dim-z", text: "Z: --" });
 
     var uniformCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
@@ -1013,13 +1021,39 @@ window.FOSS = window.FOSS || {};
       "data-testid": "model3d-uniform-scale-check"
     });
 
+    function updateDimReadouts() {
+      if (!dimXReadout) return;
+      if (!modelBounds || !modelBounds.min) {
+        dimXReadout.textContent = "X: --";
+        dimYReadout.textContent = "Y: --";
+        dimZReadout.textContent = "Z: --";
+        return;
+      }
+      var dx = modelBounds.max[0] - modelBounds.min[0];
+      var dy = modelBounds.max[1] - modelBounds.min[1];
+      var dz = modelBounds.max[2] - modelBounds.min[2];
+
+      var fx = parseFloat(scaleXInput.value) || 1.0;
+      var fy = parseFloat(scaleYInput.value) || 1.0;
+      var fz = parseFloat(scaleZInput.value) || 1.0;
+
+      dimXReadout.textContent = "X: " + (dx * fx).toFixed(2);
+      dimYReadout.textContent = "Y: " + (dy * fy).toFixed(2);
+      dimZReadout.textContent = "Z: " + (dz * fz).toFixed(2);
+    }
+
     factorInput.addEventListener("input", function () {
       if (uniformCheck.checked) {
         scaleXInput.value = factorInput.value;
         scaleYInput.value = factorInput.value;
         scaleZInput.value = factorInput.value;
       }
+      updateDimReadouts();
     });
+
+    scaleXInput.addEventListener("input", updateDimReadouts);
+    scaleYInput.addEventListener("input", updateDimReadouts);
+    scaleZInput.addEventListener("input", updateDimReadouts);
 
     uniformCheck.addEventListener("change", function () {
       if (uniformCheck.checked) {
@@ -1027,6 +1061,7 @@ window.FOSS = window.FOSS || {};
         scaleYInput.value = factorInput.value;
         scaleZInput.value = factorInput.value;
       }
+      updateDimReadouts();
     });
 
     var scaleResultHost = window.FOSS.dom.el("div", {
@@ -1077,6 +1112,7 @@ window.FOSS = window.FOSS || {};
         scaleXInput.value = "25.4";
         scaleYInput.value = "25.4";
         scaleZInput.value = "25.4";
+        updateDimReadouts();
       }
     });
 
@@ -1088,6 +1124,7 @@ window.FOSS = window.FOSS || {};
         scaleXInput.value = "0.03937";
         scaleYInput.value = "0.03937";
         scaleZInput.value = "0.03937";
+        updateDimReadouts();
       }
     });
 
@@ -1105,9 +1142,9 @@ window.FOSS = window.FOSS || {};
         window.FOSS.dom.el("span", { text: "Uniform scale across axes" })
       ]),
       window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1", style: "width: 100%;" }, [
-        window.FOSS.components.field("Scale X", scaleXInput),
-        window.FOSS.components.field("Scale Y", scaleYInput),
-        window.FOSS.components.field("Scale Z", scaleZInput)
+        window.FOSS.components.field("Scale X", window.FOSS.dom.el("div", {}, [scaleXInput, dimXReadout])),
+        window.FOSS.components.field("Scale Y", window.FOSS.dom.el("div", {}, [scaleYInput, dimYReadout])),
+        window.FOSS.components.field("Scale Z", window.FOSS.dom.el("div", {}, [scaleZInput, dimZReadout]))
       ]),
       window.FOSS.dom.el("div", { className: "row gap-1 items-center flex-wrap" }, [
         inchToMmBtn,
