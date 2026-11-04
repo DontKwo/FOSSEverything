@@ -415,19 +415,6 @@ window.FOSS = window.FOSS || {};
 
     var addFolderBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "converter-batch-add-folder-btn",
-      type: "button",
-      onClick: function () {
-        clearError();
-        window.FOSS.api("select_folder", { title: "Select Folder to Convert" }).then(function (res) {
-          if (!res || res.cancelled || !res.path) return;
-          addPathsToQueue([res.path]);
-        });
-      }
-    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
-
-    var addFolderBtnAlias = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm hidden",
       "data-testid": "converter-queue-add-folder-btn",
       type: "button",
       onClick: function () {
@@ -439,7 +426,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
 
-    var clearCompletedBtn = window.FOSS.dom.el("button", {
+        var clearCompletedBtn = window.FOSS.dom.el("button", {
       className: "btn btn-ghost btn-sm",
       "data-testid": "converter-batch-clear-btn",
       type: "button",
