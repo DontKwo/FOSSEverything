@@ -566,6 +566,14 @@ html.is-resizing .model3d-canvas-container canvas,
   opacity: 0.55;
 }
 
+.renamer-step-card.dragging {
+  opacity: 0.5;
+}
+
+.renamer-step-card.renamer-drag-over {
+  border-top: 0.125rem solid var(--accent) !important;
+}
+
 /* Unit Converter Workbench */
 .split.resizable.unit_converter-workbench,
 .unit_converter-workbench {
