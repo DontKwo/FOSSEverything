@@ -287,17 +287,17 @@ window.FOSS = window.FOSS || {};
         draggable: "true"
       });
 
-      secCard.addEventListener("dragstart", function (e) {
+      secCard.ondragstart = function (e) {
         e.dataTransfer.setData("text/plain", JSON.stringify({ type: "section", secId: sec.id }));
       });
-      secCard.addEventListener("dragover", function (e) {
+      secCard.ondragover = function (e) {
         e.preventDefault();
         secCard.classList.add("drop-target-above");
       });
-      secCard.addEventListener("dragleave", function () {
+      secCard.ondragleave = function () {
         secCard.classList.remove("drop-target-above");
       });
-      secCard.addEventListener("drop", function (e) {
+      secCard.ondrop = function (e) {
         e.preventDefault();
         secCard.classList.remove("drop-target-above");
         try {
@@ -367,19 +367,19 @@ window.FOSS = window.FOSS || {};
           draggable: "true"
         });
 
-        appRow.addEventListener("dragstart", function (e) {
+        appRow.ondragstart = function (e) {
           e.stopPropagation();
           e.dataTransfer.setData("text/plain", JSON.stringify({ type: "app", appId: item.id, fromSec: sec.id }));
         });
-        appRow.addEventListener("dragover", function (e) {
+        appRow.ondragover = function (e) {
           e.preventDefault();
           e.stopPropagation();
           appRow.classList.add("drop-target-above");
         });
-        appRow.addEventListener("dragleave", function () {
+        appRow.ondragleave = function () {
           appRow.classList.remove("drop-target-above");
         });
-        appRow.addEventListener("drop", function (e) {
+        appRow.ondrop = function (e) {
           e.preventDefault();
           e.stopPropagation();
           appRow.classList.remove("drop-target-above");
