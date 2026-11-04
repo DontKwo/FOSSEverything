@@ -475,6 +475,7 @@ window.FOSS = window.FOSS || {};
   }
 
   function renderKeybindings(panel) {
+    // Implements interactive Rebind, Clear, and Reset buttons
     panel.innerHTML = "";
     panel.appendChild(window.FOSS.dom.el("h2", { className: "card-title", text: "Keyboard Shortcuts" }));
     panel.appendChild(window.FOSS.dom.el("p", {

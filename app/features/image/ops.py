@@ -23,8 +23,7 @@ _heif_registered = False
 
 
 def _ensure_heif_registered() -> None:
-    """Lazily register Pillow's HEIC/HEIF/AVIF opener. pillow_heif is a heavy
-    optional import that most opened images (JPEG/PNG/etc.) never need."""
+    """Lazily register Pillow's HEIC/HEIF/AVIF opener. pillow_heif is a heavy optional import that most opened images (JPEG/PNG/etc.) never need."""
     global _heif_registered
     if not _heif_registered:
         import pillow_heif  # noqa: 13 (heavy optional dep, only needed for HEIC/HEIF/AVIF files)

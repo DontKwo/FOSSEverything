@@ -282,7 +282,7 @@ def build_styled_markdown_document(
     )
 
 
-# ─── Pure toolbar-insertion and indentation helpers ─────────────────────────
+# Pure toolbar-insertion and indentation helpers
 
 def indent_lines(text: str, spaces: int = 2) -> str:
     # Indent every non-empty line by given number of spaces.

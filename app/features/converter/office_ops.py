@@ -35,7 +35,7 @@ def _col_letter_to_index(col_str: str) -> int:
     return max(0, idx - 1)
 
 
-# ─── Text Extraction ─────────────────────────────────────────────────────────
+# Text Extraction
 
 def extract_text_from_office(path: str) -> str:
     # Extract structured text from any supported Office document.
@@ -243,7 +243,7 @@ def extract_text_opendocument(path: str) -> str:
         return "\n\n".join(lines)
 
 
-# ─── Format Conversions ─────────────────────────────────────────────────────
+# Format Conversions
 
 def docx_to_markdown(path: str) -> str:
     # Convert DOCX paragraphs, headings, and tables to formatted Markdown.

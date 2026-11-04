@@ -83,9 +83,7 @@ def resolve_workspace_id(file_path: str, force_mode: str | None = None) -> str:
 
 
 def preload_workspace_module_in_background(file_path: str, force_mode: str | None = None) -> None:
-    """Import the tab module a routed file will need on a background thread, so its
-    (often heavy, e.g. numpy/pymupdf) import cost overlaps with window construction
-    instead of running serially after the window is already shown."""
+    """Import the tab module a routed file will need on a background thread, so its (often heavy, e.g. numpy/pymupdf) import cost overlaps with window construction instead of running serially after the window is already shown."""
     import importlib
     import threading
 
@@ -115,7 +113,7 @@ def route_file(window: Any, file_path: str, force_mode: str | None = None) -> bo
     return True
 
 
-# ─── Single-instance IPC ──────────────────────────────────────────────────────
+# Single-instance IPC
 IPC_PORT = 47891
 
 
@@ -160,7 +158,7 @@ def start_ipc_server(window: Any) -> threading.Thread:
     return thread
 
 
-# ─── Cross-Platform Shell Registration ───────────────────────────────────────
+# Cross-Platform Shell Registration
 def register_shell_context_menu(exe_path: str | None = None) -> tuple[bool, str]:
     """Register 'Open in OmniDeck' in the operating system's file manager context menu."""
     if sys.platform == "win32":
@@ -173,11 +171,7 @@ def register_shell_context_menu(exe_path: str | None = None) -> tuple[bool, str]
 
 
 def ensure_open_with_candidacy() -> tuple[bool, str]:
-    """Silently register FOSSEverything as an 'Open with' candidate for its file types.
-
-    Unlike set_default_for_extensions(), this never opens an OS picker or requires
-    user confirmation, so it's safe to call on every startup (idempotent, HKCU-only).
-    """
+    """Silently register FOSSEverything as an 'Open with' candidate for its file types. Unlike set_default_for_extensions(), this never opens an OS picker or requires user confirmation, so it's safe to call on every startup (idempotent, HKCU-only)."""
     if sys.platform == "win32":
         return _register_app_capabilities_windows()
     if sys.platform.startswith("linux"):
@@ -196,7 +190,7 @@ def unregister_shell_context_menu() -> tuple[bool, str]:
     return False, f"Unsupported operating system: {sys.platform}"
 
 
-# ─── Windows ─────────────────────────────────────────────────────────────────
+# Windows
 def _resolve_windows_command(exe_path: str | None = None) -> str:
     if not exe_path:
         if getattr(sys, "frozen", False):
@@ -275,7 +269,7 @@ def _unregister_windows() -> tuple[bool, str]:
         return False, f"Failed to unregister context menu: {exc}"
 
 
-# ─── Default-app registration ────────────────────────────────────────────────
+# Default-app registration
 def manual_association_instructions(extensions: Iterable[str]) -> str:
     ext_list = ", ".join(sorted(extensions))
     if sys.platform == "darwin":
@@ -482,7 +476,7 @@ def _set_default_macos(extensions: Iterable[str]) -> tuple[bool, str]:
     ) + manual_association_instructions(extensions)
 
 
-# ─── Linux ───────────────────────────────────────────────────────────────────
+# Linux
 def _register_linux(exe_path: str | None = None) -> tuple[bool, str]:
     """Install XDG Desktop entry and KDE/GNOME context menu action."""
     if not exe_path:
@@ -527,7 +521,7 @@ def _unregister_linux() -> tuple[bool, str]:
         return False, f"Failed to remove desktop entry: {exc}"
 
 
-# ─── macOS ───────────────────────────────────────────────────────────────────
+# macOS
 def _register_macos(exe_path: str | None = None) -> tuple[bool, str]:
     """Create local user launcher in ~/.local/bin/fosseverything."""
     if not exe_path:

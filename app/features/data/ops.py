@@ -223,8 +223,7 @@ _CSS_COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 
 def minify_css(text: str) -> str:
-    """Conservative heuristic CSS minifier: strips /* */ comments and collapses whitespace/
-    separators. This is not a full parser, so unusual constructs may not compress optimally."""
+    """Conservative heuristic CSS minifier: strips /* */ comments and collapses whitespace/ separators. This is not a full parser, so unusual constructs may not compress optimally."""
     stripped = _CSS_COMMENT_RE.sub("", text)
     stripped = re.sub(r"\s+", " ", stripped)
     stripped = re.sub(r"\s*([{}:;,])\s*", r"\1", stripped)

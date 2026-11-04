@@ -79,10 +79,7 @@ class ConnectionEvent:
 
 
 def record_destination(conn: sqlite3.Connection, ip: str, domain: str | None) -> tuple[bool, bool]:
-    """Insert `ip` into the known-destinations table if new.
-
-    Returns (is_new, is_known) without a separate round-trip for the known flag.
-    """
+    """Insert `ip` into the known-destinations table if new. Returns (is_new, is_known) without a separate round-trip for the known flag."""
     row = conn.execute("SELECT id, domain, known FROM destinations WHERE ip = ?", (ip,)).fetchone()
     if row is None:
         conn.execute(
