@@ -109,7 +109,7 @@ window.FOSS = window.FOSS || {};
     var previewCanvas = window.FOSS.dom.el("div", {
       className: "ocr-preview-canvas",
       "data-testid": "ocr-preview-canvas",
-      style: "min-height: 26rem; max-height: 40rem; overflow: auto; display: flex; align-items: center; justify-content: center; background: var(--bg-raised); border-radius: var(--radius-md); padding: var(--space-2); position: relative;"
+      style: "min-height: 24rem; max-height: 40rem; overflow: auto; display: flex; align-items: center; justify-content: center; background: var(--bg-raised); border-radius: var(--radius-md); padding: var(--space-2); position: relative;"
     }, [previewImg, previewPlaceholder]);
 
     var zoomLevelLabel = window.FOSS.dom.el("span", {
