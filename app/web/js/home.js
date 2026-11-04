@@ -16,6 +16,7 @@ window.FOSS = window.FOSS || {};
     { id: "metadata", name: "Metadata Tools", category: "Utilities", description: "Inspect, edit, or remove image/PDF/office/audio/video metadata before sharing.", artwork_url: "assets/home/metadata.png" },
     { id: "qr", name: "QR and Barcodes", category: "Utilities", description: "Generate custom offline QR codes and scan/decode barcodes from images and PDFs.", artwork_url: "assets/home/qr.png" },
     { id: "renamer", name: "Batch Renamer", category: "Utilities", description: "Rename files with search & replace, numbering, prefixes, casing, and undo safety.", artwork_url: "assets/home/renamer.png" },
+    { id: "unit_converter", name: "Unit Converter", category: "Data", description: "Dimensional analysis across 30 physical categories and compound expressions.", artwork_url: "assets/home/unit_converter.svg" },
     { id: "data", name: "Data Studio", category: "Data", description: "Format, minify, validate, convert, and query JSON, YAML, TOML, CSV, XML, and SQL.", artwork_url: "assets/home/data.png" },
     { id: "markdown", name: "Markdown Preview", category: "Documents", description: "Live GitHub-flavored Markdown editor with instant side-by-side preview and HTML export.", artwork_url: "assets/home/markdown.svg" },
     { id: "palette", name: "Color Palette", category: "Visuals", description: "Extract dominant color palettes and sample exact pixel colors with mouse eyedropper.", artwork_url: "assets/home/palette.png" },
@@ -25,9 +26,34 @@ window.FOSS = window.FOSS || {};
     { id: "encoding", name: "Encoding / Decoding", category: "Data", description: "Encode and decode text and files between Base64, URL, HTML entities, hex, and binary.", artwork_url: "assets/home/encoding.png" },
     { id: "network_monitor", name: "Network Monitor", category: "Utilities", description: "Watch live outbound connections by process, flag unknown destinations, and query history.", artwork_url: "assets/home/network_monitor.svg" },
     { id: "archive", name: "Archive Studio", category: "Utilities", description: "Create, list, and extract ZIP, TAR, and TAR.GZ archives offline.", artwork_url: "assets/home/archive.svg" },
-    { id: "office", name: "Office Tools", category: "Documents", description: "Extract clean text and convert DOCX, PPTX, XLSX, ODT, ODS, ODP documents.", artwork_url: "assets/home/office.svg" }
+    { id: "media", name: "Audio & Video", category: "Media", description: "Trim clips, extract MP3 audio, generate Whisper subtitles, adjust speed, reverse, and create GIFs.", artwork_url: "assets/home/media.png" },
   ];
   var allApps = DEFAULT_APPS.slice();
+
+  function syncApps(baseList) {
+    var map = {};
+    (baseList || []).forEach(function (app) {
+      map[app.id] = app;
+    });
+
+    if (window.FOSS && window.FOSS.router && window.FOSS.router.getRegisteredTools) {
+      var registered = window.FOSS.router.getRegisteredTools();
+      registered.forEach(function (t) {
+        if (!map[t.id]) {
+          map[t.id] = {
+            id: t.id,
+            name: t.title,
+            category: t.category || "Utilities",
+            description: t.description || "",
+            artwork_url: t.artwork_url || ("assets/home/" + t.id + ".png")
+          };
+        }
+      });
+    }
+
+    allApps = Object.values(map);
+  }
+
 
   function render(container) {
     container.innerHTML = "";
@@ -61,18 +87,27 @@ window.FOSS = window.FOSS || {};
     page.appendChild(searchInput);
 
     // Filters row: Category chips and Favorites-only switch
-    var cats = ["All", "Documents", "Visuals", "Media", "Utilities", "Data"];
-    var chipBtns = cats.map(function (c) {
-      var isAct = selectedCategory === c;
+    var layout = window.FOSS.router.resolveSidebarLayout();
+    var sectionNames = (layout.sections || [])
+      .filter(function (s) { return (s.items || []).some(function (it) { return it.visible; }); })
+      .map(function (s) { return s.name; });
+    var categories = ["All"].concat(sectionNames);
+
+    if (categories.indexOf(selectedCategory) === -1) {
+      selectedCategory = "All";
+    }
+
+    var chipBtns = categories.map(function (catName) {
+      var isAct = selectedCategory === catName;
       return window.FOSS.dom.el("button", {
         className: "chip " + (isAct ? "active" : ""),
         "aria-pressed": isAct ? "true" : "false",
-        "data-testid": "home-filter-" + c.toLowerCase(),
-        text: c,
+        "data-testid": "home-filter-" + catName.toLowerCase().replace(/[^a-z0-9]/g, "-"),
+        text: catName,
         onClick: function () {
-          selectedCategory = c;
+          selectedCategory = catName;
           chipBtns.forEach(function (btn) {
-            var active = btn.textContent === c;
+            var active = btn.textContent === catName;
             btn.className = "chip " + (active ? "active" : "");
             btn.setAttribute("aria-pressed", active ? "true" : "false");
           });
@@ -111,10 +146,11 @@ window.FOSS = window.FOSS || {};
     container.appendChild(page);
 
     // Load apps and render grid
+    syncApps(DEFAULT_APPS);
     updateGrid();
     window.FOSS.api("get_apps", {}).then(function (res) {
       if (res && res.ok && res.apps) {
-        allApps = res.apps;
+        syncApps(res.apps);
         updateGrid();
       }
     });
@@ -127,8 +163,44 @@ window.FOSS = window.FOSS || {};
     if (!grid) return;
     grid.innerHTML = "";
 
+    var hideUnchecked = window.FOSS.store.get("hide_unchecked_on_home", false);
+    var hiddenMap = {};
+    var layout = (window.FOSS.router && window.FOSS.router.resolveSidebarLayout)
+      ? window.FOSS.router.resolveSidebarLayout()
+      : null;
+
+    if (hideUnchecked && layout) {
+      (layout.sections || []).forEach(function (section) {
+        (section.items || []).forEach(function (item) {
+          if (item.visible === false) hiddenMap[item.id] = true;
+        });
+      });
+    }
+
+    var sectionToolIds = null;
+    if (selectedCategory !== "All" && layout) {
+      var targetSec = (layout.sections || []).find(function (section) {
+        return section.name === selectedCategory;
+      });
+      if (targetSec) {
+        sectionToolIds = {};
+        (targetSec.items || []).forEach(function (item) {
+          if (item.visible !== false) {
+            sectionToolIds[item.id] = true;
+          }
+        });
+      }
+    }
+
     var filtered = allApps.filter(function (app) {
-      if (selectedCategory !== "All" && app.category !== selectedCategory) return false;
+      if (hideUnchecked && hiddenMap[app.id]) return false;
+      if (selectedCategory !== "All") {
+        if (sectionToolIds) {
+          if (!sectionToolIds[app.id]) return false;
+        } else if (app.category !== selectedCategory) {
+          return false;
+        }
+      }
       if (favoritesOnly && !window.FOSS.store.isFavorite(app.id)) return false;
       if (searchQuery) {
         var matchName = app.name.toLowerCase().indexOf(searchQuery) !== -1;

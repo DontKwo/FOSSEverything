@@ -7,10 +7,12 @@ from app.features.metadata.ops import (
     compare_metadata,
     editable_keys,
     export_metadata,
+    extract_gps_info,
     gps_preview_for_metadata,
     inspect_metadata,
     metadata_support_report,
     save_edited_metadata,
+    strip_any_metadata,
     strip_metadata,
 )
 from app.web.api.result import api_method, ok, require
@@ -32,8 +34,13 @@ class MetadataApiMixin:
         file_path = str(params["file_path"])
         p = Path(file_path)
         out_path = str(params["output_path"]) if params.get("output_path") else str(p.parent / f"{p.stem}_clean{p.suffix}")
-        result_path = strip_metadata(file_path, out_path)
-        return ok(output_path=result_path)
+        res = strip_any_metadata(file_path, out_path)
+        return ok(output_path=res["output_path"], removed_fields_count=res["removed_fields_count"])
+
+    @api_method
+    def metadata_strip_any(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Universal metadata stripper returning count and output path.
+        return self.metadata_strip(params)
 
     @api_method
     def metadata_save(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -84,13 +91,14 @@ class MetadataApiMixin:
     @api_method
     def metadata_gps_preview(self, params: dict[str, Any]) -> dict[str, Any]:
         # Compute GPS location readout from metadata map or file path.
+        fpath = str(params.get("file_path", ""))
         if "metadata" in params:
             meta = dict(params["metadata"])
-        elif "file_path" in params:
-            meta = inspect_metadata(str(params["file_path"]))
+        elif fpath:
+            meta = inspect_metadata(fpath)
         else:
             meta = {}
-        gps = gps_preview_for_metadata(meta)
+        gps = gps_preview_for_metadata(meta, file_path=fpath)
         return ok(gps=gps)
 
     @api_method

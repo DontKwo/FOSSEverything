@@ -1,29 +1,34 @@
-// Archive & Packaging tool: create, extract, inspect, protect (encryption & key rotation), and incremental backup.
+// Archive Studio: package, extract, inspect, and protect archives with offline security.
 window.FOSS = window.FOSS || {};
 
 (function () {
+  var globalQueuedSources = [];
+  var globalInspectPath = "";
+  var globalInspectMembers = [];
+
+  function formatBytes(bytes) {
+    if (bytes === 0 || !bytes) return "0 B";
+    var units = ["B", "KB", "MB", "GB", "TB"];
+    var idx = Math.floor(Math.log(bytes) / Math.log(1024));
+    idx = Math.min(idx, units.length - 1);
+    var val = (bytes / Math.pow(1024, idx)).toFixed(idx === 0 ? 0 : 1);
+    return val + " " + units[idx];
+  }
+
+  // TAB 1: Create Archive
   function renderCreate(panel, ctx) {
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-archive");
 
-    var currentSources = [];
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Create Archive" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Package files or folders into ZIP, TAR, or TAR.GZ bundles locally without cloud dependencies."
-      })
-    ]);
+    var currentSources = globalQueuedSources.slice();
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted mb-sm",
       "data-testid": "archive-create-status",
       text: "Ready"
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
+      className: "banner danger hidden mb-sm",
       "data-testid": "archive-create-error"
     }, [
       window.FOSS.icons.el("alert", 18),
@@ -42,14 +47,14 @@ window.FOSS = window.FOSS || {};
     }
 
     var resultHost = window.FOSS.dom.el("div", {
-      className: "hidden",
+      className: "hidden mb-sm",
       "data-testid": "archive-create-result"
     });
 
     function showResult(path, titleText) {
       resultHost.innerHTML = "";
       var card = window.FOSS.components.resultCard({
-        testid: "archive-create-card",
+        testid: "archive-create-result-card",
         title: titleText || "Archive Created",
         outputPath: path
       });
@@ -57,203 +62,318 @@ window.FOSS = window.FOSS || {};
       resultHost.classList.remove("hidden");
     }
 
-    var card = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-
-    // Source picker
     var sourceDisplay = window.FOSS.dom.el("div", {
-      className: "font-mono text-sm text-muted grow",
+      className: "text-xs text-muted font-mono",
       "data-testid": "archive-source-display",
       "data-truncate-ok": "true",
       title: "No sources selected",
       text: "No sources selected"
     });
 
-    var chooseFilesBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "archive-choose-source",
-      "aria-label": "Choose files",
-      title: "Choose files",
-      type: "button",
-      onClick: function () {
-        clearError();
-        window.FOSS.api("select_files", {}).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          currentSources = res.paths;
-          sourceDisplay.textContent = currentSources.length === 1 ? currentSources[0] : currentSources.length + " items selected";
-          sourceDisplay.title = currentSources.join(", ");
-        });
+    function updateSourceDisplay() {
+      if (currentSources.length === 0) {
+        sourceDisplay.textContent = "No sources selected";
+        sourceDisplay.setAttribute("title", "No sources selected");
+      } else {
+        var count = currentSources.length;
+        var txt = count + " item" + (count === 1 ? "" : "s") + " selected";
+        sourceDisplay.textContent = txt;
+        sourceDisplay.setAttribute("title", txt);
       }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Choose Files" })
-    ]);
+      globalQueuedSources = currentSources.slice();
+      renderQueueTable();
+    }
 
-    var chooseFolderBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "aria-label": "Choose folder",
-      title: "Choose folder",
-      type: "button",
-      onClick: function () {
-        clearError();
-        window.FOSS.api("select_folder", {}).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          currentSources = res.paths;
-          sourceDisplay.textContent = currentSources[0];
-          sourceDisplay.title = currentSources[0];
-        });
-      }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Choose Folder" })
-    ]);
-
-    var sourceToolbar = window.FOSS.dom.el("div", { className: "row" }, [chooseFilesBtn, chooseFolderBtn]);
-    card.appendChild(window.FOSS.dom.el("div", { className: "flex items-center justify-between flex-wrap gap-2" }, [sourceDisplay, sourceToolbar]));
-
-    // Policy presets
-    var presetSelect = window.FOSS.dom.el("select", {
-      className: "select grow",
-      "data-testid": "archive-preset-select",
-      "aria-label": "Archive Policy Preset",
-      title: "Archive Policy Preset",
-      onChange: function () {
-        var v = presetSelect.value;
-        if (v === "photos" || v === "share") {
-          formatSelect.value = "zip";
-        } else if (v === "code" || v === "longterm") {
-          formatSelect.value = "tar.gz";
-        } else if (v === "media") {
-          formatSelect.value = "tar";
-        }
-      }
-    }, [
-      window.FOSS.dom.el("option", { value: "photos", text: "Personal Photos (ZIP container)" }),
-      window.FOSS.dom.el("option", { value: "code", text: "Source Code (TAR.GZ archive)" }),
-      window.FOSS.dom.el("option", { value: "sensitive", text: "Sensitive Documents (Encrypted bundle)" }),
-      window.FOSS.dom.el("option", { value: "media", text: "Media Backup (TAR uncompressed)" }),
-      window.FOSS.dom.el("option", { value: "share", text: "Quick Share (ZIP lightweight)" }),
-      window.FOSS.dom.el("option", { value: "longterm", text: "Long-term Archive (TAR.GZ max compression)" })
-    ]);
-
-    var presetRow = window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Policy Preset" }),
-      presetSelect
-    ]);
-    card.appendChild(presetRow);
-
-    // Format selection
     var formatSelect = window.FOSS.dom.el("select", {
-      className: "select w-36",
+      className: "input",
       "data-testid": "archive-format-select",
       "aria-label": "Archive Format",
       title: "Archive Format"
     }, [
       window.FOSS.dom.el("option", { value: "zip", text: "ZIP (.zip)" }),
-      window.FOSS.dom.el("option", { value: "tar", text: "TAR (.tar)" }),
-      window.FOSS.dom.el("option", { value: "tar.gz", text: "TAR.GZ (.tar.gz)" })
+      window.FOSS.dom.el("option", { value: "tar.gz", text: "TAR.GZ (.tar.gz)" }),
+      window.FOSS.dom.el("option", { value: "tar.xz", text: "TAR.XZ (.tar.xz)" }),
+      window.FOSS.dom.el("option", { value: "tar.bz2", text: "TAR.BZ2 (.tar.bz2)" }),
+      window.FOSS.dom.el("option", { value: "tar", text: "TAR (.tar)" })
     ]);
 
-    var formatRow = window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Format" }),
-      formatSelect
+    var compSelect = window.FOSS.dom.el("select", {
+      className: "input",
+      "data-testid": "archive-compression-select",
+      "aria-label": "Compression Level",
+      title: "Compression Level"
+    }, [
+      window.FOSS.dom.el("option", { value: "6", text: "Balanced (Level 6 - Default)" }),
+      window.FOSS.dom.el("option", { value: "0", text: "Store Only (No Compression - Fastest)" }),
+      window.FOSS.dom.el("option", { value: "9", text: "Maximum (Level 9 - Smallest Size)" })
     ]);
-    card.appendChild(formatRow);
 
-    // Password input
-    var passwordInput = window.FOSS.dom.el("input", {
-      type: "password",
-      className: "input grow",
-      "data-testid": "archive-create-password",
-      "aria-label": "Optional password",
-      title: "Optional password",
-      placeholder: "Optional password (leaves unencrypted if empty)"
+    var outputPathInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input font-mono",
+      "data-testid": "archive-create-output",
+      placeholder: "Auto-generated or custom path",
+      "aria-label": "Output Archive Path",
+      title: "Output Archive Path"
     });
 
-    var passwordRow = window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Password" }),
-      passwordInput
-    ]);
-    card.appendChild(passwordRow);
-
-    // Create button
-    var createBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "archive-create-btn",
-      "aria-label": "Create Archive",
-      title: "Create Archive",
+    var saveAsBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "archive-save-as-btn",
       type: "button",
       onClick: function () {
-        if (!currentSources.length) {
-          showError("Please select at least one file or folder to archive.");
+        var fmt = formatSelect.value;
+        var ext = fmt.indexOf("tar.") === 0 ? "." + fmt : "." + fmt;
+        window.FOSS.api("select_save_path", {
+          title: "Select Output Archive Location",
+          default_name: "archive" + ext
+        }).then(function (res) {
+          if (res && res.path) {
+            outputPathInput.value = res.path;
+          }
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Save As..." })]);
+
+    var handleAddFiles = function () {
+      clearError();
+      window.FOSS.api("select_files", { title: "Select Files to Archive" }).then(function (res) {
+        if (!res || res.cancelled || !res.paths || !res.paths.length) return;
+        res.paths.forEach(function (p) {
+          if (currentSources.indexOf(p) === -1) currentSources.push(p);
+        });
+        updateSourceDisplay();
+      });
+    };
+
+    var addFilesBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
+      "data-testid": "archive-add-files-btn",
+      type: "button",
+      onClick: handleAddFiles
+    }, [window.FOSS.icons.el("file-plus", 16), window.FOSS.dom.el("span", { text: "Add Files..." })]);
+
+    var chooseSourceBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
+      "data-testid": "archive-choose-source",
+      type: "button",
+      onClick: handleAddFiles
+    }, [window.FOSS.icons.el("file-plus", 16), window.FOSS.dom.el("span", { text: "Add Files..." })]);
+
+    var addFolderBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
+      "data-testid": "archive-add-folder-btn",
+      type: "button",
+      onClick: function () {
+        clearError();
+        window.FOSS.api("select_folder", { title: "Select Folder to Archive" }).then(function (res) {
+          if (!res || res.cancelled || !res.path) return;
+          if (currentSources.indexOf(res.path) === -1) {
+            currentSources.push(res.path);
+            updateSourceDisplay();
+          }
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 16), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
+
+    var clearQueueBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "data-testid": "archive-clear-queue-btn",
+      type: "button",
+      onClick: function () {
+        currentSources = [];
+        updateSourceDisplay();
+      }
+    }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear Queue" })]);
+
+    var createBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      "data-testid": "archive-create-btn",
+      type: "button",
+      onClick: function () {
+        clearError();
+        if (currentSources.length === 0) {
+          showError("Please select at least one file or folder to package.");
           return;
         }
-        clearError();
-        statusBar.textContent = "Creating archive...";
+        var fmt = formatSelect.value;
+        var comp = parseInt(compSelect.value, 10) || 6;
+        var outPath = outputPathInput.value.trim();
 
-        var pw = passwordInput.value.trim();
-        if (pw) {
-          window.FOSS.api("archive_protect", {
-            source_paths: currentSources,
-            password: pw,
-            format: formatSelect.value
-          }).then(function (res) {
-            if (res && res.output_path) {
-              statusBar.textContent = "Protected bundle created successfully.";
-              showResult(res.output_path, "Protected Bundle Created");
-            } else {
-              showError("Failed to create protected bundle.");
-            }
-          });
-        } else {
+        function doCreate(destPath) {
+          statusBar.textContent = "Creating archive...";
           window.FOSS.api("archive_create", {
             sources: currentSources,
-            format: formatSelect.value
+            format: fmt,
+            compression_level: comp,
+            output_path: destPath || outPath || undefined
           }).then(function (res) {
             if (res && res.output_path) {
               statusBar.textContent = "Archive created successfully.";
               showResult(res.output_path, "Archive Created");
-            } else {
-              showError("Failed to create archive.");
             }
+          }).catch(function (err) {
+            showError((err && err.message) || String(err));
           });
         }
+
+        var defaultName = "archive." + (fmt === "tar.gz" ? "tar.gz" : fmt);
+        if (currentSources.length === 1) {
+          var firstBase = currentSources[0].split(/[/\\]/).pop().replace(/\.[^/.]+$/, "");
+          defaultName = firstBase + "." + (fmt === "tar.gz" ? "tar.gz" : fmt);
+        }
+        window.FOSS.api("select_save_path", {
+          title: "Save Archive",
+          default_name: defaultName
+        }).then(function (res) {
+          var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
+          doCreate(p);
+        }).catch(function () {
+          doCreate(outPath);
+        });
       }
+    }, [window.FOSS.icons.el("archive", 16), window.FOSS.dom.el("span", { text: "Create Archive" })]);
+
+    // Left controls pane
+    var leftSettingsCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3"
     }, [
-      window.FOSS.icons.el("check", 16),
-      window.FOSS.dom.el("span", { text: "Create Archive" })
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Packaging Options" }),
+      window.FOSS.components.field("Archive Format", formatSelect),
+      window.FOSS.components.field("Compression Level", compSelect),
+      window.FOSS.dom.el("div", { className: "flex-col gap-1" }, [
+        window.FOSS.components.field("Output Archive Destination", outputPathInput),
+        saveAsBtn
+      ]),
+      createBtn
     ]);
 
-    var actionRow = window.FOSS.dom.el("div", { className: "row" }, [createBtn]);
-    card.appendChild(actionRow);
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "archive-sidebar-pane",
+      style: "width: 100%; min-width: 0;"
+    }, [
+      leftSettingsCard
+    ]);
 
-    panel.appendChild(header);
+    // Right Queue Table Pane
+    var queueTableHost = window.FOSS.dom.el("div", {
+      className: "grow flex-col gap-2 overflow-x-auto",
+      "data-testid": "archive-sources-table",
+      style: "min-width: 0; width: 100%; box-sizing: border-box;"
+    });
+
+    function renderQueueTable() {
+      queueTableHost.innerHTML = "";
+      if (currentSources.length === 0) {
+        queueTableHost.appendChild(window.FOSS.dom.el("div", {
+          className: "text-muted text-sm p-8 text-center font-mono",
+          text: "Staging queue is empty. Click Add Files or Add Folder on the toolbar above."
+        }));
+        return;
+      }
+      var rows = currentSources.map(function (srcPath, idx) {
+        var baseName = srcPath.split(/[/\\]/).pop() || srcPath;
+        var removeBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-icon btn-ghost btn-sm",
+          style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
+          "aria-label": "Remove source item",
+          title: "Remove from queue",
+          onClick: function () {
+            currentSources.splice(idx, 1);
+            updateSourceDisplay();
+          }
+        }, [window.FOSS.icons.el("x", 14)]);
+
+        return window.FOSS.dom.el("tr", {}, [
+          window.FOSS.dom.el("td", {
+            className: "font-semibold text-sm",
+            style: "width: 35%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: baseName,
+            "data-truncate-ok": "true",
+            title: baseName
+          }),
+          window.FOSS.dom.el("td", {
+            className: "text-xs text-muted font-mono",
+            style: "max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: srcPath,
+            "data-truncate-ok": "true",
+            title: srcPath
+          }),
+          window.FOSS.dom.el("td", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;" }, [removeBtn])
+        ]);
+      });
+
+      var table = window.FOSS.dom.el("table", {
+        className: "table w-full",
+        style: "table-layout: fixed; width: 100%; min-width: 0;"
+      }, [
+        window.FOSS.dom.el("thead", {}, [
+          window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("th", { style: "width: 35%;", text: "Name", "data-truncate-ok": "true", title: "Name" }),
+            window.FOSS.dom.el("th", { style: "width: auto;", text: "Path", "data-truncate-ok": "true", title: "Path" }),
+            window.FOSS.dom.el("th", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;", text: "", "data-truncate-ok": "true", title: "Action" })
+          ])
+        ]),
+        window.FOSS.dom.el("tbody", {}, rows)
+      ]);
+      queueTableHost.appendChild(table);
+    }
+
+    var stageCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow",
+      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
+    }, [
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [
+          addFilesBtn,
+          chooseSourceBtn,
+          addFolderBtn
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+          sourceDisplay,
+          clearQueueBtn
+        ])
+      ]),
+      queueTableHost
+    ]);
+
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "archive-stage-pane grow",
+      style: "width: 100%; min-width: 0;"
+    }, [
+      stageCard
+    ]);
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable archive-workbench"
+    }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stageWrapper
+    ]);
+
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
     panel.appendChild(resultHost);
-    panel.appendChild(card);
+    panel.appendChild(split);
+
+    updateSourceDisplay();
   }
 
+  // TAB 2: Extract Archive
   function renderExtract(panel, ctx) {
     panel.innerHTML = "";
 
-    var currentArchive = "";
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Extract Archive" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Extract ZIP or TAR archives to a target directory locally."
-      })
-    ]);
+    var currentArchivePath = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted mb-sm",
       "data-testid": "archive-extract-status",
-      text: "Ready"
+      text: "Select an archive file to extract."
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
+      className: "banner danger hidden mb-sm",
       "data-testid": "archive-extract-error"
     }, [
       window.FOSS.icons.el("alert", 18),
@@ -272,184 +392,177 @@ window.FOSS = window.FOSS || {};
     }
 
     var resultHost = window.FOSS.dom.el("div", {
-      className: "hidden",
+      className: "hidden mb-sm",
       "data-testid": "archive-extract-result"
     });
 
     function showResult(path, titleText) {
       resultHost.innerHTML = "";
       var card = window.FOSS.components.resultCard({
-        testid: "archive-extract-card",
-        title: titleText || "Files Extracted",
+        testid: "archive-extract-result-card",
+        title: titleText || "Extraction Complete",
         outputPath: path
       });
       resultHost.appendChild(card);
       resultHost.classList.remove("hidden");
     }
 
-    var card = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-
-    var archiveDisplay = window.FOSS.dom.el("div", {
-      className: "font-mono text-sm text-muted grow",
-      "data-testid": "archive-file-display",
-      "data-truncate-ok": "true",
-      title: "No archive selected",
-      text: "No archive selected"
+    var targetDirInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input font-mono",
+      "data-testid": "archive-extract-target",
+      placeholder: "Destination directory",
+      "aria-label": "Extraction Target Folder",
+      title: "Extraction Target Folder"
     });
+
+    var summaryText = window.FOSS.dom.el("div", {
+      className: "text-sm text-muted font-mono",
+      text: "No archive loaded. Choose an archive file on the left."
+    });
+
+    function loadArchiveInfo(archPath) {
+      currentArchivePath = archPath;
+      clearError();
+      statusBar.textContent = "Inspecting archive contents...";
+      window.FOSS.api("archive_list", { archive_path: archPath }).then(function (res) {
+        if (res) {
+          statusBar.textContent = "Archive loaded: " + (res.count || 0) + " files.";
+          var fmt = res.format || "unknown";
+          var sizeStr = formatBytes(res.total_size_bytes || 0);
+          summaryText.innerHTML = "";
+          summaryText.appendChild(window.FOSS.dom.el("div", { className: "stack-sm" }, [
+            window.FOSS.dom.el("div", { text: "Archive: " + archPath.split(/[/\\]/).pop() }),
+            window.FOSS.dom.el("div", { text: "Format: " + fmt.toUpperCase() }),
+            window.FOSS.dom.el("div", { text: "Member Count: " + (res.count || 0) + " items" }),
+            window.FOSS.dom.el("div", { text: "Uncompressed Size: " + sizeStr })
+          ]));
+          if (!targetDirInput.value) {
+            var base = archPath.replace(/\.(tar\.gz|tar\.xz|tar\.bz2|tgz|txz|tbz2|zip|tar)$/i, "");
+            targetDirInput.value = base + "_extracted";
+          }
+        }
+      }).catch(function (err) {
+        showError((err && err.message) || String(err));
+      });
+    }
 
     var chooseArchiveBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "archive-choose-archive",
-      "aria-label": "Choose archive",
-      title: "Choose archive",
+      className: "btn btn-secondary",
+      "data-testid": "archive-extract-choose",
       type: "button",
       onClick: function () {
-        clearError();
-        window.FOSS.api("select_file", {}).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          currentArchive = res.paths[0];
-          archiveDisplay.textContent = currentArchive;
-          archiveDisplay.title = currentArchive;
+        window.FOSS.api("select_file", { title: "Select Archive File to Extract" }).then(function (res) {
+          var p = (res && res.paths && res.paths[0]) || (res && res.path);
+          if (p) loadArchiveInfo(p);
         });
       }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Choose Archive" })
-    ]);
+    }, [window.FOSS.icons.el("archive", 16), window.FOSS.dom.el("span", { text: "Choose Archive..." })]);
 
-    var archiveRow = window.FOSS.dom.el("div", { className: "flex items-center justify-between flex-wrap gap-2" }, [
-      archiveDisplay,
-      window.FOSS.dom.el("div", { className: "row" }, [chooseArchiveBtn])
-    ]);
-    card.appendChild(archiveRow);
-
-    var destInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow font-mono text-sm",
-      "data-testid": "archive-extract-dest",
-      "aria-label": "Target extraction folder",
-      "data-truncate-ok": "true",
-      title: "Optional: extraction directory",
-      placeholder: "Optional: extraction directory (defaults to archive folder)"
-    });
-
-    var chooseDestBtn = window.FOSS.dom.el("button", {
+    var browseTargetBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "aria-label": "Browse destination",
-      title: "Browse destination",
+      "data-testid": "archive-extract-browse",
       type: "button",
       onClick: function () {
-        window.FOSS.api("select_folder", {}).then(function (res) {
-          if (res && !res.cancelled && res.paths && res.paths.length) {
-            destInput.value = res.paths[0];
-            destInput.title = res.paths[0];
-          }
+        window.FOSS.api("select_folder", { title: "Select Destination Directory" }).then(function (res) {
+          if (res && res.path) targetDirInput.value = res.path;
         });
       }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Browse" })
-    ]);
-
-    var destRow = window.FOSS.dom.el("div", { className: "flex items-center gap-2" }, [
-      destInput,
-      chooseDestBtn
-    ]);
-    card.appendChild(destRow);
-
-    var passwordInput = window.FOSS.dom.el("input", {
-      type: "password",
-      className: "input grow",
-      "data-testid": "archive-extract-password",
-      "aria-label": "Password (if bundle is encrypted)",
-      title: "Password (if bundle is encrypted)",
-      placeholder: "Password (if bundle is encrypted)"
-    });
-
-    var pwRow = window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Password" }),
-      passwordInput
-    ]);
-    card.appendChild(pwRow);
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Browse Folder..." })]);
 
     var extractBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "archive-extract-btn",
-      "aria-label": "Extract Archive",
-      title: "Extract Archive",
+      className: "btn btn-primary",
+      "data-testid": "archive-extract-run-btn",
       type: "button",
       onClick: function () {
-        if (!currentArchive) {
-          showError("Please choose an archive file to extract.");
+        clearError();
+        if (!currentArchivePath) {
+          showError("Please choose an archive file first.");
           return;
         }
-        clearError();
-        statusBar.textContent = "Extracting archive...";
-
-        var pw = passwordInput.value.trim();
-        if (pw) {
-          window.FOSS.api("archive_unprotect", {
-            bundle_path: currentArchive,
-            target_dir: destInput.value.trim(),
-            password: pw
-          }).then(function (res) {
-            if (res && res.extracted) {
-              statusBar.textContent = "Extracted " + res.extracted.length + " files successfully.";
-              showResult(res.target_dir, "Decrypted and Extracted");
-            } else {
-              showError("Failed to extract encrypted bundle. Check password.");
-            }
-          });
-        } else {
-          window.FOSS.api("archive_extract", {
-            archive_path: currentArchive,
-            target_dir: destInput.value.trim()
-          }).then(function (res) {
-            if (res && res.extracted) {
-              statusBar.textContent = "Extracted " + res.extracted.length + " files successfully.";
-              showResult(res.target_dir, "Extracted Successfully");
-            } else {
-              showError("Failed to extract archive.");
-            }
-          });
-        }
+        var targetDir = targetDirInput.value.trim();
+        statusBar.textContent = "Extracting archive safely...";
+        window.FOSS.job("archive_extract", {
+          archive_path: currentArchivePath,
+          target_dir: targetDir
+        }).then(function (res) {
+          if (res && res.target_dir) {
+            statusBar.textContent = "Extraction complete: " + res.target_dir;
+            showResult(res.target_dir, "Extraction Complete");
+          }
+        }).catch(function (err) {
+          showError((err && err.message) || String(err));
+        });
       }
+    }, [window.FOSS.icons.el("folder", 16), window.FOSS.dom.el("span", { text: "Extract All Files" })]);
+
+    var leftCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3"
     }, [
-      window.FOSS.icons.el("check", 16),
-      window.FOSS.dom.el("span", { text: "Extract Archive" })
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Extraction Controls" }),
+      chooseArchiveBtn,
+      window.FOSS.dom.el("div", { className: "flex-col gap-1" }, [
+        window.FOSS.components.field("Destination Folder", targetDirInput),
+        browseTargetBtn
+      ]),
+      extractBtn
     ]);
 
-    var actionRow = window.FOSS.dom.el("div", { className: "row" }, [extractBtn]);
-    card.appendChild(actionRow);
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "archive-sidebar-pane",
+      style: "width: 100%; min-width: 0;"
+    }, [leftCard]);
 
-    panel.appendChild(header);
+    var securityBadge = window.FOSS.dom.el("div", {
+      className: "row gap-2 items-center text-xs text-muted mb-sm p-2",
+      style: "background: var(--bg-surface-sunken); border-radius: var(--radius-sm); border: 1px solid var(--border);"
+    }, [
+      window.FOSS.icons.el("shield", 16),
+      window.FOSS.dom.el("span", { text: "Path traversal (Zip-Slip/Tar-Slip) protection active: entries escaping destination root are rejected." })
+    ]);
+
+    var summaryCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Archive Pre-Extraction Summary" }),
+      securityBadge,
+      summaryText
+    ]);
+
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "archive-stage-pane grow",
+      style: "width: 100%; min-width: 0;"
+    }, [summaryCard]);
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable archive-workbench"
+    }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stageWrapper
+    ]);
+
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
     panel.appendChild(resultHost);
-    panel.appendChild(card);
+    panel.appendChild(split);
   }
 
+  // TAB 3: Inspect & Convert
   function renderInspect(panel, ctx) {
     panel.innerHTML = "";
 
-    var currentArchive = "";
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Inspect Archive" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Inspect archive member list, inspect uncompressed sizes, and verify local integrity."
-      })
-    ]);
+    var selectedMemberNames = new Set();
+    var filterQuery = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted mb-sm",
       "data-testid": "archive-inspect-status",
       text: "Ready"
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
+      className: "banner danger hidden mb-sm",
       "data-testid": "archive-inspect-error"
     }, [
       window.FOSS.icons.el("alert", 18),
@@ -467,141 +580,273 @@ window.FOSS = window.FOSS || {};
       errorBanner.classList.add("hidden");
     }
 
-    var card = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-
-    var archiveDisplay = window.FOSS.dom.el("div", {
-      className: "font-mono text-sm text-muted grow",
-      "data-testid": "archive-inspect-display",
-      "data-truncate-ok": "true",
-      title: "No archive selected",
-      text: "No archive selected"
+    var resultHost = window.FOSS.dom.el("div", {
+      className: "hidden mb-sm",
+      "data-testid": "archive-inspect-result"
     });
 
-    var chooseArchiveBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
+    function showResult(path, titleText) {
+      resultHost.innerHTML = "";
+      var card = window.FOSS.components.resultCard({
+        testid: "archive-inspect-result-card",
+        title: titleText || "Operation Complete",
+        outputPath: path
+      });
+      resultHost.appendChild(card);
+      resultHost.classList.remove("hidden");
+    }
+
+    var tableHost = window.FOSS.dom.el("div", {
+      className: "grow flex-col",
+      "data-testid": "archive-member-table"
+    });
+
+    function renderMembersTable() {
+      tableHost.innerHTML = "";
+      if (globalInspectMembers.length === 0) {
+        tableHost.appendChild(window.FOSS.dom.el("div", {
+          className: "text-muted text-sm p-8 text-center font-mono",
+          text: "No archive loaded. Click Choose Archive above to inspect member entries."
+        }));
+        return;
+      }
+
+      var filtered = globalInspectMembers.filter(function (m) {
+        if (!filterQuery) return true;
+        return m.path.toLowerCase().indexOf(filterQuery.toLowerCase()) !== -1;
+      });
+
+      var rows = filtered.map(function (m) {
+        var isChecked = selectedMemberNames.has(m.path);
+        var chk = window.FOSS.dom.el("input", {
+          type: "checkbox",
+          checked: isChecked,
+          "aria-label": "Select member " + m.path,
+          title: "Select member " + m.path,
+          onChange: function (e) {
+            if (e.target.checked) selectedMemberNames.add(m.path);
+            else selectedMemberNames.delete(m.path);
+          }
+        });
+
+        return window.FOSS.dom.el("tr", {}, [
+          window.FOSS.dom.el("td", { style: "width: 2rem;" }, [chk]),
+          window.FOSS.dom.el("td", { className: "font-mono text-xs", text: m.path, "data-truncate-ok": "true", title: m.path }),
+          window.FOSS.dom.el("td", { className: "text-right font-mono text-xs", text: formatBytes(m.size_bytes) }),
+          window.FOSS.dom.el("td", { className: "text-right font-mono text-xs text-muted", text: formatBytes(m.compressed_bytes) }),
+          window.FOSS.dom.el("td", { className: "text-right font-mono text-xs", text: m.ratio_pct + "%" }),
+          window.FOSS.dom.el("td", { className: "text-right font-mono text-xs text-muted", text: m.modified_iso ? m.modified_iso.slice(0, 19).replace("T", " ") : "-" })
+        ]);
+      });
+
+      var table = window.FOSS.dom.el("table", { className: "table w-full" }, [
+        window.FOSS.dom.el("thead", {}, [
+          window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("th", { style: "width: 2rem;" }),
+            window.FOSS.dom.el("th", { text: "Path" }),
+            window.FOSS.dom.el("th", { className: "text-right", text: "Size" }),
+            window.FOSS.dom.el("th", { className: "text-right", text: "Compressed" }),
+            window.FOSS.dom.el("th", { className: "text-right", text: "Ratio" }),
+            window.FOSS.dom.el("th", { className: "text-right", text: "Modified (UTC)" })
+          ])
+        ]),
+        window.FOSS.dom.el("tbody", {}, rows)
+      ]);
+      tableHost.appendChild(table);
+    }
+
+    function loadInspectArchive(archPath) {
+      globalInspectPath = archPath;
+      clearError();
+      statusBar.textContent = "Loading archive members...";
+      window.FOSS.api("archive_list", { archive_path: archPath }).then(function (res) {
+        if (res && res.members) {
+          globalInspectMembers = res.members;
+          selectedMemberNames.clear();
+          statusBar.textContent = "Archive loaded: " + globalInspectMembers.length + " members.";
+          renderMembersTable();
+        }
+      }).catch(function (err) {
+        showError((err && err.message) || String(err));
+      });
+    }
+
+    var chooseBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
       "data-testid": "archive-inspect-choose",
-      "aria-label": "Choose archive to inspect",
-      title: "Choose archive to inspect",
       type: "button",
       onClick: function () {
-        clearError();
-        window.FOSS.api("select_file", {}).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          currentArchive = res.paths[0];
-          archiveDisplay.textContent = currentArchive;
-          archiveDisplay.title = currentArchive;
-          loadArchiveMembers();
+        window.FOSS.api("select_file", { title: "Select Archive File to Inspect" }).then(function (res) {
+          var p = (res && res.paths && res.paths[0]) || (res && res.path);
+          if (p) {
+            loadInspectArchive(p);
+          }
         });
       }
-    }, [
-      window.FOSS.icons.el("search", 16),
-      window.FOSS.dom.el("span", { text: "Choose Archive" })
-    ]);
+    }, [window.FOSS.icons.el("archive", 16), window.FOSS.dom.el("span", { text: "Choose Archive..." })]);
 
     var testIntegrityBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "archive-test-integrity-btn",
-      "aria-label": "Test integrity",
-      title: "Test integrity",
       type: "button",
       onClick: function () {
-        if (!currentArchive) {
-          showError("Please choose an archive file first.");
+        clearError();
+        if (!globalInspectPath) {
+          showError("Select an archive first.");
           return;
         }
-        clearError();
-        statusBar.textContent = "Testing integrity...";
-        window.FOSS.api("archive_test", { archive_path: currentArchive }).then(function (res) {
+        statusBar.textContent = "Testing archive integrity...";
+        window.FOSS.api("archive_test", { archive_path: globalInspectPath }).then(function (res) {
           if (res && res.valid) {
-            statusBar.textContent = "Integrity check passed: archive is valid.";
+            statusBar.textContent = "Integrity check passed: all " + (res.count || 0) + " entries valid.";
           } else {
-            showError(res && res.message ? res.message : "Archive integrity check failed.");
+            showError((res && res.message) || "Integrity check failed.");
+          }
+        }).catch(function (err) {
+          showError((err && err.message) || String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("check", 14), window.FOSS.dom.el("span", { text: "Test Integrity" })]);
+
+    var filterInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm font-mono",
+      "data-testid": "archive-inspect-filter",
+      placeholder: "Filter members...",
+      "aria-label": "Filter members",
+      title: "Filter members",
+      onInput: function (e) {
+        filterQuery = e.target.value.trim();
+        renderMembersTable();
+      }
+    });
+
+    var extractSelectedBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "archive-extract-selected-btn",
+      type: "button",
+      onClick: function () {
+        clearError();
+        if (!globalInspectPath) {
+          showError("Select an archive first.");
+          return;
+        }
+        var membersList = Array.from(selectedMemberNames);
+        if (membersList.length === 0) {
+          showError("Select at least one member checkbox to extract.");
+          return;
+        }
+        window.FOSS.api("select_folder", {
+          title: "Select Destination Directory for Selected Members"
+        }).then(function (res) {
+          var targetDir = res && res.path;
+          if (!targetDir) return;
+          statusBar.textContent = "Extracting " + membersList.length + " selected members...";
+          window.FOSS.job("archive_extract_selected", {
+            archive_path: globalInspectPath,
+            members: membersList,
+            target_dir: targetDir
+          }).then(function (res) {
+            if (res && res.target_dir) {
+              statusBar.textContent = "Extracted " + membersList.length + " members: " + res.target_dir;
+              showResult(res.target_dir, "Selected Members Extracted");
+            }
+          }).catch(function (err) {
+            showError((err && err.message) || String(err));
+          });
+        });
+      }
+    }, [window.FOSS.icons.el("download", 14), window.FOSS.dom.el("span", { text: "Extract Selected..." })]);
+
+    var convertTargetSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "data-testid": "archive-convert-fmt-select",
+      "aria-label": "Convert Target Format",
+      title: "Convert Target Format"
+    }, [
+      window.FOSS.dom.el("option", { value: "zip", text: "To ZIP (.zip)" }),
+      window.FOSS.dom.el("option", { value: "tar.gz", text: "To TAR.GZ (.tar.gz)" }),
+      window.FOSS.dom.el("option", { value: "tar.xz", text: "To TAR.XZ (.tar.xz)" }),
+      window.FOSS.dom.el("option", { value: "tar.bz2", text: "To TAR.BZ2 (.tar.bz2)" })
+    ]);
+
+    var convertBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "archive-convert-btn",
+      type: "button",
+      onClick: function () {
+        clearError();
+        if (!globalInspectPath) {
+          showError("Select an archive first.");
+          return;
+        }
+        var targetFmt = convertTargetSelect.value;
+        var ext = targetFmt.indexOf("tar.") === 0 ? "." + targetFmt : "." + targetFmt;
+        window.FOSS.api("select_save_path", {
+          title: "Select Converted Archive Location",
+          default_name: "converted" + ext
+        }).then(function (res) {
+          if (res && res.path) {
+            statusBar.textContent = "Converting archive format...";
+            window.FOSS.job("archive_convert", {
+              archive_path: globalInspectPath,
+              output_path: res.path
+            }).then(function (convRes) {
+              if (convRes && convRes.output_path) {
+                statusBar.textContent = "Archive converted: " + convRes.output_path;
+                showResult(convRes.output_path, "Archive Converted");
+              }
+            }).catch(function (err) {
+              showError((err && err.message) || String(err));
+            });
           }
         });
       }
+    }, [window.FOSS.icons.el("refresh-cw", 14), window.FOSS.dom.el("span", { text: "Convert Archive..." })]);
+
+    var inspectCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow"
     }, [
-      window.FOSS.icons.el("check", 16),
-      window.FOSS.dom.el("span", { text: "Test Integrity" })
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
+        window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+          chooseBtn,
+          testIntegrityBtn,
+          extractSelectedBtn
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+          filterInput,
+          convertTargetSelect,
+          convertBtn
+        ])
+      ]),
+      tableHost
     ]);
 
-    var toolbar = window.FOSS.dom.el("div", { className: "row" }, [chooseArchiveBtn, testIntegrityBtn]);
-    card.appendChild(window.FOSS.dom.el("div", { className: "flex items-center justify-between flex-wrap gap-2" }, [archiveDisplay, toolbar]));
-
-    var tableContainer = window.FOSS.dom.el("div", {
-      className: "table-wrap scroll-x",
-      "data-testid": "archive-member-table"
-    });
-    tableContainer.innerHTML = '<div class="text-sm text-muted p-4 text-center">No archive loaded. Choose an archive to view its member list.</div>';
-    card.appendChild(tableContainer);
-
-    function loadArchiveMembers() {
-      if (!currentArchive) return;
-      statusBar.textContent = "Reading member list...";
-      window.FOSS.api("archive_list", { archive_path: currentArchive }).then(function (res) {
-        if (!res || !res.contents) {
-          showError("Failed to read archive contents.");
-          return;
-        }
-        statusBar.textContent = "Loaded " + res.contents.length + " members (" + (res.format || "archive") + ").";
-        renderMemberTable(res.contents);
-      });
-    }
-
-    function renderMemberTable(members) {
-      tableContainer.innerHTML = "";
-      var tbl = window.FOSS.dom.el("table", { className: "table w-full" });
-      var thead = window.FOSS.dom.el("thead", {}, [
-        window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("th", { className: "w-12 text-left", text: "#" }),
-          window.FOSS.dom.el("th", { className: "text-left", text: "Member Path" }),
-          window.FOSS.dom.el("th", { className: "w-24 text-left", text: "Type" })
-        ])
-      ]);
-      tbl.appendChild(thead);
-
-      var tbody = window.FOSS.dom.el("tbody", {});
-      for (var i = 0; i < members.length; i++) {
-        var m = members[i];
-        var isDir = m.endsWith("/") || m.endsWith("\\");
-        var tr = window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("td", { className: "text-muted text-xs", text: String(i + 1) }),
-          window.FOSS.dom.el("td", { className: "font-mono text-sm", style: "word-break: break-all;", text: m }),
-          window.FOSS.dom.el("td", { className: "text-xs", text: isDir ? "Directory" : "File" })
-        ]);
-        tbody.appendChild(tr);
-      }
-      tbl.appendChild(tbody);
-      tableContainer.appendChild(tbl);
-    }
-
-    panel.appendChild(header);
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
-    panel.appendChild(card);
+    panel.appendChild(resultHost);
+    panel.appendChild(inspectCard);
+
+    if (globalInspectMembers.length > 0) {
+      renderMembersTable();
+    }
   }
 
+  // TAB 4: Password Bundle
   function renderProtect(panel, ctx) {
     panel.innerHTML = "";
 
-    var currentSource = "";
-    var currentBundle = "";
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Password-Protected Bundles" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Create encrypted archive bundles with a password-derived key, rotate passwords, and verify integrity."
-      })
-    ]);
+    var mode = "encrypt"; // "encrypt" | "decrypt"
+    var protectSources = [];
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted mb-sm",
       "data-testid": "archive-protect-status",
-      text: "Ready"
+      text: "Ready to create or open encrypted password bundle."
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
+      className: "banner danger hidden mb-sm",
       "data-testid": "archive-protect-error"
     }, [
       window.FOSS.icons.el("alert", 18),
@@ -620,444 +865,285 @@ window.FOSS = window.FOSS || {};
     }
 
     var resultHost = window.FOSS.dom.el("div", {
-      className: "hidden",
+      className: "hidden mb-sm",
       "data-testid": "archive-protect-result"
     });
 
     function showResult(path, titleText) {
       resultHost.innerHTML = "";
       var card = window.FOSS.components.resultCard({
-        testid: "archive-protect-card",
-        title: titleText || "Bundle Action Complete",
+        testid: "archive-protect-result-card",
+        title: titleText || "Operation Complete",
         outputPath: path
       });
       resultHost.appendChild(card);
       resultHost.classList.remove("hidden");
     }
 
-    // Card 1: Create encrypted bundle
-    var encryptCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    encryptCard.appendChild(window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Create Encrypted Bundle" }));
-
-    var protectSourceDisplay = window.FOSS.dom.el("div", {
-      className: "font-mono text-sm text-muted grow",
-      "data-testid": "archive-protect-source",
-      "data-truncate-ok": "true",
-      title: "No source selected",
-      text: "No source selected"
-    });
-
-    var chooseProtectSourceBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "aria-label": "Choose source folder or file",
-      title: "Choose source folder or file",
-      type: "button",
-      onClick: function () {
-        clearError();
-        window.FOSS.api("select_folder", {}).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          currentSource = res.paths[0];
-          protectSourceDisplay.textContent = currentSource;
-          protectSourceDisplay.title = currentSource;
-        });
-      }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Choose Source" })
-    ]);
-
-    encryptCard.appendChild(window.FOSS.dom.el("div", { className: "flex items-center justify-between flex-wrap gap-2" }, [protectSourceDisplay, chooseProtectSourceBtn]));
-
-    var protectPwInput = window.FOSS.dom.el("input", {
+    var passwordInput = window.FOSS.dom.el("input", {
       type: "password",
-      className: "input grow",
+      className: "input font-mono",
       "data-testid": "archive-protect-password",
-      "aria-label": "Bundle encryption password",
-      title: "Bundle encryption password",
-      placeholder: "Enter encryption password"
+      placeholder: "Strong secret password",
+      "aria-label": "Encryption Password",
+      title: "Encryption Password"
     });
 
-    encryptCard.appendChild(window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Password" }),
-      protectPwInput
-    ]));
+    var confirmPasswordInput = window.FOSS.dom.el("input", {
+      type: "password",
+      className: "input font-mono",
+      "data-testid": "archive-protect-confirm",
+      placeholder: "Confirm password",
+      "aria-label": "Confirm Encryption Password",
+      title: "Confirm Encryption Password"
+    });
 
-    var protectBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "archive-protect-btn",
-      "aria-label": "Create Protected Bundle",
-      title: "Create Protected Bundle",
+    var bundleFormatSelect = window.FOSS.dom.el("select", {
+      className: "input",
+      "data-testid": "archive-protect-format",
+      "aria-label": "Inner Archive Format",
+      title: "Inner Archive Format"
+    }, [
+      window.FOSS.dom.el("option", { value: "zip", text: "ZIP (.zip) - Recommended" }),
+      window.FOSS.dom.el("option", { value: "tar.gz", text: "TAR.GZ (.tar.gz)" }),
+      window.FOSS.dom.el("option", { value: "tar.xz", text: "TAR.XZ (.tar.xz)" }),
+      window.FOSS.dom.el("option", { value: "tar", text: "TAR (.tar)" })
+    ]);
+
+    var bundlePathInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input font-mono",
+      "data-testid": "archive-protect-bundle-path",
+      placeholder: "Select .fossbundle file",
+      "aria-label": "Encrypted Bundle Path",
+      title: "Encrypted Bundle Path"
+    });
+
+    var chooseBundleBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "archive-protect-choose-bundle",
       type: "button",
       onClick: function () {
-        if (!currentSource) {
-          showError("Please select a source folder or file to protect.");
-          return;
-        }
-        var pw = protectPwInput.value.trim();
+        window.FOSS.api("select_file", {
+          title: "Select Encrypted Bundle (.fossbundle)"
+        }).then(function (res) {
+          var p = (res && res.paths && res.paths[0]) || (res && res.path);
+          if (p) bundlePathInput.value = p;
+        });
+      }
+    }, [window.FOSS.icons.el("file", 14), window.FOSS.dom.el("span", { text: "Choose Bundle..." })]);
+
+    var addSourcesBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "archive-protect-add-source",
+      type: "button",
+      onClick: function () {
+        window.FOSS.api("select_files", {
+          title: "Select Files to Encrypt"
+        }).then(function (res) {
+          if (res && res.paths && res.paths.length > 0) {
+            protectSources = res.paths;
+            protectSourcesLabel.textContent = res.paths.length + " file" + (res.paths.length === 1 ? "" : "s") + " selected";
+          }
+        });
+      }
+    }, [window.FOSS.icons.el("file-plus", 14), window.FOSS.dom.el("span", { text: "Select Files..." })]);
+
+    var protectSourcesLabel = window.FOSS.dom.el("span", {
+      className: "text-xs text-muted font-mono",
+      text: "No files selected"
+    });
+
+    var runBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      "data-testid": "archive-protect-run-btn",
+      type: "button",
+      onClick: function () {
+        clearError();
+        var pw = passwordInput.value;
         if (!pw) {
-          showError("Please enter a password for the encrypted bundle.");
+          showError("Password cannot be empty.");
           return;
         }
-        clearError();
-        statusBar.textContent = "Creating protected bundle...";
-        window.FOSS.api("archive_protect", {
-          source_paths: [currentSource],
-          password: pw
-        }).then(function (res) {
-          if (res && res.output_path) {
-            statusBar.textContent = "Protected bundle created: " + res.output_path;
-            showResult(res.output_path, "Encrypted Bundle Ready");
-          } else {
-            showError("Failed to create encrypted bundle.");
+
+        if (mode === "encrypt") {
+          if (pw !== confirmPasswordInput.value) {
+            showError("Passwords do not match.");
+            return;
           }
-        });
+          if (protectSources.length === 0) {
+            showError("Please select files to encrypt.");
+            return;
+          }
+          var fmt = bundleFormatSelect.value;
+          window.FOSS.api("select_save_path", {
+            title: "Save Encrypted Bundle",
+            default_name: "secure.fossbundle"
+          }).then(function (res) {
+            if (res && res.path) {
+              statusBar.textContent = "Encrypting and packaging bundle...";
+              window.FOSS.job("archive_protect", {
+                source_paths: protectSources,
+                password: pw,
+                format: fmt,
+                output_path: res.path
+              }).then(function (jobRes) {
+                if (jobRes && jobRes.output_path) {
+                  statusBar.textContent = "Bundle encrypted: " + jobRes.output_path;
+                  showResult(jobRes.output_path, "Encrypted Bundle Created");
+                }
+              }).catch(function (err) {
+                showError((err && err.message) || String(err));
+              });
+            }
+          });
+        } else {
+          var bPath = bundlePathInput.value.trim();
+          if (!bPath) {
+            showError("Select a .fossbundle file to decrypt.");
+            return;
+          }
+          window.FOSS.api("select_folder", {
+            title: "Select Extraction Target Directory"
+          }).then(function (res) {
+            var targetDir = res && res.path;
+            if (!targetDir) return;
+            statusBar.textContent = "Decrypting bundle...";
+            window.FOSS.job("archive_unprotect", {
+              bundle_path: bPath,
+              password: pw,
+              target_dir: targetDir
+            }).then(function (jobRes) {
+              if (jobRes && jobRes.target_dir) {
+                statusBar.textContent = "Bundle decrypted: " + jobRes.target_dir;
+                showResult(jobRes.target_dir, "Decrypted Files Ready");
+              }
+            }).catch(function (err) {
+              showError((err && err.message) || String(err));
+            });
+          });
+        }
       }
-    }, [
-      window.FOSS.icons.el("lock", 16),
-      window.FOSS.dom.el("span", { text: "Create Protected Bundle" })
-    ]);
+    }, [window.FOSS.icons.el("lock", 16), window.FOSS.dom.el("span", { text: "Create Encrypted Bundle" })]);
 
-    encryptCard.appendChild(window.FOSS.dom.el("div", { className: "row" }, [protectBtn]));
-
-    // Card 2: Key rotation
-    var rotateCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    rotateCard.appendChild(window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Key Rotation" }));
-
-    var rotateBundleDisplay = window.FOSS.dom.el("div", {
-      className: "font-mono text-sm text-muted grow",
-      "data-testid": "archive-rotate-bundle",
-      "data-truncate-ok": "true",
-      title: "No bundle selected",
-      text: "No bundle selected"
+    var modeTabs = window.FOSS.components.segmented({
+      testid: "archive-protect-mode",
+      items: [
+        { id: "encrypt", label: "Encrypt Bundle" },
+        { id: "decrypt", label: "Decrypt Bundle" }
+      ],
+      value: "encrypt",
+      onChange: function (val) {
+        mode = val;
+        clearError();
+        updateModeFields();
+      }
     });
 
-    var chooseRotateBundleBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "aria-label": "Choose bundle to rotate",
-      title: "Choose bundle to rotate",
-      type: "button",
-      onClick: function () {
-        clearError();
-        window.FOSS.api("select_file", {}).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          currentBundle = res.paths[0];
-          rotateBundleDisplay.textContent = currentBundle;
-          rotateBundleDisplay.title = currentBundle;
-        });
-      }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Choose Bundle" })
+    var encryptGroup = window.FOSS.dom.el("div", { className: "flex-col gap-3" }, [
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+        addSourcesBtn,
+        protectSourcesLabel
+      ]),
+      window.FOSS.components.field("Inner Archive Format", bundleFormatSelect),
+      window.FOSS.components.field("Confirm Password", confirmPasswordInput)
     ]);
 
-    rotateCard.appendChild(window.FOSS.dom.el("div", { className: "flex items-center justify-between flex-wrap gap-2" }, [rotateBundleDisplay, chooseRotateBundleBtn]));
-
-    var oldPwInput = window.FOSS.dom.el("input", {
-      type: "password",
-      className: "input grow",
-      "data-testid": "archive-rotate-old-pw",
-      "aria-label": "Current bundle password",
-      title: "Current bundle password",
-      placeholder: "Current password"
-    });
-
-    var newPwInput = window.FOSS.dom.el("input", {
-      type: "password",
-      className: "input grow",
-      "data-testid": "archive-rotate-new-pw",
-      "aria-label": "New bundle password",
-      title: "New bundle password",
-      placeholder: "New password"
-    });
-
-    rotateCard.appendChild(window.FOSS.dom.el("div", { className: "row" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Old Password" }),
-      oldPwInput,
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "New Password" }),
-      newPwInput
-    ]));
-
-    var rotateBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "archive-rotate-key-btn",
-      "aria-label": "Rotate bundle key",
-      title: "Rotate bundle key",
-      type: "button",
-      onClick: function () {
-        if (!currentBundle) {
-          showError("Please select a bundle file to rotate.");
-          return;
-        }
-        var oldP = oldPwInput.value.trim();
-        var newP = newPwInput.value.trim();
-        if (!oldP || !newP) {
-          showError("Please provide both old and new passwords.");
-          return;
-        }
-        clearError();
-        statusBar.textContent = "Rotating bundle key...";
-        window.FOSS.api("archive_rotate_key", {
-          bundle_path: currentBundle,
-          old_password: oldP,
-          new_password: newP
-        }).then(function (res) {
-          if (res && res.rotated) {
-            statusBar.textContent = "Key rotated successfully: " + res.output_path;
-            showResult(res.output_path, "Bundle Key Rotated");
-          } else {
-            showError("Key rotation failed. Check old password.");
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Rotate Bundle Key" })
+    var decryptGroup = window.FOSS.dom.el("div", { className: "flex-col gap-3 hidden" }, [
+      window.FOSS.dom.el("div", { className: "flex-col gap-1" }, [
+        window.FOSS.components.field("Encrypted Bundle Path (.fossbundle)", bundlePathInput),
+        chooseBundleBtn
+      ])
     ]);
 
-    var verifyBundleBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "archive-verify-integrity-btn",
-      "aria-label": "Verify bundle integrity",
-      title: "Verify bundle integrity",
-      type: "button",
-      onClick: function () {
-        if (!currentBundle) {
-          showError("Please select a bundle file first.");
-          return;
-        }
-        clearError();
-        statusBar.textContent = "Verifying bundle integrity...";
-        window.FOSS.api("archive_verify_integrity", {
-          bundle_path: currentBundle,
-          password: oldPwInput.value.trim() || undefined
-        }).then(function (res) {
-          if (res && res.valid) {
-            statusBar.textContent = "Integrity verified: " + res.entries.length + " valid member hashes.";
-          } else {
-            showError("Bundle integrity check failed.");
-          }
-        });
+    function updateModeFields() {
+      if (mode === "encrypt") {
+        encryptGroup.classList.remove("hidden");
+        decryptGroup.classList.add("hidden");
+        runBtn.innerHTML = window.FOSS.icons.svg("lock", 16) + "<span>Create Encrypted Bundle</span>";
+      } else {
+        encryptGroup.classList.add("hidden");
+        decryptGroup.classList.remove("hidden");
+        runBtn.innerHTML = window.FOSS.icons.svg("unlock", 16) + "<span>Decrypt & Extract</span>";
       }
+    }
+
+    var leftCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3"
     }, [
-      window.FOSS.icons.el("check", 16),
-      window.FOSS.dom.el("span", { text: "Verify Integrity" })
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Security Bundle Options" }),
+      modeTabs.el,
+      encryptGroup,
+      decryptGroup,
+      window.FOSS.components.field("Master Password", passwordInput),
+      runBtn
     ]);
 
-    rotateCard.appendChild(window.FOSS.dom.el("div", { className: "row" }, [rotateBtn, verifyBundleBtn]));
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "archive-sidebar-pane",
+      style: "width: 100%; min-width: 0;"
+    }, [leftCard]);
 
-    panel.appendChild(header);
+    var specCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Encryption Architecture" }),
+      window.FOSS.dom.el("div", { className: "stack-sm text-sm text-muted font-mono" }, [
+        window.FOSS.dom.el("div", { text: "Key Derivation: PBKDF2-HMAC-SHA256 (200,000 iterations)" }),
+        window.FOSS.dom.el("div", { text: "Salt & Nonce: 128-bit cryptographically secure random" }),
+        window.FOSS.dom.el("div", { text: "Keystream: Deterministic HMAC-SHA256 block stream" }),
+        window.FOSS.dom.el("div", { text: "Supported Formats: ZIP, TAR, TAR.GZ, TAR.XZ, TAR.BZ2" }),
+        window.FOSS.dom.el("div", { text: "Local Safety: Zero cloud communication or credential storage" })
+      ])
+    ]);
+
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "archive-stage-pane grow",
+      style: "width: 100%; min-width: 0;"
+    }, [specCard]);
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable archive-workbench"
+    }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stageWrapper
+    ]);
+
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
     panel.appendChild(resultHost);
-    panel.appendChild(encryptCard);
-    panel.appendChild(rotateCard);
+    panel.appendChild(split);
   }
 
-  function renderBackup(panel, ctx) {
-    panel.innerHTML = "";
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Incremental Backup & Snapshots" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Compare directory snapshots and generate incremental backup sets that only include changed files."
-      })
-    ]);
-
-    var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
-      "data-testid": "archive-backup-status",
-      text: "Ready"
-    });
-
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
-      "data-testid": "archive-backup-error"
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
-
-    function showError(msg) {
-      var span = errorBanner.querySelector(".banner-msg");
-      if (span) span.textContent = msg;
-      errorBanner.classList.remove("hidden");
-      statusBar.textContent = "Error: " + msg;
-    }
-
-    function clearError() {
-      errorBanner.classList.add("hidden");
-    }
-
-    var resultHost = window.FOSS.dom.el("div", {
-      className: "hidden",
-      "data-testid": "archive-backup-result"
-    });
-
-    function showResult(path, titleText) {
-      resultHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({
-        testid: "archive-backup-card",
-        title: titleText || "Backup Created",
-        outputPath: path
-      });
-      resultHost.appendChild(card);
-      resultHost.classList.remove("hidden");
-    }
-
-    var card = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-
-    // Source folder
-    var sourceInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow font-mono text-sm",
-      "data-testid": "archive-backup-source",
-      "aria-label": "Source directory for backup",
-      "data-truncate-ok": "true",
-      title: "Source directory",
-      placeholder: "Source directory"
-    });
-
-    var chooseSourceBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "aria-label": "Browse source directory",
-      title: "Browse source directory",
-      type: "button",
-      onClick: function () {
-        window.FOSS.api("select_folder", {}).then(function (res) {
-          if (res && !res.cancelled && res.paths && res.paths.length) {
-            sourceInput.value = res.paths[0];
-            sourceInput.title = res.paths[0];
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Browse" })
-    ]);
-
-    card.appendChild(window.FOSS.dom.el("div", { className: "flex items-center gap-2" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0 w-28", text: "Source Folder" }),
-      sourceInput,
-      chooseSourceBtn
-    ]));
-
-    // Backup folder
-    var targetInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow font-mono text-sm",
-      "data-testid": "archive-backup-target",
-      "aria-label": "Target backup directory",
-      "data-truncate-ok": "true",
-      title: "Backup directory",
-      placeholder: "Backup directory"
-    });
-
-    var chooseTargetBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "aria-label": "Browse backup directory",
-      title: "Browse backup directory",
-      type: "button",
-      onClick: function () {
-        window.FOSS.api("select_folder", {}).then(function (res) {
-          if (res && !res.cancelled && res.paths && res.paths.length) {
-            targetInput.value = res.paths[0];
-            targetInput.title = res.paths[0];
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Browse" })
-    ]);
-
-    card.appendChild(window.FOSS.dom.el("div", { className: "flex items-center gap-2" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0 w-28", text: "Backup Folder" }),
-      targetInput,
-      chooseTargetBtn
-    ]));
-
-    var snapshotBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "archive-snapshot-btn",
-      "aria-label": "Take directory snapshot",
-      title: "Take directory snapshot",
-      type: "button",
-      onClick: function () {
-        var src = sourceInput.value.trim();
-        if (!src) {
-          showError("Please enter or select a source directory.");
-          return;
-        }
-        clearError();
-        statusBar.textContent = "Taking filesystem snapshot...";
-        window.FOSS.api("archive_snapshot", { directory_path: src }).then(function (res) {
-          if (res && res.snapshot) {
-            statusBar.textContent = "Snapshot created: " + res.file_count + " files indexed.";
-          } else {
-            showError("Failed to take directory snapshot.");
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("camera", 16),
-      window.FOSS.dom.el("span", { text: "Take Snapshot" })
-    ]);
-
-    var incrementalBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "archive-incremental-backup-btn",
-      "aria-label": "Create incremental backup",
-      title: "Create incremental backup",
-      type: "button",
-      onClick: function () {
-        var src = sourceInput.value.trim();
-        var dst = targetInput.value.trim();
-        if (!src || !dst) {
-          showError("Please specify both source directory and backup destination folder.");
-          return;
-        }
-        clearError();
-        statusBar.textContent = "Creating incremental backup...";
-        window.FOSS.api("archive_incremental_backup", {
-          directory_path: src,
-          backup_dir: dst
-        }).then(function (res) {
-          if (res && res.archive_path) {
-            statusBar.textContent = "Incremental backup created: " + res.total_files + " changed files.";
-            showResult(res.archive_path, "Incremental Backup Archive");
-          } else {
-            showError("Failed to create incremental backup.");
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("check", 16),
-      window.FOSS.dom.el("span", { text: "Create Incremental Backup" })
-    ]);
-
-    var actionRow = window.FOSS.dom.el("div", { className: "row" }, [snapshotBtn, incrementalBtn]);
-    card.appendChild(actionRow);
-
-    panel.appendChild(header);
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(resultHost);
-    panel.appendChild(card);
-  }
-
+  // Register Router
   window.FOSS.router.register({
     id: "archive",
-    title: "Archive & Packaging",
+    title: "Archive Studio",
     navName: "Archive",
     category: "Utilities",
     icon: "archive",
+    workbench: true,
+    onFiles: function (paths) {
+      if (!paths || paths.length === 0) return;
+      var first = paths[0];
+      var lower = first.toLowerCase();
+      var isArchive = lower.endsWith(".zip") || lower.endsWith(".tar") || lower.endsWith(".tar.gz") ||
+        lower.endsWith(".tgz") || lower.endsWith(".tar.xz") || lower.endsWith(".txz") ||
+        lower.endsWith(".tar.bz2") || lower.endsWith(".tbz2") || lower.endsWith(".fossbundle") ||
+        lower.endsWith(".enc");
+      if (isArchive) {
+        window.FOSS.router.open("archive", "inspect");
+      } else {
+        globalQueuedSources = paths.slice();
+        window.FOSS.router.open("archive", "create");
+      }
+    },
     tabs: [
       { id: "create", label: "Create", render: renderCreate },
       { id: "extract", label: "Extract", render: renderExtract },
       { id: "inspect", label: "Inspect", render: renderInspect },
-      { id: "protect", label: "Protect", render: renderProtect },
-      { id: "backup", label: "Backup", render: renderBackup }
+      { id: "protect", label: "Protect", render: renderProtect }
     ]
   });
 })();

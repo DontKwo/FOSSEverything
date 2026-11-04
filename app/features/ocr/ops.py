@@ -7,11 +7,14 @@ external binaries, cloud APIs, or network requests required.
 from __future__ import annotations
 
 import io
+import logging
 import os
 import sys
 from typing import Callable, Sequence
 from PIL import Image
 import pymupdf
+
+logger = logging.getLogger(__name__)
 
 
 SUPPORTED_LANGUAGES = {
@@ -71,6 +74,120 @@ def discover_tesseract_languages(data_dir: str | None = None) -> list[str]:
     if not candidates:
         return sorted(SUPPORTED_LANGUAGES)
     return sorted(candidates)
+
+
+
+def parse_page_selection(spec: str | None, total_pages: int) -> list[int]:
+    # Parse 1-indexed page selection string into ordered, deduplicated page indices.
+    if total_pages <= 0:
+        return []
+    if spec is None or spec.strip().lower() in ("", "all", "*"):
+        return list(range(1, total_pages + 1))
+
+    tokens = [t.strip() for t in spec.split(",") if t.strip()]
+    if not tokens:
+        return list(range(1, total_pages + 1))
+
+    selected: list[int] = []
+    for token in tokens:
+        if "-" in token:
+            parts = token.split("-", 1)
+            try:
+                start = int(parts[0].strip())
+                end = int(parts[1].strip())
+            except ValueError:
+                raise ValueError(f"Invalid page range token: '{token}'")
+            if start < 1 or end > total_pages or start > end:
+                raise ValueError(f"Page range '{token}' out of bounds (1-{total_pages})")
+            selected.extend(range(start, end + 1))
+        else:
+            try:
+                page_num = int(token)
+            except ValueError:
+                raise ValueError(f"Invalid page number token: '{token}'")
+            if page_num < 1 or page_num > total_pages:
+                raise ValueError(f"Page number {page_num} out of bounds (1-{total_pages})")
+            selected.append(page_num)
+
+    return list(dict.fromkeys(selected))
+
+
+def inspect_pdf_searchable_status(pdf_path: str, min_chars: int = 15) -> dict[str, Any]:
+    # Inspect PDF pages for existing native text blocks vs uncovered raster images.
+    if not os.path.exists(pdf_path):
+        raise FileNotFoundError(f"PDF not found: {pdf_path}")
+
+    searchable_pages: list[int] = []
+    hybrid_pages: list[int] = []
+    scanned_pages: list[int] = []
+
+    with pymupdf.open(pdf_path) as doc:
+        total = len(doc)
+        for idx in range(total):
+            page_num = idx + 1
+            page = doc[idx]
+
+            text_blocks = [
+                pymupdf.Rect(b[:4]) for b in page.get_text("blocks")
+                if b[6] == 0 and len(str(b[4]).strip()) > 0
+            ]
+            char_count = sum(len(str(b[4]).strip()) for b in page.get_text("blocks") if b[6] == 0)
+
+            image_infos = page.get_image_info()
+            image_rects = [
+                pymupdf.Rect(info["bbox"]) for info in image_infos
+                if (info["bbox"][2] - info["bbox"][0]) >= 24 and (info["bbox"][3] - info["bbox"][1]) >= 24
+            ]
+
+            if char_count >= min_chars and not image_rects:
+                searchable_pages.append(page_num)
+            elif char_count >= min_chars and image_rects:
+                uncovered = False
+                for img_rect in image_rects:
+                    img_area = img_rect.width * img_rect.height
+                    if img_area <= 0:
+                        continue
+                    covered_area = sum((img_rect & tb).width * (img_rect & tb).height for tb in text_blocks if bool(img_rect & tb))
+                    if (covered_area / img_area) < 0.20:
+                        uncovered = True
+                        break
+                if uncovered:
+                    hybrid_pages.append(page_num)
+                else:
+                    searchable_pages.append(page_num)
+            else:
+                scanned_pages.append(page_num)
+
+    return {
+        "page_count": total,
+        "searchable_pages": searchable_pages,
+        "hybrid_pages": hybrid_pages,
+        "scanned_pages": scanned_pages,
+        "is_fully_searchable": len(scanned_pages) == 0 and len(hybrid_pages) == 0,
+    }
+
+
+def expand_ocr_inputs(paths: Sequence[str], recursive: bool = True) -> list[str]:
+    # Expand mix of files and directories into sorted list of OCR-supported file paths.
+    supported_exts = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".tiff", ".tif", ".bmp"}
+    collected: list[str] = []
+
+    for item in paths:
+        if os.path.isfile(item):
+            if os.path.splitext(item)[1].lower() in supported_exts:
+                collected.append(os.path.abspath(item))
+        elif os.path.isdir(item):
+            if recursive:
+                for root, _, files in os.walk(item):
+                    for file_name in files:
+                        if os.path.splitext(file_name)[1].lower() in supported_exts:
+                            collected.append(os.path.abspath(os.path.join(root, file_name)))
+            else:
+                for entry in os.scandir(item):
+                    if entry.is_file() and os.path.splitext(entry.name)[1].lower() in supported_exts:
+                        collected.append(os.path.abspath(entry.path))
+
+    return sorted(dict.fromkeys(collected))
 
 
 def reconstruct_page_layout(words: Sequence[dict] | None) -> dict:
@@ -209,6 +326,7 @@ def ocr_pdf(
     language: str = "eng",
     dpi: int = 150,
     progress_callback: Callable[[int, int], None] | None = None,
+    force_overwrite: bool = False,
 ) -> dict:
     """Run OCR on a PDF document across all or selected pages."""
     if not os.path.exists(pdf_path):
@@ -220,45 +338,61 @@ def ocr_pdf(
 
     with pymupdf.open(pdf_path) as doc:
         total_pages = len(doc)
-        target_indices = [
-            i for i in range(total_pages)
-            if pages is None or (i + 1) in pages
-        ]
+        target_indices = [target_idx for target_idx in range(total_pages) if pages is None or (target_idx + 1) in pages]
+
+        skipped_searchable: list[int] = []
+        hybrid_processed: list[int] = []
+        ocr_processed: list[int] = []
 
         for step, page_idx in enumerate(target_indices):
             if progress_callback:
                 progress_callback(step + 1, len(target_indices))
 
             page = doc[page_idx]
-            try:
-                tp = page.get_textpage_ocr(language=language, dpi=dpi, full=True)
-                page_text = tp.extractText().strip()
+            page_num = page_idx + 1
+            existing_text = page.get_text().strip()
+            images_on_page = [
+                info for info in page.get_image_info()
+                if (info["bbox"][2] - info["bbox"][0]) >= 24 and (info["bbox"][3] - info["bbox"][1]) >= 24
+            ]
 
-                raw_words = tp.extractWORDS()
-                page_words = [
-                    {
-                        "bbox": [w[0], w[1], w[2], w[3]],
-                        "text": w[4],
-                        "block_no": w[5],
-                        "line_no": w[6],
-                        "word_no": w[7],
-                    }
-                    for w in raw_words
-                ]
-
-                raw_blocks = tp.extractBLOCKS()
-                page_blocks = [
-                    {
-                        "bbox": [b[0], b[1], b[2], b[3]],
-                        "text": b[4].strip() if len(b) > 4 and isinstance(b[4], str) else "",
-                        "block_no": b[5] if len(b) > 5 else idx,
-                    }
-                    for idx, b in enumerate(raw_blocks)
-                ]
-            except Exception:
-                page_text = page.get_text().strip()
+            if not force_overwrite and len(existing_text) >= 15 and not images_on_page:
+                page_text = existing_text
                 page_words = []
                 page_blocks = []
+                skipped_searchable.append(page_num)
+            else:
+                try:
+                    tp = page.get_textpage_ocr(language=language, dpi=dpi, full=True)
+                    page_text = tp.extractText().strip()
+                    raw_words = tp.extractWORDS()
+                    page_words = [
+                        {
+                            "bbox": [w[0], w[1], w[2], w[3]],
+                            "text": w[4],
+                            "block_no": w[5],
+                            "line_no": w[6],
+                            "word_no": w[7],
+                        }
+                        for w in raw_words
+                    ]
+                    raw_blocks = tp.extractBLOCKS()
+                    page_blocks = [
+                        {
+                            "bbox": [b[0], b[1], b[2], b[3]],
+                            "text": b[4].strip() if len(b) > 4 and isinstance(b[4], str) else "",
+                            "block_no": b[5] if len(b) > 5 else block_idx,
+                        }
+                        for block_idx, b in enumerate(raw_blocks)
+                    ]
+                    if len(existing_text) >= 15 and images_on_page:
+                        hybrid_processed.append(page_num)
+                    else:
+                        ocr_processed.append(page_num)
+                except Exception:
+                    page_text = existing_text
+                    page_words = []
+                    page_blocks = []
 
             page_texts.append(page_text)
             words_by_page.append(page_words)
@@ -275,6 +409,9 @@ def ocr_pdf(
         "blocks_by_page": blocks_by_page,
         "page_count": len(target_indices),
         "language": language,
+        "skipped_searchable_pages": skipped_searchable,
+        "hybrid_pages": hybrid_processed,
+        "ocr_pages": ocr_processed,
     }
 
 
@@ -284,6 +421,7 @@ def ocr_file(
     language: str = "eng",
     dpi: int = 150,
     progress_callback: Callable[[int, int], None] | None = None,
+    force_overwrite: bool = False,
 ) -> dict:
     """Universal OCR dispatcher for PDFs and any supported image format."""
     ext = os.path.splitext(file_path)[1].lower()
@@ -294,6 +432,7 @@ def ocr_file(
             language=language,
             dpi=dpi,
             progress_callback=progress_callback,
+            force_overwrite=force_overwrite,
         )
     else:
         res = ocr_image(file_path, language=language, dpi=dpi)
@@ -308,106 +447,105 @@ def ocr_file(
 def create_searchable_pdf(
     input_path: str,
     output_path: str,
-    pages: Sequence[int] | None = None,
+    pages: str | Sequence[int] | None = None,
     language: str = "eng",
     dpi: int = 150,
     progress_callback: Callable[[int, int], None] | None = None,
+    force_overwrite: bool = False,
+    force_reocr: bool = False,
 ) -> str:
-    """Create a searchable PDF from a scanned PDF or image with invisible text layer."""
+    # Create searchable PDF preserving existing vector text layers unless forced.
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
     ext = os.path.splitext(input_path)[1].lower()
-    out_doc = pymupdf.open()
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    is_forced = bool(force_reocr or force_overwrite)
 
-    try:
-        if ext == ".pdf":
-            with pymupdf.open(input_path) as src_doc:
-                total_pages = len(src_doc)
-                target_indices = [
-                    i for i in range(total_pages)
-                    if pages is None or (i + 1) in pages
-                ]
-
-                for step, page_idx in enumerate(target_indices):
-                    if progress_callback:
-                        progress_callback(step + 1, len(target_indices))
-
-                    src_page = src_doc[page_idx]
-                    rect = src_page.rect
-
-                    out_page = out_doc.new_page(width=rect.width, height=rect.height)
-                    out_page.show_pdf_page(out_page.rect, src_doc, page_idx)
-
-                    try:
-                        tp = src_page.get_textpage_ocr(language=language, dpi=dpi, full=True)
-                        words = tp.extractWORDS()
-
-                        if words:
-                            shape = out_page.new_shape()
-                            for w in words:
-                                x0, y0, x1, y1, word_text = w[0], w[1], w[2], w[3], w[4]
-                                font_size = max(4.0, (y1 - y0) * 0.9)
-                                shape.insert_text(
-                                    pymupdf.Point(x0, y1),
-                                    word_text,
-                                    fontsize=font_size,
-                                    render_mode=3,
-                                )
-                            shape.commit(overlay=True)
-                    except Exception:  # noqa: 10 (skip text layer for this page only; export must continue)
-                        pass
+    if ext == ".pdf":
+        doc = pymupdf.open(input_path)
+        total_pages = len(doc)
+        if isinstance(pages, str):
+            selected_pages = set(parse_page_selection(pages, total_pages))
+        elif pages is not None:
+            selected_pages = set(pages)
         else:
+            selected_pages = set(range(1, total_pages + 1))
+
+        target_indices = [idx for idx in range(total_pages) if (idx + 1) in selected_pages]
+
+        for step, page_idx in enumerate(target_indices):
             if progress_callback:
-                progress_callback(1, 1)
+                progress_callback(step + 1, len(target_indices))
+
+            page = doc[page_idx]
+            existing_text = page.get_text().strip()
+
+            if len(existing_text) >= 15 and not is_forced:
+                continue
 
             try:
-                with pymupdf.open(input_path) as img_doc:
-                    pdf_bytes = img_doc.convert_to_pdf()
-            except Exception:
-                with Image.open(input_path) as pil_img:
-                    pdf_bytes = _pil_to_pdf_bytes(pil_img)
+                tp = page.get_textpage_ocr(language=language, dpi=dpi, full=True)
+                words = tp.extractWORDS()
+                if words:
+                    shape = page.new_shape()
+                    for word_tuple in words:
+                        x0, y0, x1, y1, word_text = word_tuple[0], word_tuple[1], word_tuple[2], word_tuple[3], word_tuple[4]
+                        font_size = max(4.0, (y1 - y0) * 0.9)
+                        shape.insert_text(
+                            pymupdf.Point(x0, y1),
+                            word_text,
+                            fontsize=font_size,
+                            render_mode=3,
+                        )
+                    shape.commit(overlay=True)
+            except Exception as exc:
+                logger.debug("Failed OCR text overlay on page %d: %s", page_idx + 1, exc)
 
-            with pymupdf.open("pdf", pdf_bytes) as temp_pdf:
-                src_page = temp_pdf[0]
-                rect = src_page.rect
+        doc.save(output_path, garbage=3, deflate=True)
+        doc.close()
+        return output_path
 
-                out_page = out_doc.new_page(width=rect.width, height=rect.height)
-                out_page.insert_image(out_page.rect, filename=input_path)
+    # Image input: create single page PDF with image and invisible text layer
+    img_doc = pymupdf.open()
+    try:
+        pix = pymupdf.Pixmap(input_path)
+        page = img_doc.new_page(width=pix.width, height=pix.height)
+        page.insert_image(page.rect, filename=input_path)
+        try:
+            tp = page.get_textpage_ocr(language=language, dpi=dpi, full=True)
+            words = tp.extractWORDS()
+            if words:
+                shape = page.new_shape()
+                for word_tuple in words:
+                    x0, y0, x1, y1, word_text = word_tuple[0], word_tuple[1], word_tuple[2], word_tuple[3], word_tuple[4]
+                    font_size = max(4.0, (y1 - y0) * 0.9)
+                    shape.insert_text(
+                        pymupdf.Point(x0, y1),
+                        word_text,
+                        fontsize=font_size,
+                        render_mode=3,
+                    )
+                shape.commit(overlay=True)
+        except Exception as exc:
+            logger.debug("Failed image OCR text overlay: %s", exc)
 
-                try:
-                    tp = src_page.get_textpage_ocr(language=language, dpi=dpi, full=True)
-                    words = tp.extractWORDS()
-
-                    if words:
-                        shape = out_page.new_shape()
-                        for w in words:
-                            x0, y0, x1, y1, word_text = w[0], w[1], w[2], w[3], w[4]
-                            font_size = max(4.0, (y1 - y0) * 0.9)
-                            shape.insert_text(
-                                pymupdf.Point(x0, y1),
-                                word_text,
-                                fontsize=font_size,
-                                render_mode=3,
-                            )
-                        shape.commit(overlay=True)
-                except Exception:  # noqa: 10 (skip text layer for this page only; export must continue)
-                    pass
-
-        out_doc.save(output_path, garbage=4, deflate=True)
+        img_doc.save(output_path, garbage=3, deflate=True)
+        return output_path
     finally:
-        out_doc.close()
-
-    return output_path
+        img_doc.close()
 
 
 def save_ocr_text(
-    ocr_result: dict,
+    ocr_result: dict | str,
     output_path: str,
     as_markdown: bool = False,
 ) -> str:
-    """Save extracted OCR text to a .txt or .md file."""
-    page_texts = ocr_result.get("page_texts", [ocr_result.get("text", "")])
+    # Save extracted OCR text to plain text or Markdown format.
+    if isinstance(ocr_result, str):
+        page_texts = [ocr_result]
+    else:
+        page_texts = ocr_result.get("page_texts", [ocr_result.get("text", "")])
 
     parts = []
     if as_markdown:

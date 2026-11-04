@@ -48,6 +48,14 @@ def scenario_error(page: Page, fixtures: dict[str, str], api: Any) -> None:
     calc_clear_overlays(page)
 
 
+def scenario_extract(page: Page, fixtures: dict[str, str], api: Any) -> None:
+    # Open Extract tab and verify controls.
+    page.evaluate("window.FOSS.router.open('archive', 'extract')")
+    expect(page.locator("[data-testid='archive-extract-choose']")).to_be_visible()
+    expect(page.locator("[data-testid='archive-extract-run-btn']")).to_be_visible()
+    calc_clear_overlays(page)
+
+
 def scenario_inspect(page: Page, fixtures: dict[str, str], api: Any) -> None:
     # Inspect sample zip archive and test integrity.
     zip_path = fixtures.get("sample.zip", "sample.zip")
@@ -66,9 +74,20 @@ def scenario_inspect(page: Page, fixtures: dict[str, str], api: Any) -> None:
     calc_clear_overlays(page)
 
 
+def scenario_protect(page: Page, fixtures: dict[str, str], api: Any) -> None:
+    # Open Password Bundle tab and verify controls and absence of backup tab.
+    page.evaluate("window.FOSS.router.open('archive', 'protect')")
+    expect(page.locator("[data-testid='archive-protect-password']")).to_be_visible()
+    expect(page.locator("[data-testid='archive-protect-run-btn']")).to_be_visible()
+    expect(page.locator("[data-testid='archive-tab-backup']")).to_have_count(0)
+    calc_clear_overlays(page)
+
+
 SCENARIOS: list[tuple[str, Callable[[Page, dict[str, str], Any], None]]] = [
     ("loaded", scenario_loaded),
     ("result", scenario_result),
     ("error", scenario_error),
+    ("extract", scenario_extract),
     ("inspect", scenario_inspect),
+    ("protect", scenario_protect),
 ]

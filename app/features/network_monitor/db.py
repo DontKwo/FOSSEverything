@@ -100,8 +100,12 @@ def is_known(conn: sqlite3.Connection, ip: str) -> bool:
     return bool(row and row["known"])
 
 
-def mark_destination_known(conn: sqlite3.Connection, ip: str) -> None:
-    conn.execute("UPDATE destinations SET known = 1 WHERE ip = ?", (ip,))
+def mark_destination_known(conn: sqlite3.Connection, ip: str, known: bool = True) -> None:
+    cleaned = ip.split(":")[0] if ":" in ip and not ip.startswith("[") else ip
+    conn.execute(
+        "UPDATE destinations SET known = ? WHERE ip = ? OR domain = ?",
+        (1 if known else 0, cleaned, cleaned),
+    )
     conn.commit()
 
 
@@ -137,24 +141,30 @@ def search_history(
     start_date: str = "",
     end_date: str = "",
     limit: int = 1000,
+    query: str = "",
+    process: str = "",
 ) -> list[sqlite3.Row]:
-    query = "SELECT * FROM connection_log WHERE 1=1"
+    proc = process_name or process
+    sql = "SELECT * FROM connection_log WHERE 1=1"
     params: list[object] = []
-    if process_name:
-        query += " AND process_name LIKE ?"
-        params.append(f"%{process_name}%")
+    if proc:
+        sql += " AND process_name LIKE ?"
+        params.append(f"%{proc}%")
     if domain:
-        query += " AND (remote_domain LIKE ? OR remote_ip LIKE ?)"
+        sql += " AND (remote_domain LIKE ? OR remote_ip LIKE ?)"
         params.extend([f"%{domain}%", f"%{domain}%"])
+    if query:
+        sql += " AND (process_name LIKE ? OR remote_domain LIKE ? OR remote_ip LIKE ?)"
+        params.extend([f"%{query}%", f"%{query}%", f"%{query}%"])
     if start_date:
-        query += " AND timestamp >= ?"
+        sql += " AND timestamp >= ?"
         params.append(start_date)
     if end_date:
-        query += " AND timestamp <= ?"
+        sql += " AND timestamp <= ?"
         params.append(end_date)
-    query += " ORDER BY timestamp DESC LIMIT ?"
+    sql += " ORDER BY timestamp DESC LIMIT ?"
     params.append(limit)
-    return conn.execute(query, params).fetchall()
+    return conn.execute(sql, params).fetchall()
 
 
 def top_processes(conn: sqlite3.Connection, limit: int = 10) -> list[sqlite3.Row]:
@@ -196,6 +206,7 @@ def per_app_summary(conn: sqlite3.Connection) -> list[sqlite3.Row]:
         """SELECT process_name,
                   COUNT(*) as total_connections,
                   COUNT(DISTINCT COALESCE(remote_domain, remote_ip)) as unique_domains,
+                  MIN(timestamp) as first_seen,
                   MAX(timestamp) as last_seen
            FROM connection_log
            GROUP BY process_name

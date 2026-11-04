@@ -12,7 +12,7 @@ window.FOSS.components = window.FOSS.components || {};
     var onChange = opts.onChange || function () {};
 
     var textarea = window.FOSS.dom.el("textarea", {
-      className: "code-editor",
+      className: "code-editor" + (opts.fillHeight ? " flex-1 grow" : ""),
       placeholder: placeholder,
       "aria-label": opts.ariaLabel || opts.title || opts.placeholder || "Editor",
       "data-testid": testid + "-input",
@@ -36,7 +36,7 @@ window.FOSS.components = window.FOSS.components || {};
       onClick: function () {
         if (!textarea.value) return;
         window.FOSS.api("copy_to_clipboard", { text: textarea.value }).then(function () {
-          window.FOSS.toast.show("Copied to clipboard", "success");
+          if (window.FOSS.toast) window.FOSS.toast.show("Copied to clipboard", "success");
         });
       }
     }, [window.FOSS.icons.el("copy", 16)]);
@@ -58,7 +58,7 @@ window.FOSS.components = window.FOSS.components || {};
     }, [copyBtn, clearBtn]);
 
     var header = window.FOSS.dom.el("div", {
-      className: "row",
+      className: "row-between",
       style: undefined
     }, [
       opts.title ? window.FOSS.dom.el("span", { className: "card-title", text: opts.title }) : window.FOSS.dom.el("span", {}),
@@ -66,7 +66,7 @@ window.FOSS.components = window.FOSS.components || {};
     ]);
 
     var wrap = window.FOSS.dom.el("div", {
-      className: "stack",
+      className: opts.fillHeight ? "stack code-editor-fill flex-1 grow" : "stack",
       gap: "xs",
       "data-testid": testid
     }, [

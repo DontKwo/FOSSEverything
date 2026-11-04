@@ -5,11 +5,15 @@ from playwright.sync_api import Page, expect
 
 def calc_clear_overlays(page: Page) -> None:
     # Clear tooltips, toasts, and reset view scroll.
+    try:
+        page.mouse.move(0, 0)
+    except Exception:  # noqa: 10
+        pass
     page.evaluate(
         "if (window.FOSS && window.FOSS.tooltips) window.FOSS.tooltips.hide(); "
         "var t = document.getElementById('tooltip-host'); if (t) t.innerHTML = ''; "
         "var h = document.getElementById('toast-host'); if (h) h.innerHTML = ''; "
-        "var el = document.getElementById('view-root'); if (el) el.scrollTop = 0;"
+        "document.querySelectorAll('.tool-panel-container, #view-root, .workbench, .page').forEach(function (el) { el.scrollTop = 0; el.scrollLeft = 0; });"
     )
 
 

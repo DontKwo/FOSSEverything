@@ -10,6 +10,18 @@ window.FOSS = window.FOSS || {};
     window.addEventListener("dragleave", handleDragLeave);
     window.addEventListener("dragover", handleDragOver);
     window.addEventListener("drop", handleDrop);
+    window.addEventListener("dragend", resetDrag);
+    window.addEventListener("blur", resetDrag);
+    window.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") resetDrag();
+    });
+  }
+
+  function resetDrag() {
+    dragCounter = 0;
+    if (overlay && overlay.parentElement) {
+      overlay.parentElement.removeChild(overlay);
+    }
   }
 
   function getOverlay() {
@@ -54,11 +66,7 @@ window.FOSS = window.FOSS || {};
     e.preventDefault();
     dragCounter--;
     if (dragCounter <= 0) {
-      dragCounter = 0;
-      var ov = getOverlay();
-      if (ov.parentElement) {
-        ov.parentElement.removeChild(ov);
-      }
+      resetDrag();
     }
   }
 
@@ -70,14 +78,15 @@ window.FOSS = window.FOSS || {};
   function handleDrop(e) {
     if (!isFileDrag(e)) return;
     e.preventDefault();
-    dragCounter = 0;
-    var ov = getOverlay();
-    if (ov.parentElement) {
-      ov.parentElement.removeChild(ov);
-    }
+    resetDrag();
 
     var files = e.dataTransfer ? e.dataTransfer.files : [];
     if (!files || files.length === 0) return;
+
+    // In pywebview, bare filenames without paths are handled via pywebviewFullPath
+    if (window.pywebview && !files[0].path) {
+      return;
+    }
 
     var paths = [];
     for (var i = 0; i < files.length; i++) {
@@ -93,7 +102,7 @@ window.FOSS = window.FOSS || {};
   }
 
   window.FOSS.dropzone = {
-    init: init
+    init: init,
+    reset: resetDrag
   };
 })();
-

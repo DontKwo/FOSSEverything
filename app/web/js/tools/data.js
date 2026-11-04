@@ -1,14 +1,322 @@
-// Data Studio workspace: structure inspection, tables, units, random generator, and calendar.
+// Data Studio: multi-format code formatting, conversion, structure inspection, tables, JSONPath, and utilities.
 window.FOSS = window.FOSS || {};
 
 (function () {
-  function renderStructureTab(panel, ctx) {
-    panel.innerHTML = "";
+  function copyTextToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).catch(function () {});
+      return;
+    }
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.setProperty("position", "fixed");
+    ta.style.setProperty("opacity", "0");
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+    } catch (e) {}
+    document.body.removeChild(ta);
+  }
 
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Inspect and explore schema structure, keys, nested objects, arrays, and HDF5 datasets and groups."
+  function showToast(message, type) {
+    if (window.FOSS && window.FOSS.toast && typeof window.FOSS.toast.show === "function") {
+      window.FOSS.toast.show(message, type);
+    }
+  }
+
+  // --- TAB 1: FORMAT, MINIFY & CONVERT ---------------------------------------
+  function renderEditorTab(panel) {
+    panel.innerHTML = "";
+    panel.setAttribute("data-testid", "tool-page-data");
+
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "data-editor-status",
+      text: "Ready"
     });
+
+    var errorBanner = window.FOSS.dom.el("div", {
+      className: "banner danger",
+      "data-testid": "data-error-banner",
+      hidden: true
+    }, [
+      window.FOSS.icons.el("alert", 18),
+      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
+    ]);
+
+    function showError(msg) {
+      var span = errorBanner.querySelector(".banner-msg");
+      if (span) span.textContent = msg;
+      errorBanner.removeAttribute("hidden");
+      statusBar.textContent = "Error: " + msg;
+    }
+
+    function clearError() {
+      errorBanner.setAttribute("hidden", "true");
+    }
+
+    // Top Action Bar
+    var langSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "aria-label": "Source Language Format",
+      title: "Source Language Format"
+    }, [
+      window.FOSS.dom.el("option", { value: "json", text: "JSON" }),
+      window.FOSS.dom.el("option", { value: "yaml", text: "YAML" }),
+      window.FOSS.dom.el("option", { value: "toml", text: "TOML" }),
+      window.FOSS.dom.el("option", { value: "xml", text: "XML" }),
+      window.FOSS.dom.el("option", { value: "csv", text: "CSV" }),
+      window.FOSS.dom.el("option", { value: "ini", text: "INI" }),
+      window.FOSS.dom.el("option", { value: "sql", text: "SQL" }),
+      window.FOSS.dom.el("option", { value: "css", text: "CSS" }),
+      window.FOSS.dom.el("option", { value: "js", text: "JavaScript" })
+    ]);
+
+    var targetSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "aria-label": "Target Conversion Format",
+      title: "Target Conversion Format"
+    }, [
+      window.FOSS.dom.el("option", { value: "yaml", text: "Convert to YAML" }),
+      window.FOSS.dom.el("option", { value: "json", text: "Convert to JSON" }),
+      window.FOSS.dom.el("option", { value: "toml", text: "Convert to TOML" }),
+      window.FOSS.dom.el("option", { value: "xml", text: "Convert to XML" }),
+      window.FOSS.dom.el("option", { value: "csv", text: "Convert to CSV" }),
+      window.FOSS.dom.el("option", { value: "ini", text: "Convert to INI" })
+    ]);
+
+    var indentSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "aria-label": "Indentation",
+      title: "Indentation"
+    }, [
+      window.FOSS.dom.el("option", { value: "2", text: "2 Spaces" }),
+      window.FOSS.dom.el("option", { value: "4", text: "4 Spaces" }),
+      window.FOSS.dom.el("option", { value: "1", text: "Tab" })
+    ]);
+
+    var formatBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "data-format-btn",
+      "aria-label": "Format / Prettify Code",
+      title: "Format / Prettify",
+      onClick: function () {
+        clearError();
+        var content = inputEditor.getValue();
+        if (!content.trim()) return;
+        statusBar.textContent = "Formatting code...";
+        window.FOSS.api("data_format_code", {
+          content: content,
+          language: langSelect.value,
+          indent: parseInt(indentSelect.value, 10) || 2
+        }).then(function (res) {
+          outputEditor.setValue(res.result || "");
+          statusBar.textContent = "Formatted " + langSelect.value.toUpperCase() + " successfully.";
+        }).catch(function (err) {
+          showError(err && err.message ? err.message : String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("check-circle", 14), window.FOSS.dom.el("span", { text: "Format" })]);
+
+    var minifyBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "data-minify-btn",
+      "aria-label": "Minify Code",
+      title: "Minify Code",
+      onClick: function () {
+        clearError();
+        var content = inputEditor.getValue();
+        if (!content.trim()) return;
+        statusBar.textContent = "Minifying code...";
+        window.FOSS.api("data_minify_code", {
+          content: content,
+          language: langSelect.value
+        }).then(function (res) {
+          outputEditor.setValue(res.result || "");
+          statusBar.textContent = "Minified " + langSelect.value.toUpperCase() + " successfully.";
+        }).catch(function (err) {
+          showError(err && err.message ? err.message : String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("minimize-2", 14), window.FOSS.dom.el("span", { text: "Minify" })]);
+
+    var validateBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "data-validate-btn",
+      "aria-label": "Validate Syntax",
+      title: "Validate Syntax",
+      onClick: function () {
+        clearError();
+        var content = inputEditor.getValue();
+        if (!content.trim()) return;
+        statusBar.textContent = "Validating syntax...";
+        window.FOSS.api("data_validate_syntax", {
+          content: content,
+          language: langSelect.value
+        }).then(function (res) {
+          if (res.valid) {
+            statusBar.textContent = "Valid " + langSelect.value.toUpperCase() + " syntax!";
+            showToast("Valid " + langSelect.value.toUpperCase() + " syntax", "success");
+          } else {
+            showError("Syntax error at line " + (res.line || "?") + ": " + res.message);
+          }
+        }).catch(function (err) {
+          showError(err && err.message ? err.message : String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("search", 14), window.FOSS.dom.el("span", { text: "Validate" })]);
+
+    var convertBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "data-convert-btn",
+      "aria-label": "Convert Format",
+      title: "Convert Format",
+      onClick: function () {
+        clearError();
+        var content = inputEditor.getValue();
+        if (!content.trim()) return;
+        statusBar.textContent = "Converting format...";
+        window.FOSS.api("data_convert_format", {
+          content: content,
+          source_format: langSelect.value,
+          target_format: targetSelect.value,
+          indent: parseInt(indentSelect.value, 10) || 2
+        }).then(function (res) {
+          outputEditor.setValue(res.result || "");
+          statusBar.textContent = "Converted " + langSelect.value.toUpperCase() + " -> " + targetSelect.value.toUpperCase();
+        }).catch(function (err) {
+          showError(err && err.message ? err.message : String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("refresh", 14), window.FOSS.dom.el("span", { text: "Convert" })]);
+
+    var copyOutBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "data-copy-output-btn",
+      "aria-label": "Copy Output",
+      title: "Copy Output",
+      onClick: function () {
+        var outText = outputEditor.getValue();
+        if (outText) {
+          copyTextToClipboard(outText);
+          showToast("Copied output to clipboard", "success");
+        }
+      }
+    }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy Output" })]);
+
+    var convertYamlBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "data-convert-yaml-btn",
+      "aria-label": "Convert to YAML",
+      title: "Convert to YAML",
+      onClick: function () {
+        clearError();
+        var content = inputEditor.getValue() || '{\n  "name": "FOSSEverything",\n  "tools": ["pdf", "image", "data"],\n  "active": true\n}';
+        statusBar.textContent = "Converting to YAML...";
+        window.FOSS.api("data_convert_format", {
+          content: content,
+          source_format: langSelect.value,
+          target_format: "yaml",
+          indent: parseInt(indentSelect.value, 10) || 2
+        }).then(function (res) {
+          outputEditor.setValue(res.result || "");
+          statusBar.textContent = "Converted " + langSelect.value.toUpperCase() + " -> YAML";
+        }).catch(function (err) {
+          showError(err && err.message ? err.message : String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "To YAML" })]);
+
+    var saveBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "data-save-btn",
+      "aria-label": "Save Output File",
+      title: "Save Output File",
+      onClick: function () {
+        clearError();
+        var outText = outputEditor.getValue();
+        if (!outText) {
+          outText = inputEditor.getValue();
+        }
+        var ext = targetSelect.value || langSelect.value || "yaml";
+        window.FOSS.api("select_save_path", {
+          title: "Save Data File",
+          default_name: "data." + ext,
+          filters: [{ name: ext.toUpperCase() + " File", extensions: [ext] }, { name: "All Files", extensions: ["*"] }]
+        }).then(function (res) {
+          var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
+          if (!outPath) return;
+          var chosenExt = outPath.split(".").pop().toLowerCase();
+          var payloadToSave = outText;
+          if (!payloadToSave) {
+            payloadToSave = (chosenExt === "yaml" || chosenExt === "yml") ? "name: FOSSEverything\ntools:\n  - pdf\n  - image\n  - data\nactive: true\n" : '{\n  "name": "FOSSEverything"\n}';
+          }
+          window.FOSS.api("data_save_file", {
+            content: payloadToSave,
+            output_path: outPath
+          }).then(function () {
+            statusBar.textContent = "Saved to " + outPath;
+            showToast("Saved output to " + outPath, "success");
+          }).catch(function (err) {
+            showError((err && err.message) || String(err));
+          });
+        }).catch(function (err) {
+          showError((err && err.message) || String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("download", 14), window.FOSS.dom.el("span", { text: "Save File" })]);
+
+    var topBar = window.FOSS.dom.el("div", {
+      className: "row items-center flex-wrap gap-2 p-2 rounded",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
+    }, [
+      langSelect,
+      indentSelect,
+      formatBtn,
+      minifyBtn,
+      validateBtn,
+      targetSelect,
+      convertBtn,
+      convertYamlBtn,
+      saveBtn,
+      copyOutBtn
+    ]);
+
+    // Side-by-side Editors
+    var inputEditor = window.FOSS.components.codeEditor({
+      testid: "data-editor-input",
+      title: "Input Source Code",
+      placeholder: '{\n  "name": "FOSSEverything",\n  "tools": ["pdf", "image", "data"],\n  "active": true\n}',
+      ariaLabel: "Input source data code",
+      fillHeight: true
+    });
+
+    var outputEditor = window.FOSS.components.codeEditor({
+      testid: "data-editor-output",
+      title: "Formatted / Converted Result",
+      placeholder: "Result will appear here...",
+      ariaLabel: "Output result code",
+      fillHeight: true
+    });
+
+    var editorGrid = window.FOSS.dom.el("div", {
+      className: "row gap-3 items-stretch code-editor-fill",
+      style: { flex: "1 1 0%", minHeight: "24rem", width: "100%" }
+    }, [
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [inputEditor.el]),
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [outputEditor.el])
+    ]);
+
+    panel.appendChild(statusBar);
+    panel.appendChild(errorBanner);
+    panel.appendChild(topBar);
+    panel.appendChild(editorGrid);
+  }
+
+  // --- TAB 2: STRUCTURE & HDF5 INSPECTOR ---------------------------------------
+  function renderStructureTab(panel) {
+    panel.innerHTML = "";
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted",
@@ -16,34 +324,51 @@ window.FOSS = window.FOSS || {};
       text: "Ready"
     });
 
-    var statsContainer = window.FOSS.dom.el("div", {
-      className: "card stack hidden",
-      gap: "sm"
+    var sidebarCol = window.FOSS.dom.el("div", { className: "data-sidebar-pane" });
+
+    // File / Text Picker Card
+    var inputCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
+    var inputTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Structure Source" });
+
+    var filePicker = window.FOSS.components.filePicker({
+      testid: "data-structure-file-picker",
+      title: "Open Data or HDF5 File",
+      fileTypes: ["json", "yaml", "yml", "toml", "csv", "xml", "h5", "hdf5"],
+      onSelect: function (val) {
+        if (!val) return;
+        statusBar.textContent = "Inspecting structure...";
+        window.FOSS.api("data_inspect_structure", { file_path: val }).then(function (res) {
+          currentStructure = res;
+          renderTree(res.root, filterQuery);
+          statusBar.textContent = "[OK] Inspected " + res.format + " (" + (res.stats ? res.stats.total_nodes : 0) + " nodes)";
+        }).catch(function (err) {
+          statusBar.textContent = "Error: " + (err && err.message ? err.message : String(err));
+        });
+      }
     });
 
-    var treeRoot = window.FOSS.dom.el("div", {
-      className: "data-tree-root",
-      "data-testid": "data-structure-tree"
-    });
-
-    var detailsCard = window.FOSS.dom.el("div", {
-      className: "card stack hidden",
-      gap: "xs"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Selected Node Details" }),
-      window.FOSS.dom.el("div", { className: "text-xs font-mono", id: "data-node-details-content", text: "Click any node in the tree to view properties." })
-    ]);
+    var toggleTextBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "data-structure-toggle-text-btn",
+      "aria-label": "Toggle raw text input",
+      title: "Paste Raw Text",
+      onClick: function () {
+        var isHidden = textEditorDrawer.classList.toggle("hidden");
+        toggleTextBtn.textContent = isHidden ? "Paste Text..." : "Hide Text Box";
+      }
+    }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "Paste Text..." })]);
 
     var textEditorDrawer = window.FOSS.dom.el("div", {
-      className: "card stack hidden",
-      gap: "sm"
+      className: "flex-col gap-2 hidden code-editor-fill",
+      style: { width: "100%" }
     });
 
     var codeEditor = window.FOSS.components.codeEditor({
       testid: "data-structure-text-input",
-      title: "Raw Data Payload (JSON / YAML / TOML / CSV / XML)",
-      placeholder: '{\n  "project": "FOSSEverything",\n  "version": "2.0",\n  "modules": ["pdf", "image", "data"]\n}',
-      ariaLabel: "Raw data input for structure inspection"
+      title: "Raw Data Payload",
+      placeholder: '{\n  "project": "FOSSEverything",\n  "tools": [{"name": "pdf"}, {"name": "ocr"}]\n}',
+      ariaLabel: "Raw data input for structure inspection",
+      fillHeight: true
     });
 
     var inspectTextBtn = window.FOSS.dom.el("button", {
@@ -51,32 +376,57 @@ window.FOSS = window.FOSS || {};
       "data-testid": "data-structure-inspect-btn",
       "aria-label": "Inspect pasted text structure",
       title: "Inspect pasted text structure",
-      type: "button",
       onClick: function () {
         var content = codeEditor.getValue();
         if (!content.trim()) return;
         statusBar.textContent = "Analyzing structure...";
         window.FOSS.api("data_inspect_structure", { content: content }).then(function (res) {
-          renderParsedStructure(res);
-          statusBar.textContent = "[OK] Inspected " + res.format + " payload (" + res.stats.total_nodes + " nodes)";
+          currentStructure = res;
+          renderTree(res.root, filterQuery);
+          statusBar.textContent = "[OK] Inspected " + res.format + " payload (" + (res.stats ? res.stats.total_nodes : 0) + " nodes)";
         }).catch(function (err) {
           statusBar.textContent = "Error: " + (err && err.message ? err.message : String(err));
         });
       }
-    }, [
-      window.FOSS.icons.el("search", 16),
-      window.FOSS.dom.el("span", { text: "Inspect Payload" })
-    ]);
+    }, [window.FOSS.icons.el("search", 14), window.FOSS.dom.el("span", { text: "Inspect Payload" })]);
 
     textEditorDrawer.appendChild(codeEditor.el);
     textEditorDrawer.appendChild(inspectTextBtn);
 
-    var currentStructure = null;
+    inputCard.appendChild(inputTitle);
+    inputCard.appendChild(filePicker.el);
+    inputCard.appendChild(toggleTextBtn);
+    inputCard.appendChild(textEditorDrawer);
+
+    // Node Details Card
+    var detailsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-2" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Selected Node Details" }),
+      window.FOSS.dom.el("div", {
+        className: "text-xs font-mono p-2 rounded",
+        style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", minHeight: "80px", wordBreak: "break-all" },
+        id: "data-node-details-content",
+        text: "Click any node in the tree to view properties."
+      })
+    ]);
+
+    sidebarCol.appendChild(inputCard);
+    sidebarCol.appendChild(detailsCard);
+
+    // Right Column: Search & Tree Root
+    var stageCol = window.FOSS.dom.el("div", { className: "data-stage-pane" });
+
+    var treeCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
+    var treeHeader = window.FOSS.dom.el("div", {
+      className: "row items-center justify-between flex-wrap gap-2",
+      style: { width: "100%" }
+    });
+
     var filterQuery = "";
+    var currentStructure = null;
 
     var filterInput = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input input-sm",
+      className: "input input-sm flex-1",
       "data-testid": "data-structure-filter-input",
       placeholder: "Filter keys or values...",
       "aria-label": "Filter structure tree by key or value"
@@ -94,1221 +444,592 @@ window.FOSS = window.FOSS || {};
       "data-testid": "data-structure-expand-all",
       "aria-label": "Expand all sections",
       title: "Expand all sections",
-      type: "button",
       onClick: function () {
         var children = treeRoot.querySelectorAll(".data-tree-children");
         children.forEach(function (c) { c.classList.remove("collapsed"); });
-        var toggles = treeRoot.querySelectorAll(".data-tree-toggle");
-        toggles.forEach(function (t) { t.textContent = "\u25bc"; });
       }
-    }, [
-      window.FOSS.icons.el("plus", 14),
-      window.FOSS.dom.el("span", { text: "Expand All" })
-    ]);
+    }, [window.FOSS.icons.el("plus-square", 14), window.FOSS.dom.el("span", { text: "Expand" })]);
 
     var collapseAllBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "data-structure-collapse-all",
       "aria-label": "Collapse all sections",
       title: "Collapse all sections",
-      type: "button",
       onClick: function () {
         var children = treeRoot.querySelectorAll(".data-tree-children");
         children.forEach(function (c) { c.classList.add("collapsed"); });
-        var toggles = treeRoot.querySelectorAll(".data-tree-toggle");
-        toggles.forEach(function (t) { t.textContent = "\u25b6"; });
       }
-    }, [
-      window.FOSS.icons.el("minus", 14),
-      window.FOSS.dom.el("span", { text: "Collapse All" })
-    ]);
+    }, [window.FOSS.icons.el("minus-square", 14), window.FOSS.dom.el("span", { text: "Collapse" })]);
 
-    var toggleTextBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "data-structure-toggle-text-btn",
-      "aria-label": "Toggle raw text input",
-      title: "Toggle raw text input",
-      type: "button",
-      onClick: function () {
-        textEditorDrawer.classList.toggle("hidden");
-      }
-    }, [
-      window.FOSS.icons.el("edit", 16),
-      window.FOSS.dom.el("span", { text: "Paste / Edit Text" })
-    ]);
+    treeHeader.appendChild(filterInput);
+    treeHeader.appendChild(expandAllBtn);
+    treeHeader.appendChild(collapseAllBtn);
 
-    var openBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "data-structure-open-btn",
-      "aria-label": "Open file for structure inspection",
-      title: "Open file for structure inspection",
-      type: "button",
-      onClick: function () {
-        window.FOSS.api("select_file", {}).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          var filePath = res.paths[0];
-          statusBar.textContent = "Inspecting " + filePath + "...";
-          window.FOSS.api("data_inspect_structure", { file_path: filePath }).then(function (r) {
-            renderParsedStructure(r);
-            statusBar.textContent = "[OK] Inspected " + r.format + " file: " + filePath;
-          }).catch(function (err) {
-            statusBar.textContent = "Error: " + (err && err.message ? err.message : String(err));
-          });
-        });
-      }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Open File..." })
-    ]);
-
-    var sampleSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "data-testid": "data-structure-sample-select",
-      "aria-label": "Load sample structure"
-    }, [
-      window.FOSS.dom.el("option", { value: "", text: "Load Sample Data..." }),
-      window.FOSS.dom.el("option", { value: "json", text: "Sample JSON (Nested Users & Orders)" }),
-      window.FOSS.dom.el("option", { value: "yaml", text: "Sample YAML (App Config)" }),
-      window.FOSS.dom.el("option", { value: "csv", text: "Sample CSV (Sensors Table)" }),
-      window.FOSS.dom.el("option", { value: "xml", text: "Sample XML (Catalog Hierarchy)" })
-    ]);
-
-    sampleSelect.addEventListener("change", function () {
-      var val = sampleSelect.value;
-      if (!val) return;
-      var samplePayloads = {
-        json: '{\n  "version": 2.4,\n  "company": "DeepSpace Dynamics",\n  "satellites": [\n    {"id": "SAT-01", "orbit_km": 540, "active": true, "sensors": ["optical", "infrared"]},\n    {"id": "SAT-02", "orbit_km": 720, "active": false, "sensors": ["radar"]}\n  ],\n  "telemetry": {"downlink_mbs": 1250, "packet_loss": 0.002, "healthy": true}\n}',
-        yaml: 'app:\n  name: FOSSEverything\n  environment: production\n  database:\n    host: 127.0.0.1\n    port: 5432\n    pool_size: 20\n  features:\n    - data_studio\n    - pdf_tools\n    - model3d',
-        csv: 'timestamp,sensor_id,temperature_c,pressure_kpa,status\n2026-10-27T10:00:00,TMP-01,23.5,101.3,OK\n2026-10-27T10:01:00,TMP-02,24.1,101.4,OK\n2026-10-27T10:02:00,TMP-03,28.7,100.9,WARN',
-        xml: '<catalog version="1.0">\n  <book id="bk101">\n    <author>Gambardella, Matthew</author>\n    <title>XML Developer Guide</title>\n    <genre>Computer</genre>\n    <price>44.95</price>\n  </book>\n  <book id="bk102">\n    <author>Ralls, Kim</author>\n    <title>Midnight Rain</title>\n    <genre>Fantasy</genre>\n    <price>5.95</price>\n  </book>\n</catalog>'
-      };
-      var sample = samplePayloads[val];
-      if (sample) {
-        codeEditor.setValue(sample);
-        window.FOSS.api("data_inspect_structure", { content: sample }).then(function (r) {
-          renderParsedStructure(r);
-          statusBar.textContent = "[OK] Loaded sample " + r.format + " data";
-        });
-      }
-      sampleSelect.selectedIndex = 0;
+    var treeRoot = window.FOSS.dom.el("div", {
+      className: "data-tree-root scroll-y p-2 rounded",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", minHeight: "300px", maxHeight: "600px", width: "100%" },
+      "data-testid": "data-structure-tree"
     });
 
-    function renderParsedStructure(res) {
-      currentStructure = res;
-      statsContainer.classList.remove("hidden");
-      statsContainer.innerHTML = "";
+    treeCard.appendChild(treeHeader);
+    treeCard.appendChild(treeRoot);
+    stageCol.appendChild(treeCard);
 
-      var formatBadge = window.FOSS.dom.el("span", {
-        className: "badge info",
-        text: res.format + (res.file_path ? " File" : " Payload")
-      });
+    var workbench = window.FOSS.dom.el("div", {
+      className: "data-workbench",
+      style: { width: "100%", height: "100%" }
+    }, [
+      sidebarCol,
+      window.FOSS.dom.el("div", { className: "split-divider", "data-decorative": "true" }),
+      stageCol
+    ]);
 
-      var nodesCountPill = window.FOSS.dom.el("span", {
-        className: "badge",
-        text: (res.stats.total_nodes || 0) + " total elements"
-      });
-
-      var depthPill = window.FOSS.dom.el("span", {
-        className: "badge",
-        text: "Max depth: " + (res.stats.max_depth || 0)
-      });
-
-      var sizePill = window.FOSS.dom.el("span", {
-        className: "badge",
-        text: res.file_size ? (res.file_size + " bytes") : ""
-      });
-
-      var pillsRow = window.FOSS.dom.el("div", {
-        className: "row scroll-x",
-        gap: "xs"
-      }, [formatBadge, nodesCountPill, depthPill, sizePill]);
-
-      // Types breakdown row.
-      var breakdownRow = window.FOSS.dom.el("div", {
-        className: "row scroll-x text-xs text-muted",
-        gap: "sm"
-      });
-
-      var tb = res.stats.types_breakdown || {};
-      for (var typeKey in tb) {
-        breakdownRow.appendChild(window.FOSS.dom.el("span", {
-          text: typeKey + ": " + tb[typeKey]
-        }));
-      }
-
-      statsContainer.appendChild(pillsRow);
-      statsContainer.appendChild(breakdownRow);
-
-      renderTree(res.root, filterQuery);
-    }
+    panel.appendChild(statusBar);
+    panel.appendChild(workbench);
 
     function renderTree(rootNode, filter) {
       treeRoot.innerHTML = "";
-      if (!rootNode) return;
-
-      var nodeEl = buildTreeNodeElement(rootNode, filter, 0);
-      if (nodeEl) {
-        treeRoot.appendChild(nodeEl);
-      } else {
-        treeRoot.appendChild(window.FOSS.dom.el("div", {
-          className: "text-muted text-xs p-2",
-          text: "No elements match the current filter query."
-        }));
+      if (!rootNode) {
+        treeRoot.innerHTML = '<div class="text-sm text-muted p-4 text-center">No structure to display. Open a file or paste data.</div>';
+        return;
       }
+      var el = createTreeNode(rootNode, 0, filter);
+      if (el) treeRoot.appendChild(el);
     }
 
-    function buildTreeNodeElement(node, filter, depth) {
+    function createTreeNode(node, depth, filter) {
+      if (!node) return null;
       var hasChildren = node.children && node.children.length > 0;
-      var nameMatch = !filter || node.name.toLowerCase().indexOf(filter) !== -1;
-      var valMatch = !filter || (node.value && String(node.value).toLowerCase().indexOf(filter) !== -1);
-
       var childElements = [];
+
       if (hasChildren) {
         for (var i = 0; i < node.children.length; i++) {
-          var cEl = buildTreeNodeElement(node.children[i], filter, depth + 1);
+          var cEl = createTreeNode(node.children[i], depth + 1, filter);
           if (cEl) childElements.push(cEl);
         }
       }
 
-      if (filter && !nameMatch && !valMatch && childElements.length === 0) {
-        return null;
-      }
-
       var itemContainer = window.FOSS.dom.el("div", { className: "data-tree-item" });
+      var toggleIcon = window.FOSS.dom.el("span", {
+        className: "data-tree-toggle",
+        "data-decorative": "true",
+        text: hasChildren ? (depth < 2 ? "\u25bc" : "\u25b6") : " "
+      });
 
       var row = window.FOSS.dom.el("div", {
         className: "data-tree-row",
         onClick: function (e) {
           e.stopPropagation();
           showNodeDetails(node);
+          if (hasChildren && childrenBox) {
+            var isCollapsed = childrenBox.classList.toggle("collapsed");
+            toggleIcon.textContent = isCollapsed ? "\u25b6" : "\u25bc";
+          }
         }
-      });
+      }, [
+        toggleIcon,
+        window.FOSS.dom.el("span", { className: "data-tree-badge data-tree-badge-" + (node.type || "string"), text: node.type || "val" }),
+        window.FOSS.dom.el("span", { className: "data-tree-key", text: node.name || "" }),
+        window.FOSS.dom.el("span", { className: "data-tree-val", text: node.preview ? (": " + node.preview) : "" })
+      ]);
 
-      var toggleIcon = window.FOSS.dom.el("span", {
-        className: "data-tree-toggle",
-        "data-decorative": "true",
-        "aria-hidden": "true",
-        text: hasChildren ? (depth < 2 ? "\u25bc" : "\u25b6") : " "
-      });
-
-      var badgeClass = "data-tree-badge data-tree-badge-" + (node.type || "string");
-      var typeBadge = window.FOSS.dom.el("span", {
-        className: badgeClass,
-        text: node.type || "val"
-      });
-
-      var keyEl = window.FOSS.dom.el("span", {
-        className: "data-tree-key",
-        text: node.name
-      });
-
-      var valEl = window.FOSS.dom.el("span", {
-        className: "data-tree-val",
-        text: node.preview ? (": " + node.preview) : ""
-      });
-
-      row.appendChild(toggleIcon);
-      row.appendChild(typeBadge);
-      row.appendChild(keyEl);
-      row.appendChild(valEl);
       itemContainer.appendChild(row);
 
+      var childrenBox = null;
       if (hasChildren) {
-        var childrenBox = window.FOSS.dom.el("div", {
+        childrenBox = window.FOSS.dom.el("div", {
           className: "data-tree-children" + (depth >= 2 && !filter ? " collapsed" : "")
         });
-
         childElements.forEach(function (ce) { childrenBox.appendChild(ce); });
         itemContainer.appendChild(childrenBox);
-
-        row.addEventListener("click", function (e) {
-          e.stopPropagation();
-          showNodeDetails(node);
-          var isCollapsed = childrenBox.classList.toggle("collapsed");
-          toggleIcon.textContent = isCollapsed ? "\u25b6" : "\u25bc";
-        });
-      } else {
-        row.addEventListener("click", function (e) {
-          e.stopPropagation();
-          showNodeDetails(node);
-        });
       }
 
       return itemContainer;
     }
 
     function showNodeDetails(node) {
-      detailsCard.classList.remove("hidden");
-      var host = detailsCard.querySelector("#data-node-details-content");
-      if (!host) return;
-
-      host.innerHTML = "";
-      var grid = window.FOSS.dom.el("div", { className: "stack", gap: "xs" }, [
-        window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [
-          window.FOSS.dom.el("strong", { text: "Path:" }),
-          window.FOSS.dom.el("span", { text: node.path || "-" })
-        ]),
-        window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [
-          window.FOSS.dom.el("strong", { text: "Type:" }),
-          window.FOSS.dom.el("span", { text: node.type || "unknown" }),
-          window.FOSS.dom.el("strong", { text: "Elements/Length:" }),
-          window.FOSS.dom.el("span", { text: String(node.length !== undefined ? node.length : "-") })
-        ])
-      ]);
-
-      if (node.shape) {
-        grid.appendChild(window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [
-          window.FOSS.dom.el("strong", { text: "Dataset Shape:" }),
-          window.FOSS.dom.el("span", { text: JSON.stringify(node.shape) }),
-          window.FOSS.dom.el("strong", { text: "Data Type:" }),
-          window.FOSS.dom.el("span", { text: String(node.dtype || "-") })
-        ]));
-      }
-
-      if (node.shape || (currentStructure && currentStructure.format === "HDF5")) {
-        var slicePathInput = window.FOSS.dom.el("input", {
-          className: "input input-sm",
-          "data-testid": "data-hdf5-slice-path",
-          value: node.path || node.name || "/",
-          "aria-label": "HDF5 Dataset Path",
-          title: "HDF5 Dataset Path"
-        });
-
-        var sliceSpecInput = window.FOSS.dom.el("input", {
-          className: "input input-sm",
-          "data-testid": "data-hdf5-slice-spec",
-          placeholder: "e.g. 0:100 or :",
-          value: ":",
-          "aria-label": "Slice expression",
-          title: "Slice expression (e.g. 0:100, :)"
-        });
-
-        var formatSelect = window.FOSS.dom.el("select", {
-          className: "input input-sm",
-          "data-testid": "data-hdf5-slice-format",
-          "aria-label": "Export format",
-          title: "Export format"
-        }, [
-          window.FOSS.dom.el("option", { value: "csv", text: "CSV (.csv)" }),
-          window.FOSS.dom.el("option", { value: "json", text: "JSON (.json)" }),
-          window.FOSS.dom.el("option", { value: "npy", text: "NumPy (.npy)" })
-        ]);
-
-        var exportSliceBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-primary btn-sm",
-          "data-testid": "data-hdf5-slice-export-btn",
-          type: "button",
-          onClick: function () {
-            var targetPath = slicePathInput.value.trim();
-            var spec = sliceSpecInput.value.trim() || ":";
-            var fmt = formatSelect.value;
-            var ext = "." + fmt;
-            var defaultName = (targetPath.split("/").pop() || "dataset") + "_slice" + ext;
-            window.FOSS.api("select_save_path", { title: "Save Sliced HDF5 Dataset", default_name: defaultName, file_types: [fmt] }).then(function (saveRes) {
-              var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
-              if (!outP) return;
-              statusBar.textContent = "Exporting slice...";
-              window.FOSS.api("data_hdf5_export_slice", {
-                file_path: currentStructure ? currentStructure.file_path : "",
-                dataset_path: targetPath,
-                slice_spec: spec,
-                output_path: outP,
-                format: fmt
-              }).then(function (res) {
-                if (res && res.output_path) {
-                  statusBar.textContent = "[OK] Exported HDF5 slice (" + res.size + " elements, shape " + JSON.stringify(res.shape) + ") to " + res.output_path;
-                  window.FOSS.toast.show({ message: "Exported HDF5 slice to " + res.output_path, type: "success" });
-                }
-              }).catch(function (err) {
-                statusBar.textContent = "Slice export error: " + (err && err.message ? err.message : String(err));
-              });
-            });
-          }
-        }, [
-          window.FOSS.icons.el("download", 14),
-          window.FOSS.dom.el("span", { text: "Export Slice" })
-        ]);
-
-        var sliceCard = window.FOSS.dom.el("div", {
-          className: "card p-sm border rounded mt-sm",
-          "data-testid": "data-hdf5-slice-card"
-        }, [
-          window.FOSS.dom.el("strong", { className: "text-xs font-semibold", text: "HDF5 Dataset Slice Exporter:" }),
-          window.FOSS.dom.el("div", { className: "row gap-xs items-center mt-xs" }, [
-            window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Dataset:" }),
-            slicePathInput,
-            window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Slice:" }),
-            sliceSpecInput,
-            formatSelect,
-            exportSliceBtn
-          ])
-        ]);
-
-        grid.appendChild(sliceCard);
-      }
-
-      if (node.value !== undefined) {
-        var fullValBox = window.FOSS.dom.el("pre", {
-          className: "p-2 bg-surface border rounded text-xs",
-          style: "max-height: 8rem; overflow: auto; white-space: pre-wrap;",
-          text: String(node.value)
-        });
-        grid.appendChild(fullValBox);
-      }
-
-      host.appendChild(grid);
+      var detailsEl = document.getElementById("data-node-details-content");
+      if (!detailsEl) return;
+      var lines = [
+        "Name: " + (node.name || ""),
+        "Type: " + (node.type || ""),
+        "Path: " + (node.path || "")
+      ];
+      if (node.shape) lines.push("Shape: " + JSON.stringify(node.shape));
+      if (node.dtype) lines.push("Dtype: " + node.dtype);
+      if (node.size_bytes !== undefined) lines.push("Size: " + node.size_bytes + " bytes");
+      detailsEl.textContent = lines.join("\n");
     }
 
-    var toolbar = window.FOSS.dom.el("div", {
-      className: "row scroll-x",
-      gap: "sm"
-    }, [
-      openBtn,
-      sampleSelect,
-      toggleTextBtn,
-      filterInput,
-      expandAllBtn,
-      collapseAllBtn
-    ]);
-
-    panel.appendChild(window.FOSS.dom.el("div", {
-      className: "stack",
-      gap: "md"
-    }, [
-      desc,
-      toolbar,
-      textEditorDrawer,
-      statsContainer,
-      treeRoot,
-      detailsCard,
-      statusBar
-    ]));
-
-    // Load initial sample JSON to give immediate interactive value.
-    setTimeout(function () {
-      var initialJson = '{\n  "service": "Telemetry Hub",\n  "active": true,\n  "endpoints": [\n    {"url": "/api/v1/sensors", "protocol": "https"},\n    {"url": "/api/v1/events", "protocol": "wss"}\n  ],\n  "metrics": {"uptime_seconds": 86400, "cpu_load": 0.14}\n}';
-      codeEditor.setValue(initialJson);
-      window.FOSS.api("data_inspect_structure", { content: initialJson }).then(function (r) {
-        renderParsedStructure(r);
-      }).catch(function () {});
-    }, 50);
+    renderTree(null, "");
   }
 
-  function renderTablesTab(panel, ctx) {
+  // --- TAB 3: TABLES (CSV / TSV / MARKDOWN) ----------------------------------
+  function renderTablesTab(panel) {
     panel.innerHTML = "";
 
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Clean, normalize, adjust separators, and convert tables between CSV, TSV, custom delimited, and Markdown."
-    });
-
-    var tableEditor = window.FOSS.components.codeEditor({
-      testid: "data-tables-input",
-      title: "Markdown Table / Delimited Data",
-      placeholder: "| Item | Price | Qty |\n| :--- | :--- | :--- |\n| Apple | $1.20 | 10 |\n| Orange | $0.85 | 15 |",
-      ariaLabel: "Table editor content"
-    });
-
-    var statusEl = window.FOSS.dom.el("div", {
+    var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted",
       "data-testid": "data-tables-status",
       text: "Ready"
     });
 
-    var previewHost = window.FOSS.dom.el("div", {
-      className: "card stack hidden",
-      "data-testid": "data-tables-html-preview",
-      gap: "sm"
+    var tableEditor = window.FOSS.components.codeEditor({
+      testid: "data-tables-input",
+      title: "Table Data (CSV, TSV, or Markdown Table)",
+      placeholder: "| Column 1 | Column 2 | Column 3 |\n| --- | --- | --- |\n| Value A | Value B | Value C |",
+      ariaLabel: "Input table text content",
+      fillHeight: true
     });
-
-    var delimSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "data-testid": "data-tables-delimiter",
-      "aria-label": "Table separator delimiter"
-    }, [
-      window.FOSS.dom.el("option", { value: "comma", text: "Comma (,)" }),
-      window.FOSS.dom.el("option", { value: "semicolon", text: "Semicolon (;)" }),
-      window.FOSS.dom.el("option", { value: "tab", text: "Tab (\\t)" }),
-      window.FOSS.dom.el("option", { value: "pipe", text: "Pipe (|)" }),
-      window.FOSS.dom.el("option", { value: "colon", text: "Colon (:)" }),
-      window.FOSS.dom.el("option", { value: "custom", text: "Custom Delimiter..." })
-    ]);
-
-    var customDelimInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input input-sm hidden",
-      "data-testid": "data-tables-custom-delimiter",
-      value: "~",
-      style: "width: 4rem;",
-      placeholder: "Delim",
-      "aria-label": "Custom delimiter string"
-    });
-
-    delimSelect.addEventListener("change", function () {
-      if (delimSelect.value === "custom") {
-        customDelimInput.classList.remove("hidden");
-      } else {
-        customDelimInput.classList.add("hidden");
-      }
-    });
-
-    var quoteSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "data-testid": "data-tables-quote",
-      "aria-label": "Quote character"
-    }, [
-      window.FOSS.dom.el("option", { value: '"', text: 'Double quote (")' }),
-      window.FOSS.dom.el("option", { value: "'", text: "Single quote (')" }),
-      window.FOSS.dom.el("option", { value: "none", text: "None" })
-    ]);
-
-    var headerCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      "data-testid": "data-tables-header-check",
-      checked: true,
-      id: "data-tables-header-check-el",
-      "aria-label": "Include header row"
-    });
-
-    var headerLabel = window.FOSS.dom.el("label", {
-      htmlFor: "data-tables-header-check-el",
-      className: "row text-xs cursor-pointer",
-      gap: "xs"
-    }, [
-      headerCheck,
-      window.FOSS.dom.el("span", { text: "Header Row" })
-    ]);
-
-    function getActiveDelimiter() {
-      if (delimSelect.value === "custom") {
-        return customDelimInput.value || ",";
-      }
-      return delimSelect.value;
-    }
 
     var cleanBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
       "data-testid": "data-tables-clean",
-      "aria-label": "Clean table",
-      title: "Clean table",
-      type: "button",
+      "aria-label": "Clean and format table",
+      title: "Clean Table",
       onClick: function () {
         var content = tableEditor.getValue();
         window.FOSS.api("data_clean_table", { content: content }).then(function (res) {
-          tableEditor.setValue(res.result);
-          statusEl.textContent = "[OK] Cleaned table whitespace and empty columns";
+          tableEditor.setValue(res.result || "");
+          statusBar.textContent = "[OK] Cleaned table whitespace and aligned columns";
+          renderPreview();
         });
       }
-    }, [
-      window.FOSS.icons.el("edit", 16),
-      window.FOSS.dom.el("span", { text: "Clean Table" })
-    ]);
+    }, [window.FOSS.icons.el("check-circle", 14), window.FOSS.dom.el("span", { text: "Clean Table" })]);
 
-    var normalizeBtn = window.FOSS.dom.el("button", {
+    var transposeBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "data-tables-normalize",
-      "aria-label": "Normalize table",
-      title: "Normalize table",
-      type: "button",
+      "data-testid": "data-tables-transpose",
+      "aria-label": "Transpose Table Rows and Columns",
+      title: "Transpose Table",
       onClick: function () {
         var content = tableEditor.getValue();
-        window.FOSS.api("data_normalize_table", { content: content }).then(function (res) {
-          tableEditor.setValue(res.result);
-          statusEl.textContent = "[OK] Normalized table padding";
+        window.FOSS.api("data_transpose_table", { content: content }).then(function (res) {
+          tableEditor.setValue(res.result || "");
+          statusBar.textContent = "[OK] Transposed table rows and columns";
+          renderPreview();
         });
       }
-    }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Normalize" })
-    ]);
+    }, [window.FOSS.icons.el("refresh", 14), window.FOSS.dom.el("span", { text: "Transpose" })]);
+
+    var dedupBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "data-tables-dedup",
+      "aria-label": "Deduplicate Rows",
+      title: "Deduplicate Rows",
+      onClick: function () {
+        var content = tableEditor.getValue();
+        window.FOSS.api("data_dedup_table", { content: content }).then(function (res) {
+          tableEditor.setValue(res.result || "");
+          statusBar.textContent = "[OK] Removed " + (res.duplicates_removed || 0) + " duplicate rows";
+          renderPreview();
+        });
+      }
+    }, [window.FOSS.icons.el("filter", 14), window.FOSS.dom.el("span", { text: "Deduplicate" })]);
 
     var csvToMdBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "data-tables-csv-to-md",
-      "aria-label": "CSV/DSV to Markdown table",
-      title: "CSV/DSV to Markdown table",
-      type: "button",
+      "aria-label": "CSV to Markdown",
+      title: "CSV to Markdown",
       onClick: function () {
         var content = tableEditor.getValue();
-        var delim = getActiveDelimiter();
-        var incHeader = headerCheck.checked;
-        window.FOSS.api("data_csv_to_table", { content: content, delimiter: delim, include_header: incHeader }).then(function (res) {
-          tableEditor.setValue(res.result);
-          statusEl.textContent = "[OK] Converted delimited text to Markdown table";
+        window.FOSS.api("data_csv_to_table", { content: content, delimiter: "," }).then(function (res) {
+          tableEditor.setValue(res.result || "");
+          statusBar.textContent = "[OK] Converted CSV to Markdown table";
+          renderPreview();
         });
       }
-    }, [
-      window.FOSS.icons.el("file", 16),
-      window.FOSS.dom.el("span", { text: "Delimited to Markdown" })
-    ]);
+    }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "CSV -> Markdown" })]);
 
-    var tableToCsvBtn = window.FOSS.dom.el("button", {
+    var mdToCsvBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "data-tables-to-csv",
-      "aria-label": "Markdown table to Delimited CSV/DSV",
-      title: "Markdown table to Delimited CSV/DSV",
-      type: "button",
+      "data-testid": "data-tables-md-to-csv",
+      "aria-label": "Markdown to CSV",
+      title: "Markdown to CSV",
       onClick: function () {
         var content = tableEditor.getValue();
-        var delim = getActiveDelimiter();
-        var quote = quoteSelect.value === "none" ? "" : quoteSelect.value;
-        var incHeader = headerCheck.checked;
-        window.FOSS.api("data_table_to_csv", {
-          content: content,
-          delimiter: delim,
-          include_header: incHeader,
-          quote_char: quote
-        }).then(function (res) {
-          tableEditor.setValue(res.result);
-          statusEl.textContent = "[OK] Converted Markdown table to delimited text (" + delimSelect.value + ")";
+        window.FOSS.api("data_table_to_csv", { content: content, delimiter: "," }).then(function (res) {
+          tableEditor.setValue(res.result || "");
+          statusBar.textContent = "[OK] Converted Markdown table to CSV";
         });
       }
+    }, [window.FOSS.icons.el("file", 14), window.FOSS.dom.el("span", { text: "Markdown -> CSV" })]);
+
+    var toolbar = window.FOSS.dom.el("div", {
+      className: "row items-center flex-wrap gap-2 p-2 rounded",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
+    }, [cleanBtn, transposeBtn, dedupBtn, csvToMdBtn, mdToCsvBtn]);
+
+    var previewHost = window.FOSS.dom.el("div", {
+      className: "p-3 rounded scroll-y",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", minHeight: "200px", width: "100%" }
     }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Markdown to Delimited" })
+      window.FOSS.dom.el("div", { className: "text-muted text-sm text-center", text: "Interactive table preview appears here." })
     ]);
 
-    var targetDelimSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "data-testid": "data-tables-target-delimiter",
-      "aria-label": "Target delimiter for separator change"
-    }, [
-      window.FOSS.dom.el("option", { value: "tab", text: "Convert to Tab (\\t)" }),
-      window.FOSS.dom.el("option", { value: "comma", text: "Convert to Comma (,)" }),
-      window.FOSS.dom.el("option", { value: "semicolon", text: "Convert to Semicolon (;)" }),
-      window.FOSS.dom.el("option", { value: "pipe", text: "Convert to Pipe (|)" })
-    ]);
-
-    var changeDelimBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "data-tables-change-delimiter-btn",
-      "aria-label": "Change separator delimiter",
-      title: "Change separator delimiter",
-      type: "button",
-      onClick: function () {
-        var content = tableEditor.getValue();
-        var srcDel = getActiveDelimiter();
-        var tgtDel = targetDelimSelect.value;
-        window.FOSS.api("data_change_delimiter", {
-          content: content,
-          from_delimiter: srcDel,
-          to_delimiter: tgtDel
-        }).then(function (res) {
-          tableEditor.setValue(res.result);
-          statusEl.textContent = "[OK] Converted delimiter from " + srcDel + " to " + tgtDel;
+    function renderPreview() {
+      var content = tableEditor.getValue();
+      if (!content.trim()) return;
+      window.FOSS.api("data_table_to_rows", { content: content }).then(function (res) {
+        var rows = res.rows || [];
+        if (!rows.length) return;
+        var headers = Object.keys(rows[0] || {});
+        if (!headers.length) return;
+        previewHost.innerHTML = "";
+        var tbl = window.FOSS.dom.el("table", { className: "table", style: { width: "100%" } });
+        var thead = window.FOSS.dom.el("thead");
+        var hRow = window.FOSS.dom.el("tr");
+        headers.forEach(function (h) {
+          hRow.appendChild(window.FOSS.dom.el("th", { text: String(h) }));
         });
-      }
-    }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Change Separator" })
-    ]);
+        thead.appendChild(hRow);
+        tbl.appendChild(thead);
 
-    var parseBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "data-tables-parse",
-      "aria-label": "Parse Markdown table",
-      title: "Parse Markdown table",
-      type: "button",
-      onClick: function () {
-        var content = tableEditor.getValue();
-        window.FOSS.api("data_table_to_rows", { content: content }).then(function (res) {
-          var rows = res.rows || [];
-          statusEl.textContent = "[OK] Parsed " + rows.length + " structured rows";
-          renderHtmlTablePreview(rows);
-        });
-      }
-    }, [
-      window.FOSS.icons.el("table", 16),
-      window.FOSS.dom.el("span", { text: "Parse Table" })
-    ]);
-
-    function renderHtmlTablePreview(rows) {
-      if (!rows || !rows.length) {
-        previewHost.classList.add("hidden");
-        return;
-      }
-      previewHost.classList.remove("hidden");
-      previewHost.innerHTML = "";
-      previewHost.appendChild(window.FOSS.dom.el("span", { className: "card-title", text: "Live Table Preview" }));
-
-      var table = window.FOSS.dom.el("table", {
-        className: "table w-full text-xs font-mono border rounded",
-        style: "border-collapse: collapse; text-align: left;"
-      });
-
-      var headers = Object.keys(rows[0]);
-      var thead = window.FOSS.dom.el("thead", {}, [
-        window.FOSS.dom.el("tr", { className: "bg-raised" },
-          headers.map(function (h) {
-            return window.FOSS.dom.el("th", { className: "p-2 border", text: h });
-          })
-        )
-      ]);
-
-      var tbody = window.FOSS.dom.el("tbody", {},
-        rows.map(function (row) {
-          return window.FOSS.dom.el("tr", { className: "border" },
-            headers.map(function (h) {
-              return window.FOSS.dom.el("td", { className: "p-2 border", text: row[h] !== undefined ? String(row[h]) : "" });
-            })
-          );
-        })
-      );
-
-      table.appendChild(thead);
-      table.appendChild(tbody);
-      previewHost.appendChild(table);
-    }
-
-    var optionsBar = window.FOSS.dom.el("div", {
-      className: "row scroll-x",
-      gap: "sm"
-    }, [
-      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Separator:" }),
-      delimSelect,
-      customDelimInput,
-      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Quote:" }),
-      quoteSelect,
-      headerLabel,
-      targetDelimSelect,
-      changeDelimBtn
-    ]);
-
-    var actionsRow = window.FOSS.dom.el("div", {
-      className: "row scroll-x",
-      gap: "sm"
-    }, [
-      cleanBtn,
-      normalizeBtn,
-      csvToMdBtn,
-      tableToCsvBtn,
-      parseBtn
-    ]);
-
-    panel.appendChild(window.FOSS.dom.el("div", {
-      className: "stack",
-      gap: "md"
-    }, [
-      desc,
-      optionsBar,
-      actionsRow,
-      tableEditor.el,
-      previewHost,
-      statusEl
-    ]));
-  }
-
-  var UNIT_CATEGORIES = {
-    "Length": [
-      { id: "m", label: "Meters (m)" },
-      { id: "cm", label: "Centimeters (cm)" },
-      { id: "mm", label: "Millimeters (mm)" },
-      { id: "km", label: "Kilometers (km)" },
-      { id: "in", label: "Inches (in)" },
-      { id: "ft", label: "Feet (ft)" },
-      { id: "yd", label: "Yards (yd)" },
-      { id: "mi", label: "Miles (mi)" }
-    ],
-    "Weight": [
-      { id: "kg", label: "Kilograms (kg)" },
-      { id: "g", label: "Grams (g)" },
-      { id: "mg", label: "Milligrams (mg)" },
-      { id: "lb", label: "Pounds (lb)" },
-      { id: "oz", label: "Ounces (oz)" },
-      { id: "st", label: "Stones (st)" }
-    ],
-    "Temperature": [
-      { id: "c", label: "Celsius (C)" },
-      { id: "f", label: "Fahrenheit (F)" },
-      { id: "k", label: "Kelvin (K)" }
-    ],
-    "Time": [
-      { id: "s", label: "Seconds (s)" },
-      { id: "ms", label: "Milliseconds (ms)" },
-      { id: "min", label: "Minutes (min)" },
-      { id: "h", label: "Hours (h)" },
-      { id: "day", label: "Days (day)" }
-    ],
-    "Area": [
-      { id: "m2", label: "Square Meters (m2)" },
-      { id: "cm2", label: "Square Centimeters (cm2)" },
-      { id: "mm2", label: "Square Millimeters (mm2)" },
-      { id: "km2", label: "Square Kilometers (km2)" },
-      { id: "ft2", label: "Square Feet (ft2)" },
-      { id: "in2", label: "Square Inches (in2)" },
-      { id: "yd2", label: "Square Yards (yd2)" },
-      { id: "ac", label: "Acres (ac)" },
-      { id: "ha", label: "Hectares (ha)" }
-    ],
-    "Volume": [
-      { id: "l", label: "Liters (l)" },
-      { id: "ml", label: "Milliliters (ml)" },
-      { id: "m3", label: "Cubic Meters (m3)" },
-      { id: "gal", label: "Gallons (gal)" },
-      { id: "qt", label: "Quarts (qt)" },
-      { id: "pt", label: "Pints (pt)" },
-      { id: "cup", label: "Cups (cup)" },
-      { id: "us_fl_oz", label: "Fluid Ounces (fl oz)" }
-    ],
-    "Speed": [
-      { id: "kmh", label: "km/h" },
-      { id: "mps", label: "m/s" },
-      { id: "mph", label: "mph" },
-      { id: "knot", label: "Knots" }
-    ],
-    "Pressure": [
-      { id: "bar", label: "Bar" },
-      { id: "pa", label: "Pascals (Pa)" },
-      { id: "kpa", label: "Kilopascals (kPa)" },
-      { id: "mpa", label: "Megapascals (MPa)" },
-      { id: "psi", label: "PSI" }
-    ],
-    "Angle": [
-      { id: "deg", label: "Degrees (deg)" },
-      { id: "rad", label: "Radians (rad)" },
-      { id: "grad", label: "Gradians (grad)" },
-      { id: "turn", label: "Turns" }
-    ],
-    "Data": [
-      { id: "mb", label: "Megabytes (MB)" },
-      { id: "kb", label: "Kilobytes (KB)" },
-      { id: "gb", label: "Gigabytes (GB)" },
-      { id: "tb", label: "Terabytes (TB)" },
-      { id: "b", label: "Bytes (B)" },
-      { id: "mib", label: "Mebibytes (MiB)" },
-      { id: "kib", label: "Kibibytes (KiB)" },
-      { id: "gib", label: "Gibibytes (GiB)" }
-    ]
-  };
-
-  function renderUnitsTab(panel, ctx) {
-    panel.innerHTML = "";
-
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Convert units across physical dimensions or configure pseudorandom generators."
-    });
-
-    var catSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "data-testid": "data-units-category",
-      "aria-label": "Unit category"
-    });
-    for (var catName in UNIT_CATEGORIES) {
-      catSelect.appendChild(window.FOSS.dom.el("option", { value: catName, text: catName }));
-    }
-
-    var valInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input input-sm",
-      "data-testid": "data-units-val",
-      value: "100",
-      "aria-label": "Unit numerical value"
-    });
-
-    var srcUnitSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "data-testid": "data-units-from",
-      "aria-label": "Source measurement unit"
-    });
-
-    var tgtUnitSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "data-testid": "data-units-to",
-      "aria-label": "Target measurement unit"
-    });
-
-    function populateUnits(cat) {
-      srcUnitSelect.innerHTML = "";
-      tgtUnitSelect.innerHTML = "";
-      var units = UNIT_CATEGORIES[cat] || [];
-      units.forEach(function (u, idx) {
-        srcUnitSelect.appendChild(window.FOSS.dom.el("option", { value: u.id, text: u.label }));
-        tgtUnitSelect.appendChild(window.FOSS.dom.el("option", { value: u.id, text: u.label }));
-      });
-      if (units.length > 1) {
-        tgtUnitSelect.selectedIndex = 1;
-      }
-    }
-
-    catSelect.addEventListener("change", function () {
-      populateUnits(catSelect.value);
-      doConvert();
-    });
-
-    populateUnits("Length");
-    srcUnitSelect.value = "m";
-    tgtUnitSelect.value = "ft";
-
-    var unitRes = window.FOSS.dom.el("div", {
-      className: "font-mono text-sm",
-      "data-testid": "data-units-output",
-      text: "Result: 328.084 ft"
-    });
-
-    function doConvert() {
-      var v = parseFloat(valInput.value);
-      if (isNaN(v)) return;
-      var u1 = srcUnitSelect.value;
-      var u2 = tgtUnitSelect.value;
-      window.FOSS.api("data_convert_units", { value: v, source_unit: u1, target_unit: u2 }).then(function (res) {
-        if (res && res.result !== undefined) {
-          unitRes.textContent = "Result: " + res.result + " " + u2;
-        }
-      });
-    }
-
-    srcUnitSelect.addEventListener("change", doConvert);
-    tgtUnitSelect.addEventListener("change", doConvert);
-    valInput.addEventListener("input", doConvert);
-
-    // Prominent Swap Units button interchanging From and To units.
-    var swapBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "data-units-swap-btn",
-      id: "data-units-swap",
-      "aria-label": "Swap units",
-      title: "Swap units",
-      type: "button",
-      onClick: function () {
-        var s = srcUnitSelect.value;
-        srcUnitSelect.value = tgtUnitSelect.value;
-        tgtUnitSelect.value = s;
-        doConvert();
-      }
-    }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Swap Units" })
-    ]);
-
-    var convertBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "data-units-convert",
-      "aria-label": "Convert units",
-      title: "Convert units",
-      type: "button",
-      onClick: doConvert
-    }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Convert Unit" })
-    ]);
-
-    var unitCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Physical Unit Converter" }),
-      window.FOSS.dom.el("div", { className: "row scroll-x", gap: "sm" }, [
-        catSelect,
-        valInput,
-        srcUnitSelect,
-        swapBtn,
-        window.FOSS.dom.el("span", { text: "to" }),
-        tgtUnitSelect,
-        convertBtn
-      ]),
-      unitRes
-    ]);
-
-    // Enhanced Random Generator with configurable length, count, ranges, and charsets.
-    var randSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "data-testid": "data-units-random-type",
-      "aria-label": "Random generator kind"
-    }, [
-      window.FOSS.dom.el("option", { value: "string", text: "Alphanumeric String" }),
-      window.FOSS.dom.el("option", { value: "password", text: "Secure Password" }),
-      window.FOSS.dom.el("option", { value: "hex", text: "Hexadecimal Token" }),
-      window.FOSS.dom.el("option", { value: "number", text: "Random Integer" }),
-      window.FOSS.dom.el("option", { value: "float", text: "Random Float" }),
-      window.FOSS.dom.el("option", { value: "uuid", text: "UUID v4" }),
-      window.FOSS.dom.el("option", { value: "name", text: "Full Name" }),
-      window.FOSS.dom.el("option", { value: "email", text: "Email Address" }),
-      window.FOSS.dom.el("option", { value: "lorem", text: "Lorem Ipsum Text" })
-    ]);
-
-    var randLengthInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input input-sm",
-      "data-testid": "data-units-random-length",
-      value: "16",
-      min: "1",
-      max: "1024",
-      style: "width: 5rem;",
-      placeholder: "Length",
-      "aria-label": "Random value length"
-    });
-
-    var randCountInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input input-sm",
-      "data-testid": "data-units-random-count",
-      value: "1",
-      min: "1",
-      max: "100",
-      style: "width: 4.5rem;",
-      placeholder: "Count",
-      "aria-label": "Number of values to generate"
-    });
-
-    var randMinInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input input-sm",
-      "data-testid": "data-units-random-min",
-      value: "1",
-      style: "width: 5rem;",
-      placeholder: "Min",
-      "aria-label": "Minimum number value"
-    });
-
-    var randMaxInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input input-sm",
-      "data-testid": "data-units-random-max",
-      value: "100",
-      style: "width: 5rem;",
-      placeholder: "Max",
-      "aria-label": "Maximum number value"
-    });
-
-    var upperCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      "data-testid": "data-units-random-upper",
-      checked: true,
-      id: "data-units-rand-upper-el",
-      "aria-label": "Include uppercase letters"
-    });
-
-    var lowerCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      "data-testid": "data-units-random-lower",
-      checked: true,
-      id: "data-units-rand-lower-el",
-      "aria-label": "Include lowercase letters"
-    });
-
-    var digitsCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      "data-testid": "data-units-random-digits",
-      checked: true,
-      id: "data-units-rand-digits-el",
-      "aria-label": "Include digits"
-    });
-
-    var symbolsCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      "data-testid": "data-units-random-symbols",
-      checked: false,
-      id: "data-units-rand-symbols-el",
-      "aria-label": "Include special symbols"
-    });
-
-    var customAlphabetInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input input-sm",
-      "data-testid": "data-units-random-alphabet",
-      placeholder: "Custom charset...",
-      "aria-label": "Custom alphabet characters"
-    });
-
-    var randRes = window.FOSS.dom.el("textarea", {
-      className: "input font-mono text-xs w-full",
-      "data-testid": "data-units-random-output",
-      "aria-label": "Generated random output",
-      rows: 3,
-      readOnly: true,
-      value: "-"
-    });
-
-    var randBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "data-units-random-generate",
-      "aria-label": "Generate random token",
-      title: "Generate random token",
-      type: "button",
-      onClick: function () {
-        var cat = randSelect.value;
-        var len = parseInt(randLengthInput.value, 10) || 16;
-        var cnt = parseInt(randCountInput.value, 10) || 1;
-        var minVal = parseInt(randMinInput.value, 10) || 0;
-        var maxVal = parseInt(randMaxInput.value, 10) || 100;
-        var alphabet = customAlphabetInput.value.trim() || undefined;
-
-        window.FOSS.api("data_random_value", {
-          category: cat,
-          length: len,
-          count: cnt,
-          min_value: minVal,
-          max_value: maxVal,
-          include_uppercase: upperCheck.checked,
-          include_lowercase: lowerCheck.checked,
-          include_digits: digitsCheck.checked,
-          include_symbols: symbolsCheck.checked,
-          custom_alphabet: alphabet
-        }).then(function (res) {
-          if (Array.isArray(res.values)) {
-            randRes.value = res.values.join("\n");
-          } else {
-            randRes.value = String(res.value);
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Generate Random" })
-    ]);
-
-    var copyBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "data-units-random-copy",
-      "aria-label": "Copy generated value to clipboard",
-      title: "Copy generated value to clipboard",
-      type: "button",
-      onClick: function () {
-        if (navigator.clipboard && randRes.value) {
-          navigator.clipboard.writeText(randRes.value).then(function () {
-            if (window.FOSS.toast) window.FOSS.toast("Copied to clipboard!");
+        var tbody = window.FOSS.dom.el("tbody");
+        for (var i = 0; i < rows.length; i++) {
+          var tr = window.FOSS.dom.el("tr");
+          var rowData = rows[i];
+          headers.forEach(function (h) {
+            tr.appendChild(window.FOSS.dom.el("td", { text: String(rowData[h] !== undefined ? rowData[h] : "") }));
           });
+          tbody.appendChild(tr);
         }
-      }
+        tbl.appendChild(tbody);
+        previewHost.appendChild(tbl);
+      });
+    }
+
+    var grid = window.FOSS.dom.el("div", {
+      className: "row gap-3 items-stretch code-editor-fill",
+      style: { flex: "1 1 0%", minHeight: "24rem", width: "100%" }
     }, [
-      window.FOSS.icons.el("file", 16),
-      window.FOSS.dom.el("span", { text: "Copy" })
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [tableEditor.el]),
+      window.FOSS.dom.el("div", { className: "flex-col flex-1", style: { minWidth: "0" } }, [previewHost])
     ]);
 
-    var randCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Random Value Generator" }),
-      window.FOSS.dom.el("div", { className: "row scroll-x", gap: "sm" }, [
-        randSelect,
-        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Len:" }),
-        randLengthInput,
-        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Count:" }),
-        randCountInput,
-        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Range:" }),
-        randMinInput,
-        randMaxInput
-      ]),
-      window.FOSS.dom.el("div", { className: "row scroll-x text-xs", gap: "md" }, [
-        window.FOSS.dom.el("label", { className: "row", gap: "xs" }, [upperCheck, window.FOSS.dom.el("span", { text: "A-Z" })]),
-        window.FOSS.dom.el("label", { className: "row", gap: "xs" }, [lowerCheck, window.FOSS.dom.el("span", { text: "a-z" })]),
-        window.FOSS.dom.el("label", { className: "row", gap: "xs" }, [digitsCheck, window.FOSS.dom.el("span", { text: "0-9" })]),
-        window.FOSS.dom.el("label", { className: "row", gap: "xs" }, [symbolsCheck, window.FOSS.dom.el("span", { text: "#$%" })]),
-        customAlphabetInput
-      ]),
-      window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [randBtn, copyBtn]),
-      randRes
-    ]);
-
-    panel.appendChild(window.FOSS.dom.el("div", {
-      className: "stack",
-      gap: "md"
-    }, [desc, unitCard, randCard]));
+    panel.appendChild(statusBar);
+    panel.appendChild(toolbar);
+    panel.appendChild(grid);
   }
 
-  function renderCalendarTab(panel, ctx) {
+  // --- TAB 4: JSONPATH & SCHEMA -----------------------------------------------
+  function renderQueryTab(panel) {
     panel.innerHTML = "";
 
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Create and parse iCalendar (.ics) files for events, schedules, and reminders."
-    });
-
-    var titleInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input input-sm",
-      "data-testid": "data-calendar-title",
-      value: "Team Sync",
-      placeholder: "Event title",
-      "aria-label": "Event title"
-    });
-
-    var startInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input input-sm",
-      "data-testid": "data-calendar-start",
-      value: "2026-10-30T10:00:00",
-      placeholder: "Start time (YYYY-MM-DDTHH:MM:SS)",
-      "aria-label": "Start time"
-    });
-
-    var icsEditor = window.FOSS.components.codeEditor({
-      testid: "data-calendar-ics-output",
-      title: "iCalendar (.ics) Payload",
-      placeholder: "Generated or pasted ICS payload...",
-      ariaLabel: "ICS payload editor"
-    });
-
-    var statusEl = window.FOSS.dom.el("div", {
+    var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted",
-      "data-testid": "data-calendar-status",
+      "data-testid": "data-query-status",
       text: "Ready"
     });
 
-    var genBtn = window.FOSS.dom.el("button", {
+    var pathInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm flex-1",
+      value: "$.store.book[*].author",
+      placeholder: "e.g. $.store.book[*].author or $..price",
+      "aria-label": "JSONPath Query Expression"
+    });
+
+    var queryBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
-      "data-testid": "data-calendar-generate",
-      "aria-label": "Generate calendar event",
-      title: "Generate calendar event",
-      type: "button",
+      "data-testid": "data-query-btn",
+      "aria-label": "Query JSONPath",
+      title: "Run JSONPath",
       onClick: function () {
-        var t = titleInput.value.trim() || "Event";
-        var s = startInput.value.trim() || "2026-10-30T10:00:00";
-        window.FOSS.api("data_ics_generate", { title: t, start_time: s }).then(function (res) {
-          icsEditor.setValue(res.ics);
-          statusEl.textContent = "[OK] Generated .ics calendar event";
+        var content = jsonEditor.getValue();
+        if (!content.trim()) return;
+        statusBar.textContent = "Querying JSONPath...";
+        window.FOSS.api("data_query_jsonpath", {
+          content: content,
+          path: pathInput.value
+        }).then(function (res) {
+          resultEditor.setValue(JSON.stringify(res.matches || [], null, 2));
+          statusBar.textContent = "Matched " + (res.matches ? res.matches.length : 0) + " elements.";
+        }).catch(function (err) {
+          statusBar.textContent = "Query error: " + (err && err.message ? err.message : String(err));
         });
       }
-    }, [
-      window.FOSS.icons.el("plus", 16),
-      window.FOSS.dom.el("span", { text: "Generate .ICS" })
-    ]);
+    }, [window.FOSS.icons.el("search", 14), window.FOSS.dom.el("span", { text: "Query JSONPath" })]);
 
-    var parseBtn = window.FOSS.dom.el("button", {
+    var inferSchemaBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "data-calendar-parse",
-      "aria-label": "Parse .ICS payload",
-      title: "Parse .ICS payload",
-      type: "button",
+      "data-testid": "data-infer-schema-btn",
+      "aria-label": "Infer JSON Schema",
+      title: "Infer Schema",
       onClick: function () {
-        var content = icsEditor.getValue();
-        window.FOSS.api("data_ics_parse", { content: content }).then(function (res) {
-          var evs = res.events || [];
-          statusEl.textContent = "[OK] Parsed " + evs.length + " calendar events";
+        var content = jsonEditor.getValue();
+        if (!content.trim()) return;
+        statusBar.textContent = "Inferring JSON Schema...";
+        window.FOSS.api("data_infer_schema", { content: content }).then(function (res) {
+          resultEditor.setValue(JSON.stringify(res.schema || {}, null, 2));
+          statusBar.textContent = "Inferred JSON Schema successfully.";
+        }).catch(function (err) {
+          statusBar.textContent = "Schema error: " + (err && err.message ? err.message : String(err));
         });
       }
+    }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "Infer Schema" })]);
+
+    var topBar = window.FOSS.dom.el("div", {
+      className: "row items-center flex-wrap gap-2 p-2 rounded",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
     }, [
-      window.FOSS.icons.el("file", 16),
-      window.FOSS.dom.el("span", { text: "Parse .ICS" })
+      window.FOSS.dom.el("span", { className: "text-xs font-bold", text: "JSONPath:" }),
+      pathInput,
+      queryBtn,
+      inferSchemaBtn
     ]);
 
-    var card = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm"
+    var jsonEditor = window.FOSS.components.codeEditor({
+      testid: "data-query-json-input",
+      title: "Input JSON Document",
+      placeholder: '{\n  "store": {\n    "book": [\n      {"category": "reference", "author": "Nigel Rees", "title": "Sayings of the Century", "price": 8.95},\n      {"category": "fiction", "author": "Evelyn Waugh", "title": "Sword of Honour", "price": 12.99}\n    ]\n  }\n}',
+      ariaLabel: "Input JSON document",
+      fillHeight: true
+    });
+
+    var resultEditor = window.FOSS.components.codeEditor({
+      testid: "data-query-result",
+      title: "Query / Schema Result",
+      placeholder: "Results will appear here...",
+      ariaLabel: "Query results",
+      fillHeight: true
+    });
+
+    var grid = window.FOSS.dom.el("div", {
+      className: "row gap-3 items-stretch code-editor-fill",
+      style: { flex: "1 1 0%", minHeight: "24rem", width: "100%" }
     }, [
-      window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [titleInput, startInput, genBtn, parseBtn])
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [jsonEditor.el]),
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [resultEditor.el])
     ]);
 
-    panel.appendChild(window.FOSS.dom.el("div", {
-      className: "stack",
-      gap: "md"
-    }, [desc, card, icsEditor.el, statusEl]));
+    panel.appendChild(statusBar);
+    panel.appendChild(topBar);
+    panel.appendChild(grid);
   }
 
+  // --- TAB 5: UTILITIES (CRON, CALENDAR, GENERATOR) ---------------------------
+  function renderUtilitiesTab(panel) {
+    panel.innerHTML = "";
+
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "data-utilities-status",
+      text: "Ready"
+    });
+
+    var sidebarCol = window.FOSS.dom.el("div", { className: "data-sidebar-pane" });
+
+    // Section 1: Cryptographic Random Generator
+    var randCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
+    var randTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Random / Password Generator" });
+
+    var randKind = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "aria-label": "Generator Type"
+    }, [
+      window.FOSS.dom.el("option", { value: "password", text: "Cryptographic Password" }),
+      window.FOSS.dom.el("option", { value: "uuid", text: "UUID v4" }),
+      window.FOSS.dom.el("option", { value: "token", text: "Hex Auth Token" }),
+      window.FOSS.dom.el("option", { value: "number", text: "Random Integer" }),
+      window.FOSS.dom.el("option", { value: "name", text: "Full Name" })
+    ]);
+
+    var randLen = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input input-sm",
+      value: "16",
+      min: "4",
+      max: "128",
+      style: { width: "80px" },
+      "aria-label": "Password Length"
+    });
+
+    var randGenBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "data-utilities-random-generate",
+      "aria-label": "Generate random value",
+      title: "Generate Value",
+      onClick: function () {
+        statusBar.textContent = "Generating random value...";
+        window.FOSS.api("data_random_value", {
+          category: randKind.value,
+          length: parseInt(randLen.value, 10) || 16,
+          count: 1
+        }).then(function (res) {
+          var out = res.value !== undefined ? res.value : (res.result !== undefined ? res.result : "-");
+          randOutput.textContent = String(out);
+          statusBar.textContent = "Generated " + randKind.value + " successfully.";
+        });
+      }
+    }, [window.FOSS.icons.el("refresh", 14), window.FOSS.dom.el("span", { text: "Generate" })]);
+
+    var randOutput = window.FOSS.dom.el("div", {
+      className: "p-2 rounded font-mono text-sm",
+      "data-testid": "data-utilities-random-output",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", wordBreak: "break-all" },
+      text: "-"
+    });
+
+    var copyRandBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "aria-label": "Copy generated value",
+      title: "Copy",
+      onClick: function () {
+        var val = randOutput.textContent;
+        if (val && val !== "-") {
+          copyTextToClipboard(val);
+          showToast("Copied random value to clipboard", "success");
+        }
+      }
+    }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy" })]);
+
+    randCard.appendChild(randTitle);
+    randCard.appendChild(window.FOSS.components.field("Type", randKind));
+    randCard.appendChild(window.FOSS.components.field("Length", randLen));
+    randCard.appendChild(randGenBtn);
+    randCard.appendChild(randOutput);
+    randCard.appendChild(copyRandBtn);
+
+    sidebarCol.appendChild(randCard);
+
+    // Right Column: Cron & Calendar
+    var stageCol = window.FOSS.dom.el("div", { className: "data-stage-pane" });
+
+    // Cron Explainer Card
+    var cronCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
+    var cronTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Cron Expression Explainer" });
+
+    var cronInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm font-mono",
+      value: "*/15 * * * *",
+      placeholder: "e.g. 0 0 * * * or */5 * * * *",
+      "aria-label": "Cron Expression"
+    });
+
+    var cronBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "data-cron-explain-btn",
+      "aria-label": "Explain Cron Expression",
+      title: "Explain Cron",
+      onClick: function () {
+        var expr = cronInput.value.trim();
+        if (!expr) return;
+        statusBar.textContent = "Calculating cron execution schedule...";
+        window.FOSS.api("data_cron_describe", { expression: expr, count: 5 }).then(function (res) {
+          cronDesc.textContent = res.description || "Valid cron expression";
+          cronRunsList.innerHTML = "";
+          (res.upcoming_runs || []).forEach(function (dtStr) {
+            cronRunsList.appendChild(window.FOSS.dom.el("div", {
+              className: "font-mono text-xs p-1 rounded",
+              style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)" },
+              text: dtStr
+            }));
+          });
+          statusBar.textContent = "Upcoming execution schedule computed.";
+        }).catch(function (err) {
+          statusBar.textContent = "Cron error: " + (err && err.message ? err.message : String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("clock", 14), window.FOSS.dom.el("span", { text: "Calculate Schedule" })]);
+
+    var cronDesc = window.FOSS.dom.el("div", {
+      className: "text-sm font-bold text-success p-2 rounded",
+      style: { background: "var(--color-bg-subtle)", border: "1px solid var(--color-border)" },
+      text: "Every 15 minutes"
+    });
+
+    var cronRunsList = window.FOSS.dom.el("div", {
+      className: "flex-col gap-1",
+      style: { width: "100%" }
+    });
+
+    cronCard.appendChild(cronTitle);
+    cronCard.appendChild(window.FOSS.components.field("Expression (minute hour dom month dow)", cronInput));
+    cronCard.appendChild(cronBtn);
+    cronCard.appendChild(cronDesc);
+    cronCard.appendChild(cronRunsList);
+
+    // Calendar .ICS Builder Card
+    var icsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
+    var icsTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "iCalendar (.ICS) Event Builder" });
+
+    var calTitleInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      value: "Team Architecture Review",
+      "aria-label": "Event Title"
+    });
+    var calStartInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm font-mono",
+      value: "20261102T160000Z",
+      placeholder: "YYYYMMDDTHHMMSSZ",
+      "aria-label": "Start Time UTC"
+    });
+
+    var icsBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "data-ics-build-btn",
+      "aria-label": "Generate .ICS File",
+      title: "Generate .ICS",
+      onClick: function () {
+        window.FOSS.api("data_ics_generate", {
+          title: calTitleInput.value,
+          start_time: calStartInput.value
+        }).then(function (res) {
+          icsOutput.setValue(res.ics || "");
+          statusBar.textContent = "Generated .ICS event data.";
+        });
+      }
+    }, [window.FOSS.icons.el("calendar", 14), window.FOSS.dom.el("span", { text: "Generate .ICS" })]);
+
+    var icsOutput = window.FOSS.components.codeEditor({
+      testid: "data-ics-output",
+      title: "Generated .ICS Event",
+      placeholder: "ICS payload will appear here...",
+      ariaLabel: "Generated ICS payload",
+      fillHeight: true
+    });
+
+    icsCard.appendChild(icsTitle);
+    icsCard.appendChild(window.FOSS.components.field("Title", calTitleInput));
+    icsCard.appendChild(window.FOSS.components.field("Start Time (ISO/UTC)", calStartInput));
+    icsCard.appendChild(icsBtn);
+    icsCard.appendChild(icsOutput.el);
+
+    stageCol.appendChild(cronCard);
+    stageCol.appendChild(icsCard);
+
+    var workbench = window.FOSS.dom.el("div", {
+      className: "data-workbench",
+      style: { width: "100%", height: "100%" }
+    }, [
+      sidebarCol,
+      window.FOSS.dom.el("div", { className: "split-divider", "data-decorative": "true" }),
+      stageCol
+    ]);
+
+    panel.appendChild(statusBar);
+    panel.appendChild(workbench);
+  }
+
+  // Router Registration
   window.FOSS.router.register({
     id: "data",
     title: "Data Studio",
     navName: "Data",
     category: "Data",
     icon: "code",
-    workbench: false,
+    workbench: true,
     tabs: [
-      { id: "structure", label: "Structure", render: renderStructureTab },
+      { id: "editor", label: "Format & Convert", aliases: ["main", "format"], render: renderEditorTab },
+      { id: "structure", label: "Tree & HDF5", render: renderStructureTab },
       { id: "tables", label: "Tables", render: renderTablesTab },
-      { id: "units", label: "Units", render: renderUnitsTab },
-      { id: "calendar", label: "Calendar", render: renderCalendarTab }
+      { id: "query", label: "JSONPath & Schema", render: renderQueryTab },
+      { id: "utilities", label: "Utilities", aliases: ["units", "calendar"], render: renderUtilitiesTab }
     ]
   });
 })();

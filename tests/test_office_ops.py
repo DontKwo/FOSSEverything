@@ -1,9 +1,11 @@
 """Unit tests for Universal Office document operations (DOCX, PPTX, XLSX)."""
 import os
-import zipfile
 import tempfile
 import unittest
-from app.features.office import ops as office_ops
+import zipfile
+
+from app.features.converter import office_ops as converter_office_ops
+from app.features.metadata import ops as metadata_ops
 
 
 class OfficeOpsTests(unittest.TestCase):
@@ -34,32 +36,32 @@ class OfficeOpsTests(unittest.TestCase):
 
     def test_extract_text_docx(self) -> None:
         docx_path = self._create_sample_docx("Sample Paragraph in DOCX")
-        extracted = office_ops.extract_text_docx(docx_path)
+        extracted = converter_office_ops.extract_text_docx(docx_path)
         self.assertIn("Sample Paragraph in DOCX", extracted)
 
     def test_get_office_metadata(self) -> None:
         docx_path = self._create_sample_docx("Testing Metadata")
-        meta = office_ops.get_office_metadata(docx_path)
+        meta = metadata_ops.get_office_metadata(docx_path)
         self.assertEqual(meta.get("Title"), "Test Title")
         self.assertEqual(meta.get("Author / Creator"), "Test Author")
 
     def test_strip_office_metadata(self) -> None:
         docx_path = self._create_sample_docx("Strip Test")
         out_path = os.path.join(self.td.name, "stripped.docx")
-        office_ops.strip_office_metadata(docx_path, out_path)
+        metadata_ops.strip_office_metadata(docx_path, out_path)
         self.assertTrue(os.path.exists(out_path))
-        meta_after = office_ops.get_office_metadata(out_path)
+        meta_after = metadata_ops.get_office_metadata(out_path)
         self.assertEqual(meta_after.get("Author / Creator", ""), "")
 
     def test_docx_to_markdown(self) -> None:
         docx_path = self._create_sample_docx("Heading text")
-        md = office_ops.docx_to_markdown(docx_path)
+        md = converter_office_ops.docx_to_markdown(docx_path)
         self.assertIn("Heading text", md)
 
     def test_docx_to_pdf(self) -> None:
         docx_path = self._create_sample_docx("PDF Conversion Test")
         pdf_out = os.path.join(self.td.name, "out.pdf")
-        office_ops.docx_to_pdf(docx_path, pdf_out)
+        converter_office_ops.docx_to_pdf(docx_path, pdf_out)
         self.assertTrue(os.path.exists(pdf_out))
         self.assertGreater(os.path.getsize(pdf_out), 0)
 

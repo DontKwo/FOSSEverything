@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 from app.core.file_formats import extension_for_format, normalized_format
@@ -53,8 +53,7 @@ ASPECT_RATIO_PRESETS = {
     "5:7 Portrait Print": (5, 7),
 }
 
-# These are intentionally local models. ``withoutbg`` is excluded because it
-# is a remote/API-backed provider rather than an offline FOSSEverything feature.
+# Local models for offline background removal.
 BACKGROUND_REMOVAL_MODELS = {
     "bria-rmbg": ("Default", "Official rembg model; reliable default for local cutouts."),
     "u2net": ("Balanced", "General-purpose default; good quality and speed."),
@@ -63,6 +62,300 @@ BACKGROUND_REMOVAL_MODELS = {
     "birefnet-general": ("Best quality", "High-quality general cutouts; slowest option."),
     "birefnet-portrait": ("Portrait", "Best for people and portrait photos."),
 }
+
+REMBG_MODEL_CATALOG: list[dict[str, Any]] = [
+    {
+        "id": "u2netp",
+        "label": "U2Net-P (Fastest / Lightweight)",
+        "filenames": ["u2netp.onnx"],
+        "size_mb": 4.6,
+        "expected_bytes": 4574861,
+    },
+    {
+        "id": "silueta",
+        "label": "Silueta (Compact General)",
+        "filenames": ["silueta.onnx"],
+        "size_mb": 44.2,
+        "expected_bytes": 44173029,
+    },
+    {
+        "id": "u2net",
+        "label": "U2Net (Standard General)",
+        "filenames": ["u2net.onnx"],
+        "size_mb": 176.0,
+        "expected_bytes": 175997641,
+    },
+    {
+        "id": "isnet-general-use",
+        "label": "IS-Net General (Sharp Edges - Default)",
+        "filenames": ["isnet-general-use.onnx"],
+        "size_mb": 178.6,
+        "expected_bytes": 178648008,
+    },
+    {
+        "id": "birefnet-general-lite",
+        "label": "BiRefNet General Lite (High Detail)",
+        "filenames": ["birefnet-general-lite.onnx"],
+        "size_mb": 224.0,
+        "expected_bytes": 224005088,
+    },
+    {
+        "id": "u2net_human_seg",
+        "label": "U2Net Human (Portraits & People)",
+        "filenames": ["u2net_human_seg.onnx"],
+        "size_mb": 176.0,
+        "expected_bytes": 175997641,
+    },
+    {
+        "id": "u2net_cloth_seg",
+        "label": "U2Net Cloth (Apparel & Fashion)",
+        "filenames": ["u2net_cloth_seg.onnx"],
+        "size_mb": 176.2,
+        "expected_bytes": 176194565,
+    },
+    {
+        "id": "isnet-anime",
+        "label": "IS-Net Anime (Illustrations & Line Art)",
+        "filenames": ["isnet-anime.onnx"],
+        "size_mb": 176.1,
+        "expected_bytes": 176069933,
+    },
+    {
+        "id": "sam",
+        "label": "Segment Anything ViT-B (Center Object)",
+        "filenames": ["sam_vit_b_01ec64.encoder.onnx", "sam_vit_b_01ec64.decoder.onnx"],
+        "size_mb": 375.7,
+        "expected_bytes": 375717880,
+    },
+    {
+        "id": "birefnet-general",
+        "label": "BiRefNet General (Studio Quality)",
+        "filenames": ["birefnet-general.onnx"],
+        "size_mb": 972.7,
+        "expected_bytes": 972666916,
+    },
+    {
+        "id": "birefnet-portrait",
+        "label": "BiRefNet Portrait (Fine Hair Matting)",
+        "filenames": ["birefnet-portrait.onnx"],
+        "size_mb": 972.7,
+        "expected_bytes": 972666916,
+    },
+    {
+        "id": "birefnet-dis",
+        "label": "BiRefNet DIS (Fine Foreground Objects)",
+        "filenames": ["birefnet-dis.onnx"],
+        "size_mb": 972.7,
+        "expected_bytes": 972666916,
+    },
+    {
+        "id": "birefnet-hrsod",
+        "label": "BiRefNet HRSOD (High-Res Salient)",
+        "filenames": ["birefnet-hrsod.onnx"],
+        "size_mb": 972.7,
+        "expected_bytes": 972666916,
+    },
+    {
+        "id": "birefnet-cod",
+        "label": "BiRefNet COD (Camouflaged Objects)",
+        "filenames": ["birefnet-cod.onnx"],
+        "size_mb": 972.7,
+        "expected_bytes": 972666916,
+    },
+    {
+        "id": "birefnet-massive",
+        "label": "BiRefNet Massive (Multi-Dataset)",
+        "filenames": ["birefnet-massive.onnx"],
+        "size_mb": 972.7,
+        "expected_bytes": 972666916,
+    },
+    {
+        "id": "bria-rmbg",
+        "label": "BRIA RMBG 2.0 (Ultra Studio 1 GB)",
+        "filenames": ["bria-rmbg.onnx"],
+        "size_mb": 1024.3,
+        "expected_bytes": 1024331469,
+    },
+]
+
+_SESSION_CACHE: dict[str, Any] = {}
+
+
+def get_rembg_models_dir() -> str:
+    # Resolve unified directory for rembg models in user home.
+    if os.environ.get("FOSS_SETTINGS_DIR"):
+        unified_dir = os.path.join(os.environ["FOSS_SETTINGS_DIR"], "models", "rembg")
+    else:
+        unified_dir = os.path.expanduser("~/.u2net")
+    os.makedirs(unified_dir, exist_ok=True)
+    os.environ["REMBG_HOME"] = unified_dir
+    os.environ["U2NET_HOME"] = unified_dir
+    return unified_dir
+
+
+def image_get_rembg_models() -> list[dict[str, Any]]:
+    # Return model catalog info with local cache status for rembg models.
+    models_info = [
+        {
+            "name": "u2net",
+            "download_size": "~176 MB",
+            "description": "Standard General",
+            "filename": "u2net.onnx",
+        },
+        {
+            "name": "u2netp",
+            "download_size": "~4 MB",
+            "description": "Lightweight Mobile",
+            "filename": "u2netp.onnx",
+        },
+        {
+            "name": "u2net_human_seg",
+            "download_size": "~176 MB",
+            "description": "Human Portrait Segmentation",
+            "filename": "u2net_human_seg.onnx",
+        },
+        {
+            "name": "isnet-general-use",
+            "download_size": "~174 MB",
+            "description": "High Precision Object Cutout",
+            "filename": "isnet-general-use.onnx",
+        },
+    ]
+    unified_dir = get_rembg_models_dir()
+    catalog_list: list[dict[str, Any]] = []
+    for item in models_info:
+        model_name = str(item["name"])
+        fn = str(item["filename"])
+        candidates = [
+            os.path.join(unified_dir, fn),
+            os.path.join(unified_dir, model_name, fn),
+            os.path.join(unified_dir, "models", model_name, fn),
+            os.path.join(os.path.expanduser("~/.u2net"), fn),
+        ]
+        is_cached = any(os.path.isfile(cand) and os.path.getsize(cand) > 0 for cand in candidates)
+        catalog_list.append({
+            "name": model_name,
+            "id": model_name,
+            "download_size": item["download_size"],
+            "size": item["download_size"],
+            "cached": is_cached,
+            "downloaded": is_cached,
+            "local_cache": is_cached,
+            "description": item["description"],
+            "label": f"{model_name} ({item['description']}, {item['download_size']})",
+        })
+    return catalog_list
+
+
+def migrate_existing_rembg_models() -> int:
+    # Migrate previous models from user home directory into unified settings directory.
+    unified_dir = get_rembg_models_dir()
+    migrated_count = 0
+    home = os.path.expanduser("~")
+    external_sources = [
+        os.path.join(home, ".rembg", "models"),
+        os.path.join(home, ".rembg"),
+        os.path.join(home, ".u2net"),
+    ]
+    for src_root in external_sources:
+        if not os.path.isdir(src_root):
+            continue
+        for root, _, files in os.walk(src_root):
+            for fname in files:
+                if fname.endswith(".onnx"):
+                    src_path = os.path.join(root, fname)
+                    for item in REMBG_MODEL_CATALOG:
+                        if fname in item["filenames"]:
+                            target_dir = os.path.join(unified_dir, "models", str(item["id"]))
+                            os.makedirs(target_dir, exist_ok=True)
+                            target_file = os.path.join(target_dir, fname)
+                            if not os.path.exists(target_file):
+                                try:
+                                    shutil.copy2(src_path, target_file)
+                                    migrated_count += 1
+                                except Exception:  # noqa: 10
+                                    pass
+                            break
+    return migrated_count
+
+
+def list_rembg_models_status() -> dict[str, Any]:
+    # Scan unified models directory and report download status of all catalog models.
+    unified_dir = get_rembg_models_dir()
+    total_bytes = 0
+    models_status = []
+    for item in REMBG_MODEL_CATALOG:
+        m_id = str(item["id"])
+        filenames = list(item["filenames"])
+        found_paths: list[str] = []
+        m_bytes = 0
+        for fn in filenames:
+            candidates = [
+                os.path.join(unified_dir, "models", m_id, fn),
+                os.path.join(unified_dir, m_id, fn),
+                os.path.join(unified_dir, fn),
+            ]
+            for c in candidates:
+                if os.path.isfile(c) and os.path.getsize(c) > 0:
+                    found_paths.append(c)
+                    m_bytes += os.path.getsize(c)
+                    break
+        is_downloaded = (len(found_paths) == len(filenames))
+        if is_downloaded:
+            total_bytes += m_bytes
+        models_status.append({
+            "id": m_id,
+            "label": item["label"],
+            "size_mb": item["size_mb"],
+            "expected_bytes": item["expected_bytes"],
+            "downloaded": is_downloaded,
+            "disk_bytes": m_bytes,
+            "paths": found_paths,
+        })
+    return {
+        "models_dir": unified_dir,
+        "total_downloaded_bytes": total_bytes,
+        "models": models_status,
+    }
+
+
+def download_rembg_model(model_name: str) -> dict[str, Any]:
+    # Download a model to unified storage via rembg session factory.
+    get_rembg_models_dir()
+    norm_name = _normalize_model_name(model_name)
+    from rembg import new_session  # noqa: 13
+    session = new_session(norm_name)
+    _SESSION_CACHE[norm_name] = session
+    return list_rembg_models_status()
+
+
+def delete_rembg_model(model_name: str) -> dict[str, Any]:
+    # Delete local model files from unified directory and evict session from cache.
+    unified_dir = get_rembg_models_dir()
+    norm_name = _normalize_model_name(model_name)
+    if norm_name in _SESSION_CACHE:
+        del _SESSION_CACHE[norm_name]
+    for item in REMBG_MODEL_CATALOG:
+        if item["id"] == norm_name:
+            for fn in item["filenames"]:
+                for p in [
+                    os.path.join(unified_dir, "models", norm_name, fn),
+                    os.path.join(unified_dir, norm_name, fn),
+                    os.path.join(unified_dir, fn),
+                ]:
+                    if os.path.isfile(p):
+                        try:
+                            os.remove(p)
+                        except OSError:  # noqa: 10
+                            pass
+            sub_dir = os.path.join(unified_dir, "models", norm_name)
+            if os.path.isdir(sub_dir) and not os.listdir(sub_dir):
+                try:
+                    os.rmdir(sub_dir)
+                except OSError:  # noqa: 10
+                    pass
+            break
+    return list_rembg_models_status()
 
 
 def _normalize_model_name(model_name: Optional[str]) -> str:
@@ -73,7 +366,7 @@ def _normalize_model_name(model_name: Optional[str]) -> str:
         "bria_rmbg": "bria-rmbg",
         "bria-rmbg": "bria-rmbg",
         "default": "bria-rmbg",
-        "balanced": "bria-rmbg",
+        "balanced": "u2net",
         "fast": "u2netp",
         "detailed": "isnet-general-use",
         "best quality": "birefnet-general",
@@ -83,41 +376,18 @@ def _normalize_model_name(model_name: Optional[str]) -> str:
 
 
 def remove_background(img: Image.Image, model_name: str = "bria-rmbg") -> Image.Image:
-    """Return an RGBA copy of *img* with its background made transparent.
-
-    ``rembg`` runs inference on-device. Its model is downloaded once by the
-    library on first use and reused locally after that; FOSSEverything never uploads
-    the image. The inference engine is a required FOSSEverything dependency.
-    """
-    from rembg import new_session, remove  # noqa: 13 (deferred: multi-second import, only needed for this feature)
-
-    model_name = _normalize_model_name(model_name)
-    fallback_candidates = [model_name]
-    if model_name not in BACKGROUND_REMOVAL_MODELS:
-        fallback_candidates = ["bria-rmbg", "u2net", "u2netp", "isnet-general-use"]
-    else:
-        fallback_candidates.extend(["bria-rmbg", "u2net", "u2netp", "isnet-general-use"])
-
-    last_error = None
-    for candidate in fallback_candidates:
-        candidate = _normalize_model_name(candidate)
-        if candidate not in BACKGROUND_REMOVAL_MODELS:
-            continue
+    # Return RGBA cutout using specified local model without multi-gigabyte fallbacks.
+    from rembg import new_session, remove  # noqa: 13
+    get_rembg_models_dir()
+    norm_name = _normalize_model_name(model_name)
+    session = _SESSION_CACHE.get(norm_name)
+    if session is None:
         try:
-            session = None
-            try:
-                session = new_session(candidate, providers=["CPUExecutionProvider"])
-            except TypeError:
-                session = new_session(candidate)
-            except Exception as exc:
-                last_error = exc
-                session = new_session(candidate)
-            return remove(img.convert("RGBA"), session=session)
-        except Exception as exc:
-            last_error = exc
-            continue
-
-    raise RuntimeError(f"Background removal failed for all local models. Last error: {last_error}")
+            session = new_session(norm_name, providers=["CPUExecutionProvider"])
+        except (TypeError, Exception):
+            session = new_session(norm_name)
+        _SESSION_CACHE[norm_name] = session
+    return remove(img.convert("RGBA"), session=session)
 
 
 def prefetch_background_removal_models(model_names: List[str], progress_cb: Optional[Callable[[int, int, str], None]] = None) -> List[str]:
@@ -303,12 +573,8 @@ def perspective_crop_image(img: Image.Image, corners: Union[List[Tuple[int, int]
     else:
         width, height = output_size
 
-    pts_dst = np.array([
-        [0, 0],
-        [width - 1, 0],
-        [width - 1, height - 1],
-        [0, height - 1],
-    ], dtype=np.float32)
+    dst_coords = [[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]]
+    pts_dst = np.array(dst_coords, dtype=np.float32)
 
     matrix = cv2.getPerspectiveTransform(pts_src, pts_dst)
     rgba = np.array(img.convert("RGBA"), dtype=np.uint8)
@@ -551,11 +817,18 @@ def pixelate_region(img: Image.Image, box: Tuple[int, int, int, int], pixel_size
     return result
 
 
-def replace_background_color(img: Image.Image, color: Tuple[int, int, int, int] = (255, 255, 255, 255), blur_backdrop: bool = False, blur_radius: int = 25) -> Image.Image:
-    """Composite a transparent cutout onto a solid color or blurred backdrop."""
+def replace_background_color(
+    img: Image.Image,
+    color: Tuple[int, int, int, int] = (255, 255, 255, 255),
+    blur_backdrop: bool = False,
+    blur_radius: int = 25,
+    original_img: Optional[Image.Image] = None,
+) -> Image.Image:
+    # Composite a transparent cutout onto a solid color or blurred backdrop.
     cutout = img.convert("RGBA")
     if blur_backdrop:
-        bg = cutout.convert("RGB").filter(ImageFilter.GaussianBlur(radius=blur_radius)).convert("RGBA")
+        base = original_img if original_img is not None else cutout
+        bg = base.convert("RGB").filter(ImageFilter.GaussianBlur(radius=blur_radius)).convert("RGBA")
     else:
         bg = Image.new("RGBA", cutout.size, color)
     bg.paste(cutout, (0, 0), cutout)
@@ -593,19 +866,18 @@ def batch_process(paths: List[str], output_dir: str, target_format: Optional[str
     return outputs
 
 
-# ─── ASCII Art ────────────────────────────────────────────────────────────────
 ASCII_CHARSET = "@%#*+=-:. "
 
 ASCII_CHARSET_PRESETS: Dict[str, str] = {
     "Standard": "@%#*+=-:. ",
     "Detailed": "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\\|()1{}[]?-_+~<>i!lI;:,\"^`'. ",
-    "Blocks": "█▓▒░ ",
+    "Blocks": "\u2588\u2593\u2592\u2591 ",
     "Minimal": "#. ",
 }
 
 
 def image_to_ascii(img: Image.Image, width: int = 100, charset: str = ASCII_CHARSET, contrast: float = 100.0) -> str:
-    """Render an image as ASCII art text using a brightness-ramp character set."""
+    # Render an image as ASCII art text using a brightness-ramp character set.
     import numpy as np  # noqa: 13 (deferred: keeps numpy out of every image tab's cold-start import)
     aspect_correction = 0.55
     src_w, src_h = img.size
@@ -619,16 +891,15 @@ def image_to_ascii(img: Image.Image, width: int = 100, charset: str = ASCII_CHAR
 
 
 def save_ascii_art(img: Image.Image, output_path: str, width: int = 100, charset: str = ASCII_CHARSET, contrast: float = 100.0) -> str:
-    """Write ASCII art rendered from an image to a local text file."""
+    # Write ASCII art rendered from an image to a local text file.
     text = image_to_ascii(img, width=width, charset=charset, contrast=contrast)
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(text)
     return output_path
 
 
-# ─── Animated GIF Frames ──────────────────────────────────────────────────────
 def extract_gif_frames(path: Union[str, Path]) -> List[Image.Image]:
-    """Return every frame of an animated GIF as separate RGBA images."""
+    # Return every frame of an animated GIF as separate RGBA images.
     img = Image.open(path)
     frames = []
     try:

@@ -9,8 +9,14 @@ window.FOSS.components = window.FOSS.components || {};
     var title = opts.title || "Choose file";
     var fileTypes = opts.fileTypes || [];
     var currentPath = opts.path || "";
-    var onSelect = opts.onSelect || function () {};
+    var onSelect = opts.onSelect || opts.onChange || opts.onFileSelect || function () {};
     var onClear = opts.onClear || function () {};
+
+    function notify(p) {
+      if (typeof opts.onSelect === "function") opts.onSelect(p);
+      if (typeof opts.onChange === "function") opts.onChange(p);
+      if (typeof opts.onFileSelect === "function") opts.onFileSelect(p);
+    }
 
     var nameEl = window.FOSS.dom.el("div", {
       className: "picker-name",
@@ -35,7 +41,7 @@ window.FOSS.components = window.FOSS.components || {};
         window.FOSS.api("select_file", { title: title, file_types: fileTypes }).then(function (res) {
           if (res && res.paths && res.paths.length > 0) {
             setPath(res.paths[0]);
-            onSelect(res.paths[0]);
+            notify(res.paths[0]);
           }
         });
       }
@@ -76,6 +82,7 @@ window.FOSS.components = window.FOSS.components || {};
 
     wrap.addEventListener("dragover", function (e) {
       e.preventDefault();
+      e.stopPropagation();
       wrap.classList.add("dragover");
     });
     wrap.addEventListener("dragleave", function () {
@@ -83,12 +90,13 @@ window.FOSS.components = window.FOSS.components || {};
     });
     wrap.addEventListener("drop", function (e) {
       e.preventDefault();
+      e.stopPropagation();
       wrap.classList.remove("dragover");
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         var f = e.dataTransfer.files[0];
         var p = f.path || f.name;
         setPath(p);
-        onSelect(p);
+        notify(p);
       }
     });
 

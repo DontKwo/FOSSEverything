@@ -3,6 +3,7 @@ import io
 import json
 import random
 import secrets
+from pathlib import Path
 from typing import Any
 
 from app.features.data.ops import (
@@ -56,7 +57,21 @@ class DataApiMixin:
             str(params["source_format"]),
             str(params["target_format"]),
         )
+        if "output_path" in params and params["output_path"]:
+            out_p = Path(str(params["output_path"]))
+            out_p.parent.mkdir(parents=True, exist_ok=True)
+            out_p.write_text(res, encoding="utf-8")
         return ok(result=res)
+
+    @api_method
+    def data_save_file(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Save string content directly to target file path.
+        require(params, "output_path")
+        content = str(params.get("content", ""))
+        out_p = Path(str(params["output_path"]))
+        out_p.parent.mkdir(parents=True, exist_ok=True)
+        out_p.write_text(content, encoding="utf-8")
+        return ok(output_path=str(out_p))
 
     @api_method
     def convert_data_format(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -76,7 +91,7 @@ class DataApiMixin:
         elif lang in ("js", "javascript"):
             res = format_javascript(content)
         elif lang == "css":
-            res = format_css(content, indent=indent)
+            res = format_css(content)
         elif lang == "sql":
             res = format_sql(content)
         elif lang == "xml":
@@ -207,9 +222,15 @@ class DataApiMixin:
     def data_infer_schema(self, params: dict[str, Any]) -> dict[str, Any]:
         # Infer JSON schema definition from JSON instance data.
         require(params, "content")
-        schema = infer_json_schema(
-            str(params["content"]), title=str(params.get("title", "Root"))
-        )
+        raw_content = params["content"]
+        if isinstance(raw_content, str):
+            try:
+                data_val = json.loads(raw_content)
+            except Exception:
+                data_val = raw_content
+        else:
+            data_val = raw_content
+        schema = infer_json_schema(data_val, title=str(params.get("title", "Root")))
         return ok(schema=schema)
 
     @api_method
@@ -236,19 +257,20 @@ class DataApiMixin:
         desc = describe_cron(expr)
         count = int(params.get("count", 5))
         runs = next_cron_runs(expr, count=count)
-        return ok(description=desc, upcoming_runs=runs)
+        return ok(description=desc, upcoming_runs=[dt.isoformat() for dt in runs])
 
     @api_method
     def data_ics_generate(self, params: dict[str, Any]) -> dict[str, Any]:
         # Generate iCalendar (ICS) event data string.
         require(params, "title", "start_time")
-        ics_text = generate_ics(
-            str(params["title"]),
-            str(params["start_time"]),
-            end_time=params.get("end_time"),
-            description=str(params.get("description", "")),
-            location=str(params.get("location", "")),
-        )
+        event = {
+            "title": str(params["title"]),
+            "start": str(params["start_time"]),
+            "end": params.get("end_time"),
+            "description": str(params.get("description", "")),
+            "location": str(params.get("location", "")),
+        }
+        ics_text = generate_ics([event])
         return ok(ics=ics_text)
 
     @api_method

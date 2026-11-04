@@ -1,4 +1,5 @@
 import base64
+import os
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,7 @@ from app.features.pdf.ops import (
     PAGE_IMAGE_FORMATS,
     add_page_numbers,
     add_pdf_watermark,
+    assemble_pdf_workspace,
     bake_annotations,
     batch_add_image_watermark,
     batch_add_pdf_watermark,
@@ -23,13 +25,16 @@ from app.features.pdf.ops import (
     break_pdf_into_pages,
     compress_pdf,
     convert_scanned_pdf_to_docx,
+    export_pdf_groups,
     export_pdf_pages,
     merge_pdfs,
     open_pdf,
     page_count,
+    parse_split_ranges,
     pdf_needs_ocr,
     protect_pdf,
     render_page,
+    render_pdf_thumbnails,
     reorganize_pdf_pages,
     save_annotated_pdf,
     save_pdf_text,
@@ -176,14 +181,86 @@ class PdfApiMixin:
         return ok(output_path=out_p)
 
     @api_method
+    def pdf_merge_pages(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Merge individual pages from different source documents into a single PDF.
+        require(params, "pages", "output_path")
+        pages_spec = list(params["pages"])
+        out_p = str(params["output_path"])
+        os.makedirs(os.path.dirname(os.path.abspath(out_p)), exist_ok=True)
+        out_doc = pymupdf.open()
+        opened_docs: dict[str, pymupdf.Document] = {}
+        try:
+            for item in pages_spec:
+                src_path = str(item.get("source_path") or item.get("path") or "")
+                if not src_path and "source_id" in item and "sources" in params:
+                    src_path = str(params["sources"].get(item["source_id"], ""))
+                if not src_path or not os.path.exists(src_path):
+                    continue
+                if src_path not in opened_docs:
+                    opened_docs[src_path] = pymupdf.open(src_path)
+                src_doc = opened_docs[src_path]
+                pg_num = int(item.get("page_number") or item.get("page") or 1)
+                if pg_num < 1 or pg_num > len(src_doc):
+                    continue
+                rot = int(item.get("rotation", 0))
+                out_doc.insert_pdf(src_doc, from_page=pg_num - 1, to_page=pg_num - 1)
+                if rot % 360 != 0:
+                    current_rot = out_doc[-1].rotation
+                    out_doc[-1].set_rotation((current_rot + rot) % 360)
+
+            temp_target = out_p
+            matches_source = any(os.path.abspath(out_p) == os.path.abspath(p) for p in opened_docs.keys())
+            if matches_source:
+                temp_target = out_p + ".tmp.pdf"
+            out_doc.save(temp_target, garbage=4, deflate=True)
+            out_doc.close()
+            for s_doc in opened_docs.values():
+                s_doc.close()
+            opened_docs.clear()
+            if matches_source:
+                os.replace(temp_target, out_p)
+
+            page_numbers = params.get("page_numbers")
+            if page_numbers and page_numbers.get("enabled"):
+                fmt_str = str(page_numbers.get("format", "Page {n} of {total}"))
+                pos_str = str(page_numbers.get("position", "bottom_center"))
+                s_num = int(page_numbers.get("start_num", 1))
+                add_page_numbers(
+                    out_p,
+                    out_p,
+                    format_str=fmt_str,
+                    position=pos_str,
+                    start_num=s_num,
+                )
+            return ok(output_path=out_p)
+        finally:
+            for s_doc in opened_docs.values():
+                try:
+                    s_doc.close()
+                except Exception:
+                    continue
+            if not out_doc.is_closed:
+                out_doc.close()
+
+    @api_method
     def pdf_split(self, params: dict[str, Any]) -> dict[str, Any]:
         # Split PDF by page ranges or individual pages.
         require(params, "file_path", "output_dir")
         file_path = str(params["file_path"])
         out_dir = str(params["output_dir"])
+        doc = open_pdf(file_path)
+        total_pages = doc.page_count
+        doc.close()
+
+        every_n = params.get("every_n")
         ranges = params.get("ranges")
-        if ranges:
-            files = split_pdf(file_path, str(ranges), out_dir)
+        if every_n is not None and int(every_n) > 0:
+            step = int(every_n)
+            parsed_ranges = [(start, min(total_pages, start + step - 1)) for start in range(1, total_pages + 1, step)]
+            files = split_pdf(file_path, parsed_ranges, out_dir)
+        elif ranges:
+            parsed_ranges = parse_split_ranges(str(ranges), total_pages)
+            files = split_pdf(file_path, parsed_ranges, out_dir)
         else:
             files = break_pdf_into_pages(file_path, out_dir)
         return ok(files=files, output_dir=out_dir)
@@ -191,12 +268,27 @@ class PdfApiMixin:
     @api_method
     def pdf_compress(self, params: dict[str, Any]) -> dict[str, Any]:
         # Compress PDF document to reduce file size.
-        require(params, "file_path", "output_path")
-        file_path = str(params["file_path"])
-        out_p = str(params["output_path"])
-        lvl = str(params.get("level", "medium"))
-        res_p = compress_pdf(file_path, out_p, level=lvl)
-        return ok(output_path=res_p)
+        file_path = str(params.get("file_path") or params.get("input_path") or "")
+        if not file_path:
+            raise ValueError("Parameter file_path or input_path is required")
+        out_p = str(params.get("output_path") or Path(file_path).with_stem(Path(file_path).stem + "_compressed"))
+        lvl = str(params.get("preset", params.get("level", params.get("quality", "ebook")))).lower()
+        if lvl in ("screen", "low", "maximum", "small_file"):
+            dpi = 72
+            quality = "screen"
+        elif lvl in ("printer", "high", "light", "high_quality"):
+            dpi = 200
+            quality = "printer"
+        elif lvl in ("prepress", "lossless"):
+            dpi = 300
+            quality = "prepress"
+        else:
+            dpi = 120
+            quality = "ebook"
+        res_p = compress_pdf(file_path, out_p, dpi=dpi, quality=quality)
+        orig_bytes = os.path.getsize(file_path) if os.path.exists(file_path) else 0
+        comp_bytes = os.path.getsize(res_p) if os.path.exists(res_p) else 0
+        return ok(output_path=res_p, original_bytes=orig_bytes, compressed_bytes=comp_bytes)
 
     @api_method
     def pdf_extract_text(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -233,7 +325,9 @@ class PdfApiMixin:
         file_path = str(params["file_path"])
         out_p = str(params["output_path"])
         pw = str(params["password"])
-        res_p = protect_pdf(file_path, pw, out_p)
+        owner_pw = params.get("owner_password")
+        allow_print = bool(params.get("allow_printing", True))
+        res_p = protect_pdf(file_path, out_p, pw, owner_password=owner_pw or None, allow_printing=allow_print)
         return ok(output_path=res_p)
 
     @api_method
@@ -243,7 +337,7 @@ class PdfApiMixin:
         file_path = str(params["file_path"])
         out_p = str(params["output_path"])
         pw = str(params["password"])
-        res_p = unlock_pdf(file_path, pw, out_p)
+        res_p = unlock_pdf(file_path, out_p, password=pw)
         return ok(output_path=res_p)
 
     @api_method
@@ -347,3 +441,37 @@ class PdfApiMixin:
             txt = text_in_line_range(page, int(params.get("start_line", 0)), int(params.get("end_line", 100)))
         doc.close()
         return ok(text=txt)
+
+    @api_method
+    def pdf_thumbnails(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Render page thumbnails for visual PDF workspace.
+        require(params, "file_path")
+        file_path = str(params["file_path"])
+        pages = params.get("pages")
+        if pages is not None:
+            pages = [int(p) for p in pages]
+        max_dim = int(params.get("max_dim", 240))
+        thumbs = render_pdf_thumbnails(file_path, pages=pages, max_dim=max_dim)
+        return ok(thumbnails=thumbs)
+
+    @api_method
+    def pdf_assemble(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Assemble multi-source PDF workspace into output file.
+        require(params, "sources", "pages", "output_path")
+        sources = dict(params["sources"])
+        pages_spec = list(params["pages"])
+        out_p = str(params["output_path"])
+        page_numbers = params.get("page_numbers")
+        res_p = assemble_pdf_workspace(sources, pages_spec, out_p, page_numbers=page_numbers)
+        return ok(output_path=res_p)
+
+    @api_method
+    def pdf_export_groups(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Export named page groups into separate PDF files.
+        require(params, "sources", "groups", "output_dir")
+        sources = dict(params["sources"])
+        groups = list(params["groups"])
+        out_dir = str(params["output_dir"])
+        page_numbers = params.get("page_numbers")
+        exported = export_pdf_groups(sources, groups, out_dir, page_numbers=page_numbers)
+        return ok(files=exported, output_dir=out_dir)

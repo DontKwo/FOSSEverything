@@ -1,4 +1,4 @@
-// 3D Model Viewer & Slicer: inspect, slice with planes, scale, measure, repair, and export.
+// 3D Model Studio: Inspect, slice with cutting planes, rescale, measure, repair, and export.
 window.FOSS = window.FOSS || {};
 
 (function () {
@@ -13,6 +13,7 @@ window.FOSS = window.FOSS || {};
   ];
   var selectedPlaneIdx = 0;
   var cutPieces = [];
+  var selectedPieceIdx = -1;
   var wireframeMode = false;
   var showAxes = true;
   var showScales = true;
@@ -47,9 +48,10 @@ window.FOSS = window.FOSS || {};
 
   function buildMeshBuffers(vertices, faces) {
     if (!vertices || !faces) return null;
-    var faceLimit = Math.min(faces.length / 3, 25000);
+    var faceLimit = Math.min(faces.length / 3, 500000);
     var posArr = new Float32Array(faceLimit * 9);
     var normArr = new Float32Array(faceLimit * 9);
+    var wireframeArr = new Float32Array(faceLimit * 18);
 
     var minX = Infinity, maxX = -Infinity;
     var minY = Infinity, maxY = -Infinity;
@@ -93,6 +95,7 @@ window.FOSS = window.FOSS || {};
       var nLen = Math.hypot(nx, ny, nz) || 1.0;
       nx /= nLen; ny /= nLen; nz /= nLen;
 
+      // Solid triangle vertices
       posArr[outIdx] = x0; posArr[outIdx + 1] = y0; posArr[outIdx + 2] = z0;
       normArr[outIdx] = nx; normArr[outIdx + 1] = ny; normArr[outIdx + 2] = nz;
       outIdx += 3;
@@ -104,12 +107,25 @@ window.FOSS = window.FOSS || {};
       posArr[outIdx] = x2; posArr[outIdx + 1] = y2; posArr[outIdx + 2] = z2;
       normArr[outIdx] = nx; normArr[outIdx + 1] = ny; normArr[outIdx + 2] = nz;
       outIdx += 3;
+
+      // Wireframe triangle edges: (v0, v1), (v1, v2), (v2, v0)
+      var wBase = (f / 3) * 18;
+      wireframeArr[wBase + 0] = x0; wireframeArr[wBase + 1] = y0; wireframeArr[wBase + 2] = z0;
+      wireframeArr[wBase + 3] = x1; wireframeArr[wBase + 4] = y1; wireframeArr[wBase + 5] = z1;
+
+      wireframeArr[wBase + 6] = x1; wireframeArr[wBase + 7] = y1; wireframeArr[wBase + 8] = z1;
+      wireframeArr[wBase + 9] = x2; wireframeArr[wBase + 10] = y2; wireframeArr[wBase + 11] = z2;
+
+      wireframeArr[wBase + 12] = x2; wireframeArr[wBase + 13] = y2; wireframeArr[wBase + 14] = z2;
+      wireframeArr[wBase + 15] = x0; wireframeArr[wBase + 16] = y0; wireframeArr[wBase + 17] = z0;
     }
 
     return {
       positions: posArr,
       normals: normArr,
-      vertexCount: faceLimit * 3
+      wireframePositions: wireframeArr,
+      vertexCount: faceLimit * 3,
+      wireframeCount: faceLimit * 6
     };
   }
 
@@ -150,27 +166,31 @@ window.FOSS = window.FOSS || {};
     ]);
   }
 
-  function create3DViewport(options) {
-    options = options || {};
-    var showCut = !!options.showCut;
-    var showMeasure = !!options.showMeasure;
+  // Shared 3D Viewport Singleton
+  var sharedViewportInstance = null;
+
+  function getSharedViewport() {
+    if (sharedViewportInstance) return sharedViewportInstance;
 
     var container = window.FOSS.dom.el("div", {
-      className: "model3d-viewport-container flex-col",
-      style: "width: 100%; height: 100%; min-height: 480px; position: relative; padding: 0; overflow: hidden; background: var(--bg-surface-sunken); border-radius: var(--radius-md); border: 1px solid var(--border);"
+      className: "model3d-viewport-wrapper",
+      "data-testid": "model3d-viewport-container"
     });
 
     var canvas = window.FOSS.dom.el("canvas", {
-      width: 560,
-      height: 440,
+      width: 640,
+      height: 480,
       "data-testid": "model3d-canvas",
-      style: "width: 100%; height: 100%; min-height: 420px; display: block; cursor: grab;"
+      style: "width: 100%; height: 100%; display: block; cursor: grab;"
     });
 
     var tripodCanvas = window.FOSS.dom.el("canvas", {
-      width: 64,
-      height: 64,
-      style: "position: absolute; bottom: var(--space-7); left: var(--space-2); z-index: 10; pointer-events: none; width: 64px; height: 64px;"
+      width: 72,
+      height: 72,
+      "data-testid": "model3d-tripod",
+      "data-overlay": "true",
+      "data-decorative": "true",
+      style: "position: absolute; bottom: var(--space-3); right: var(--space-3); width: 4.5rem; height: 4.5rem; pointer-events: none; z-index: 10;"
     });
 
     var bboxBadge = window.FOSS.dom.el("div", {
@@ -189,8 +209,8 @@ window.FOSS = window.FOSS || {};
       type: "checkbox",
       checked: showAxes,
       "data-testid": "model3d-view-axes",
-      "aria-label": "Toggle coordinate directions",
-      title: "Toggle coordinate directions (X: red, Y: green, Z: blue)",
+      "aria-label": "Toggle Coordinate Directions",
+      title: "Toggle Coordinate Directions (X: Red, Y: Green, Z: Blue)",
       onChange: function () {
         showAxes = axesCheckbox.checked;
         render();
@@ -201,8 +221,8 @@ window.FOSS = window.FOSS || {};
       type: "checkbox",
       checked: showScales,
       "data-testid": "model3d-view-scales",
-      "aria-label": "Toggle coordinate scales",
-      title: "Toggle coordinate reference grid and scales",
+      "aria-label": "Toggle Coordinate Grid",
+      title: "Toggle Coordinate Reference Grid and Scales",
       onChange: function () {
         showScales = scalesCheckbox.checked;
         render();
@@ -213,34 +233,49 @@ window.FOSS = window.FOSS || {};
       type: "checkbox",
       checked: showBoundingBox,
       "data-testid": "model3d-view-bbox",
-      "aria-label": "Toggle bounding box",
-      title: "Toggle bounding box and LWH dimensions",
+      "aria-label": "Toggle Bounding Box",
+      title: "Toggle Bounding Box and Dimensions",
       onChange: function () {
         showBoundingBox = bboxCheckbox.checked;
         render();
       }
     });
 
+    var resetBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "data-testid": "model3d-reset-view-btn",
+      title: "Reset View",
+      type: "button",
+      onClick: function () {
+        camera.yaw = 0.785;
+        camera.pitch = 0.523;
+        camera.distance = modelBounds.span * 2.2;
+        camera.target = [0, 0, 0];
+        render();
+      }
+    }, [window.FOSS.dom.el("span", { text: "Reset" })]);
+
+    var wireframeBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "data-testid": "model3d-wireframe-btn",
+      title: "Toggle Wireframe",
+      type: "button",
+      onClick: function () {
+        wireframeMode = !wireframeMode;
+        render();
+      }
+    }, [window.FOSS.dom.el("span", { text: "Wireframe" })]);
+
     var toolbar = window.FOSS.dom.el("div", {
-      className: "model3d-viewport-toolbar btn-group"
+      className: "model3d-viewport-toolbar btn-group",
+      "data-overlay": "true",
+      "data-obscure-ok": "true"
     }, [
-      window.FOSS.dom.el("button", {
-        className: "btn btn-ghost btn-sm",
-        "data-testid": "model3d-view-reset",
-        title: "Reset view",
-        type: "button",
-        onClick: function () {
-          camera.yaw = 0.785;
-          camera.pitch = 0.523;
-          camera.distance = modelBounds.span * 2.2;
-          camera.target = [0, 0, 0];
-          render();
-        }
-      }, [window.FOSS.dom.el("span", { text: "Reset" })]),
+      resetBtn,
       window.FOSS.dom.el("button", {
         className: "btn btn-ghost btn-sm",
         "data-testid": "model3d-view-top",
-        title: "Top view",
+        title: "Top View",
         type: "button",
         onClick: function () {
           camera.yaw = 0;
@@ -251,7 +286,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("button", {
         className: "btn btn-ghost btn-sm",
         "data-testid": "model3d-view-front",
-        title: "Front view",
+        title: "Front View",
         type: "button",
         onClick: function () {
           camera.yaw = 0;
@@ -262,7 +297,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("button", {
         className: "btn btn-ghost btn-sm",
         "data-testid": "model3d-view-side",
-        title: "Side view",
+        title: "Side View",
         type: "button",
         onClick: function () {
           camera.yaw = 1.57;
@@ -270,16 +305,7 @@ window.FOSS = window.FOSS || {};
           render();
         }
       }, [window.FOSS.dom.el("span", { text: "Side" })]),
-      window.FOSS.dom.el("button", {
-        className: "btn btn-ghost btn-sm",
-        "data-testid": "model3d-view-wireframe",
-        title: "Toggle wireframe",
-        type: "button",
-        onClick: function () {
-          wireframeMode = !wireframeMode;
-          render();
-        }
-      }, [window.FOSS.dom.el("span", { text: "Wireframe" })]),
+      wireframeBtn,
       window.FOSS.dom.el("label", {
         className: "row items-center gap-xs text-xs",
         style: "cursor: pointer; margin-left: var(--space-2);"
@@ -292,25 +318,27 @@ window.FOSS = window.FOSS || {};
         style: "cursor: pointer; margin-left: var(--space-1);"
       }, [
         scalesCheckbox,
-        window.FOSS.dom.el("span", { text: "Scales" })
+        window.FOSS.dom.el("span", { text: "Grid" })
       ]),
       window.FOSS.dom.el("label", {
         className: "row items-center gap-xs text-xs",
         style: "cursor: pointer; margin-left: var(--space-1);"
       }, [
         bboxCheckbox,
-        window.FOSS.dom.el("span", { text: "Bounding Box" })
+        window.FOSS.dom.el("span", { text: "Bounds" })
       ])
     ]);
 
     var emptyHint = window.FOSS.dom.el("div", {
       className: "model3d-overlay-badge",
-      style: "bottom: var(--space-2); left: var(--space-2);",
-      text: "Left-drag: rotate | Right-drag: pan | Wheel: zoom"
+      "data-overlay": "true",
+      style: "bottom: var(--space-3); left: var(--space-3);",
+      text: "Left-Drag: Rotate | Right-Drag: Pan | Wheel: Zoom"
     });
 
     var overlayStack = window.FOSS.dom.el("div", {
-      className: "model3d-overlay-stack"
+      className: "model3d-overlay-stack",
+      "data-overlay": "true"
     }, [scaleBadge, bboxBadge]);
 
     container.appendChild(toolbar);
@@ -337,9 +365,8 @@ window.FOSS = window.FOSS || {};
           "varying vec3 vPos;",
           "void main() {",
           "  vNorm = aNorm;",
-          "  vec4 p = uView * vec4(aPos, 1.0);",
-          "  vPos = p.xyz;",
-          "  gl_Position = uProj * p;",
+          "  vPos = aPos;",
+          "  gl_Position = uProj * uView * vec4(aPos, 1.0);",
           "}"
         ].join("\n");
 
@@ -354,21 +381,24 @@ window.FOSS = window.FOSS || {};
           "  if (uUnlit == 1) {",
           "    gl_FragColor = uColor;",
           "  } else {",
-          "    float diff = max(abs(dot(normalize(vNorm), normalize(uLightDir))), 0.28);",
-          "    vec3 col = uColor.rgb * (0.32 + 0.68 * diff);",
+          "    vec3 norm = normalize(vNorm);",
+          "    vec3 light = normalize(uLightDir);",
+          "    float diff = max(dot(norm, light), 0.25);",
+          "    vec3 col = uColor.rgb * diff;",
           "    gl_FragColor = vec4(col, uColor.a);",
           "  }",
           "}"
         ].join("\n");
 
-        var vs = gl.createShader(gl.VERTEX_SHADER);
-        gl.shaderSource(vs, vsSource);
-        gl.compileShader(vs);
+        function compileShader(type, src) {
+          var s = gl.createShader(type);
+          gl.shaderSource(s, src);
+          gl.compileShader(s);
+          return s;
+        }
 
-        var fs = gl.createShader(gl.FRAGMENT_SHADER);
-        gl.shaderSource(fs, fsSource);
-        gl.compileShader(fs);
-
+        var vs = compileShader(gl.VERTEX_SHADER, vsSource);
+        var fs = compileShader(gl.FRAGMENT_SHADER, fsSource);
         shaderProg = gl.createProgram();
         gl.attachShader(shaderProg, vs);
         gl.attachShader(shaderProg, fs);
@@ -412,11 +442,11 @@ window.FOSS = window.FOSS || {};
       tripodCanvas.classList.remove("hidden");
       var tctx = tripodCanvas.getContext("2d");
       if (!tctx) return;
-      tctx.clearRect(0, 0, 64, 64);
+      tctx.clearRect(0, 0, 72, 72);
 
-      var cx = 32;
-      var cy = 32;
-      var len = 20;
+      var cx = 36;
+      var cy = 36;
+      var len = 24;
       var cosP = Math.cos(camera.pitch);
       var sinP = Math.sin(camera.pitch);
       var sinY = Math.sin(camera.yaw);
@@ -435,27 +465,28 @@ window.FOSS = window.FOSS || {};
         tctx.moveTo(cx, cy);
         tctx.lineTo(ex, ey);
         tctx.strokeStyle = ax.color;
-        tctx.lineWidth = 2;
+        tctx.lineWidth = 2.5;
         tctx.stroke();
 
         tctx.fillStyle = ax.color;
-        tctx.font = "bold 9px sans-serif";
-        var offsetX = ax.dir[0] >= 0 ? 3 : -8;
-        var offsetY = ax.dir[1] >= 0 ? 8 : -3;
+        tctx.font = "bold 10px sans-serif";
+        var offsetX = ax.dir[0] >= 0 ? 4 : -10;
+        var offsetY = ax.dir[1] >= 0 ? 10 : -4;
         tctx.fillText(ax.label, ex + offsetX, ey + offsetY);
       });
     }
 
     function render() {
       if (!canvas) return;
-      var w = canvas.clientWidth || 560;
-      var h = canvas.clientHeight || 440;
-      canvas.width = w;
-      canvas.height = h;
+      var w = canvas.clientWidth || 640;
+      var h = canvas.clientHeight || 480;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
 
       renderTripodGizmo();
 
-      // Bounding box overlay text
       if (showBoundingBox && modelBounds && modelBounds.min && modelBounds.max) {
         var dx = modelBounds.max[0] - modelBounds.min[0];
         var dy = modelBounds.max[1] - modelBounds.min[1];
@@ -466,7 +497,6 @@ window.FOSS = window.FOSS || {};
         bboxBadge.classList.add("hidden");
       }
 
-      // Scale indicator overlay text
       if (showScales && modelBounds) {
         var sp = modelBounds.span || 1.0;
         var st = sp / 10;
@@ -478,85 +508,78 @@ window.FOSS = window.FOSS || {};
 
       if (!gl) {
         var ctx2d = canvas.getContext("2d");
-        ctx2d.clearRect(0, 0, w, h);
-        ctx2d.fillStyle = "#1e222b";
-        ctx2d.fillRect(0, 0, w, h);
-        if (!modelMeshBuffer) {
-          ctx2d.fillStyle = "#888888";
+        if (ctx2d) {
+          ctx2d.clearRect(0, 0, w, h);
+          ctx2d.fillStyle = "#888";
           ctx2d.font = "14px sans-serif";
-          ctx2d.fillText("Open an STL, OBJ, PLY, STEP, or IGES model to begin.", 40, h / 2);
-          return;
+          ctx2d.textAlign = "center";
+          ctx2d.fillText("WebGL not available.", w / 2, h / 2);
         }
-        ctx2d.strokeStyle = "#bf5700";
-        ctx2d.lineWidth = 1;
-        ctx2d.strokeRect(w / 4, h / 4, w / 2, h / 2);
         return;
       }
 
       gl.viewport(0, 0, w, h);
-      gl.clearColor(0.12, 0.14, 0.18, 1.0);
       gl.enable(gl.DEPTH_TEST);
+      gl.clearColor(0.12, 0.14, 0.17, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-      var cosP = Math.cos(camera.pitch);
-      var sinP = Math.sin(camera.pitch);
-      var sinY = Math.sin(camera.yaw);
-      var cosY = Math.cos(camera.yaw);
-
-      var eye = [
-        camera.target[0] + camera.distance * cosP * sinY,
-        camera.target[1] + camera.distance * sinP,
-        camera.target[2] + camera.distance * cosP * cosY
-      ];
-      var projMat = mat4Perspective(0.785, w / h, 0.1, 1000.0);
-      var viewMat = mat4LookAt(eye, camera.target, [0, 1, 0]);
-
       gl.useProgram(shaderProg);
-      gl.uniformMatrix4fv(shaderProg.uProj, false, projMat);
-      gl.uniformMatrix4fv(shaderProg.uView, false, viewMat);
-      gl.uniform3f(shaderProg.uLightDir, 0.6, 0.8, 1.0);
 
-      // Render Coordinate Scales (Ground Grid)
+      var aspect = w / Math.max(1, h);
+      var proj = mat4Perspective(0.785, aspect, 0.05, 5000.0);
+
+      var eyeX = camera.target[0] + camera.distance * Math.sin(camera.yaw) * Math.cos(camera.pitch);
+      var eyeY = camera.target[1] + camera.distance * Math.sin(camera.pitch);
+      var eyeZ = camera.target[2] + camera.distance * Math.cos(camera.yaw) * Math.cos(camera.pitch);
+      var view = mat4LookAt([eyeX, eyeY, eyeZ], camera.target, [0, 1, 0]);
+
+      gl.uniformMatrix4fv(shaderProg.uProj, false, proj);
+      gl.uniformMatrix4fv(shaderProg.uView, false, view);
+      gl.uniform3f(shaderProg.uLightDir, 0.4, 0.8, 0.6);
+
+      // Render Reference Grid
       if (showScales) {
-        var gSpan = modelBounds.span || 1.0;
-        var gFloor = modelBounds.min ? (modelBounds.min[1] - modelBounds.center[1]) : -gSpan * 0.5;
-        var gHalf = gSpan * 0.75;
-        var gDivs = 10;
-        var gStep = (gHalf * 2) / gDivs;
         var gridPoints = [];
-
-        for (var gi = -gDivs / 2; gi <= gDivs / 2; gi++) {
-          var coord = gi * gStep;
+        var gHalf = Math.max((modelBounds.span || 1.0) * 1.5, 5.0);
+        var gStep = gHalf / 5;
+        var gFloor = modelBounds && modelBounds.min ? (modelBounds.min[1] - modelBounds.center[1]) : 0;
+        for (var coord = -gHalf; coord <= gHalf + 0.001; coord += gStep) {
           gridPoints.push(coord, gFloor, -gHalf, coord, gFloor, gHalf);
           gridPoints.push(-gHalf, gFloor, coord, gHalf, gFloor, coord);
         }
         drawLines(new Float32Array(gridPoints), [0.38, 0.44, 0.52, 0.4]);
       }
 
-      // Render 3D Model Mesh
+      // Render 3D Model Mesh or Wireframe
       if (modelMeshBuffer) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, modelMeshBuffer.positions, gl.DYNAMIC_DRAW);
-        gl.enableVertexAttribArray(shaderProg.aPos);
-        gl.vertexAttribPointer(shaderProg.aPos, 3, gl.FLOAT, false, 0, 0);
-
-        gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, modelMeshBuffer.normals, gl.DYNAMIC_DRAW);
-        gl.enableVertexAttribArray(shaderProg.aNorm);
-        gl.vertexAttribPointer(shaderProg.aNorm, 3, gl.FLOAT, false, 0, 0);
-
         if (wireframeMode) {
           gl.uniform1i(shaderProg.uUnlit, 1);
           gl.uniform4f(shaderProg.uColor, 0.9, 0.55, 0.2, 1.0);
-          gl.drawArrays(gl.LINES, 0, modelMeshBuffer.vertexCount);
+          gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, modelMeshBuffer.wireframePositions, gl.DYNAMIC_DRAW);
+          gl.enableVertexAttribArray(shaderProg.aPos);
+          gl.vertexAttribPointer(shaderProg.aPos, 3, gl.FLOAT, false, 0, 0);
+          gl.disableVertexAttribArray(shaderProg.aNorm);
+          gl.drawArrays(gl.LINES, 0, modelMeshBuffer.wireframeCount);
         } else {
           gl.uniform1i(shaderProg.uUnlit, 0);
           gl.uniform4f(shaderProg.uColor, 0.65, 0.68, 0.76, 1.0);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, modelMeshBuffer.positions, gl.DYNAMIC_DRAW);
+          gl.enableVertexAttribArray(shaderProg.aPos);
+          gl.vertexAttribPointer(shaderProg.aPos, 3, gl.FLOAT, false, 0, 0);
+
+          gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, modelMeshBuffer.normals, gl.DYNAMIC_DRAW);
+          gl.enableVertexAttribArray(shaderProg.aNorm);
+          gl.vertexAttribPointer(shaderProg.aNorm, 3, gl.FLOAT, false, 0, 0);
+
           gl.drawArrays(gl.TRIANGLES, 0, modelMeshBuffer.vertexCount);
         }
       }
 
-      // Render Coordinate Directions (3D Axes)
+      // Render 3D Coordinate Axes
       if (showAxes) {
         var axisLen = Math.max((modelBounds.span || 1.0) * 0.5, 1.0);
         var xAxis = new Float32Array([
@@ -581,7 +604,7 @@ window.FOSS = window.FOSS || {};
           0, -axisLen * 0.03, axisLen * 0.9, 0, 0, axisLen,
           0, 0, -axisLen * 0.35, 0, 0, 0
         ]);
-        drawLines(zAxis, [0.25, 0.55, 1.0, 1.0]);
+        drawLines(zAxis, [0.25, 0.55, 0.95, 1.0]);
       }
 
       // Render Bounding Box Wireframe
@@ -591,131 +614,79 @@ window.FOSS = window.FOSS || {};
         var mcx = modelBounds.center[0];
         var mcy = modelBounds.center[1];
         var mcz = modelBounds.center[2];
-        var bx0 = bMin[0] - mcx, bx1 = bMax[0] - mcx;
-        var by0 = bMin[1] - mcy, by1 = bMax[1] - mcy;
-        var bz0 = bMin[2] - mcz, bz1 = bMax[2] - mcz;
+        var x0 = bMin[0] - mcx, x1 = bMax[0] - mcx;
+        var y0 = bMin[1] - mcy, y1 = bMax[1] - mcy;
+        var z0 = bMin[2] - mcz, z1 = bMax[2] - mcz;
 
-        var bboxLines = new Float32Array([
-          bx0, by0, bz0, bx1, by0, bz0,
-          bx1, by0, bz0, bx1, by1, bz0,
-          bx1, by1, bz0, bx0, by1, bz0,
-          bx0, by1, bz0, bx0, by0, bz0,
-
-          bx0, by0, bz1, bx1, by0, bz1,
-          bx1, by0, bz1, bx1, by1, bz1,
-          bx1, by1, bz1, bx0, by1, bz1,
-          bx0, by1, bz1, bx0, by0, bz1,
-
-          bx0, by0, bz0, bx0, by0, bz1,
-          bx1, by0, bz0, bx1, by0, bz1,
-          bx1, by1, bz0, bx1, by1, bz1,
-          bx0, by1, bz0, bx0, by1, bz1
+        var bboxEdges = new Float32Array([
+          x0, y0, z0, x1, y0, z0,
+          x1, y0, z0, x1, y1, z0,
+          x1, y1, z0, x0, y1, z0,
+          x0, y1, z0, x0, y0, z0,
+          x0, y0, z1, x1, y0, z1,
+          x1, y0, z1, x1, y1, z1,
+          x1, y1, z1, x0, y1, z1,
+          x0, y1, z1, x0, y0, z1,
+          x0, y0, z0, x0, y0, z1,
+          x1, y0, z0, x1, y0, z1,
+          x1, y1, z0, x1, y1, z1,
+          x0, y1, z0, x0, y1, z1
         ]);
-        drawLines(bboxLines, [0.95, 0.65, 0.15, 0.9]);
+        drawLines(bboxEdges, [0.65, 0.45, 0.85, 0.9]);
       }
 
-      // Render ALL Cutting Planes (Never deletes or hides previous planes)
-      if (showCut && cuttingPlanes.length > 0) {
-        gl.enable(gl.BLEND);
-        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      // Render Cutting Planes
+      cuttingPlanes.forEach(function (plane, pIdx) {
+        var norm = plane.normal;
+        var orig = plane.origin;
+        var mcx = modelBounds.center[0];
+        var mcy = modelBounds.center[1];
+        var mcz = modelBounds.center[2];
+        var ox = orig[0] - mcx;
+        var oy = orig[1] - mcy;
+        var oz = orig[2] - mcz;
 
-        for (var pi = 0; pi < cuttingPlanes.length; pi++) {
-          var plane = cuttingPlanes[pi];
-          var isSelected = (pi === selectedPlaneIdx);
+        var pSpan = Math.max((modelBounds.span || 1.0) * 0.8, 1.0);
+        var uVec = [0, 1, 0];
+        if (Math.abs(norm[1]) > 0.9) uVec = [1, 0, 0];
+        var vVec = [
+          norm[1] * uVec[2] - norm[2] * uVec[1],
+          norm[2] * uVec[0] - norm[0] * uVec[2],
+          norm[0] * uVec[1] - norm[1] * uVec[0]
+        ];
+        var vLen = Math.hypot(vVec[0], vVec[1], vVec[2]) || 1.0;
+        vVec[0] /= vLen; vVec[1] /= vLen; vVec[2] /= vLen;
 
-          var ox = plane.origin[0] - modelBounds.center[0];
-          var oy = plane.origin[1] - modelBounds.center[1];
-          var oz = plane.origin[2] - modelBounds.center[2];
+        var uFinal = [
+          vVec[1] * norm[2] - vVec[2] * norm[1],
+          vVec[2] * norm[0] - vVec[0] * norm[2],
+          vVec[0] * norm[1] - vVec[1] * norm[0]
+        ];
 
-          var nx = plane.normal[0], ny = plane.normal[1], nz = plane.normal[2];
-          var nlen = Math.hypot(nx, ny, nz) || 1.0;
-          nx /= nlen; ny /= nlen; nz /= nlen;
+        var c0 = [ox - uFinal[0] * pSpan - vVec[0] * pSpan, oy - uFinal[1] * pSpan - vVec[1] * pSpan, oz - uFinal[2] * pSpan - vVec[2] * pSpan];
+        var c1 = [ox + uFinal[0] * pSpan - vVec[0] * pSpan, oy + uFinal[1] * pSpan - vVec[1] * pSpan, oz + uFinal[2] * pSpan - vVec[2] * pSpan];
+        var c2 = [ox + uFinal[0] * pSpan + vVec[0] * pSpan, oy + uFinal[1] * pSpan + vVec[1] * pSpan, oz + uFinal[2] * pSpan + vVec[2] * pSpan];
+        var c3 = [ox - uFinal[0] * pSpan + vVec[0] * pSpan, oy - uFinal[1] * pSpan + vVec[1] * pSpan, oz - uFinal[2] * pSpan + vVec[2] * pSpan];
 
-          var hx = Math.abs(nz) < 0.9 ? 0.0 : 1.0;
-          var hy = 0.0;
-          var hz = Math.abs(nz) < 0.9 ? 1.0 : 0.0;
-
-          var ux = hy * nz - hz * ny, uy = hz * nx - hx * nz, uz = hx * ny - hy * nx;
-          var ulen = Math.hypot(ux, uy, uz) || 1.0;
-          ux /= ulen; uy /= ulen; uz /= ulen;
-
-          var vx = ny * uz - nz * uy, vy = nz * ux - nx * uz, vz = nx * uy - ny * ux;
-
-          var r = (modelBounds.span || 1.0) * 1.35;
-          var p0 = [ox - r * ux - r * vx, oy - r * uy - r * vy, oz - r * uz - r * vz];
-          var p1 = [ox + r * ux - r * vx, oy + r * uy - r * vy, oz + r * uz - r * vz];
-          var p2 = [ox + r * ux + r * vx, oy + r * uy + r * vy, oz + r * uz + r * vz];
-          var p3 = [ox - r * ux + r * vx, oy - r * uy + r * vy, oz - r * uz + r * vz];
-
-          var planeVerts = new Float32Array([
-            p0[0], p0[1], p0[2],
-            p1[0], p1[1], p1[2],
-            p2[0], p2[1], p2[2],
-            p0[0], p0[1], p0[2],
-            p2[0], p2[1], p2[2],
-            p3[0], p3[1], p3[2]
-          ]);
-
-          var planeNorms = new Float32Array([
-            nx, ny, nz, nx, ny, nz, nx, ny, nz,
-            nx, ny, nz, nx, ny, nz, nx, ny, nz
-          ]);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-          gl.bufferData(gl.ARRAY_BUFFER, planeVerts, gl.DYNAMIC_DRAW);
-          gl.enableVertexAttribArray(shaderProg.aPos);
-          gl.vertexAttribPointer(shaderProg.aPos, 3, gl.FLOAT, false, 0, 0);
-
-          gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
-          gl.bufferData(gl.ARRAY_BUFFER, planeNorms, gl.DYNAMIC_DRAW);
-          gl.enableVertexAttribArray(shaderProg.aNorm);
-          gl.vertexAttribPointer(shaderProg.aNorm, 3, gl.FLOAT, false, 0, 0);
-
-          gl.uniform1i(shaderProg.uUnlit, 0);
-          if (isSelected) {
-            gl.uniform4f(shaderProg.uColor, 0.75, 0.34, 0.0, 0.55);
-          } else {
-            gl.uniform4f(shaderProg.uColor, 0.15, 0.55, 0.75, 0.38);
-          }
-          gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-          var borderVerts = new Float32Array([
-            p0[0], p0[1], p0[2], p1[0], p1[1], p1[2],
-            p1[0], p1[1], p1[2], p2[0], p2[1], p2[2],
-            p2[0], p2[1], p2[2], p3[0], p3[1], p3[2],
-            p3[0], p3[1], p3[2], p0[0], p0[1], p0[2],
-            ox, oy, oz, ox + nx * r * 0.45, oy + ny * r * 0.45, oz + nz * r * 0.45
-          ]);
-          if (isSelected) {
-            drawLines(borderVerts, [1.0, 0.5, 0.05, 1.0]);
-          } else {
-            drawLines(borderVerts, [0.25, 0.75, 0.95, 0.85]);
-          }
-        }
-
-        gl.disable(gl.BLEND);
-      }
-
-      // Render Measure Points
-      if (showMeasure && measurePoints.a && measurePoints.b) {
-        var ax = measurePoints.a[0] - modelBounds.center[0];
-        var ay = measurePoints.a[1] - modelBounds.center[1];
-        var az = measurePoints.a[2] - modelBounds.center[2];
-        var bx = measurePoints.b[0] - modelBounds.center[0];
-        var by = measurePoints.b[1] - modelBounds.center[1];
-        var bz = measurePoints.b[2] - modelBounds.center[2];
-
-        var mLine = new Float32Array([ax, ay, az, bx, by, bz]);
-        drawLines(mLine, [0.2, 0.9, 0.3, 1.0]);
-      }
+        var pColor = (pIdx === selectedPlaneIdx) ? [0.95, 0.45, 0.15, 0.9] : [0.35, 0.65, 0.95, 0.6];
+        var pEdges = new Float32Array([
+          c0[0], c0[1], c0[2], c1[0], c1[1], c1[2],
+          c1[0], c1[1], c1[2], c2[0], c2[1], c2[2],
+          c2[0], c2[1], c2[2], c3[0], c3[1], c3[2],
+          c3[0], c3[1], c3[2], c0[0], c0[1], c0[2]
+        ]);
+        drawLines(pEdges, pColor);
+      });
     }
 
+    // Interactive mouse drag controls
     var isDragging = false;
     var dragButton = 0;
     var lastMouseX = 0;
     var lastMouseY = 0;
 
     canvas.addEventListener("mousedown", function (e) {
+      if (e.button !== 0 && e.button !== 2) return;
       isDragging = true;
       dragButton = e.button;
       lastMouseX = e.clientX;
@@ -745,8 +716,10 @@ window.FOSS = window.FOSS || {};
     });
 
     window.addEventListener("mouseup", function () {
-      isDragging = false;
-      canvas.style.setProperty("cursor", "grab");
+      if (isDragging) {
+        isDragging = false;
+        canvas.style.setProperty("cursor", "grab");
+      }
     });
 
     canvas.addEventListener("wheel", function (e) {
@@ -757,7 +730,7 @@ window.FOSS = window.FOSS || {};
     }, { passive: false });
 
     canvas.addEventListener("click", function (e) {
-      if (pickMode && options.onPickPoint) {
+      if (pickMode && sharedViewportInstance.onPickPoint) {
         var rect = canvas.getBoundingClientRect();
         var clickX = e.clientX - rect.left;
         var clickY = e.clientY - rect.top;
@@ -768,7 +741,7 @@ window.FOSS = window.FOSS || {};
           modelBounds.center[1] + ny * modelBounds.span * 0.5,
           modelBounds.center[2]
         ];
-        options.onPickPoint(pickMode, pickedPt);
+        sharedViewportInstance.onPickPoint(pickMode, pickedPt);
         pickMode = null;
         render();
       }
@@ -781,82 +754,177 @@ window.FOSS = window.FOSS || {};
       ro.observe(container);
     }
 
-    setTimeout(render, 50);
-
-    return {
+    sharedViewportInstance = {
       el: container,
       canvas: canvas,
       render: render,
-      setPickMode: function (mode) {
-        pickMode = mode;
-      }
+      setPickMode: function (mode) { pickMode = mode; },
+      onPickPoint: null
     };
+
+    setTimeout(render, 50);
+    return sharedViewportInstance;
   }
 
-  // Unified Inspector, Scale & Measure page
+  // Model Loading helper
+  function loadModelGeometry(path, onLoaded) {
+    currentModelPath = path;
+    window.FOSS.api("model3d_load", { file_path: path }).then(function (res) {
+      if (res && res.info) {
+        currentModelInfo = res.info;
+        if (res.vertices && res.faces) {
+          try {
+            currentVertices = base64ToFloat32Array(res.vertices);
+            currentFaces = base64ToUint32Array(res.faces);
+            modelMeshBuffer = buildMeshBuffers(currentVertices, currentFaces);
+            var vp = getSharedViewport();
+            vp.render();
+          } catch (err) {
+            // Ignore buffer errors
+          }
+        }
+        if (onLoaded) onLoaded(res);
+      }
+    }).catch(function (err) {
+      window.FOSS.toast.show({ message: err.message || "Failed to load 3D model.", type: "error" });
+    });
+  }
+
+  // Top Model Toolbar
+  function createModelToolbar(onModelChange) {
+    var toolbar = window.FOSS.dom.el("div", {
+      className: "model3d-topbar",
+      "data-testid": "model3d-topbar"
+    });
+
+    var fileBadge = window.FOSS.dom.el("span", {
+      className: "font-mono text-xs text-muted",
+      "data-testid": "model3d-loaded-file",
+      "data-truncate-ok": "true",
+      title: currentModelPath ? currentModelPath.split(/[/\\]/).pop() : "No model loaded",
+      text: currentModelPath ? currentModelPath.split(/[/\\]/).pop() : "No model loaded"
+    });
+
+    var chipsContainer = window.FOSS.dom.el("div", {
+      className: "row gap-1 items-center",
+      "data-testid": "model3d-chips"
+    });
+
+    function updateChips() {
+      chipsContainer.innerHTML = "";
+      if (currentModelInfo) {
+        var vCount = currentModelInfo.vertex_count || 0;
+        var fCount = currentModelInfo.triangle_count || 0;
+        var wt = currentModelInfo.watertight ? "Watertight" : "Non-Manifold";
+        chipsContainer.appendChild(window.FOSS.dom.el("span", { className: "badge text-xs", text: vCount + " Vertices" }));
+        chipsContainer.appendChild(window.FOSS.dom.el("span", { className: "badge text-xs", text: fCount + " Faces" }));
+        chipsContainer.appendChild(window.FOSS.dom.el("span", { className: "badge " + (currentModelInfo.watertight ? "success" : "neutral") + " text-xs", text: wt }));
+      }
+      var fName = currentModelPath ? currentModelPath.split(/[/\\]/).pop() : "No model loaded";
+      fileBadge.textContent = fName;
+      fileBadge.title = fName;
+    }
+
+    updateChips();
+
+    var openBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "model3d-open-btn",
+      text: "Open 3D Model",
+      onClick: function () {
+        window.FOSS.api("select_files", {
+          title: "Open 3D Model",
+          file_types: ["stl", "obj", "ply", "off", "glb", "gltf", "3mf", "step", "stp", "iges", "igs"]
+        }).then(function (res) {
+          if (res && res.paths && res.paths.length > 0) {
+            loadModelGeometry(res.paths[0], function () {
+              updateChips();
+              if (onModelChange) onModelChange();
+            });
+          }
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Open 3D Model" })]);
+
+    var centerOriginBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "model3d-center-origin-btn",
+      text: "Center Origin",
+      onClick: function () {
+        if (!currentModelPath) return;
+        window.FOSS.api("select_save_path", { title: "Save Centered Model", default_name: "centered.stl" }).then(function (saveRes) {
+          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
+          if (!outP) return;
+          window.FOSS.api("model3d_center_origin", { file_path: currentModelPath, output_path: outP }).then(function (res) {
+            if (res && res.output_path) {
+              window.FOSS.toast.show({ message: "Centered mesh saved to " + res.output_path, type: "success" });
+              loadModelGeometry(res.output_path, function () {
+                updateChips();
+                if (onModelChange) onModelChange();
+              });
+            }
+          });
+        });
+      }
+    });
+
+    var repairBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "model3d-repair-btn",
+      text: "Repair Mesh",
+      onClick: function () {
+        if (!currentModelPath) return;
+        window.FOSS.api("select_save_path", { title: "Save Repaired Model", default_name: "repaired.stl" }).then(function (saveRes) {
+          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
+          if (!outP) return;
+          window.FOSS.api("model3d_repair", { file_path: currentModelPath, output_path: outP }).then(function (res) {
+            if (res && res.output_path) {
+              window.FOSS.toast.show({ message: "Repaired mesh saved to " + res.output_path, type: "success" });
+            }
+          });
+        });
+      }
+    });
+
+    var leftGroup = window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+      openBtn,
+      fileBadge,
+      chipsContainer
+    ]);
+
+    var rightGroup = window.FOSS.dom.el("div", { className: "row gap-1 items-center flex-wrap" }, [
+      centerOriginBtn,
+      repairBtn
+    ]);
+
+    toolbar.appendChild(leftGroup);
+    toolbar.appendChild(rightGroup);
+    return { el: toolbar, update: updateChips };
+  }
+
+  // Tab 1: Inspector & Tools
   function renderUnifiedInspector(panel, ctx) {
     panel.innerHTML = "";
     panel.setAttribute("data-testid", "tool-page-model3d");
 
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "3D Model Inspector & Studio" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "open an stl, obj, ply, step, or iges model to begin."
-      }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-xs",
-        text: "pick two points on the model to measure the distance between them."
-      })
-    ]);
+    var viewport = getSharedViewport();
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted mb-sm",
+      className: "text-xs text-muted",
       "data-testid": "model3d-inspector-status",
-      text: currentModelPath ? "Loaded: " + currentModelPath : "open an stl, obj, ply, step, or iges model to begin."
+      text: "Ready"
     });
 
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden mb-sm",
-      "data-testid": "model3d-inspector-error-banner"
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
-
-    function showError(msg) {
-      var span = errorBanner.querySelector(".banner-msg");
-      if (span) span.textContent = msg;
-      errorBanner.classList.remove("hidden");
-    }
-
-    function clearError() {
-      errorBanner.classList.add("hidden");
-    }
-
-    var viewport = create3DViewport({
-      showMeasure: true,
-      onPickPoint: function (mode, pt) {
-        if (mode === "point_a") {
-          p1x.value = String(pt[0].toFixed(2));
-          p1y.value = String(pt[1].toFixed(2));
-          p1z.value = String(pt[2].toFixed(2));
-        } else if (mode === "point_b") {
-          p2x.value = String(pt[0].toFixed(2));
-          p2y.value = String(pt[1].toFixed(2));
-          p2z.value = String(pt[2].toFixed(2));
-        }
-        measurePoints.a = [parseFloat(p1x.value), parseFloat(p1y.value), parseFloat(p1z.value)];
-        measurePoints.b = [parseFloat(p2x.value), parseFloat(p2y.value), parseFloat(p2z.value)];
-        viewport.render();
-      }
+    var topbarObj = createModelToolbar(function () {
+      updateInspectorData();
     });
 
+    // Inspector Cards
     var infoCard = window.FOSS.dom.el("div", {
-      className: "card mb-sm",
+      className: "card card-compact",
       "data-testid": "model3d-info-card"
     }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "Model Geometry & Topology" }),
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Model Geometry & Topology" }),
       window.FOSS.dom.el("div", { className: "grid grid-cols-2 gap-sm text-xs", "data-testid": "model3d-info-grid" }, [
         window.FOSS.dom.el("div", {}, [window.FOSS.dom.el("span", { className: "text-muted", text: "Format: " }), window.FOSS.dom.el("span", { "data-testid": "model3d-format", text: currentModelInfo ? currentModelInfo.format || "Mesh" : "N/A" })]),
         window.FOSS.dom.el("div", {}, [window.FOSS.dom.el("span", { className: "text-muted", text: "Watertight: " }), window.FOSS.dom.el("span", { "data-testid": "model3d-watertight", text: currentModelInfo ? (currentModelInfo.watertight ? "Yes" : "No") : "N/A" })]),
@@ -864,8 +932,8 @@ window.FOSS = window.FOSS || {};
         window.FOSS.dom.el("div", {}, [window.FOSS.dom.el("span", { className: "text-muted", text: "Faces: " }), window.FOSS.dom.el("span", { "data-testid": "model3d-face-count", text: currentModelInfo ? String(currentModelInfo.triangle_count || 0) : "0" })]),
         window.FOSS.dom.el("div", {}, [window.FOSS.dom.el("span", { className: "text-muted", text: "Volume: " }), window.FOSS.dom.el("span", { "data-testid": "model3d-volume", text: currentModelInfo ? String(currentModelInfo.volume ? currentModelInfo.volume.toFixed(2) : "0.00") : "0.00" })]),
         window.FOSS.dom.el("div", {}, [window.FOSS.dom.el("span", { className: "text-muted", text: "Surface Area: " }), window.FOSS.dom.el("span", { text: currentModelInfo ? String(currentModelInfo.surface_area ? currentModelInfo.surface_area.toFixed(2) : "0.00") : "0.00" })]),
-        window.FOSS.dom.el("div", { className: "col-span-2 mt-xs" }, [
-          window.FOSS.dom.el("span", { className: "text-muted", text: "Bounding Box (L x W x H): " }),
+        window.FOSS.dom.el("div", { className: "col-span-2" }, [
+          window.FOSS.dom.el("span", { className: "text-muted", text: "Dimensions (L x W x H): " }),
           window.FOSS.dom.el("span", {
             "data-testid": "model3d-bbox-lwh",
             className: "font-mono font-semibold",
@@ -875,7 +943,8 @@ window.FOSS = window.FOSS || {};
       ])
     ]);
 
-    function updateInspectorData(stats) {
+    function updateInspectorData() {
+      var stats = currentModelInfo || {};
       var fmtEl = panel.querySelector("[data-testid='model3d-format']");
       if (fmtEl) fmtEl.textContent = stats.format || stats.backend || "Mesh";
       var wtEl = panel.querySelector("[data-testid='model3d-watertight']");
@@ -895,373 +964,307 @@ window.FOSS = window.FOSS || {};
       }
     }
 
-    function loadModel(path) {
-      clearError();
-      currentModelPath = path;
-      statusBar.textContent = "Loading 3D model geometry...";
-      window.FOSS.api("model3d_load", { file_path: path }).then(function (res) {
-        if (res && res.info) {
-          currentModelInfo = res.info;
-          statusBar.textContent = "Loaded " + path + " (" + (res.vertex_count || res.info.vertex_count || 0) + " vertices)";
-          if (res.vertices && res.faces) {
-            try {
-              currentVertices = base64ToFloat32Array(res.vertices);
-              currentFaces = base64ToUint32Array(res.faces);
-              modelMeshBuffer = buildMeshBuffers(currentVertices, currentFaces);
-              updateInspectorData(res.info);
-              viewport.render();
-            } catch (err) {
-              // Ignore buffer conversion errors
-            }
-          }
-        }
-      }).catch(function (err) {
-        showError(err.message || "Failed to load 3D model.");
-      });
-    }
-
-    var picker = window.FOSS.components.filePicker({
-      testid: "model3d-picker",
-      accept: ".stl,.obj,.ply,.step,.stp,.iges,.igs",
-      buttonText: "Open 3D Model",
-      onSelect: function (path) {
-        loadModel(path);
-      }
-    });
-
-    var scalePicker = window.FOSS.components.filePicker({
-      testid: "model3d-scale-picker",
-      accept: ".stl,.obj,.ply,.step,.stp,.iges,.igs",
-      buttonText: "Open Model to Scale",
-      onSelect: function (path) {
-        loadModel(path);
-      }
-    });
-
-    var repairBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "model3d-repair-btn",
-      "aria-label": "Repair mesh",
-      title: "Repair mesh",
-      style: "min-height: 36px;",
-      onClick: function () {
-        if (!currentModelPath) return;
-        window.FOSS.api("select_save_path", { title: "Save Repaired Model", default_name: "repaired.stl" }).then(function (saveRes) {
-          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
-          if (!outP) return;
-          window.FOSS.api("model3d_repair", { file_path: currentModelPath, output_path: outP }).then(function (res) {
-            if (res && res.output_path) {
-              window.FOSS.toast.show({ message: "Repaired mesh saved to " + res.output_path, type: "success" });
-            }
-          });
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Repair Mesh" })]);
-
-    var centerOriginBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "model3d-center-origin-btn",
-      "aria-label": "Center origin",
-      title: "Re-center geometry origin at (0, 0, 0) and export",
-      style: "min-height: 36px;",
-      onClick: function () {
-        if (!currentModelPath) return;
-        window.FOSS.api("select_save_path", { title: "Save Centered Model", default_name: "centered.stl" }).then(function (saveRes) {
-          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
-          if (!outP) return;
-          window.FOSS.api("model3d_center_origin", { file_path: currentModelPath, output_path: outP }).then(function (res) {
-            if (res && res.output_path) {
-              window.FOSS.toast.show({ message: "Centered mesh saved to " + res.output_path, type: "success" });
-              loadModel(res.output_path);
-            }
-          });
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Center Origin" })]);
-
-    var controlsRow = window.FOSS.dom.el("div", { className: "row gap-sm items-center mb-sm" }, [
-      picker.el,
-      repairBtn,
-      centerOriginBtn
-    ]);
-
-    // Scale Section Card
+    // Scale Model Card
     var factorInput = window.FOSS.dom.el("input", {
       type: "number",
-      step: "0.01",
+      step: "0.1",
       value: "1.0",
       className: "input",
       "data-testid": "model3d-scale-factor",
-      "aria-label": "Scale factor",
-      title: "Scale factor",
-      style: "width: 100px;"
+      "aria-label": "Scale Factor",
+      title: "Scale Factor (e.g. 2.0 = double size, 0.5 = half size)",
+      style: "width: 5rem;"
     });
 
-    var inchToMmBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "model3d-inch-to-mm",
-      "aria-label": "inch -> mm",
-      title: "inch -> mm",
-      onClick: function () {
-        factorInput.value = "25.4";
-      }
-    }, [window.FOSS.dom.el("span", { text: "inch -> mm" })]);
+    var scaleXInput = window.FOSS.dom.el("input", {
+      type: "number",
+      step: "0.1",
+      value: "1.0",
+      className: "input",
+      "data-testid": "model3d-scale-x",
+      "aria-label": "Scale X",
+      title: "Scale X Factor",
+      style: "min-width: 0; width: 100%;"
+    });
+    var scaleYInput = window.FOSS.dom.el("input", {
+      type: "number",
+      step: "0.1",
+      value: "1.0",
+      className: "input",
+      "data-testid": "model3d-scale-y",
+      "aria-label": "Scale Y",
+      title: "Scale Y Factor",
+      style: "min-width: 0; width: 100%;"
+    });
+    var scaleZInput = window.FOSS.dom.el("input", {
+      type: "number",
+      step: "0.1",
+      value: "1.0",
+      className: "input",
+      "data-testid": "model3d-scale-z",
+      "aria-label": "Scale Z",
+      title: "Scale Z Factor",
+      style: "min-width: 0; width: 100%;"
+    });
 
-    var mmToInchBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "model3d-mm-to-inch",
-      "aria-label": "mm -> inch",
-      title: "mm -> inch",
-      onClick: function () {
-        factorInput.value = "0.03937";
+    var uniformCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      checked: true,
+      "data-testid": "model3d-uniform-scale-check"
+    });
+
+    factorInput.addEventListener("input", function () {
+      if (uniformCheck.checked) {
+        scaleXInput.value = factorInput.value;
+        scaleYInput.value = factorInput.value;
+        scaleZInput.value = factorInput.value;
       }
-    }, [window.FOSS.dom.el("span", { text: "mm -> inch" })]);
+    });
+
+    uniformCheck.addEventListener("change", function () {
+      if (uniformCheck.checked) {
+        scaleXInput.value = factorInput.value;
+        scaleYInput.value = factorInput.value;
+        scaleZInput.value = factorInput.value;
+      }
+    });
 
     var scaleResultHost = window.FOSS.dom.el("div", {
-      className: "hidden mt-xs",
-      "data-testid": "model3d-scale-result"
+      className: "hidden",
+      "data-testid": "model3d-scale-result",
+      style: "min-width: 0; max-width: 100%; overflow-x: hidden;"
     });
 
-    function showScaleResult(path) {
-      scaleResultHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({
-        testid: "model3d-scale-result-card",
-        title: "Model Scaled Successfully",
-        outputPath: path
-      });
-      scaleResultHost.appendChild(card);
-      scaleResultHost.classList.remove("hidden");
-    }
-
     var applyScaleBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
+      className: "btn btn-primary btn-sm",
       "data-testid": "model3d-apply-scale-btn",
-      "aria-label": "apply scale",
-      title: "apply scale",
-      style: "min-height: 34px;",
+      text: "Apply Scale",
       onClick: function () {
-        if (!currentModelPath) {
-          showError("Open a model first to apply scaling.");
-          return;
-        }
+        if (!currentModelPath) return;
         var factor = parseFloat(factorInput.value || "1.0");
+        var fx = uniformCheck.checked ? factor : parseFloat(scaleXInput.value || factorInput.value || "1.0");
+        var fy = uniformCheck.checked ? factor : parseFloat(scaleYInput.value || factorInput.value || "1.0");
+        var fz = uniformCheck.checked ? factor : parseFloat(scaleZInput.value || factorInput.value || "1.0");
         window.FOSS.api("select_save_path", { title: "Save Scaled Model", default_name: "scaled.stl" }).then(function (saveRes) {
-          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
+          var outP = (saveRes && (saveRes.path || (saveRes.paths && saveRes.paths[0]))) || "";
           if (!outP) return;
-          statusBar.textContent = "Applying scale factor " + factor + "...";
           window.FOSS.api("model3d_scale", {
             file_path: currentModelPath,
             factor: factor,
+            factor_x: fx,
+            factor_y: fy,
+            factor_z: fz,
             output_path: outP
           }).then(function (res) {
             if (res && res.output_path) {
-              statusBar.textContent = "Scaled model saved to " + res.output_path;
-              showScaleResult(res.output_path);
+              scaleResultHost.innerHTML = "";
+              scaleResultHost.appendChild(window.FOSS.components.resultCard({
+                title: "Model Scaled",
+                outputPath: res.output_path
+              }));
+              scaleResultHost.classList.remove("hidden");
             }
           });
         });
       }
-    }, [window.FOSS.dom.el("span", { text: "apply scale" })]);
+    });
+
+    var inchToMmBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      text: "In -> Mm (x25.4)",
+      onClick: function () {
+        factorInput.value = "25.4";
+        scaleXInput.value = "25.4";
+        scaleYInput.value = "25.4";
+        scaleZInput.value = "25.4";
+      }
+    });
+
+    var mmToInchBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      text: "Mm -> In (/25.4)",
+      onClick: function () {
+        factorInput.value = "0.03937";
+        scaleXInput.value = "0.03937";
+        scaleYInput.value = "0.03937";
+        scaleZInput.value = "0.03937";
+      }
+    });
 
     var scaleCard = window.FOSS.dom.el("div", {
-      className: "card mb-sm",
+      className: "card card-compact flex-col gap-2",
       "data-testid": "model3d-scale-card"
     }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-xs", text: "Scale Model Dimensions" }),
-      scalePicker.el,
-      window.FOSS.dom.el("div", { className: "row gap-xs items-center mb-xs mt-xs" }, [
-        factorInput,
-        inchToMmBtn,
-        mmToInchBtn,
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Scale Model Dimensions" }),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+        window.FOSS.components.field("Uniform Scale", factorInput),
         applyScaleBtn
+      ]),
+      window.FOSS.dom.el("label", { className: "row gap-2 items-center text-xs" }, [
+        uniformCheck,
+        window.FOSS.dom.el("span", { text: "Uniform scale across axes" })
+      ]),
+      window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1", style: "width: 100%;" }, [
+        window.FOSS.components.field("Scale X", scaleXInput),
+        window.FOSS.components.field("Scale Y", scaleYInput),
+        window.FOSS.components.field("Scale Z", scaleZInput)
+      ]),
+      window.FOSS.dom.el("div", { className: "row gap-1 items-center flex-wrap" }, [
+        inchToMmBtn,
+        mmToInchBtn
       ]),
       scaleResultHost
     ]);
 
-    // Measure Section Card
-    var p1x = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point A X", title: "Point A X", value: "0", style: "width: 65px;" });
-    var p1y = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point A Y", title: "Point A Y", value: "0", style: "width: 65px;" });
-    var p1z = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point A Z", title: "Point A Z", value: "0", style: "width: 65px;" });
+    // Measurement Card
+    var p1x = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point A X", title: "Point A X", value: "0", style: "min-width: 0; width: 100%;" });
+    var p1y = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point A Y", title: "Point A Y", value: "0", style: "min-width: 0; width: 100%;" });
+    var p1z = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point A Z", title: "Point A Z", value: "0", style: "min-width: 0; width: 100%;" });
 
-    var p2x = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point B X", title: "Point B X", value: "10", style: "width: 65px;" });
-    var p2y = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point B Y", title: "Point B Y", value: "10", style: "width: 65px;" });
-    var p2z = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point B Z", title: "Point B Z", value: "10", style: "width: 65px;" });
+    var p2x = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point B X", title: "Point B X", value: "10", style: "min-width: 0; width: 100%;" });
+    var p2y = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point B Y", title: "Point B Y", value: "10", style: "min-width: 0; width: 100%;" });
+    var p2z = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Point B Z", title: "Point B Z", value: "10", style: "min-width: 0; width: 100%;" });
 
     var pickPointABtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "model3d-pick-a-btn",
-      "aria-label": "pick point a on model",
-      title: "pick point a on model",
+      text: "Pick Point A",
       onClick: function () {
         viewport.setPickMode("point_a");
-        window.FOSS.toast.show({ message: "Click in viewport to set Point A.", type: "info" });
+        window.FOSS.toast.show({ message: "Click on 3D model to select Point A.", type: "info" });
       }
-    }, [window.FOSS.dom.el("span", { text: "pick point a on model" })]);
+    });
 
     var pickPointBBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "model3d-pick-b-btn",
-      "aria-label": "pick point b on model",
-      title: "pick point b on model",
+      text: "Pick Point B",
       onClick: function () {
         viewport.setPickMode("point_b");
-        window.FOSS.toast.show({ message: "Click in viewport to set Point B.", type: "info" });
+        window.FOSS.toast.show({ message: "Click on 3D model to select Point B.", type: "info" });
       }
-    }, [window.FOSS.dom.el("span", { text: "pick point b on model" })]);
+    });
+
+    viewport.onPickPoint = function (mode, pt) {
+      if (mode === "point_a") {
+        p1x.value = pt[0].toFixed(2);
+        p1y.value = pt[1].toFixed(2);
+        p1z.value = pt[2].toFixed(2);
+      } else if (mode === "point_b") {
+        p2x.value = pt[0].toFixed(2);
+        p2y.value = pt[1].toFixed(2);
+        p2z.value = pt[2].toFixed(2);
+      }
+    };
 
     var distanceDisplay = window.FOSS.dom.el("div", {
-      className: "card text-center p-sm mt-xs",
+      className: "card card-compact text-center",
       "data-testid": "model3d-distance-display"
     }, [
-      window.FOSS.dom.el("div", { className: "text-xs text-muted mb-xs", text: "Measured Euclidean Distance" }),
-      window.FOSS.dom.el("div", { className: "text-xl font-bold font-mono", "data-testid": "model3d-distance-value", text: "--" })
+      window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "Distance" }),
+      window.FOSS.dom.el("div", { className: "text-lg font-bold font-mono", "data-testid": "model3d-distance-value", text: "--" })
     ]);
 
     var calcDistanceBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "model3d-calc-distance-btn",
-      "aria-label": "Calculate distance",
-      title: "Calculate distance",
-      style: "min-height: 34px;",
+      className: "btn btn-primary btn-sm",
+      "data-testid": "model3d-measure-btn",
+      text: "Calculate Distance",
       onClick: function () {
         var ptA = [parseFloat(p1x.value || "0"), parseFloat(p1y.value || "0"), parseFloat(p1z.value || "0")];
         var ptB = [parseFloat(p2x.value || "0"), parseFloat(p2y.value || "0"), parseFloat(p2z.value || "0")];
-        measurePoints.a = ptA;
-        measurePoints.b = ptB;
-        statusBar.textContent = "Calculating distance...";
         window.FOSS.api("model3d_measure", { p1: ptA, p2: ptB }).then(function (res) {
           if (res && res.distance !== undefined) {
-            statusBar.textContent = "Measured distance: " + res.distance;
-            var valEl = panel.querySelector("[data-testid='model3d-distance-value']");
+            var valEl = distanceDisplay.querySelector("[data-testid='model3d-distance-value']");
             if (valEl) valEl.textContent = String(res.distance) + " units";
-            viewport.render();
           }
         });
       }
-    }, [window.FOSS.dom.el("span", { text: "Calculate distance" })]);
+    });
 
     var measureCard = window.FOSS.dom.el("div", {
-      className: "card mb-sm",
+      className: "card card-compact",
       "data-testid": "model3d-measure-card"
     }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-xs", text: "Measure Distance" }),
-      window.FOSS.dom.el("div", { className: "row gap-xs items-center mb-xs" }, [
-        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "A:" }), p1x, p1y, p1z,
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Point-to-Point Distance" }),
+      window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
+        window.FOSS.dom.el("span", { className: "text-xs font-semibold", text: "Point A" }),
         pickPointABtn
       ]),
-      window.FOSS.dom.el("div", { className: "row gap-xs items-center mb-xs" }, [
-        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "B:" }), p2x, p2y, p2z,
+      window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [p1x, p1y, p1z]),
+      window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
+        window.FOSS.dom.el("span", { className: "text-xs font-semibold", text: "Point B" }),
         pickPointBBtn
       ]),
-      window.FOSS.dom.el("div", { className: "row gap-xs items-center mb-xs" }, [
-        calcDistanceBtn
-      ]),
+      window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [p2x, p2y, p2z]),
+      calcDistanceBtn,
       distanceDisplay
     ]);
 
     var sidebar = window.FOSS.dom.el("div", {
-      className: "model3d-sidebar panel flex-col gap-sm",
-      style: "width: 100%; max-height: calc(100vh - 12rem); overflow-y: auto;"
+      className: "model3d-sidebar-pane stack scroll-y",
+      "data-testid": "model3d-sidebar"
     }, [
-      controlsRow,
       infoCard,
       scaleCard,
       measureCard
     ]);
 
-    var layoutRow = window.FOSS.dom.el("div", {
-      className: "split split-main-first",
-      style: "width: 100%; min-height: 520px; align-items: stretch;"
+    var divider = window.FOSS.components.splitDivider({ vertical: true });
+    divider.addEventListener("mousedown", function () {
+      if (viewport && viewport.canvas) {
+        viewport.canvas.style.setProperty("pointer-events", "none");
+        function onUp() {
+          if (viewport && viewport.canvas) {
+            viewport.canvas.style.removeProperty("pointer-events");
+          }
+          window.removeEventListener("mouseup", onUp);
+        }
+        window.addEventListener("mouseup", onUp);
+      }
+    });
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable split-main-first model3d-workbench",
+      "data-testid": "model3d-workbench"
     }, [
-      window.FOSS.dom.el("div", {
-        className: "model3d-viewport-wrapper",
-        style: "width: 100%; height: 100%; min-height: 480px; position: relative;"
-      }, [viewport.el]),
+      viewport.el,
+      divider,
       sidebar
     ]);
 
-    panel.appendChild(header);
+    panel.appendChild(topbarObj.el);
     panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(layoutRow);
+    panel.appendChild(split);
 
-    if (currentVertices && currentFaces && !modelMeshBuffer) {
-      modelMeshBuffer = buildMeshBuffers(currentVertices, currentFaces);
-    }
     viewport.render();
   }
 
-  // Cut Plane Slicer
+  // Tab 2: Cut Plane
   function renderCut(panel, ctx) {
     panel.innerHTML = "";
     panel.setAttribute("data-testid", "tool-page-model3d");
 
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Cut Plane Slicer" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "drag an arrow in the viewport to move the plane, or drag a curved handle to"
-      }),
-      window.FOSS.dom.el("p", {
-        className: "text-xs text-muted",
-        text: "step/iges cuts are always solid; this option only applies to stl/obj/ply."
-      })
-    ]);
+    var viewport = getSharedViewport();
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted mb-sm",
+      className: "text-xs text-muted",
       "data-testid": "model3d-cut-status",
-      text: currentModelPath ? "Model: " + currentModelPath : "open an stl, obj, ply, step, or iges model to begin."
+      text: "Ready"
     });
 
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden mb-sm",
-      "data-testid": "model3d-cut-error-banner"
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
+    var topbarObj = createModelToolbar();
 
-    function showError(msg) {
-      var span = errorBanner.querySelector(".banner-msg");
-      if (span) span.textContent = msg;
-      errorBanner.classList.remove("hidden");
-    }
+    // Plane Origin & Normal Inputs
+    var origX = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Origin X", title: "Origin X", value: "0", style: "min-width: 0; width: 100%;" });
+    var origY = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Origin Y", title: "Origin Y", value: "0", style: "min-width: 0; width: 100%;" });
+    var origZ = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Origin Z", title: "Origin Z", value: "0", style: "min-width: 0; width: 100%;" });
 
-    function clearError() {
-      errorBanner.classList.add("hidden");
-    }
-
-    var resultHost = window.FOSS.dom.el("div", {
-      className: "hidden mb-sm",
-      "data-testid": "model3d-cut-result"
-    });
-
-    function showResult(pieces) {
-      resultHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({
-        testid: "model3d-cut-result-card",
-        title: "Model Cut Successfully (" + pieces.length + " pieces)",
-        outputPath: pieces[0] || ""
-      });
-      resultHost.appendChild(card);
-      resultHost.classList.remove("hidden");
-    }
-
-    var viewport = create3DViewport({
-      showCut: true,
-      onPickPoint: function (mode, pt) {
-        if (mode === "cut_origin") {
-          origX.value = String(pt[0].toFixed(2));
-          origY.value = String(pt[1].toFixed(2));
-          origZ.value = String(pt[2].toFixed(2));
-          updateCurrentPlane();
-        }
-      }
-    });
+    var normX = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Normal X", title: "Normal X", value: "0", style: "min-width: 0; width: 100%;" });
+    var normY = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Normal Y", title: "Normal Y", value: "0", style: "min-width: 0; width: 100%;" });
+    var normZ = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Normal Z", title: "Normal Z", value: "1", style: "min-width: 0; width: 100%;" });
 
     function syncInputsWithCurrentPlane() {
-      var p = cuttingPlanes[selectedPlaneIdx] || cuttingPlanes[0];
+      var p = cuttingPlanes[selectedPlaneIdx] || { origin: [0, 0, 0], normal: [0, 0, 1] };
       origX.value = String(p.origin[0]);
       origY.value = String(p.origin[1]);
       origZ.value = String(p.origin[2]);
@@ -1271,359 +1274,287 @@ window.FOSS = window.FOSS || {};
     }
 
     function updateCurrentPlane() {
-      var p = cuttingPlanes[selectedPlaneIdx];
-      if (!p) return;
-      p.origin = [parseFloat(origX.value || "0"), parseFloat(origY.value || "0"), parseFloat(origZ.value || "0")];
-      p.normal = [parseFloat(normX.value || "0"), parseFloat(normY.value || "0"), parseFloat(normZ.value || "1")];
-      updatePlanesUI();
+      if (!cuttingPlanes[selectedPlaneIdx]) return;
+      cuttingPlanes[selectedPlaneIdx].origin = [
+        parseFloat(origX.value || "0"),
+        parseFloat(origY.value || "0"),
+        parseFloat(origZ.value || "0")
+      ];
+      cuttingPlanes[selectedPlaneIdx].normal = [
+        parseFloat(normX.value || "0"),
+        parseFloat(normY.value || "0"),
+        parseFloat(normZ.value || "1")
+      ];
       viewport.render();
     }
 
-    var curP = cuttingPlanes[selectedPlaneIdx] || { origin: [0, 0, 0], normal: [0, 0, 1] };
-    var origX = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input",
-      "data-testid": "model3d-origin-x",
-      "aria-label": "Plane Origin X",
-      title: "Plane Origin X",
-      value: String(curP.origin[0]),
-      style: "width: 75px;",
-      onInput: updateCurrentPlane
-    });
-    var origY = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input",
-      "data-testid": "model3d-origin-y",
-      "aria-label": "Plane Origin Y",
-      title: "Plane Origin Y",
-      value: String(curP.origin[1]),
-      style: "width: 75px;",
-      onInput: updateCurrentPlane
-    });
-    var origZ = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input",
-      "data-testid": "model3d-origin-z",
-      "aria-label": "Plane Origin Z",
-      title: "Plane Origin Z",
-      value: String(curP.origin[2]),
-      style: "width: 75px;",
-      onInput: updateCurrentPlane
+    [origX, origY, origZ, normX, normY, normZ].forEach(function (inp) {
+      inp.addEventListener("input", updateCurrentPlane);
     });
 
-    var originCard = window.FOSS.dom.el("div", { className: "card mb-sm" }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-xs", text: "plane origin" }),
-      window.FOSS.dom.el("div", { className: "row gap-xs items-center" }, [
-        window.FOSS.dom.el("span", { className: "text-xs", text: "X:" }), origX,
-        window.FOSS.dom.el("span", { className: "text-xs", text: "Y:" }), origY,
-        window.FOSS.dom.el("span", { className: "text-xs", text: "Z:" }), origZ
-      ])
-    ]);
-
-    var normX = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input",
-      "data-testid": "model3d-normal-x",
-      "aria-label": "Plane Normal X",
-      title: "Plane Normal X",
-      value: String(curP.normal[0]),
-      style: "width: 75px;",
-      onInput: updateCurrentPlane
-    });
-    var normY = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input",
-      "data-testid": "model3d-normal-y",
-      "aria-label": "Plane Normal Y",
-      title: "Plane Normal Y",
-      value: String(curP.normal[1]),
-      style: "width: 75px;",
-      onInput: updateCurrentPlane
-    });
-    var normZ = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input",
-      "data-testid": "model3d-normal-z",
-      "aria-label": "Plane Normal Z",
-      title: "Plane Normal Z",
-      value: String(curP.normal[2]),
-      style: "width: 75px;",
-      onInput: updateCurrentPlane
-    });
-
-    var invertBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "model3d-invert-btn",
-      title: "Invert cut normal",
-      type: "button",
-      onClick: function () {
-        normX.value = String(-parseFloat(normX.value || "0"));
-        normY.value = String(-parseFloat(normY.value || "0"));
-        normZ.value = String(-parseFloat(normZ.value || "1"));
-        updateCurrentPlane();
-      }
-    }, [window.FOSS.dom.el("span", { text: "Invert Normal" })]);
-
-    var normalCard = window.FOSS.dom.el("div", { className: "card mb-sm" }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-xs", text: "plane normal" }),
-      window.FOSS.dom.el("div", { className: "row gap-xs items-center mb-xs" }, [
-        window.FOSS.dom.el("span", { className: "text-xs", text: "X:" }), normX,
-        window.FOSS.dom.el("span", { className: "text-xs", text: "Y:" }), normY,
-        window.FOSS.dom.el("span", { className: "text-xs", text: "Z:" }), normZ
-      ]),
-      window.FOSS.dom.el("div", { className: "row gap-xs" }, [invertBtn])
-    ]);
+    syncInputsWithCurrentPlane();
 
     var pickOriginBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "model3d-pick-origin-btn",
-      "aria-label": "pick point on model",
-      title: "pick point on model",
+      text: "Pick Origin",
       onClick: function () {
-        viewport.setPickMode("cut_origin");
-        window.FOSS.toast.show({ message: "Click in viewport to place cut origin.", type: "info" });
+        viewport.setPickMode("plane_origin");
+        window.FOSS.toast.show({ message: "Click on 3D model to place plane origin.", type: "info" });
       }
-    }, [window.FOSS.dom.el("span", { text: "pick point on model" })]);
+    });
 
-    var useViewDirBtn = window.FOSS.dom.el("button", {
+    viewport.onPickPoint = function (mode, pt) {
+      if (mode === "plane_origin") {
+        origX.value = pt[0].toFixed(2);
+        origY.value = pt[1].toFixed(2);
+        origZ.value = pt[2].toFixed(2);
+        updateCurrentPlane();
+      }
+    };
+
+    var viewDirBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "model3d-use-view-dir-btn",
-      "aria-label": "use current view direction",
-      title: "use current view direction",
+      text: "From View Direction",
       onClick: function () {
         var cosP = Math.cos(camera.pitch);
         var sinP = Math.sin(camera.pitch);
         var sinY = Math.sin(camera.yaw);
         var cosY = Math.cos(camera.yaw);
-        normX.value = String((cosP * sinY).toFixed(3));
-        normY.value = String(sinP.toFixed(3));
-        normZ.value = String((cosP * cosY).toFixed(3));
+        normX.value = (cosP * sinY).toFixed(3);
+        normY.value = sinP.toFixed(3);
+        normZ.value = (cosP * cosY).toFixed(3);
         updateCurrentPlane();
       }
-    }, [window.FOSS.dom.el("span", { text: "use current view direction" })]);
+    });
+
+    var originCard = window.FOSS.dom.el("div", {
+      className: "card card-compact",
+      "data-testid": "model3d-origin-card"
+    }, [
+      window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
+        window.FOSS.dom.el("span", { className: "card-title text-sm font-semibold", text: "Plane Origin" }),
+        pickOriginBtn
+      ]),
+      window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [origX, origY, origZ])
+    ]);
+
+    var normalCard = window.FOSS.dom.el("div", {
+      className: "card card-compact",
+      "data-testid": "model3d-normal-card"
+    }, [
+      window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
+        window.FOSS.dom.el("span", { className: "card-title text-sm font-semibold", text: "Plane Normal" }),
+        viewDirBtn
+      ]),
+      window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [normX, normY, normZ])
+    ]);
 
     var solidCapCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
       checked: true,
       "data-testid": "model3d-cap-check",
-      "aria-label": "fill cut cross-section (solid)",
-      title: "fill cut cross-section (solid)"
+      "aria-label": "Cap Cut Faces (Watertight Solid)",
+      title: "Cap Cut Faces (Watertight Solid)"
     });
 
-    var solidCapLabel = window.FOSS.dom.el("label", { className: "row items-center gap-xs text-xs mb-sm" }, [
+    var solidCapLabel = window.FOSS.dom.el("label", { className: "row items-center gap-2 text-xs" }, [
       solidCapCheck,
-      window.FOSS.dom.el("span", { text: "fill cut cross-section (solid)" })
+      window.FOSS.dom.el("span", { text: "Cap Cut Cross-Sections (Watertight Solid)" })
     ]);
 
-    var planesListEl = window.FOSS.dom.el("div", {
-      className: "card mb-sm",
-      "data-testid": "model3d-planes-card"
+    var resultHost = window.FOSS.dom.el("div", {
+      className: "hidden",
+      "data-testid": "model3d-cut-result",
+      style: "min-width: 0; max-width: 100%; overflow-x: hidden;"
     });
 
-    var addPlaneBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "model3d-add-plane-btn",
-      "aria-label": "add plane",
-      title: "add plane",
-      onClick: function () {
-        var prevP = cuttingPlanes[cuttingPlanes.length - 1] || { origin: [0, 0, 0], normal: [0, 0, 1] };
-        var nextNormal = [0, 1, 0];
-        if (Math.abs(prevP.normal[1]) > 0.8) nextNormal = [1, 0, 0];
-        cuttingPlanes.push({
-          origin: [prevP.origin[0], prevP.origin[1], prevP.origin[2]],
-          normal: nextNormal
-        });
-        selectedPlaneIdx = cuttingPlanes.length - 1;
-        syncInputsWithCurrentPlane();
-        updatePlanesUI();
-        viewport.render();
-      }
-    }, [window.FOSS.dom.el("span", { text: "add plane" })]);
+    var cutPiecesListEl = window.FOSS.dom.el("div", {
+      className: "flex-col gap-1",
+      style: "max-height: 10rem; overflow-y: auto;"
+    });
 
-    var removePlaneBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "model3d-remove-plane-btn",
-      "aria-label": "remove selected plane",
-      title: "remove selected plane",
-      onClick: function () {
-        if (cuttingPlanes.length > 1) {
-          cuttingPlanes.splice(selectedPlaneIdx, 1);
-          selectedPlaneIdx = Math.max(0, selectedPlaneIdx - 1);
-          syncInputsWithCurrentPlane();
-          updatePlanesUI();
-          viewport.render();
-        }
-      }
-    }, [window.FOSS.dom.el("span", { text: "remove selected plane" })]);
-
-    function updatePlanesUI() {
-      planesListEl.innerHTML = "";
-      var cardTitle = window.FOSS.dom.el("div", {
-        className: "card-title text-sm font-semibold mb-xs",
-        text: "cutting planes (add more than one to split into multiple pieces)"
-      });
-      planesListEl.appendChild(cardTitle);
-
-      var actionsRow = window.FOSS.dom.el("div", { className: "row gap-xs mb-sm" }, [
-        addPlaneBtn,
-        removePlaneBtn
-      ]);
-      planesListEl.appendChild(actionsRow);
-
-      var listContainer = window.FOSS.dom.el("div", {
-        className: "flex-col gap-xs",
-        style: "max-height: 160px; overflow-y: auto;"
-      });
-
-      cuttingPlanes.forEach(function (plane, idx) {
-        var isSel = (idx === selectedPlaneIdx);
-        var item = window.FOSS.dom.el("div", {
-          className: "model3d-plane-item" + (isSel ? " active" : ""),
-          "data-testid": "model3d-plane-item-" + idx,
+    var cutPiecesCard = window.FOSS.dom.el("div", {
+      className: "card card-compact hidden",
+      "data-testid": "model3d-cut-pieces-card"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Cut Pieces" }),
+      cutPiecesListEl,
+      window.FOSS.dom.el("div", { className: "row gap-1 items-center flex-wrap" }, [
+        window.FOSS.dom.el("button", {
+          className: "btn btn-secondary btn-sm",
+          "data-testid": "model3d-export-piece-btn",
+          text: "Export Piece",
           onClick: function () {
-            selectedPlaneIdx = idx;
-            syncInputsWithCurrentPlane();
-            updatePlanesUI();
-            viewport.render();
+            if (selectedPieceIdx < 0 || !cutPieces[selectedPieceIdx]) {
+              window.FOSS.toast.show({ message: "Select a cut piece first.", type: "info" });
+              return;
+            }
+            window.FOSS.api("select_save_path", {
+              title: "Save Cut Piece",
+              default_name: "piece_" + (selectedPieceIdx + 1) + ".stl"
+            }).then(function (saveRes) {
+              var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
+              if (!outP) return;
+              window.FOSS.api("model3d_export", { file_path: cutPieces[selectedPieceIdx], output_path: outP });
+            });
           }
-        }, [
-          window.FOSS.dom.el("span", {
-            className: "text-xs",
-            text: "Plane " + (idx + 1) + " (N: [" + plane.normal.map(function (n) { return Number(n).toFixed(2); }).join(", ") + "])"
-          }),
-          isSel ? window.FOSS.dom.el("span", { className: "badge badge-primary text-xs", text: "Active" }) : null
-        ]);
-        listContainer.appendChild(item);
-      });
-
-      planesListEl.appendChild(listContainer);
-    }
-
-    updatePlanesUI();
-
-    var cutPiecesCard = window.FOSS.dom.el("div", { className: "card mb-sm" }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-xs", text: "cut pieces (select one to highlight it in the viewport)" }),
-      window.FOSS.dom.el("div", { className: "row gap-xs" }, [
-        window.FOSS.dom.el("button", { className: "btn btn-secondary btn-sm", "data-testid": "model3d-export-sel-piece", "aria-label": "export selected piece", title: "export selected piece", text: "export selected piece" }),
-        window.FOSS.dom.el("button", { className: "btn btn-secondary btn-sm", "data-testid": "model3d-export-all-pieces", "aria-label": "export all pieces", title: "export all pieces", text: "export all pieces" }),
-        window.FOSS.dom.el("button", { className: "btn btn-secondary btn-sm", "data-testid": "model3d-cut-piece-again", "aria-label": "cut this piece again", title: "cut this piece again", text: "cut this piece again" })
+        }),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-secondary btn-sm",
+          "data-testid": "model3d-export-all-pieces-btn",
+          text: "Export All Pieces",
+          onClick: function () {
+            if (!cutPieces || !cutPieces.length) return;
+            window.FOSS.api("select_directory", { title: "Select Destination Directory" }).then(function (dirRes) {
+              var outDir = (dirRes && dirRes.paths && dirRes.paths[0]) || "";
+              if (!outDir) return;
+              cutPieces.forEach(function (piecePath, idx) {
+                var targetPath = outDir + "/piece_" + (idx + 1) + ".stl";
+                window.FOSS.api("model3d_export", { file_path: piecePath, output_path: targetPath });
+              });
+              window.FOSS.toast.show({ message: "Exported all pieces to " + outDir, type: "success" });
+            });
+          }
+        }),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-secondary btn-sm",
+          "data-testid": "model3d-recut-piece-btn",
+          text: "Cut Piece Again",
+          onClick: function () {
+            if (selectedPieceIdx < 0 || !cutPieces[selectedPieceIdx]) return;
+            loadModelGeometry(cutPieces[selectedPieceIdx]);
+          }
+        })
       ])
     ]);
+
+    function updateCutPiecesUI(pieces) {
+      cutPieces = pieces || [];
+      cutPiecesListEl.innerHTML = "";
+      if (cutPieces.length > 0) {
+        cutPiecesCard.classList.remove("hidden");
+        cutPieces.forEach(function (pPath, idx) {
+          var row = window.FOSS.dom.el("div", {
+            className: "row justify-between items-center p-1",
+            style: "cursor: pointer; border-radius: var(--radius-sm); border: 1px solid var(--border); min-width: 0; max-width: 100%; overflow-x: hidden;" + (idx === selectedPieceIdx ? " background: var(--bg-raised); border-color: var(--accent);" : ""),
+            "data-testid": "model3d-piece-item-" + idx,
+            onClick: function () {
+              selectedPieceIdx = idx;
+              updateCutPiecesUI(cutPieces);
+              loadModelGeometry(pPath);
+            }
+          }, [
+            window.FOSS.dom.el("span", { className: "text-xs font-semibold", text: "Piece " + (idx + 1) }),
+            window.FOSS.dom.el("span", {
+              className: "text-xs text-muted truncate font-mono",
+              "data-truncate-ok": "true",
+              title: pPath.split(/[/\\]/).pop(),
+              style: "min-width: 0; max-width: 60%;",
+              text: pPath.split(/[/\\]/).pop()
+            })
+          ]);
+          cutPiecesListEl.appendChild(row);
+        });
+      }
+    }
 
     var cutBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
       "data-testid": "model3d-cut-btn",
-      "aria-label": "cut model",
-      title: "cut model",
-      style: "min-height: 38px; width: 100%;",
+      text: "Slice Model Across Plane(s)",
       onClick: function () {
         if (!currentModelPath) {
-          showError("Please open a 3D model first.");
+          window.FOSS.toast.show({ message: "Please open a 3D model first.", type: "error" });
           return;
         }
-        window.FOSS.api("select_directory", { title: "Select Output Folder for Cut Pieces" }).then(function (dirRes) {
+        window.FOSS.api("select_directory", { title: "Select Destination Directory for Cut Pieces" }).then(function (dirRes) {
           var outDir = (dirRes && dirRes.paths && dirRes.paths[0]) || "";
           if (!outDir) return;
-          statusBar.textContent = "Slicing 3D model across plane(s)...";
+          statusBar.textContent = "Slicing 3D model...";
           window.FOSS.api("model3d_cut", {
             file_path: currentModelPath,
             planes: cuttingPlanes,
-            output_dir: outDir
+            output_dir: outDir,
+            cap: solidCapCheck.checked
           }).then(function (res) {
             if (res && res.pieces) {
-              cutPieces = res.pieces;
-              statusBar.textContent = "Sliced into " + res.pieces.length + " pieces.";
-              showResult(res.pieces);
+              statusBar.textContent = "Sliced into " + res.pieces.length + " piece(s).";
+              resultHost.innerHTML = "";
+              resultHost.appendChild(window.FOSS.components.resultCard({
+                title: "Cut Completed",
+                outputPath: outDir
+              }));
+              resultHost.classList.remove("hidden");
+              updateCutPiecesUI(res.pieces);
             }
-          }).catch(function (err) {
-            showError(err.message || "Cut operation failed.");
           });
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "cut model" })]);
-
-    var picker = window.FOSS.components.filePicker({
-      testid: "model3d-cut-picker",
-      accept: ".stl,.obj,.ply,.step,.stp,.iges,.igs",
-      buttonText: "Open 3D Model",
-      onSelect: function (path) {
-        currentModelPath = path;
-        statusBar.textContent = "Loading " + path;
-        window.FOSS.api("model3d_load", { file_path: path }).then(function (res) {
-          if (res && res.vertices && res.faces) {
-            currentModelInfo = res.info;
-            currentVertices = base64ToFloat32Array(res.vertices);
-            currentFaces = base64ToUint32Array(res.faces);
-            modelMeshBuffer = buildMeshBuffers(currentVertices, currentFaces);
-            statusBar.textContent = "Model: " + path;
-            viewport.render();
-          }
         });
       }
     });
 
     var sidebar = window.FOSS.dom.el("div", {
-      className: "model3d-sidebar panel flex-col gap-sm",
-      style: "width: 100%; max-height: calc(100vh - 12rem); overflow-y: auto;"
+      className: "model3d-sidebar-pane stack",
+      "data-testid": "model3d-cut-sidebar"
     }, [
-      picker.el,
-      window.FOSS.dom.el("div", { className: "row gap-xs mb-sm" }, [pickOriginBtn, useViewDirBtn]),
       originCard,
       normalCard,
       solidCapLabel,
-      planesListEl,
       cutBtn,
       resultHost,
       cutPiecesCard
     ]);
 
-    var layoutRow = window.FOSS.dom.el("div", {
-      className: "split split-main-first",
-      style: "width: 100%; min-height: 520px; align-items: stretch;"
+    var dividerCut = window.FOSS.components.splitDivider({ vertical: true });
+    dividerCut.addEventListener("mousedown", function () {
+      if (viewport && viewport.canvas) {
+        viewport.canvas.style.setProperty("pointer-events", "none");
+        function onUp() {
+          if (viewport && viewport.canvas) {
+            viewport.canvas.style.removeProperty("pointer-events");
+          }
+          window.removeEventListener("mouseup", onUp);
+        }
+        window.addEventListener("mouseup", onUp);
+      }
+    });
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable split-main-first model3d-workbench",
+      "data-testid": "model3d-workbench"
     }, [
-      window.FOSS.dom.el("div", {
-        className: "model3d-viewport-wrapper",
-        style: "width: 100%; height: 100%; min-height: 480px; position: relative;"
-      }, [viewport.el]),
+      viewport.el,
+      dividerCut,
       sidebar
     ]);
 
-    panel.appendChild(header);
+    panel.appendChild(topbarObj.el);
     panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(layoutRow);
+    panel.appendChild(split);
 
-    if (currentVertices && currentFaces && !modelMeshBuffer) {
-      modelMeshBuffer = buildMeshBuffers(currentVertices, currentFaces);
-    }
     viewport.render();
   }
 
-  // Export & Convert 3D Model
+  // Tab 3: Export & Convert
   function renderExport(panel, ctx) {
     panel.innerHTML = "";
     panel.setAttribute("data-testid", "tool-page-model3d");
 
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Export & Convert 3D Model" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Export the active 3D model geometry to STL, OBJ, PLY, STEP, or IGES."
-      })
-    ]);
+    var viewport = getSharedViewport();
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted mb-sm",
+      className: "text-xs text-muted",
       "data-testid": "model3d-export-status",
-      text: currentModelPath ? "Model: " + currentModelPath : "open an stl, obj, ply, step, or iges model to begin."
+      text: "Ready"
     });
 
-    var viewport = create3DViewport();
+    var topbarObj = createModelToolbar();
 
     var formatSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "model3d-export-format",
-      style: "width: 140px;"
+      "aria-label": "Target Format",
+      title: "Target Format",
+      style: "width: 100%;"
     }, [
       window.FOSS.dom.el("option", { value: "stl", text: "STL (Mesh)" }),
       window.FOSS.dom.el("option", { value: "obj", text: "OBJ (Wavefront)" }),
@@ -1635,66 +1566,78 @@ window.FOSS = window.FOSS || {};
     var exportBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
       "data-testid": "model3d-export-btn",
-      title: "Export 3D Model",
-      style: "min-height: 38px;",
+      text: "Export 3D Model",
       onClick: function () {
         if (!currentModelPath) {
-          window.FOSS.toast.show({ message: "Open a model first.", type: "error" });
+          window.FOSS.toast.show({ message: "Open a 3D model first.", type: "error" });
           return;
         }
         var ext = formatSelect.value;
         window.FOSS.api("select_save_path", { title: "Export 3D Model", default_name: "model." + ext }).then(function (saveRes) {
           var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
           if (!outP) return;
-          statusBar.textContent = "Exporting model to " + outP + "...";
           window.FOSS.api("model3d_export", { file_path: currentModelPath, output_path: outP, format: ext }).then(function (res) {
             if (res && res.output_path) {
-              statusBar.textContent = "Saved to " + res.output_path;
               window.FOSS.toast.show({ message: "Exported to " + res.output_path, type: "success" });
             }
           });
         });
       }
-    }, [window.FOSS.dom.el("span", { text: "Export 3D Model" })]);
+    });
 
-    var sidebar = window.FOSS.dom.el("div", {
-      className: "model3d-sidebar panel flex-col gap-sm",
+    var exportCard = window.FOSS.dom.el("div", {
+      className: "card card-compact",
       style: "width: 100%;"
     }, [
-      window.FOSS.dom.el("div", { className: "card mb-md" }, [
-        window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "Export Format" }),
-        window.FOSS.dom.el("div", { className: "row gap-sm items-center mb-md" }, [formatSelect]),
-        exportBtn
-      ])
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Export Format" }),
+      window.FOSS.components.field("Target Format", formatSelect),
+      exportBtn
     ]);
 
-    var layoutRow = window.FOSS.dom.el("div", {
-      className: "split split-main-first",
-      style: "width: 100%; min-height: 520px; align-items: stretch;"
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "model3d-sidebar-pane stack",
+      "data-testid": "model3d-export-sidebar"
     }, [
-      window.FOSS.dom.el("div", {
-        className: "model3d-viewport-wrapper",
-        style: "width: 100%; height: 100%; min-height: 480px; position: relative;"
-      }, [viewport.el]),
+      exportCard
+    ]);
+
+    var dividerExport = window.FOSS.components.splitDivider({ vertical: true });
+    dividerExport.addEventListener("mousedown", function () {
+      if (viewport && viewport.canvas) {
+        viewport.canvas.style.setProperty("pointer-events", "none");
+        function onUp() {
+          if (viewport && viewport.canvas) {
+            viewport.canvas.style.removeProperty("pointer-events");
+          }
+          window.removeEventListener("mouseup", onUp);
+        }
+        window.addEventListener("mouseup", onUp);
+      }
+    });
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable split-main-first model3d-workbench",
+      "data-testid": "model3d-workbench"
+    }, [
+      viewport.el,
+      dividerExport,
       sidebar
     ]);
 
-    panel.appendChild(header);
+    panel.appendChild(topbarObj.el);
     panel.appendChild(statusBar);
-    panel.appendChild(layoutRow);
+    panel.appendChild(split);
 
-    if (currentVertices && currentFaces && !modelMeshBuffer) {
-      modelMeshBuffer = buildMeshBuffers(currentVertices, currentFaces);
-    }
     viewport.render();
   }
 
   window.FOSS.router.register({
     id: "model3d",
-    title: "3D Model Viewer & Slicer",
+    title: "3D Model Studio",
     navName: "3D Models",
     category: "Visuals",
     icon: "box",
+    workbench: true,
     tabs: [
       { id: "inspector", label: "Inspector & Tools", render: renderUnifiedInspector },
       { id: "cut", label: "Cut Plane", render: renderCut },

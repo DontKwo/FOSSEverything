@@ -1,15 +1,17 @@
 """Master Resume data structures, tailoring engine, ATS keyword matcher, and exporters."""
 from __future__ import annotations
 
+import base64
 import json
+import logging
 import os
 import re
 import uuid
-import zipfile
 from dataclasses import dataclass, field, asdict
 from typing import Any
-import xml.etree.ElementTree as ET
 import pymupdf
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -22,10 +24,13 @@ class BulletPoint:
 @dataclass
 class ResumeEntry:
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
-    title: str = ""        # e.g., Senior Software Engineer / B.S. Computer Science / Cloud Migration Project
-    subtitle: str = ""     # e.g., Stripe / Stanford University / Open Source
-    date_range: str = ""   # e.g., 2022 - Present / 2018 - 2022
-    location: str = ""     # e.g., San Francisco, CA / Remote
+    title: str = ""
+    subtitle: str = ""
+    date_range: str = ""
+    location: str = ""
+    gpa: str = ""
+    coursework: str = ""
+    skills_text: str = ""
     bullets: list[BulletPoint] = field(default_factory=list)
     enabled: bool = True
 
@@ -33,7 +38,7 @@ class ResumeEntry:
 @dataclass
 class ResumeSection:
     id: str = field(default_factory=lambda: str(uuid.uuid4())[:8])
-    type: str = "experience"  # "experience", "projects", "skills", "education", "custom"
+    type: str = "experience"
     title: str = "Experience"
     entries: list[ResumeEntry] = field(default_factory=list)
     enabled: bool = True
@@ -55,485 +60,294 @@ class ContactInfo:
 class MasterResume:
     contact: ContactInfo = field(default_factory=ContactInfo)
     summary: str = ""
-    summary_enabled: bool = True
+    summary_enabled: bool = False
     sections: list[ResumeSection] = field(default_factory=list)
     profiles: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 
 def create_sample_master_resume() -> MasterResume:
-    """Create a rich, comprehensive sample master resume."""
+    # Create sample master resume matching SpaceX GNC format.
     contact = ContactInfo(
         name="Alex Morgan",
-        title="Lead Software Engineer & Solutions Architect",
-        email="alex.morgan@example.com",
-        phone="(555) 019-2834",
-        location="San Francisco, CA (Open to Remote)",
-        linkedin="linkedin.com/in/alexmorgan",
+        title="Guidance, Navigation, and Control Engineer",
+        email="alex.morgan@utexas.edu",
+        phone="(512) 555-0199",
+        location="Austin, TX",
+        linkedin="linkedin.com/in/alexmorgan-aero",
         github="github.com/alexmorgan",
-        website="alexmorgan.dev",
+        website="alexmorgan.space",
     )
-    summary = (
-        "High-impact software engineering leader with 8+ years architecting scalable cloud-native platforms, "
-        "distributed systems, and developer tooling. Proven track record driving 40% performance gains and leading "
-        "cross-functional engineering squads."
-    )
+    summary = ""
 
-    # Section 1: Experience
-    exp = ResumeSection(id="sec_exp", type="experience", title="Professional Experience", enabled=True)
-
-    e1 = ResumeEntry(
-        id="exp_1",
-        title="Senior Staff Software Engineer",
-        subtitle="Stripe / Fintech Corp",
-        date_range="2022 - Present",
-        location="San Francisco, CA",
-        enabled=True,
-        bullets=[
-            BulletPoint(id="b1", text="Architected ultra-low-latency payment processing pipeline handling $4B+ annualized volume with 99.999% uptime.", enabled=True),
-            BulletPoint(id="b3", text="Mentored 12 engineers across backend and infrastructure teams; spearheaded company-wide zero-downtime deployment standard.", enabled=True),
-            BulletPoint(id="b4", text="Designed distributed transaction ledger with PostgreSQL and Redis caching, preventing $1.2M in potential race conditions.", enabled=True),
-            BulletPoint(id="b5", text="Reduced AWS cloud spend by $320k/year through automated spot instance scheduling and auto-scaling optimizations.", enabled=False),
-        ]
-    )
-
-    e2 = ResumeEntry(
-        id="exp_2",
-        title="Software Engineer II",
-        subtitle="Datadog / Cloud Scale Inc",
-        date_range="2019 - 2022",
-        location="New York, NY",
-        enabled=True,
-        bullets=[
-            BulletPoint(id="b6", text="Engineered real-time telemetry indexing pipeline in Python and C++ ingesting 250k events/second.", enabled=True),
-            BulletPoint(id="b7", text="Built automated anomaly detection service using scikit-learn that reduced false-positive alerts by 60%.", enabled=True),
-            BulletPoint(id="b8", text="Authored comprehensive internal developer SDKs downloaded 100k+ times by 80+ engineering teams.", enabled=True),
-        ]
-    )
-    exp.entries = [e1, e2]
-
-    # Section 2: Projects
-    proj = ResumeSection(id="sec_proj", type="projects", title="Featured Projects", enabled=True)
-    p1 = ResumeEntry(
-        id="proj_1",
-        title="FOSSEverything - Local-First Desktop Utilities",
-        subtitle="Creator & Lead Maintainer",
-        date_range="2024",
-        location="github.com/FOSSEverything",
-        enabled=True,
-        bullets=[
-            BulletPoint(id="b9", text="Built 100% offline desktop productivity suite with PyMuPDF, FFmpeg, and OCR engines.", enabled=True),
-            BulletPoint(id="b10", text="Engineered zero-cloud document rendering, video/audio transcoding, and structured data querying.", enabled=True),
-        ]
-    )
-    proj.entries = [p1]
-
-    # Section 3: Skills
-    skills = ResumeSection(id="sec_skills", type="skills", title="Technical Skills", enabled=True)
-    s1 = ResumeEntry(
-        id="skill_1",
-        title="Languages & Technologies",
-        subtitle="Python, Go, TypeScript, Rust, C++, FastAPI, gRPC, React",
-        date_range="",
-        location="",
-        enabled=True,
-        bullets=[
-            BulletPoint(id="b11", text="Backend: Python (FastAPI, Django), Go, Rust, Node.js, gRPC, REST APIs", enabled=True),
-            BulletPoint(id="b12", text="Cloud & DevOps: AWS (ECS, EKS, Lambda, S3, RDS), Kubernetes, Docker, Terraform, CI/CD", enabled=True),
-            BulletPoint(id="b13", text="Databases: PostgreSQL, Redis, DynamoDB, MongoDB, Elasticsearch, Kafka", enabled=True),
-            BulletPoint(id="b14", text="Frontend & Mobile: TypeScript, React, Next.js, Tailwind CSS, PyQt6 / Desktop GUI", enabled=False),
-        ]
-    )
-    skills.entries = [s1]
-
-    # Section 4: Education
-    edu = ResumeSection(id="sec_edu", type="education", title="Education", enabled=True)
+    # Section 1: Education
+    sec_edu = ResumeSection(id="sec_edu", type="education", title="EDUCATION", enabled=True)
     ed1 = ResumeEntry(
         id="edu_1",
-        title="B.S. in Computer Science & Mathematics",
-        subtitle="University of California, Berkeley",
-        date_range="2015 - 2019",
-        location="Berkeley, CA",
+        title="Bachelor of Science, Aerospace Engineering Honors",
+        subtitle="The University of Texas at Austin",
+        date_range="December 2026",
+        gpa="3.94 / 4.00",
+        coursework="Orbital Mechanics, Spacecraft Dynamics & Control, Flight Mechanics, Numerical Methods, Feedback Control Systems, Aerodynamics",
+        enabled=True,
+    )
+    sec_edu.entries = [ed1]
+
+    # Section 2: Experience
+    sec_exp = ResumeSection(id="sec_exp", type="experience", title="WORK EXPERIENCE", enabled=True)
+    e1 = ResumeEntry(
+        id="exp_1",
+        title="Guidance, Navigation, and Control Intern",
+        subtitle="Space Exploration Technologies (SpaceX)",
+        date_range="May 2025 - August 2025",
         enabled=True,
         bullets=[
-            BulletPoint(id="b15", text="Honors: Magna Cum Laude, Dean's Honors List (all semesters).", enabled=True),
-            BulletPoint(id="b16", text="Coursework: Distributed Systems, Operating Systems, Algorithms & Complexity, Database Systems.", enabled=True),
-        ]
+            BulletPoint(id="b1", text="Designed and validated 6-DOF entry guidance Monte Carlo simulations in C++ and Python, analyzing trajectory dispersions across 10,000+ flight runs.", enabled=True),
+            BulletPoint(id="b2", text="Implemented quaternion-based attitude estimation filters integrating IMU and star tracker telemetry with extended Kalman filters.", enabled=True),
+            BulletPoint(id="b3", text="Bench-tested reaction control thruster firing logic in hardware-in-the-loop (HIL) simulators, reducing attitude error settling time by 18%.", enabled=True),
+        ],
     )
-    edu.entries = [ed1]
+    e2 = ResumeEntry(
+        id="exp_2",
+        title="Flight Software Engineering Intern",
+        subtitle="Relativity Space",
+        date_range="June 2024 - August 2024",
+        enabled=True,
+        bullets=[
+            BulletPoint(id="b4", text="Developed deterministic telemetry packet parsers and real-time state logging daemon deployed on rocket stage avionics bus.", enabled=True),
+            BulletPoint(id="b5", text="Automated regression verification suites for stage separation dynamics, catching 4 critical timing anomalies prior to static fire.", enabled=True),
+        ],
+    )
+    sec_exp.entries = [e1, e2]
 
-    resume = MasterResume(
+    # Section 3: Projects
+    sec_proj = ResumeSection(id="sec_proj", type="projects", title="PROJECTS", enabled=True)
+    p1 = ResumeEntry(
+        id="proj_1",
+        title="Texas Rocket Engineering Lab (TREL)",
+        subtitle="Avionics & Simulation Lead",
+        date_range="2023 - Present",
+        enabled=True,
+        bullets=[
+            BulletPoint(id="b6", text="Architected primary flight computer software stack for 30,000 ft altitude sounding rocket using embedded Linux and C++.", enabled=True),
+            BulletPoint(id="b7", text="Engineered automated trajectory reconstruction pipeline from raw flash logs, reducing flight data analysis turnaround from 3 days to 15 minutes.", enabled=True),
+        ],
+    )
+    sec_proj.entries = [p1]
+
+    # Section 4: Organization
+    sec_org = ResumeSection(id="sec_org", type="organization", title="ORGANIZATIONAL EXPERIENCE", enabled=True)
+    o1 = ResumeEntry(
+        id="org_1",
+        title="Lead Simulation Mentor",
+        subtitle="AIAA Student Branch",
+        date_range="2024 - Present",
+        enabled=True,
+        bullets=[
+            BulletPoint(id="b8", text="Directed weekly numerical simulation workshops covering orbital transfers and feedback control loops for 45 undergraduate engineering students.", enabled=True),
+        ],
+    )
+    sec_org.entries = [o1]
+
+    # Section 5: Skills
+    sec_skills = ResumeSection(id="sec_skills", type="skills", title="ADDITIONAL SKILLS AND LANGUAGES", enabled=True)
+    s1 = ResumeEntry(
+        id="skill_1",
+        title="Simulation & Analysis",
+        skills_text="C++, Python, MATLAB, Simulink, ROS 2, PyMuPDF, NumPy, SciPy, FreeCAD, Linux/POSIX",
+        enabled=True,
+    )
+    s2 = ResumeEntry(
+        id="skill_2",
+        title="Engineering Domains",
+        skills_text="Orbital Mechanics, Kalman Filtering, 6-DOF Trajectory Simulation, Attitude Determination (ADCS), PID/LQR Control",
+        enabled=True,
+    )
+    sec_skills.entries = [s1, s2]
+
+    # Section 6: Accomplishments
+    sec_acc = ResumeSection(id="sec_acc", type="accomplishments", title="ACCOMPLISHMENTS", enabled=True)
+    a1 = ResumeEntry(
+        id="acc_1",
+        title="Honors & Publications",
+        date_range="2024",
+        enabled=True,
+        bullets=[
+            BulletPoint(id="b9", text="1st Place, National AIAA Undergraduate Spacecraft Design Competition (Team Lead).", enabled=True),
+            BulletPoint(id="b10", text="University of Texas Engineering Honors Scholar (Top 5% of Engineering Class).", enabled=True),
+        ],
+    )
+    sec_acc.entries = [a1]
+
+    return MasterResume(
         contact=contact,
         summary=summary,
-        summary_enabled=True,
-        sections=[exp, proj, skills, edu],
-        profiles={
-            "Backend Lead": {
-                "summary": True,
-                "sections": {"sec_exp": True, "sec_proj": True, "sec_skills": True, "sec_edu": True},
-                "entries": {"exp_1": True, "exp_2": True, "proj_1": True, "skill_1": True, "edu_1": True},
-                "bullets": {"b1": True, "b2": True, "b3": True, "b4": True, "b5": False, "b6": True, "b7": True, "b8": True, "b9": True, "b10": True, "b11": True, "b12": True, "b13": True, "b14": False, "b15": True, "b16": True}
-            }
-        }
+        summary_enabled=False,
+        sections=[sec_edu, sec_exp, sec_proj, sec_org, sec_skills, sec_acc],
+        profiles={},
     )
-    return resume
 
 
-# ─── Serialization & Persistence ─────────────────────────────────────────────────────
 def resume_to_dict(resume: MasterResume) -> dict[str, Any]:
+    # Convert MasterResume object to serializable dictionary.
     return asdict(resume)
 
 
-def resume_from_dict(d: dict[str, Any]) -> MasterResume:
-    contact_d = d.get("contact", {})
-    contact = ContactInfo(**contact_d) if isinstance(contact_d, dict) else ContactInfo()
+def resume_from_dict(d: dict[str, Any] | MasterResume) -> MasterResume:
+    # Deserialize dictionary into MasterResume object with fallback key support.
+    if isinstance(d, MasterResume):
+        return d
+    contact_d = d.get("contact")
+    if not isinstance(contact_d, dict):
+        contact_d = {}
 
-    sections = []
+    contact = ContactInfo(
+        name=str(contact_d.get("name") or d.get("name", "")),
+        title=str(contact_d.get("title") or d.get("title", "")),
+        email=str(contact_d.get("email") or d.get("email", "")),
+        phone=str(contact_d.get("phone") or d.get("phone", "")),
+        location=str(contact_d.get("location") or d.get("location", "")),
+        linkedin=str(contact_d.get("linkedin") or d.get("linkedin", "")),
+        github=str(contact_d.get("github") or d.get("github", "")),
+        website=str(contact_d.get("website") or d.get("website", "")),
+    )
+
+    sum_enabled = d.get("include_summary")
+    if sum_enabled is None:
+        sum_enabled = bool(d.get("summary_enabled", False))
+    else:
+        sum_enabled = bool(sum_enabled)
+
+    sections: list[ResumeSection] = []
     for s in d.get("sections", []):
-        entries = []
+        entries: list[ResumeEntry] = []
         for e in s.get("entries", []):
-            bullets = [BulletPoint(**b) if isinstance(b, dict) else b for b in e.get("bullets", [])]
+            raw_bullets = e.get("bullets", [])
+            bullets = [BulletPoint(**b) if isinstance(b, dict) else b for b in raw_bullets]
             entries.append(ResumeEntry(
-                id=e.get("id", ""),
-                title=e.get("title", ""),
-                subtitle=e.get("subtitle", ""),
-                date_range=e.get("date_range", ""),
-                location=e.get("location", ""),
+                id=str(e.get("id", "")),
+                title=str(e.get("title", "")),
+                subtitle=str(e.get("organization") or e.get("subtitle", "")),
+                date_range=str(e.get("dates") or e.get("date_range", "")),
+                location=str(e.get("location", "")),
+                gpa=str(e.get("gpa", "")),
+                coursework=str(e.get("coursework", "")),
+                skills_text=str(e.get("skills_text", "")),
                 bullets=bullets,
-                enabled=e.get("enabled", True),
+                enabled=bool(e.get("enabled", True)),
             ))
         sections.append(ResumeSection(
-            id=s.get("id", ""),
-            type=s.get("type", "custom"),
-            title=s.get("title", "Section"),
+            id=str(s.get("id", "")),
+            type=str(s.get("type", "custom")),
+            title=str(s.get("title", "Section")),
             entries=entries,
-            enabled=s.get("enabled", True),
+            enabled=bool(s.get("enabled", True)),
         ))
 
     return MasterResume(
         contact=contact,
-        summary=d.get("summary", ""),
-        summary_enabled=d.get("summary_enabled", True),
+        summary=str(d.get("summary", "")),
+        summary_enabled=sum_enabled,
         sections=sections,
-        profiles=d.get("profiles", {}),
+        profiles=dict(d.get("profiles", {})),
     )
 
 
 def save_resume_file(resume: MasterResume, path: str) -> None:
+    # Save master resume to JSON file.
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(resume_to_dict(resume), f, indent=2)
 
 
 def load_resume_file(path: str) -> MasterResume:
+    # Load master resume from JSON file.
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
     return resume_from_dict(data)
 
 
-# ─── ATS Keyword Matcher ────────────────────────────────────────────────────────────
-COMMON_STOPWORDS = {
-    "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are", "aren't",
-    "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but", "by",
-    "can't", "cannot", "could", "couldn't", "did", "didn't", "do", "does", "doesn't", "doing", "don't",
-    "down", "during", "each", "few", "for", "from", "further", "had", "hadn't", "has", "hasn't", "have",
-    "haven't", "having", "he", "he'd", "he'll", "he's", "her", "here", "here's", "hers", "herself", "him",
-    "himself", "his", "how", "how's", "i", "i'd", "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't",
-    "it", "it's", "its", "itself", "let's", "me", "more", "most", "mustn't", "my", "myself", "no", "nor",
-    "not", "of", "off", "on", "once", "only", "or", "other", "ought", "our", "ours", "ourselves", "out",
-    "over", "own", "same", "shan't", "she", "she'd", "she'll", "she's", "should", "shouldn't", "so", "some",
-    "such", "than", "that", "that's", "the", "their", "theirs", "them", "themselves", "then", "there",
-    "there's", "these", "they", "they'd", "they'll", "they're", "they've", "this", "those", "through",
-    "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd", "we'll", "we're", "we've",
-    "were", "weren't", "what", "what's", "when", "when's", "where", "where's", "which", "while", "who",
-    "who's", "whom", "why", "why's", "with", "won't", "would", "wouldn't", "you", "you'd", "you'll", "you're",
-    "you've", "your", "yours", "yourself", "yourselves", "will", "experience", "work", "years", "team", "role",
-    "job", "candidate", "responsibilities", "requirements", "plus", "must", "required", "preferred"
-}
-
-
-def extract_keywords(text: str) -> list[str]:
-    """Tokenize and extract candidate keywords from job description or resume."""
-    tokens = re.findall(r"[a-zA-Z0-9+#.-]+", text.lower())
-    cleaned = []
-    for t in tokens:
-        t_clean = t.strip(".,;:()")
-        if len(t_clean) >= 2 and t_clean not in COMMON_STOPWORDS and not t_clean.isdigit():
-            cleaned.append(t_clean)
-    return cleaned
+def extract_keywords(text: str) -> set[str]:
+    # Extract lowercased alphanumeric keywords from text.
+    words = re.findall(r"\b[A-Za-z0-9_+#.-]{2,}\b", text.lower())
+    stop_words = {
+        "and", "the", "for", "with", "from", "that", "this", "are", "was", "were",
+        "will", "have", "has", "had", "been", "work", "team", "using", "into"
+    }
+    return {w for w in words if w not in stop_words}
 
 
 def analyze_ats_match(resume: MasterResume, job_description: str) -> dict[str, Any]:
-    """Compute keyword match percentage and identify missing key terms."""
-    if not job_description.strip():
-        return {"score": 0, "matched": [], "missing": [], "total_keywords": 0}
+    # Analyze keyword matching score against job description.
+    job_words = extract_keywords(job_description)
+    resume_text = " ".join([
+        resume.contact.name, resume.contact.title, resume.summary,
+        " ".join([
+            f"{e.title} {e.subtitle} {e.coursework} {e.skills_text} " + " ".join([b.text for b in e.bullets if b.enabled])
+            for s in resume.sections if s.enabled for e in s.entries if e.enabled
+        ])
+    ])
+    resume_words = extract_keywords(resume_text)
+    if not job_words:
+        return {"score": 0.0, "matched": [], "missing": []}
 
-    resume_text_parts = [resume.contact.title]
-    if resume.summary_enabled:
-        resume_text_parts.append(resume.summary)
-
-    for sec in resume.sections:
-        if not sec.enabled:
-            continue
-        resume_text_parts.append(sec.title)
-        for entry in sec.entries:
-            if not entry.enabled:
-                continue
-            resume_text_parts.extend([entry.title, entry.subtitle, entry.location])
-            for b in entry.bullets:
-                if b.enabled:
-                    resume_text_parts.append(b.text)
-
-    resume_corpus = " ".join(resume_text_parts).lower()
-
-    job_tokens = extract_keywords(job_description)
-    freq: dict[str, int] = {}
-    for tok in job_tokens:
-        freq[tok] = freq.get(tok, 0) + 1
-
-    sorted_keywords = sorted(freq.items(), key=lambda kv: -kv[1])
-
-    matched = []
-    missing = []
-    for kw, count in sorted_keywords[:50]:
-        if kw in resume_corpus:
-            matched.append((kw, count))
-        else:
-            missing.append((kw, count))
-
-    total = len(matched) + len(missing)
-    score = int((len(matched) / total * 100)) if total > 0 else 0
-
+    matched = sorted(list(job_words & resume_words))
+    missing = sorted(list(job_words - resume_words))
+    score = (len(matched) / len(job_words)) * 100.0
     return {
         "score": score,
-        "matched": matched,
-        "missing": missing,
-        "total_keywords": total,
+        "matched": [(kw, 1) for kw in matched],
+        "missing": [(kw, 1) for kw in missing],
     }
 
 
-# ─── Resume Layout & Versioning ───────────────────────────────────────────────────
-def _snapshot_profile_state(resume: MasterResume) -> dict[str, Any]:
-    """Capture the current enabled/disabled state of a profile into a stable dict."""
-    state = {
-        "summary": resume.summary_enabled,
-        "sections": {},
-        "entries": {},
-        "bullets": {},
-    }
-    for sec in resume.sections:
-        state["sections"][sec.id] = sec.enabled
-        for entry in sec.entries:
-            state["entries"][entry.id] = entry.enabled
-            for bullet in entry.bullets:
-                state["bullets"][bullet.id] = bullet.enabled
-    return state
-
-
-def capture_profile_version(resume: MasterResume, profile_name: str, note: str = "") -> dict[str, Any] | None:
-    """Store a snapshot of a saved profile so users can compare successive tailoring changes."""
+def capture_profile_version(resume: MasterResume, profile_name: str, note: str = "") -> dict[str, Any]:
+    # Record version snapshot of profile states.
     if profile_name not in resume.profiles:
-        return None
-    profile = resume.profiles[profile_name]
-    history = profile.setdefault("history", [])
+        resume.profiles[profile_name] = {"history": []}
+    profile_data = resume.profiles[profile_name]
+    history = profile_data.setdefault("history", [])
     snapshot = {
-        "note": note or f"Version {len(history) + 1}",
-        "timestamp": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
-        "state": _snapshot_profile_state(resume),
+        "id": str(uuid.uuid4())[:8],
+        "note": note,
+        "summary": resume.summary_enabled,
+        "sections": {s.id: s.enabled for s in resume.sections},
+        "entries": {e.id: e.enabled for s in resume.sections for e in s.entries},
+        "bullets": {b.id: b.enabled for s in resume.sections for e in s.entries for b in e.bullets},
     }
     history.append(snapshot)
     return snapshot
 
 
 def diff_profile_versions(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
-    """Compare two saved profile snapshots and summarize what changed."""
-    changed = {"summary": before.get("summary") != after.get("summary")}
-    sections = []
-    entries = []
-    bullets = []
-
-    before_sections = before.get("sections", {})
-    after_sections = after.get("sections", {})
-    for sec_id in sorted(set(before_sections) | set(after_sections)):
-        if before_sections.get(sec_id) != after_sections.get(sec_id):
-            sections.append({"id": sec_id, "before": before_sections.get(sec_id), "after": after_sections.get(sec_id)})
-
-    before_entries = before.get("entries", {})
-    after_entries = after.get("entries", {})
-    for entry_id in sorted(set(before_entries) | set(after_entries)):
-        if before_entries.get(entry_id) != after_entries.get(entry_id):
-            entries.append({"id": entry_id, "before": before_entries.get(entry_id), "after": after_entries.get(entry_id)})
-
-    before_bullets = before.get("bullets", {})
-    after_bullets = after.get("bullets", {})
-    for bullet_id in sorted(set(before_bullets) | set(after_bullets)):
-        if before_bullets.get(bullet_id) != after_bullets.get(bullet_id):
-            bullets.append({"id": bullet_id, "before": before_bullets.get(bullet_id), "after": after_bullets.get(bullet_id)})
-
-    changed["sections"] = sections
-    changed["entries"] = entries
-    changed["bullets"] = bullets
-    return changed
-
-
-def export_html(resume: MasterResume, theme: str = "modern", layout: str = "single", accent_color: str | None = None, palette: dict[str, str] | None = None, font_scale: float = 1.0) -> str:
-    """Export the tailored resume as a minimal HTML document with optional dual-column layout styling."""
-    safe_theme = (theme or "modern").lower()
-    scale = max(0.75, float(font_scale) if isinstance(font_scale, (int, float)) else 1.0)
-    # noqa: 28 (exported resume document's own color theme, independent of the app UI theme module)
-    resolved_palette = {
-        "page_bg": "#0f172a" if safe_theme.startswith("dark") else "#f3f4f6",  # noqa: 28
-        "surface": "#111827" if safe_theme.startswith("dark") else "#ffffff",  # noqa: 28
-        "surface_alt": "#1f2937" if safe_theme.startswith("dark") else "#f8fafc",  # noqa: 28
-        "text": "#f8fafc" if safe_theme.startswith("dark") else "#111827",  # noqa: 28
-        "muted": "#cbd5e1" if safe_theme.startswith("dark") else "#4b5563",  # noqa: 28
-        "border": "#334155" if safe_theme.startswith("dark") else "#dbe4f0",  # noqa: 28
-        "shadow": "rgba(15, 23, 42, 0.28)" if safe_theme.startswith("dark") else "rgba(15, 23, 42, 0.08)",
-        "accent": "#2563eb",  # noqa: 28
-    }
-    if isinstance(palette, dict):
-        resolved_palette.update({key: value for key, value in palette.items() if isinstance(value, str) and value.strip()})
-    accent = accent_color or resolved_palette.get("accent") or "currentColor"
-    base_font = max(12.0, 16.0 * scale)
-    small_font = max(11.0, base_font * 0.8)
-    label_font = max(12.0, base_font * 0.82)
-    heading_font = max(28.0, base_font * 1.8)
-    if layout == "dual-column":
-        css = f"""
-        :root {{
-            --page-bg: {resolved_palette['page_bg']};
-            --surface: {resolved_palette['surface']};
-            --surface-alt: {resolved_palette['surface_alt']};
-            --text: {resolved_palette['text']};
-            --muted: {resolved_palette['muted']};
-            --border: {resolved_palette['border']};
-            --shadow: {resolved_palette['shadow']};
-            --accent: {accent};
-            --base-font: {base_font:.2f}px;
-            --small-font: {small_font:.2f}px;
-            --label-font: {label_font:.2f}px;
-            --heading-font: {heading_font:.2f}px;
-        }}
-        body {{ font-family: Arial, sans-serif; margin: 0; background: var(--page-bg); color: var(--text); font-size: var(--base-font); }}
-        .resume-page {{ max-width: 1100px; margin: 24px auto; background: var(--surface); padding: 28px; box-shadow: 0 1px 3px var(--shadow); }}
-        .resume-layout {{ display: grid; grid-template-columns: 300px 1fr; gap: 32px; }}
-        .sidebar {{ background: var(--surface-alt); border-right: 2px solid var(--accent); padding-right: 20px; }}
-        .main {{ padding-left: 8px; }}
-        .name {{ font-size: var(--heading-font); font-weight: 700; color: var(--text); margin: 0; }}
-        .title {{ color: var(--accent); font-weight: 700; margin-top: 4px; }}
-        .meta {{ font-size: var(--small-font); color: var(--muted); margin-top: 10px; line-height: 1.5; }}
-        .section-title {{ font-size: var(--label-font); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 4px; margin: 16px 0 10px; }}
-        .entry-title {{ font-size: var(--base-font); font-weight: 700; color: var(--text); }}
-        .entry-meta {{ font-size: var(--small-font); color: var(--muted); margin: 3px 0; }}
-        ul {{ margin: 6px 0 0 0; padding-left: 18px; }}
-        li {{ margin-bottom: 6px; }}
-        """
-    else:
-        css = f"""
-        :root {{
-            --page-bg: {resolved_palette['page_bg']};
-            --surface: {resolved_palette['surface']};
-            --surface-alt: {resolved_palette['surface_alt']};
-            --text: {resolved_palette['text']};
-            --muted: {resolved_palette['muted']};
-            --border: {resolved_palette['border']};
-            --shadow: {resolved_palette['shadow']};
-            --accent: {accent};
-            --base-font: {base_font:.2f}px;
-            --small-font: {small_font:.2f}px;
-            --label-font: {label_font:.2f}px;
-            --heading-font: {heading_font:.2f}px;
-        }}
-        body {{ font-family: Arial, sans-serif; margin: 0; background: var(--page-bg); color: var(--text); font-size: var(--base-font); }}
-        .resume-page {{ max-width: 850px; margin: 24px auto; background: var(--surface); padding: 30px; box-shadow: 0 1px 3px var(--shadow); }}
-        .name {{ font-size: var(--heading-font); font-weight: 700; margin: 0; color: var(--text); }}
-        .title {{ color: var(--accent); font-weight: 700; margin-top: 4px; }}
-        .meta {{ font-size: var(--small-font); color: var(--muted); margin-top: 10px; }}
-        .section-title {{ font-size: var(--label-font); text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 4px; margin: 16px 0 10px; }}
-        .entry-title {{ font-size: var(--base-font); font-weight: 700; color: var(--text); }}
-        .entry-meta {{ font-size: var(--small-font); color: var(--muted); margin: 3px 0; }}
-        ul {{ margin: 6px 0 0 0; padding-left: 18px; }}
-        li {{ margin-bottom: 6px; }}
-        """
-
-    lines = [
-        "<!DOCTYPE html>",
-        "<html><head><meta charset='utf-8'><style>" + css + "</style></head><body>",
-        "<div class='resume-page'>",
-    ]
-
-    if layout == "dual-column":
-        lines.append("<div class='resume-layout'><aside class='sidebar'>")
-    else:
-        lines.append("<div>")
-
-    lines.append(f"<h1 class='name'>{resume.contact.name}</h1>")
-    if resume.contact.title:
-        lines.append(f"<div class='title'>{resume.contact.title}</div>")
-    contact_parts = []
-    if resume.contact.email: contact_parts.append(resume.contact.email)
-    if resume.contact.phone: contact_parts.append(resume.contact.phone)
-    if resume.contact.location: contact_parts.append(resume.contact.location)
-    if resume.contact.linkedin: contact_parts.append(f"<a href='https://{resume.contact.linkedin}'>{resume.contact.linkedin}</a>")
-    if resume.contact.github: contact_parts.append(f"<a href='https://{resume.contact.github}'>{resume.contact.github}</a>")
-    if resume.contact.website: contact_parts.append(f"<a href='https://{resume.contact.website}'>{resume.contact.website}</a>")
-    if contact_parts:
-        lines.append("<div class='meta'>" + " | ".join(contact_parts) + "</div>")
-
-    if resume.summary_enabled and resume.summary.strip():
-        lines.append("<div class='section-title'>Professional Summary</div>")
-        lines.append(f"<div>{resume.summary.strip()}</div>")
-
-    if layout == "dual-column":
-        lines.append("</aside><main class='main'>")
-
-    for sec in resume.sections:
-        if not sec.enabled:
-            continue
-        enabled_entries = [entry for entry in sec.entries if entry.enabled]
-        if not enabled_entries:
-            continue
-        lines.append(f"<div class='section-title'>{sec.title}</div>")
-        for entry in enabled_entries:
-            line = f"<div class='entry-title'>{entry.title}</div>"
-            meta_parts = []
-            if entry.subtitle: meta_parts.append(entry.subtitle)
-            if entry.location: meta_parts.append(entry.location)
-            if entry.date_range: meta_parts.append(entry.date_range)
-            if meta_parts:
-                line += f"<div class='entry-meta'>{' | '.join(meta_parts)}</div>"
-            lines.append(line)
-            if entry.bullets:
-                lines.append("<ul>")
-                for bullet in entry.bullets:
-                    if bullet.enabled and bullet.text.strip():
-                        lines.append(f"<li>{bullet.text.strip()}</li>")
-                lines.append("</ul>")
-
-    if layout == "dual-column":
-        lines.append("</main></div>")
-    else:
-        lines.append("</div>")
-    lines.extend(["</div>", "</body></html>"])
-    return "\n".join(lines)
+    # Compare two profile snapshots and return changed items.
+    diff: dict[str, Any] = {"summary": before.get("summary") != after.get("summary")}
+    for key in ("sections", "entries", "bullets"):
+        b_map = before.get(key, {})
+        a_map = after.get(key, {})
+        all_ids = set(b_map.keys()) | set(a_map.keys())
+        diff[key] = {item_id: (b_map.get(item_id), a_map.get(item_id)) for item_id in all_ids if b_map.get(item_id) != a_map.get(item_id)}
+    return diff
 
 
 def save_profile(resume: MasterResume, profile_name: str) -> None:
-    """Capture current enabled/disabled state of all sections, entries, and bullets."""
-    state = _snapshot_profile_state(resume)
-    if profile_name in resume.profiles and isinstance(resume.profiles[profile_name], dict):
-        history = resume.profiles[profile_name].setdefault("history", [])
-        state["history"] = history
-    resume.profiles[profile_name] = state
+    # Save active profile toggle states into resume dictionary.
+    selection = {
+        "summary": resume.summary_enabled,
+        "sections": {s.id: s.enabled for s in resume.sections},
+        "entries": {e.id: e.enabled for s in resume.sections for e in s.entries},
+        "bullets": {b.id: b.enabled for s in resume.sections for e in s.entries for b in e.bullets},
+    }
+    resume.profiles[profile_name] = selection
 
 
 def apply_profile(resume: MasterResume, profile_name: str) -> bool:
-    """Apply saved profile states onto the resume."""
+    # Apply saved profile toggle states onto resume in place.
     if profile_name not in resume.profiles:
         return False
     state = resume.profiles[profile_name]
     if "history" in state:
         state = {k: v for k, v in state.items() if k != "history"}
-    resume.summary_enabled = state.get("summary", True)
+    resume.summary_enabled = state.get("summary", False)
 
     sec_map = state.get("sections", {})
     entry_map = state.get("entries", {})
@@ -551,117 +365,572 @@ def apply_profile(resume: MasterResume, profile_name: str) -> bool:
     return True
 
 
-# ─── Exporters: Markdown, HTML, PDF ───────────────────────────────────────────────
-def export_docx(resume: MasterResume, output_path: str, theme: str = "modern") -> str:
-    """Export the current resume configuration as a minimal DOCX file."""
-    os.makedirs(os.path.dirname(os.path.abspath(output_path)) or ".", exist_ok=True)
+# --- Reference Typography Resolvers ------------------------------------------
 
-    def xml_text(value: str) -> str:
-        return (value or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+def resolve_calibri_fonts() -> dict[str, Any]:
+    # Resolve Windows Calibri, Carlito, or PyMuPDF built-in fallback fonts.
+    calibri_paths = {
+        "regular": r"C:\Windows\Fonts\calibri.ttf",
+        "bold": r"C:\Windows\Fonts\calibrib.ttf",
+        "italic": r"C:\Windows\Fonts\calibrii.ttf",
+        "bold_italic": r"C:\Windows\Fonts\calibriz.ttf",
+    }
+    if all(os.path.exists(p) for p in calibri_paths.values()):
+        return {
+            "use_files": True,
+            "paths": calibri_paths,
+            "instances": {k: pymupdf.Font(fontfile=p) for k, p in calibri_paths.items()},
+            "names": {"regular": "F_REG", "bold": "F_BOLD", "italic": "F_ITAL", "bold_italic": "F_BI"},
+        }
 
-    paragraphs = []
-    paragraphs.append(f'<w:p><w:r><w:t>{xml_text(resume.contact.name)}</w:t></w:r></w:p>')
-    if resume.contact.title:
-        paragraphs.append(f'<w:p><w:r><w:t>{xml_text(resume.contact.title)}</w:t></w:r></w:p>')
+    return {
+        "use_files": False,
+        "paths": {},
+        "instances": {
+            "regular": pymupdf.Font("helv"),
+            "bold": pymupdf.Font("hebo"),
+            "italic": pymupdf.Font("heit"),
+            "bold_italic": pymupdf.Font("hebi"),
+        },
+        "names": {"regular": "helv", "bold": "hebo", "italic": "heit", "bold_italic": "hebi"},
+    }
 
-    contact_parts = []
-    if resume.contact.email: contact_parts.append(resume.contact.email)
-    if resume.contact.phone: contact_parts.append(resume.contact.phone)
-    if resume.contact.location: contact_parts.append(resume.contact.location)
-    if resume.contact.linkedin: contact_parts.append(resume.contact.linkedin)
-    if resume.contact.github: contact_parts.append(resume.contact.github)
-    if resume.contact.website: contact_parts.append(resume.contact.website)
-    if contact_parts:
-        paragraphs.append(f'<w:p><w:r><w:t>{xml_text(" | ".join(contact_parts))}</w:t></w:r></w:p>')
 
+def split_into_lines(text: str, font: pymupdf.Font, fontsize: float, max_width: float) -> list[str]:
+    # Wrap text into line strings fitting max_width based on font metrics.
+    words = text.split(" ")
+    lines: list[str] = []
+    current_line: list[str] = []
+    for word in words:
+        test_str = " ".join(current_line + [word])
+        if font.text_length(test_str, fontsize=fontsize) <= max_width:
+            current_line.append(word)
+        else:
+            if current_line:
+                lines.append(" ".join(current_line))
+                current_line = [word]
+            else:
+                lines.append(word)
+                current_line = []
+    if current_line:
+        lines.append(" ".join(current_line))
+    return lines
+
+
+# --- PDF Engine -------------------------------------------------------------
+
+def render_resume_pdf_bytes(resume: MasterResume, font_pt: float = 11.0) -> bytes:
+    # Render resume to PDF bytes using exact SpaceX GNC geometry and typography.
+    doc = pymupdf.open()
+    font_res = resolve_calibri_fonts()
+    fonts = font_res["instances"]
+    fnames = font_res["names"]
+
+    page_width = 612.0
+    page_height = 792.0
+    margin_left = 54.0
+    margin_right = 558.0
+    content_width = 504.0
+    max_y = 756.0
+
+    scale = font_pt / 11.0
+    leading_line = 13.45 * scale
+    leading_bullet = 14.2 * scale
+
+    def create_page() -> tuple[pymupdf.Page, float]:
+        page = doc.new_page(width=page_width, height=page_height)
+        if font_res["use_files"]:
+            page.insert_font(fontname="F_REG", fontfile=font_res["paths"]["regular"])
+            page.insert_font(fontname="F_BOLD", fontfile=font_res["paths"]["bold"])
+            page.insert_font(fontname="F_ITAL", fontfile=font_res["paths"]["italic"])
+            page.insert_font(fontname="F_BI", fontfile=font_res["paths"]["bold_italic"])
+        return page, 54.0
+
+    current_page, current_y = create_page()
+
+    # Header: Candidate Name (Centered, 20pt Bold, Uppercase)
+    name_str = (resume.contact.name or "CANDIDATE NAME").upper()
+    name_w = fonts["bold"].text_length(name_str, fontsize=20.0)
+    current_page.insert_text(
+        pymupdf.Point(306.0 - (name_w / 2.0), 55.4),
+        name_str,
+        fontname=fnames["bold"],
+        fontsize=20.0,
+        color=(0, 0, 0),
+    )
+
+    # Contact Line 1: Phone | Email | Location (Centered, 11pt Regular)
+    c1_parts = [p for p in [resume.contact.phone, resume.contact.email, resume.contact.location] if p.strip()]
+    if c1_parts:
+        c1_str = " | ".join(c1_parts)
+        c1_w = fonts["regular"].text_length(c1_str, fontsize=11.0)
+        current_page.insert_text(
+            pymupdf.Point(306.0 - (c1_w / 2.0), 73.0),
+            c1_str,
+            fontname=fnames["regular"],
+            fontsize=11.0,
+            color=(0, 0, 0),
+        )
+
+    # Contact Line 2: LinkedIn | GitHub | Website (Centered, 11pt Regular)
+    c2_parts = [p for p in [resume.contact.linkedin, resume.contact.github, resume.contact.website] if p.strip()]
+    if c2_parts:
+        c2_str = " | ".join(c2_parts)
+        c2_w = fonts["regular"].text_length(c2_str, fontsize=11.0)
+        current_page.insert_text(
+            pymupdf.Point(306.0 - (c2_w / 2.0), 86.45),
+            c2_str,
+            fontname=fnames["regular"],
+            fontsize=11.0,
+            color=(0, 0, 0),
+        )
+        current_y = 110.2
+    else:
+        current_y = 96.0 if c1_parts else 82.0
+
+    # Optional Summary
     if resume.summary_enabled and resume.summary.strip():
-        paragraphs.append(f'<w:p><w:r><w:t>{xml_text("Professional Summary")}</w:t></w:r></w:p>')
-        paragraphs.append(f'<w:p><w:r><w:t>{xml_text(resume.summary.strip())}</w:t></w:r></w:p>')
+        if current_y + 40.0 > max_y:
+            current_page, current_y = create_page()
+        current_page.insert_text(pymupdf.Point(margin_left, current_y), "SUMMARY", fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+        current_page.draw_line(pymupdf.Point(margin_left, current_y + 6.9), pymupdf.Point(margin_right, current_y + 6.9), color=(0, 0, 0), width=2.0)
+        current_y += 24.0
+        sum_lines = split_into_lines(resume.summary.strip(), fonts["regular"], 11.0, content_width)
+        for sline in sum_lines:
+            if current_y > max_y:
+                current_page, current_y = create_page()
+            current_page.insert_text(pymupdf.Point(margin_left, current_y), sline, fontname=fnames["regular"], fontsize=11.0, color=(0, 0, 0))
+            current_y += leading_line
+        current_y += 10.0
 
+    # Sections
     for sec in resume.sections:
         if not sec.enabled:
             continue
-        enabled_entries = [entry for entry in sec.entries if entry.enabled]
+        enabled_entries = [e for e in sec.entries if e.enabled]
         if not enabled_entries:
             continue
-        paragraphs.append(f'<w:p><w:r><w:t>{xml_text(sec.title)}</w:t></w:r></w:p>')
+
+        if current_y + 40.0 > max_y:
+            current_page, current_y = create_page()
+
+        heading_text = sec.title.upper()
+        current_page.insert_text(pymupdf.Point(margin_left, current_y), heading_text, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+        current_page.draw_line(pymupdf.Point(margin_left, current_y + 6.9), pymupdf.Point(margin_right, current_y + 6.9), color=(0, 0, 0), width=2.0)
+        current_y += 24.0
+
         for entry in enabled_entries:
-            parts = []
-            if entry.subtitle: parts.append(entry.subtitle)
-            if entry.location: parts.append(entry.location)
-            if entry.date_range: parts.append(entry.date_range)
-            heading = entry.title if not parts else f"{entry.title} - {' | '.join(parts)}"
-            paragraphs.append(f'<w:p><w:r><w:t>{xml_text(heading)}</w:t></w:r></w:p>')
-            for bullet in entry.bullets:
-                if bullet.enabled and bullet.text.strip():
-                    paragraphs.append(f'<w:p><w:r><w:t>{xml_text(f"- {bullet.text.strip()}")}</w:t></w:r></w:p>')
+            sec_type = sec.type.lower()
+            if sec_type == "education":
+                # Line 1: Degree (Bold, left) + Graduation Date (Bold, right-aligned)
+                if current_y + 35.0 > max_y:
+                    current_page, current_y = create_page()
+                degree_str = entry.title
+                current_page.insert_text(pymupdf.Point(margin_left, current_y), degree_str, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                if entry.date_range:
+                    date_w = fonts["bold"].text_length(entry.date_range, fontsize=11.0)
+                    current_page.insert_text(pymupdf.Point(margin_right - date_w, current_y), entry.date_range, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                current_y += leading_line
 
-    document_xml = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 wp14">
-  <w:body>
-    {"".join(paragraphs)}
-    <w:sectPr>
-      <w:pgSz w:w="12240" w:h="15840"/>
-      <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>
-    </w:sectPr>
-  </w:body>
-</w:document>
-'''
+                # Line 2: Institution (Italic, left)
+                if entry.subtitle:
+                    if current_y > max_y:
+                        current_page, current_y = create_page()
+                    current_page.insert_text(pymupdf.Point(margin_left, current_y), entry.subtitle, fontname=fnames["italic"], fontsize=11.0, color=(0, 0, 0))
+                    current_y += leading_line
 
-    content_types = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
-  <Default Extension="xml" ContentType="application/xml"/>
-  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
-  <Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>
-  <Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>
-</Types>
-'''
+                # Line 3: GPA (Bold + Regular)
+                if entry.gpa:
+                    if current_y > max_y:
+                        current_page, current_y = create_page()
+                    gpa_label = "GPA: "
+                    gpa_label_w = fonts["bold"].text_length(gpa_label, fontsize=11.0)
+                    current_page.insert_text(pymupdf.Point(margin_left, current_y), gpa_label, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                    current_page.insert_text(pymupdf.Point(margin_left + gpa_label_w, current_y), entry.gpa, fontname=fnames["regular"], fontsize=11.0, color=(0, 0, 0))
+                    current_y += leading_line
 
-    rels = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>
-  <Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>
-</Relationships>
-'''
+                # Line 4: Relevant Coursework (Bold + Regular wrapped)
+                if entry.coursework:
+                    cw_prefix = "Relevant Coursework: "
+                    cw_pw = fonts["bold"].text_length(cw_prefix, fontsize=11.0)
+                    full_cw = cw_prefix + entry.coursework
+                    cw_lines = split_into_lines(full_cw, fonts["regular"], 11.0, content_width)
+                    for c_idx, line in enumerate(cw_lines):
+                        if current_y > max_y:
+                            current_page, current_y = create_page()
+                        if c_idx == 0:
+                            current_page.insert_text(pymupdf.Point(margin_left, current_y), cw_prefix, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                            body_rest = line[len(cw_prefix):]
+                            current_page.insert_text(pymupdf.Point(margin_left + cw_pw, current_y), body_rest, fontname=fnames["regular"], fontsize=11.0, color=(0, 0, 0))
+                        else:
+                            current_page.insert_text(pymupdf.Point(margin_left, current_y), line, fontname=fnames["regular"], fontsize=11.0, color=(0, 0, 0))
+                        current_y += leading_line
+                current_y += 6.0
 
-    core_xml = f'''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <dc:title>{xml_text(resume.contact.name)}</dc:title>
-  <dc:creator>{xml_text(resume.contact.name)}</dc:creator>
-  <cp:lastModifiedBy>{xml_text(resume.contact.name)}</cp:lastModifiedBy>
-</cp:coreProperties>
-'''
+            elif sec_type in ("experience", "organization"):
+                if current_y + 35.0 > max_y:
+                    current_page, current_y = create_page()
+                # Inline Mixed Header: Title (Bold), Organization (Bold Italic), Dates (Bold)
+                x_pos = margin_left
+                if entry.title and entry.subtitle:
+                    t_str = f"{entry.title}, "
+                    current_page.insert_text(pymupdf.Point(x_pos, current_y), t_str, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                    x_pos += fonts["bold"].text_length(t_str, fontsize=11.0)
+                    org_str = entry.subtitle
+                    current_page.insert_text(pymupdf.Point(x_pos, current_y), org_str, fontname=fnames["bold_italic"], fontsize=11.0, color=(0, 0, 0))
+                    x_pos += fonts["bold_italic"].text_length(org_str, fontsize=11.0)
+                    if entry.date_range:
+                        d_str = f", {entry.date_range}"
+                        current_page.insert_text(pymupdf.Point(x_pos, current_y), d_str, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                else:
+                    head_main = entry.subtitle or entry.title
+                    current_page.insert_text(pymupdf.Point(x_pos, current_y), head_main, fontname=fnames["bold_italic"], fontsize=11.0, color=(0, 0, 0))
+                    x_pos += fonts["bold_italic"].text_length(head_main, fontsize=11.0)
+                    if entry.date_range:
+                        d_str = f", {entry.date_range}"
+                        current_page.insert_text(pymupdf.Point(x_pos, current_y), d_str, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                current_y += leading_bullet
 
-    app_xml = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">
-  <Application>FOSSEverything</Application>
-</Properties>
-'''
+                # Bullets
+                for b in entry.bullets:
+                    if not b.enabled or not b.text.strip():
+                        continue
+                    if current_y + 14.0 > max_y:
+                        current_page, current_y = create_page()
+                    current_page.draw_circle(pymupdf.Point(56.2, current_y - 3.4), 2.1, color=(0, 0, 0), fill=(0, 0, 0))
+                    b_lines = split_into_lines(b.text.strip(), fonts["regular"], 11.0, 495.0)
+                    for bl in b_lines:
+                        if current_y > max_y:
+                            current_page, current_y = create_page()
+                        current_page.insert_text(pymupdf.Point(63.0, current_y), bl, fontname=fnames["regular"], fontsize=11.0, color=(0, 0, 0))
+                        current_y += leading_bullet
+                current_y += 6.0
 
-    with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("[Content_Types].xml", content_types)
-        zf.writestr("_rels/.rels", rels)
-        zf.writestr("docProps/core.xml", core_xml)
-        zf.writestr("docProps/app.xml", app_xml)
-        zf.writestr("word/document.xml", document_xml)
+            elif sec_type == "projects":
+                if current_y + 35.0 > max_y:
+                    current_page, current_y = create_page()
+                h_parts = [entry.title]
+                if entry.subtitle:
+                    h_parts.append(f" - {entry.subtitle}")
+                if entry.date_range:
+                    h_parts.append(f", {entry.date_range}")
+                p_head = "".join(h_parts)
+                current_page.insert_text(pymupdf.Point(margin_left, current_y), p_head, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                current_y += leading_bullet
+
+                for b in entry.bullets:
+                    if not b.enabled or not b.text.strip():
+                        continue
+                    if current_y + 14.0 > max_y:
+                        current_page, current_y = create_page()
+                    current_page.draw_circle(pymupdf.Point(56.2, current_y - 3.4), 2.1, color=(0, 0, 0), fill=(0, 0, 0))
+                    b_lines = split_into_lines(b.text.strip(), fonts["regular"], 11.0, 495.0)
+                    for bl in b_lines:
+                        if current_y > max_y:
+                            current_page, current_y = create_page()
+                        current_page.insert_text(pymupdf.Point(63.0, current_y), bl, fontname=fnames["regular"], fontsize=11.0, color=(0, 0, 0))
+                        current_y += leading_bullet
+                current_y += 6.0
+
+            elif sec_type == "skills":
+                if current_y + 20.0 > max_y:
+                    current_page, current_y = create_page()
+                cat_label = f"{entry.title}: "
+                cat_w = fonts["bold"].text_length(cat_label, fontsize=11.0)
+                body_skills = entry.skills_text or ", ".join([b.text for b in entry.bullets if b.enabled])
+                full_skill_str = cat_label + body_skills
+                skill_lines = split_into_lines(full_skill_str, fonts["regular"], 11.0, content_width)
+                for s_idx, sline in enumerate(skill_lines):
+                    if current_y > max_y:
+                        current_page, current_y = create_page()
+                    if s_idx == 0:
+                        current_page.insert_text(pymupdf.Point(margin_left, current_y), cat_label, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                        body_part = sline[len(cat_label):]
+                        current_page.insert_text(pymupdf.Point(margin_left + cat_w, current_y), body_part, fontname=fnames["regular"], fontsize=11.0, color=(0, 0, 0))
+                    else:
+                        current_page.insert_text(pymupdf.Point(margin_left, current_y), sline, fontname=fnames["regular"], fontsize=11.0, color=(0, 0, 0))
+                    current_y += leading_line
+                current_y += 6.0
+
+            else:
+                # Custom & Accomplishments
+                if entry.title:
+                    if current_y + 25.0 > max_y:
+                        current_page, current_y = create_page()
+                    h_parts = [entry.title]
+                    if entry.subtitle:
+                        h_parts.append(f" - {entry.subtitle}")
+                    if entry.date_range:
+                        h_parts.append(f", {entry.date_range}")
+                    p_head = "".join(h_parts)
+                    current_page.insert_text(pymupdf.Point(margin_left, current_y), p_head, fontname=fnames["bold"], fontsize=11.0, color=(0, 0, 0))
+                    current_y += leading_bullet
+
+                for b in entry.bullets:
+                    if not b.enabled or not b.text.strip():
+                        continue
+                    if current_y + 14.0 > max_y:
+                        current_page, current_y = create_page()
+                    current_page.draw_circle(pymupdf.Point(56.2, current_y - 3.4), 2.1, color=(0, 0, 0), fill=(0, 0, 0))
+                    b_lines = split_into_lines(b.text.strip(), fonts["regular"], 11.0, 495.0)
+                    for bl in b_lines:
+                        if current_y > max_y:
+                            current_page, current_y = create_page()
+                        current_page.insert_text(pymupdf.Point(63.0, current_y), bl, fontname=fnames["regular"], fontsize=11.0, color=(0, 0, 0))
+                        current_y += leading_bullet
+                current_y += 6.0
+
+    pdf_bytes = doc.tobytes(garbage=4, deflate=True)
+    doc.close()
+    return pdf_bytes
+
+
+def render_resume_preview_pages(resume: MasterResume, dpi: int = 160, font_pt: float = 11.0) -> dict[str, Any]:
+    # Render resume to base64 PNG pages for live preview stage.
+    pdf_bytes = render_resume_pdf_bytes(resume, font_pt=font_pt)
+    doc = pymupdf.open("pdf", pdf_bytes)
+    zoom = dpi / 72.0
+    matrix = pymupdf.Matrix(zoom, zoom)
+    pages: list[str] = []
+    for page in doc:
+        pix = page.get_pixmap(matrix=matrix, alpha=False)
+        png_data = pix.tobytes("png")
+        b64 = base64.b64encode(png_data).decode("ascii")
+        pages.append(f"data:image/png;base64,{b64}")
+    total = len(doc)
+    doc.close()
+    return {"page_count": total, "pages": pages, "fits_one_page": total == 1}
+
+
+def export_pdf(resume: MasterResume, output_path: str, theme: str = "gnc") -> str:
+    # Export resume to PDF document file.
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    pdf_bytes = render_resume_pdf_bytes(resume)
+    with open(output_path, "wb") as f:
+        f.write(pdf_bytes)
+    return output_path
+
+
+def export_docx(resume: MasterResume, output_path: str, theme: str = "gnc") -> str:
+    # Export resume to Microsoft Word DOCX matching exact SpaceX GNC formatting.
+    import os
+    import docx
+    from docx.shared import Inches, Pt, RGBColor
+    from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
+    from docx.oxml import parse_xml
+    from docx.oxml.ns import nsdecls
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    doc = docx.Document()
+    sec = doc.sections[0]
+    sec.page_width = Inches(8.5)
+    sec.page_height = Inches(11.0)
+    sec.left_margin = Inches(0.75)
+    sec.right_margin = Inches(0.75)
+    sec.top_margin = Inches(0.65)
+    sec.bottom_margin = Inches(0.65)
+
+    style_normal = doc.styles["Normal"]
+    style_normal.font.name = "Calibri"
+    style_normal.font.size = Pt(10.5)
+    style_normal.paragraph_format.line_spacing = 1.0
+    style_normal.paragraph_format.space_before = Pt(0)
+    style_normal.paragraph_format.space_after = Pt(0)
+
+    # Header Name
+    p_name = doc.add_paragraph()
+    p_name.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p_name.paragraph_format.space_after = Pt(2)
+    run_name = p_name.add_run((resume.contact.name or "CANDIDATE NAME").upper())
+    run_name.font.name = "Calibri"
+    run_name.font.size = Pt(20)
+    run_name.font.bold = True
+    run_name.font.color.rgb = RGBColor(0, 0, 0)
+
+    # Contact Info
+    c_parts = [p for p in [resume.contact.phone, resume.contact.email, resume.contact.location, resume.contact.linkedin, resume.contact.github, resume.contact.website] if p and p.strip()]
+    if c_parts:
+        p_c = doc.add_paragraph()
+        p_c.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_c.paragraph_format.space_after = Pt(4)
+        run_c = p_c.add_run(" | ".join(c_parts))
+        run_c.font.name = "Calibri"
+        run_c.font.size = Pt(9.5)
+
+    def add_section_header(title: str) -> None:
+        p_h = doc.add_paragraph()
+        p_h.paragraph_format.space_before = Pt(6)
+        p_h.paragraph_format.space_after = Pt(2)
+        r_h = p_h.add_run(title.upper())
+        r_h.font.name = "Calibri"
+        r_h.font.size = Pt(11)
+        r_h.font.bold = True
+        r_h.font.color.rgb = RGBColor(0, 0, 0)
+        bdr = parse_xml(f'<w:pBdr {nsdecls("w")}><w:bottom w:val="single" w:sz="16" w:space="2" w:color="000000"/></w:pBdr>')
+        p_h._p.get_or_add_pPr().append(bdr)
+
+    # Summary Section
+    if resume.summary_enabled and resume.summary.strip():
+        add_section_header("Summary")
+        p_s = doc.add_paragraph()
+        p_s.paragraph_format.space_after = Pt(2)
+        r_s = p_s.add_run(resume.summary.strip())
+        r_s.font.name = "Calibri"
+        r_s.font.size = Pt(10.5)
+
+    for s in resume.sections:
+        if not s.enabled:
+            continue
+        entries = [e for e in s.entries if e.enabled]
+        if not entries:
+            continue
+        add_section_header(s.title)
+
+        stype = s.type.lower()
+        for e in entries:
+            if stype == "education":
+                p_deg = doc.add_paragraph()
+                p_deg.paragraph_format.space_before = Pt(2)
+                p_deg.paragraph_format.space_after = Pt(1)
+                p_deg.paragraph_format.tab_stops.add_tab_stop(Inches(7.0), WD_TAB_ALIGNMENT.RIGHT)
+                r_title = p_deg.add_run(e.title)
+                r_title.font.name = "Calibri"
+                r_title.font.size = Pt(10.5)
+                r_title.font.bold = True
+                if e.date_range:
+                    r_date = p_deg.add_run(f"\t{e.date_range}")
+                    r_date.font.name = "Calibri"
+                    r_date.font.size = Pt(10.5)
+                    r_date.font.bold = True
+
+                if e.subtitle:
+                    p_sub = doc.add_paragraph()
+                    p_sub.paragraph_format.space_after = Pt(1)
+                    r_sub = p_sub.add_run(e.subtitle)
+                    r_sub.font.name = "Calibri"
+                    r_sub.font.size = Pt(10.5)
+                    r_sub.font.italic = True
+
+                if e.gpa:
+                    p_gpa = doc.add_paragraph()
+                    p_gpa.paragraph_format.space_after = Pt(1)
+                    r_gl = p_gpa.add_run("GPA: ")
+                    r_gl.font.bold = True
+                    p_gpa.add_run(e.gpa)
+
+                if e.coursework:
+                    p_cw = doc.add_paragraph()
+                    p_cw.paragraph_format.space_after = Pt(2)
+                    r_cl = p_cw.add_run("Relevant Coursework: ")
+                    r_cl.font.bold = True
+                    p_cw.add_run(e.coursework)
+
+            elif stype in ("experience", "organization", "projects"):
+                p_exp = doc.add_paragraph()
+                p_exp.paragraph_format.space_before = Pt(3)
+                p_exp.paragraph_format.space_after = Pt(1)
+                p_exp.paragraph_format.tab_stops.add_tab_stop(Inches(7.0), WD_TAB_ALIGNMENT.RIGHT)
+                r_pos = p_exp.add_run(e.title)
+                r_pos.font.name = "Calibri"
+                r_pos.font.size = Pt(10.5)
+                r_pos.font.bold = True
+                if e.subtitle:
+                    r_org = p_exp.add_run(f", {e.subtitle}")
+                    r_org.font.name = "Calibri"
+                    r_org.font.size = Pt(10.5)
+                    r_org.font.italic = True
+                if e.date_range:
+                    r_date = p_exp.add_run(f"\t{e.date_range}")
+                    r_date.font.name = "Calibri"
+                    r_date.font.size = Pt(10.5)
+                    r_date.font.bold = True
+
+                for b in e.bullets:
+                    if not b.enabled or not b.text.strip():
+                        continue
+                    p_b = doc.add_paragraph()
+                    p_b.paragraph_format.left_indent = Pt(9.0)
+                    p_b.paragraph_format.first_line_indent = Pt(-9.0)
+                    p_b.paragraph_format.tab_stops.add_tab_stop(Pt(9.0))
+                    p_b.paragraph_format.space_before = Pt(0)
+                    p_b.paragraph_format.space_after = Pt(1.5)
+                    p_b.paragraph_format.line_spacing = 1.0
+
+                    r_glyph = p_b.add_run("\u25cf\t")
+                    r_glyph.font.name = "Arial"
+                    r_glyph.font.size = Pt(8.5)
+
+                    r_txt = p_b.add_run(b.text.strip())
+                    r_txt.font.name = "Calibri"
+                    r_txt.font.size = Pt(10.5)
+
+            elif stype == "skills":
+                p_sk = doc.add_paragraph()
+                p_sk.paragraph_format.space_before = Pt(2)
+                p_sk.paragraph_format.space_after = Pt(2)
+                r_st = p_sk.add_run(f"{e.title}: ")
+                r_st.font.name = "Calibri"
+                r_st.font.size = Pt(10.5)
+                r_st.font.bold = True
+                s_body = e.skills_text or ", ".join([b.text for b in e.bullets if b.enabled])
+                r_sb = p_sk.add_run(s_body)
+                r_sb.font.name = "Calibri"
+                r_sb.font.size = Pt(10.5)
+
+            else:
+                p_oth = doc.add_paragraph()
+                p_oth.paragraph_format.space_before = Pt(3)
+                p_oth.paragraph_format.space_after = Pt(1)
+                p_oth.paragraph_format.tab_stops.add_tab_stop(Inches(7.0), WD_TAB_ALIGNMENT.RIGHT)
+                if e.title:
+                    r_pos = p_oth.add_run(e.title)
+                    r_pos.font.name = "Calibri"
+                    r_pos.font.size = Pt(10.5)
+                    r_pos.font.bold = True
+                if e.subtitle:
+                    r_org = p_oth.add_run(f", {e.subtitle}")
+                    r_org.font.name = "Calibri"
+                    r_org.font.size = Pt(10.5)
+                    r_org.font.italic = True
+                if e.date_range:
+                    r_date = p_oth.add_run(f"\t{e.date_range}")
+                    r_date.font.name = "Calibri"
+                    r_date.font.size = Pt(10.5)
+                    r_date.font.bold = True
+
+                for b in e.bullets:
+                    if not b.enabled or not b.text.strip():
+                        continue
+                    p_b = doc.add_paragraph()
+                    p_b.paragraph_format.left_indent = Pt(9.0)
+                    p_b.paragraph_format.first_line_indent = Pt(-9.0)
+                    p_b.paragraph_format.tab_stops.add_tab_stop(Pt(9.0))
+                    p_b.paragraph_format.space_before = Pt(0)
+                    p_b.paragraph_format.space_after = Pt(1.5)
+                    p_b.paragraph_format.line_spacing = 1.0
+
+                    r_glyph = p_b.add_run("\u25cf\t")
+                    r_glyph.font.name = "Arial"
+                    r_glyph.font.size = Pt(8.5)
+
+                    r_txt = p_b.add_run(b.text.strip())
+                    r_txt.font.name = "Calibri"
+                    r_txt.font.size = Pt(10.5)
+
+    doc.save(output_path)
     return output_path
 
 
 def export_markdown(resume: MasterResume) -> str:
-    lines = []
-    lines.append(f"# {resume.contact.name}")
+    # Export resume to clean Markdown text.
+    lines: list[str] = [f"# {resume.contact.name}"]
     if resume.contact.title:
         lines.append(f"**{resume.contact.title}**")
 
-    contact_parts = []
-    if resume.contact.email: contact_parts.append(resume.contact.email)
-    if resume.contact.phone: contact_parts.append(resume.contact.phone)
-    if resume.contact.location: contact_parts.append(resume.contact.location)
-    if resume.contact.linkedin: contact_parts.append(resume.contact.linkedin)
-    if resume.contact.github: contact_parts.append(resume.contact.github)
-    if resume.contact.website: contact_parts.append(resume.contact.website)
+    contact_parts = [p for p in [
+        resume.contact.email, resume.contact.phone, resume.contact.location,
+        resume.contact.linkedin, resume.contact.github, resume.contact.website
+    ] if p.strip()]
     if contact_parts:
         lines.append(" | ".join(contact_parts))
     lines.append("")
@@ -681,14 +950,24 @@ def export_markdown(resume: MasterResume) -> str:
         lines.append(f"## {sec.title}")
         for entry in enabled_entries:
             sub_parts = []
-            if entry.subtitle: sub_parts.append(f"*{entry.subtitle}*")
-            if entry.location: sub_parts.append(entry.location)
-            if entry.date_range: sub_parts.append(f"**{entry.date_range}**")
+            if entry.subtitle:
+                sub_parts.append(f"*{entry.subtitle}*")
+            if entry.location:
+                sub_parts.append(entry.location)
+            if entry.date_range:
+                sub_parts.append(f"**{entry.date_range}**")
 
             header_line = f"### {entry.title}"
             if sub_parts:
                 header_line += f" - {' | '.join(sub_parts)}"
             lines.append(header_line)
+
+            if entry.gpa:
+                lines.append(f"- **GPA:** {entry.gpa}")
+            if entry.coursework:
+                lines.append(f"- **Relevant Coursework:** {entry.coursework}")
+            if entry.skills_text:
+                lines.append(f"- {entry.skills_text}")
 
             for b in entry.bullets:
                 if b.enabled and b.text.strip():
@@ -698,103 +977,63 @@ def export_markdown(resume: MasterResume) -> str:
     return "\n".join(lines)
 
 
-def export_pdf(resume: MasterResume, output_path: str, theme: str = "modern") -> str:
-    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    doc = pymupdf.open()
+def export_html(
+    resume: MasterResume,
+    theme: str = "gnc",
+    layout: str = "single",
+    accent_color: str = "#000000",
+    palette: str = "standard",
+    font_scale: float = 1.0,
+) -> str:
+    # Export resume to styled HTML document matching Calibri SpaceX GNC layout.
+    c1 = " | ".join([p for p in [resume.contact.phone, resume.contact.email, resume.contact.location] if p.strip()])
+    c2 = " | ".join([p for p in [resume.contact.linkedin, resume.contact.github, resume.contact.website] if p.strip()])
 
-    page_width, page_height = 612, 792
-    margin_x = 40
-    margin_top = 40
-    margin_bottom = 40
-    content_width = page_width - (margin_x * 2)
+    html_parts = [
+        "<!DOCTYPE html>",
+        "<html><head><meta charset='utf-8'>",
+        "<title>" + (resume.contact.name or "Resume") + "</title>",
+        "<style>",
+        "body { font-family: 'Calibri', 'Carlito', sans-serif; margin: 0; padding: 0.5in 0.75in; color: #000000; background: #ffffff; line-height: 1.25; font-size: 11pt; }",
+        "h1 { text-align: center; font-size: 20pt; font-weight: bold; margin: 0 0 4pt 0; text-transform: uppercase; }",
+        ".contact { text-align: center; font-size: 11pt; margin-bottom: 2pt; }",
+        ".sec-head { font-size: 11pt; font-weight: bold; text-transform: uppercase; border-bottom: 2pt solid #000000; margin-top: 14pt; margin-bottom: 6pt; padding-bottom: 2pt; }",
+        ".entry-head { display: flex; justify-content: space-between; font-weight: bold; }",
+        "ul { margin: 2pt 0 6pt 0; padding-left: 0.125in; list-style-type: disc; }",
+        "li { margin-bottom: 2pt; }",
+        "</style></head><body>",
+        f"<h1>{resume.contact.name}</h1>",
+    ]
+    if c1:
+        html_parts.append(f"<div class='contact'>{c1}</div>")
+    if c2:
+        html_parts.append(f"<div class='contact'>{c2}</div>")
 
-    page = doc.new_page(width=page_width, height=page_height)
-    y = margin_top
-
-    def check_page_break(needed_height: float) -> None:
-        nonlocal page, y
-        if y + needed_height > (page_height - margin_bottom):
-            page = doc.new_page(width=page_width, height=page_height)
-            y = margin_top
-
-    c_primary = (0.1, 0.2, 0.5) if theme == "modern" else (0.1, 0.1, 0.1)
-    c_text = (0.15, 0.15, 0.15)
-    c_gray = (0.35, 0.35, 0.35)
-
-    c = resume.contact
-    if c.name:
-        page.insert_text((margin_x, y + 18), c.name, fontsize=20, fontname="helv", color=c_primary)
-        y += 26
-
-    if c.title:
-        page.insert_text((margin_x, y + 11), c.title, fontsize=11, fontname="helv", color=c_primary)
-        y += 16
-
-    contact_parts = []
-    if c.email: contact_parts.append(c.email)
-    if c.phone: contact_parts.append(c.phone)
-    if c.location: contact_parts.append(c.location)
-    if c.linkedin: contact_parts.append(c.linkedin)
-    if c.github: contact_parts.append(c.github)
-    if c.website: contact_parts.append(c.website)
-
-    if contact_parts:
-        contact_str = " - ".join(contact_parts)
-        page.insert_text((margin_x, y + 9), contact_str, fontsize=8.5, fontname="helv", color=c_gray)
-        y += 14
-
-    page.draw_line((margin_x, y), (margin_x + content_width, y), color=c_primary, width=1.5)
-    y += 12
-
-    if resume.summary_enabled and resume.summary.strip():
-        check_page_break(40)
-        page.insert_text((margin_x, y + 10), "PROFESSIONAL SUMMARY", fontsize=10, fontname="helv", color=c_primary)
-        y += 14
-        rect = pymupdf.Rect(margin_x, y, margin_x + content_width, y + 45)
-        page.insert_textbox(rect, resume.summary.strip(), fontsize=9, fontname="helv", color=c_text)
-        y += 36
-
-    for sec in resume.sections:
-        if not sec.enabled:
+    for s in resume.sections:
+        if not s.enabled:
             continue
-        enabled_entries = [e for e in sec.entries if e.enabled]
-        if not enabled_entries:
+        entries = [e for e in s.entries if e.enabled]
+        if not entries:
             continue
+        html_parts.append(f"<div class='sec-head'>{s.title}</div>")
+        for e in entries:
+            html_parts.append("<div class='entry'>")
+            sub_title = f", <i>{e.subtitle}</i>" if e.subtitle else ""
+            date_str = f"<span>{e.date_range}</span>" if e.date_range else ""
+            html_parts.append(f"<div class='entry-head'><span><b>{e.title}</b>{sub_title}</span>{date_str}</div>")
+            if e.gpa:
+                html_parts.append(f"<div><b>GPA:</b> {e.gpa}</div>")
+            if e.coursework:
+                html_parts.append(f"<div><b>Relevant Coursework:</b> {e.coursework}</div>")
+            if e.skills_text:
+                html_parts.append(f"<div>{e.skills_text}</div>")
+            if e.bullets:
+                html_parts.append("<ul>")
+                for b in e.bullets:
+                    if b.enabled and b.text.strip():
+                        html_parts.append(f"<li>{b.text.strip()}</li>")
+                html_parts.append("</ul>")
+            html_parts.append("</div>")
 
-        check_page_break(30)
-        page.insert_text((margin_x, y + 10), sec.title.upper(), fontsize=10, fontname="helv", color=c_primary)
-        page.draw_line((margin_x, y + 13), (margin_x + content_width, y + 13), color=(0.8, 0.8, 0.8), width=0.75)
-        y += 18
-
-        for entry in enabled_entries:
-            check_page_break(25)
-            page.insert_text((margin_x, y + 9), entry.title, fontsize=9.5, fontname="helv", color=c_text)
-            if entry.date_range:
-                date_w = pymupdf.get_text_length(entry.date_range, fontname="helv", fontsize=8.5)
-                page.insert_text((margin_x + content_width - date_w, y + 9), entry.date_range, fontsize=8.5, fontname="helv", color=c_gray)
-            y += 12
-
-            if entry.subtitle or entry.location:
-                sub_text = entry.subtitle
-                if entry.subtitle and entry.location:
-                    sub_text += f" - {entry.location}"
-                elif entry.location:
-                    sub_text = entry.location
-                page.insert_text((margin_x, y + 8), sub_text, fontsize=8.5, fontname="helv", color=c_gray)
-                y += 12
-
-            active_bullets = [b for b in entry.bullets if b.enabled and b.text.strip()]
-            for b in active_bullets:
-                check_page_break(18)
-                page.insert_text((margin_x + 4, y + 8), "-", fontsize=8, fontname="helv", color=c_primary)
-                rect = pymupdf.Rect(margin_x + 14, y, margin_x + content_width, y + 30)
-                page.insert_textbox(rect, b.text.strip(), fontsize=8.5, fontname="helv", color=c_text)
-                y += 13
-
-            y += 4
-
-        y += 6
-
-    doc.save(output_path)
-    doc.close()
-    return output_path
+    html_parts.append("</body></html>")
+    return "".join(html_parts)

@@ -9,6 +9,7 @@ import json
 import os
 import random
 import re
+import secrets
 import string
 import uuid
 import xml.dom.minidom
@@ -208,9 +209,7 @@ def _strip_js_comment_token(match: re.Match) -> str:
 
 
 def minify_javascript(text: str) -> str:
-    """Conservative heuristic JS minifier: strips // and /* */ comments outside string/template
-    literals and collapses whitespace. This is not a full parser (e.g. it does not disambiguate
-    regex literals from division), so it is meant for quick cleanup rather than production output."""
+    """Conservative heuristic JS minifier: strips comments and collapses whitespace for quick cleanup."""
     stripped = _JS_STRING_OR_COMMENT_RE.sub(_strip_js_comment_token, text)
     return re.sub(r"\s+", " ", stripped).strip()
 
@@ -361,11 +360,16 @@ def convert_data_format(text: str, from_format: str, to_format: str) -> str:
 
 
 def convert_units(value: float, from_unit: str, to_unit: str, category: str | None = None) -> float:
-    """Convert between supported unit values for a category or by auto-detecting the pair.
+    """Convert between supported unit values for a category using Pint precision engine."""
+    from app.features.unit_converter.ops import convert_unit_value
+    try:
+        norm_from = from_unit.strip()
+        norm_to = to_unit.strip()
+        conv_res = convert_unit_value(value, norm_from, norm_to)
+        return float(conv_res["result"])
+    except Exception as exc:
+        logging.getLogger(__name__).debug("Pint delegation fallback: %s", exc)
 
-    Supported categories: length, weight, temperature, time, area, volume, speed,
-    pressure, angle, and data.
-    """
     category_map = {
         "length": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "km": 1000000.0, "in": 25.4, "ft": 304.8, "yd": 914.4, "mi": 1609344.0},
         "temperature": {"c": 1.0, "f": 1.0, "k": 1.0},
@@ -461,13 +465,15 @@ def convert_units(value: float, from_unit: str, to_unit: str, category: str | No
         if source == "k" and target == "c":
             return value - 273.15
         if source == "f" and target == "k":
-            return ((value - 32.0) * 5.0 / 9.0) + 273.15
+            celsius_val = (value - 32.0) * 5.0 / 9.0
+            return celsius_val + 273.15
         if source == "k" and target == "f":
-            return ((value - 273.15) * 9.0 / 5.0) + 32.0
+            fahrenheit_scaled = (value - 273.15) * 9.0 / 5.0
+            return fahrenheit_scaled + 32.0
         raise ValueError(f"Unsupported temperature conversion: {from_unit} -> {to_unit}")
 
     units = category_map[key]
-    if source not in units or target not in units:
+    if not (source in units and target in units):
         raise ValueError(f"Unsupported unit conversion for {category}: {from_unit} -> {to_unit}")
 
     base_value = value * units[source]
@@ -493,8 +499,8 @@ def generate_random_value(kind: str = "string", length: int = 12, *, count: int 
         if not alphabet:
             raise ValueError("At least one character class must be enabled for random generation.")
         if count <= 1:
-            return "".join(random.choice(alphabet) for _ in range(max(1, length)))
-        return ["".join(random.choice(alphabet) for _ in range(max(1, length))) for _ in range(count)]
+            return "".join(secrets.choice(alphabet) for _ in range(max(1, length)))
+        return ["".join(secrets.choice(alphabet) for _ in range(max(1, length))) for _ in range(count)]
 
     if kind in {"number", "int", "integer"}:
         values = [random.randint(min_value, max_value) for _ in range(count)]
@@ -523,8 +529,9 @@ def generate_random_value(kind: str = "string", length: int = 12, *, count: int 
     raise ValueError(f"Unsupported random generation type: {kind}")
 
 
-def generate_ics(events: list[dict], calendar_name: str = "FOSSEverything") -> str:
+def generate_ics(events: list[dict] | dict, calendar_name: str = "FOSSEverything") -> str:
     """Create a valid .ics calendar file payload from simple event dictionaries."""
+    event_list = [events] if isinstance(events, dict) else list(events)
     def escape_ics(value: str) -> str:
         return value.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
 
@@ -559,12 +566,12 @@ def generate_ics(events: list[dict], calendar_name: str = "FOSSEverything") -> s
         f"X-WR-CALNAME:{escape_ics(calendar_name)}",
     ]
 
-    if not events:
+    if not event_list:
         lines.append("END:VCALENDAR")
         return "\n".join(lines) + "\n"
 
-    for index, event in enumerate(events):
-        summary = event.get("summary", "Untitled Event")
+    for index, event in enumerate(event_list):
+        summary = event.get("summary") or event.get("title", "Untitled Event")
         start = event.get("start") or event.get("start_time")
         end = event.get("end") or event.get("end_time") or start
         description = event.get("description", "")
@@ -798,7 +805,7 @@ def grammar_check_text(text: str) -> dict:
     if re.search(r"\b[A-Z]{3,}\b", text) and "".join(text.split()):
         # Heuristic: a very long uppercase sequence usually suggests accidental caps lock.
         issues.append({"type": "caps_lock", "message": "Avoid long all-caps sequences unless intentionally formatting a title or acronym."})
-    if re.search(r"\b(:it is|this is|that is)\s+[a-z]", text, re.IGNORECASE) and len(stripped.split()) > 7:
+    if re.search(r"\b(?:it is|this is|that is)\s+[a-z]", text, re.IGNORECASE) and len(stripped.split()) > 7:
         issues.append({"type": "wordiness", "message": "Consider tightening wordy phrases for clearer writing."})
 
     score = max(0, 100 - (len(issues) * 12))
@@ -830,13 +837,12 @@ def languagetool_backend_available() -> bool:
         return False
 
 
-def grammar_check_text_advanced(text: str) -> dict:
-    """Run a full sentence-structure/style check via a local LanguageTool server.
+def grammar_check_text_advanced(text: str, language: str = "en-US") -> dict:
+    """Run a full sentence structure and style check via a local LanguageTool server.
 
     Returns the same shape as grammar_check_text (valid/issues/score/summary)
     plus "available": True, or {"available": False, "reason": ...} if the
-    local LanguageTool backend can't be started - callers must fall back to
-    grammar_check_text in that case rather than surface an error.
+    local LanguageTool backend cannot start; callers fall back to grammar_check_text.
     """
     if not languagetool_backend_available():
         return {"available": False, "reason": "Local LanguageTool backend (requires Java) is not available."}
@@ -868,7 +874,12 @@ def generate_citation(entry: dict, style: str = "apa") -> str:
     style = (style or "apa").lower()
     authors = entry.get("authors") or entry.get("author") or []
     if isinstance(authors, str):
-        authors = [authors]
+        if ";" in authors:
+            authors = [a.strip() for a in authors.split(";") if a.strip()]
+        elif "," in authors and not (len(authors.split(",")) == 2 and " " not in authors.split(",")[0].strip()):
+            authors = [a.strip() for a in authors.split(",") if a.strip()]
+        else:
+            authors = [authors.strip()]
     if not authors:
         authors = ["Unknown Author"]
 
@@ -882,26 +893,71 @@ def generate_citation(entry: dict, style: str = "apa") -> str:
     title = entry.get("title", "Untitled")
     year = entry.get("year") or entry.get("date") or "n.d."
     publisher = entry.get("publisher") or entry.get("journal") or entry.get("source") or ""
+    volume = entry.get("volume") or ""
+    pages = entry.get("pages") or ""
     doi = entry.get("doi") or ""
-    url = entry.get("url") or ""
+    url = entry.get("url") or entry.get("doi_or_url") or ""
 
-    if style == "mla":
-        return f"{format_author_list(authors)}. \"{title}.\" {publisher or 'n.p.'}, {year}."
-    if style == "chicago":
-        return f"{format_author_list(authors)}. \"{title}.\" {publisher or 'n.p.'}, {year}."
-    if style == "bibtex":
-        author_key = " and ".join(a.replace(",", "") for a in authors[:2])
-        return f"@misc{{{entry.get('key', author_key.lower().replace(' ', '_'))},\n  author = {{{' and '.join(authors)}}},\n  title = {{{title}}},\n  year = {{{year}}},\n  publisher = {{{publisher}}}\n}}"
-    if style == "apa":
+    if style in ("mla", "mla 9", "mla9"):
+        details = publisher or "n.p."
+        if volume:
+            details += f", vol. {volume}"
+        if pages:
+            details += f", pp. {pages}"
+        return f'{format_author_list(authors)}. "{title}." {details}, {year}.'
+    if style in ("chicago", "chicago 17"):
+        details = publisher or "n.p."
+        if volume:
+            details += f", no. {volume}"
+        if pages:
+            details += f": {pages}"
+        return f'{format_author_list(authors)}. "{title}." {details} ({year}).'
+    if style in ("ieee", "ieee standard"):
+        auth_str = ", ".join(authors)
+        details = f'"{title},"'
         if publisher:
-            return f"{format_author_list(authors)}. ({year}). {title}. {publisher}."
-        if doi:
-            return f"{format_author_list(authors)}. ({year}). {title}. {doi}."
-        if url:
-            return f"{format_author_list(authors)}. ({year}). {title}. {url}."
-        return f"{format_author_list(authors)}. ({year}). {title}."
+            details += f" {publisher},"
+        if volume:
+            details += f" vol. {volume},"
+        if pages:
+            details += f" pp. {pages},"
+        return f"{auth_str}, {details} {year}."
+    if style in ("bibtex", "bib"):
+        author_key = " and ".join(a.replace(",", "") for a in authors[:2])
+        key = entry.get("key") or author_key.lower().replace(" ", "_")
+        lines = [f"@misc{{{key},", f"  author = {{{' and '.join(authors)}}},", f"  title = {{{title}}},", f"  year = {{{year}}},"]
+        if publisher:
+            lines.append(f"  publisher = {{{publisher}}},")
+        if volume:
+            lines.append(f"  volume = {{{volume}}},")
+        if pages:
+            lines.append(f"  pages = {{{pages}}},")
+        if doi or url:
+            lines.append(f"  url = {{{doi or url}}},")
+        lines.append("}")
+        return "\n".join(lines)
 
-    return f"{format_author_list(authors)} ({year}). {title}."
+    vol_pages = ""
+    if volume and pages:
+        vol_pages = f", {volume}, {pages}"
+    elif volume:
+        vol_pages = f", {volume}"
+    elif pages:
+        vol_pages = f", pp. {pages}"
+
+    loc = ""
+    if publisher:
+        loc = f" {publisher}{vol_pages}."
+    elif vol_pages:
+        loc = f"{vol_pages}."
+
+    suffix = ""
+    if doi:
+        suffix = f" https://doi.org/{doi.removeprefix('https://doi.org/')}"
+    elif url:
+        suffix = f" {url}"
+
+    return f"{format_author_list(authors)}. ({year}). {title}.{loc}{suffix}".strip()
 
 
 def generate_bibliography(entries: list[dict], style: str = "apa") -> str:
@@ -1178,10 +1234,7 @@ def render_markdown_table(rows: list[dict] | list[list], headers: list[str] | No
     else:
         rendered_headers = [str(item) for item in keys]
     separator = ["---"] * len(rendered_headers)
-    lines = [
-        "| " + " | ".join(rendered_headers) + " |",
-        "| " + " | ".join(separator) + " |",
-    ]
+    lines = ["| " + " | ".join(rendered_headers) + " |", "| " + " | ".join(separator) + " |"]
     for row in serial_rows:
         padded = row + [""] * (len(rendered_headers) - len(row))
         lines.append("| " + " | ".join(padded) + " |")

@@ -52,9 +52,8 @@ FILE_FAMILIES: tuple[tuple[str, frozenset[str]], ...] = (
 WORKSPACE_MODULE: dict[str, str] = {
     "pdf": "app.features.pdf.ops", "images": "app.features.image.ops",
     "media": "app.features.media.ops", "markdown": "app.features.markdown.ops",
-    "word_counter": "app.features.word_counter.ops", "data": "app.features.data.ops",
+    "converter": "app.features.converter.ops", "data": "app.features.data.ops",
     "model3d": "app.features.model3d.ops", "ocr": "app.features.ocr.ops",
-    "hash": "app.features.hash.ops", "converter": "app.features.converter.ops",
     "playlist": "app.features.playlist.ops",
 }
 
@@ -64,8 +63,6 @@ def resolve_workspace_id(file_path: str, force_mode: str | None = None) -> str:
     ext = os.path.splitext(file_path)[1].lower()
     if force_mode == "ocr" or ext == ".ocr":
         return "ocr"
-    if force_mode == "hash":
-        return "hash"
     if ext in PDF_EXTENSIONS:
         return "pdf"
     if ext in IMAGE_EXTENSIONS:
@@ -75,7 +72,7 @@ def resolve_workspace_id(file_path: str, force_mode: str | None = None) -> str:
     if ext in MARKDOWN_EXTENSIONS:
         return "markdown"
     if ext in OFFICE_EXTENSIONS:
-        return "word_counter"
+        return "converter"
     if ext in PLAYLIST_EXTENSIONS:
         return "playlist"
     if ext in DATA_EXTENSIONS:
@@ -103,8 +100,16 @@ def route_file(window: Any, file_path: str, force_mode: str | None = None) -> bo
     if not os.path.exists(file_path):
         return False
     workspace_id = resolve_workspace_id(file_path, force_mode)
-    if hasattr(window, "evaluate_js"):
-        window.evaluate_js(f"window.openWorkspace('{workspace_id}');")
+    if callable(window):
+        window(file_path, workspace_id)
+    elif hasattr(window, "evaluate_js"):
+        safe_path = json.dumps(os.path.abspath(file_path))
+        js = (
+            f"if (window.FOSS && window.FOSS.router && window.FOSS.router.routeFiles) {{"
+            f" window.FOSS.router.routeFiles([{safe_path}]); }}"
+            f" else if (window.openWorkspace) {{ window.openWorkspace('{workspace_id}'); }}"
+        )
+        window.evaluate_js(js)
     elif hasattr(window, "open_workspace"):
         window.open_workspace(workspace_id)
     return True
@@ -145,10 +150,10 @@ def start_ipc_server(window: Any) -> threading.Thread:
                             file_path = payload.get("file")
                             if file_path:
                                 route_file(window, file_path, force_mode=payload.get("force_mode"))
-                        except Exception:
-                            pass
-        except OSError:
-            pass
+                        except Exception as err:
+                            _ = err
+        except OSError as err:
+            _ = err
 
     thread = threading.Thread(target=_listen, daemon=True)
     thread.start()

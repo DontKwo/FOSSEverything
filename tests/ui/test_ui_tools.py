@@ -45,7 +45,7 @@ def calc_get_scenarios() -> list[tuple[str, str, Any]]:
     if not scenarios_dir.exists():
         return scenarios
     for p in scenarios_dir.glob("*.py"):
-        if p.stem.startswith("_"):
+        if p.stem.startswith("_") or p.stem.startswith("test_"):
             continue
         tool_id = p.stem
         mod = importlib.import_module(f"tests.ui.scenarios.{tool_id}")
@@ -76,6 +76,8 @@ def test_tool_scenarios(
     # Execute UI scenario and verify visual and accessibility audit rules.
     if tool_id == "none":
         pytest.skip("No scenarios discovered yet")
+    if hasattr(api, "_dialog_answers"):
+        api._dialog_answers.clear()
     vp = next(v for v in VIEWPORTS if v["id"] == vp_id)
     session = make_page(browser, api, vp, theme=theme, ui_scale=1.0)
     page = session["page"]

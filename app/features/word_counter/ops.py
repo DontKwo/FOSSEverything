@@ -188,7 +188,7 @@ def extract_text_from_file(file_path: str) -> str:
                 text_parts.append(page.get_text())
         return "\n\n".join(text_parts)
 
-    from app.features.office import ops as office_ops
+    from app.features.converter import office_ops
     if ext in office_ops.OFFICE_EXTENSIONS:
         return office_ops.extract_text_from_office(file_path)
 

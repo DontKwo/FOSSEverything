@@ -46,6 +46,12 @@ def to_camel_case(text: str) -> str:
     return words[0].lower() + "".join(word.capitalize() for word in words[1:])
 
 
+def to_pascal_case(text: str) -> str:
+    # Convert text to PascalCase by capitalizing each word.
+    words = _split_words(text)
+    return "".join(word.capitalize() for word in words)
+
+
 def to_snake_case(text: str) -> str:
     """Convert text to snake_case."""
     return "_".join(word.lower() for word in _split_words(text))

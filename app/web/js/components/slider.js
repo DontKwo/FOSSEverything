@@ -12,6 +12,7 @@ window.FOSS.components = window.FOSS.components || {};
     var unit = opts.unit || "";
     var value = opts.value !== undefined ? opts.value : min;
     var onChange = opts.onChange || function () {};
+    var labelText = opts.label || opts.ariaLabel || opts.testid || "Slider";
 
     var output = window.FOSS.dom.el("output", {
       text: value + (unit ? " " + unit : "")
@@ -23,7 +24,9 @@ window.FOSS.components = window.FOSS.components || {};
       max: String(max),
       step: String(step),
       value: String(value),
-      "data-testid": testid + "-range"
+      "data-testid": testid + "-range",
+      "aria-label": labelText,
+      title: labelText
     });
 
     range.addEventListener("input", function () {

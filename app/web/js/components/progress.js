@@ -55,9 +55,22 @@ window.FOSS.components = window.FOSS.components || {};
       }
     }
 
+    function setIndeterminate(isIndeterminate) {
+      if (isIndeterminate) {
+        wrap.classList.add("indeterminate");
+        wrap.removeAttribute("aria-valuenow");
+        pctEl.textContent = "";
+      } else {
+        wrap.classList.remove("indeterminate");
+        wrap.setAttribute("aria-valuenow", String(percent));
+        pctEl.textContent = Math.round(percent) + "%";
+      }
+    }
+
     return {
       el: wrap,
-      update: update
+      update: update,
+      setIndeterminate: setIndeterminate
     };
   }
 

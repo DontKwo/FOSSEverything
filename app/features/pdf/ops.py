@@ -8,7 +8,8 @@ import os
 import shutil
 import subprocess
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Any, Callable, Optional, Sequence
+import base64
 
 import pymupdf
 
@@ -177,9 +178,9 @@ def fill_pdf_form(input_path: str, output_path: str, field_values: dict, *, flat
 def export_pdf_pages(input_path: str, output_dir: str, target_format: str = "PNG", dpi: int = 144, output_stem: Optional[str] = None, progress_cb: Optional[Callable[[int, int, str], None]] = None) -> list[str]:
     """Rasterize every PDF page to an image file in *output_dir*.
 
-    A PDF document can have several pages, so exporting to an image creates one
-    numbered image per page rather than silently discarding pages. This reads a
-    fresh document from disk, which makes it safe to run in a worker thread.
+    A PDF document can have several pages. Exporting to an image creates one
+    numbered image per page. This reads a fresh document from disk, which makes
+    it safe to run in a worker thread.
     """
     from PIL import Image  # noqa: 13 (keeps PIL out of every PDF tab's cold-start import)
     fmt = normalized_format(target_format)
@@ -194,9 +195,7 @@ def export_pdf_pages(input_path: str, output_dir: str, target_format: str = "PNG
         for page_number in range(total):
             pix = doc.load_page(page_number).get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
             image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
-            output_path = os.path.join(
-                output_dir, f"{base}_page-{page_number + 1}{extension_for_format(fmt)}"
-            )
+            output_path = os.path.join(output_dir, f"{base}_page-{page_number + 1}{extension_for_format(fmt)}")
             save_kwargs = {"format": fmt}
             if fmt in {"JPEG", "WEBP"}:
                 save_kwargs.update(quality=90)
@@ -589,7 +588,11 @@ def add_pdf_watermark(
             shape.finish()
             shape.commit(overlay=True)
 
-        doc.save(output_path, garbage=4, deflate=True)
+        is_same = os.path.abspath(input_path) == os.path.abspath(output_path)
+        save_target = output_path if not is_same else output_path + ".tmp.pdf"
+        doc.save(save_target, garbage=4, deflate=True)
+    if is_same:
+        os.replace(save_target, output_path)
     return output_path
 
 
@@ -637,7 +640,11 @@ def add_image_watermark(
 
             page.insert_image(wm_rect, stream=img_data, overlay=True, fill_opacity=opacity)
 
-        doc.save(output_path, garbage=4, deflate=True)
+        is_same = os.path.abspath(input_path) == os.path.abspath(output_path)
+        save_target = output_path if not is_same else output_path + ".tmp.pdf"
+        doc.save(save_target, garbage=4, deflate=True)
+    if is_same:
+        os.replace(save_target, output_path)
     return output_path
 
 
@@ -673,7 +680,7 @@ def _run_pdf_batch(
     """Run a single-file PDF operation over every item, recording status per item.
 
     op(input_path, output_path) performs the actual work. A per-file failure
-    is recorded on that item rather than aborting the rest of the batch.
+    is recorded on that item, continuing the rest of the batch.
     """
     os.makedirs(output_dir, exist_ok=True)
     total = len(items)
@@ -784,7 +791,11 @@ def add_pdf_bookmarks(input_path: str, output_path: str, bookmarks: list[dict]) 
             page = int(item.get("page", 1))
             toc.append([level, title, max(1, page)])
         doc.set_toc(toc)
-        doc.save(output_path, garbage=4, deflate=True)
+        is_same = os.path.abspath(input_path) == os.path.abspath(output_path)
+        save_target = output_path if not is_same else output_path + ".tmp.pdf"
+        doc.save(save_target, garbage=4, deflate=True)
+    if is_same:
+        os.replace(save_target, output_path)
     return output_path
 
 
@@ -811,7 +822,11 @@ def add_pdf_attachment(input_path: str, output_path: str, attachment_path: str, 
             data = fh.read()
         emb_name = name or os.path.basename(attachment_path)
         doc.embfile_add(emb_name, data, filename=os.path.basename(attachment_path), desc=description or "")
-        doc.save(output_path, garbage=4, deflate=True)
+        is_same = os.path.abspath(input_path) == os.path.abspath(output_path)
+        save_target = output_path if not is_same else output_path + ".tmp.pdf"
+        doc.save(save_target, garbage=4, deflate=True)
+    if is_same:
+        os.replace(save_target, output_path)
     return output_path
 
 
@@ -834,7 +849,11 @@ def add_pdf_signature(
                 continue
             rect = pymupdf.Rect(x, y, x + width, y + height)
             page.insert_image(rect, stream=img_data, overlay=True)
-        doc.save(output_path, garbage=4, deflate=True)
+        is_same = os.path.abspath(input_path) == os.path.abspath(output_path)
+        save_target = output_path if not is_same else output_path + ".tmp.pdf"
+        doc.save(save_target, garbage=4, deflate=True)
+    if is_same:
+        os.replace(save_target, output_path)
     return output_path
 
 
@@ -886,7 +905,11 @@ def add_page_numbers(
                 overlay=True,
             )
 
-        doc.save(output_path, garbage=4, deflate=True)
+        is_same = os.path.abspath(input_path) == os.path.abspath(output_path)
+        save_target = output_path if not is_same else output_path + ".tmp.pdf"
+        doc.save(save_target, garbage=4, deflate=True)
+    if is_same:
+        os.replace(save_target, output_path)
     return output_path
 
 
@@ -902,8 +925,13 @@ def convert_pdf_to_docx(input_path: str, output_path: str, start_page: int = 0, 
     return output_path
 
 
-def pdf_needs_ocr(input_path: str, min_chars_per_page: int = 20) -> bool:
+def pdf_needs_ocr(input_path: str | os.PathLike[str] | pymupdf.Document, min_chars_per_page: int = 20) -> bool:
     """Return True if no page in the PDF has a meaningful extractable text layer (i.e. it is scanned)."""
+    if isinstance(input_path, pymupdf.Document):
+        for page in input_path:
+            if len(page.get_text().strip()) >= min_chars_per_page:
+                return False
+        return True
     with pymupdf.open(input_path) as doc:
         for page in doc:
             if len(page.get_text().strip()) >= min_chars_per_page:
@@ -957,3 +985,156 @@ def convert_scanned_pdf_to_docx(
     document.save(output_path)
     return output_path
 
+
+
+def parse_split_ranges(spec: str, total_pages: int) -> list[tuple[int, int]]:
+    # Parse range strings like "1", "1-3, 5, 8-10", or "all" into (start, end) tuples.
+    spec_clean = spec.strip().lower()
+    if not spec_clean or spec_clean in ("all", "every", "*"):
+        return [(idx, idx) for idx in range(1, total_pages + 1)]
+
+    ranges: list[tuple[int, int]] = []
+    tokens = [tok.strip() for tok in spec.split(",") if tok.strip()]
+    for tok in tokens:
+        if "-" in tok:
+            parts = tok.split("-", 1)
+            try:
+                start = int(parts[0].strip())
+                end = int(parts[1].strip())
+            except ValueError as exc:
+                raise ValueError(f"Invalid range token: '{tok}'") from exc
+            if start > end:
+                raise ValueError(f"Start page cannot exceed end page in '{tok}'")
+            start = max(1, min(start, total_pages))
+            end = max(1, min(end, total_pages))
+            ranges.append((start, end))
+        else:
+            try:
+                single = int(tok.strip())
+            except ValueError as exc:
+                raise ValueError(f"Invalid page token: '{tok}'") from exc
+            if 1 <= single <= total_pages:
+                ranges.append((single, single))
+            else:
+                raise ValueError(f"Page number {single} out of bounds (1..{total_pages})")
+    if not ranges:
+        raise ValueError(f"No valid page ranges found in '{spec}'")
+    return ranges
+
+
+def render_pdf_thumbnails(
+    path: str,
+    pages: Sequence[int] | None = None,
+    max_dim: int = 240,
+) -> list[dict[str, Any]]:
+    # Render page thumbnails for visual PDF workspace.
+    thumbs: list[dict[str, Any]] = []
+    with pymupdf.open(path) as doc:
+        total = len(doc)
+        target_pages = [idx for idx in range(1, total + 1) if pages is None or idx in pages]
+        for page_num in target_pages:
+            page = doc[page_num - 1]
+            rect = page.rect
+            scale = min(1.0, max_dim / max(rect.width, rect.height)) if max(rect.width, rect.height) > 0 else 1.0
+            matrix = pymupdf.Matrix(scale, scale)
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            raw_png = pix.tobytes("png")
+            b64_str = base64.b64encode(raw_png).decode("ascii")
+            thumbs.append({
+                "page": page_num,
+                "width_pt": rect.width,
+                "height_pt": rect.height,
+                "rotation": page.rotation,
+                "data_url": f"data:image/png;base64,{b64_str}",
+            })
+    return thumbs
+
+
+def assemble_pdf_workspace(
+    sources: dict[str, str],
+    pages_spec: list[dict[str, Any]],
+    output_path: str,
+    page_numbers: dict[str, Any] | None = None,
+) -> str:
+    # Assemble PDF from source documents according to page specifications.
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    out_doc = pymupdf.open()
+    opened_docs: dict[str, pymupdf.Document] = {}
+
+    try:
+        for sid, src_path in sources.items():
+            opened_docs[sid] = pymupdf.open(src_path)
+
+        for spec in pages_spec:
+            source_id = str(spec.get("source_id", ""))
+            if source_id not in opened_docs:
+                continue
+            src_doc = opened_docs[source_id]
+            page_num = int(spec.get("page", 1))
+            if page_num < 1 or page_num > len(src_doc):
+                continue
+            add_rot = int(spec.get("rotation", 0))
+
+            out_doc.insert_pdf(src_doc, from_page=page_num - 1, to_page=page_num - 1)
+            if add_rot % 360 != 0:
+                current_rot = out_doc[-1].rotation
+                out_doc[-1].set_rotation((current_rot + add_rot) % 360)
+
+        temp_target = output_path
+        matches_source = any(
+            os.path.abspath(output_path) == os.path.abspath(p)
+            for p in sources.values()
+        )
+        if matches_source:
+            temp_target = output_path + ".tmp.pdf"
+
+        out_doc.save(temp_target, garbage=4, deflate=True)
+        out_doc.close()
+
+        for s_doc in opened_docs.values():
+            s_doc.close()
+        opened_docs.clear()
+
+        if matches_source:
+            os.replace(temp_target, output_path)
+
+        if page_numbers and page_numbers.get("enabled"):
+            fmt_str = str(page_numbers.get("format", "Page {n} of {total}"))
+            pos_str = str(page_numbers.get("position", "bottom_center"))
+            s_num = int(page_numbers.get("start_num", 1))
+            add_page_numbers(
+                output_path,
+                output_path,
+                format_str=fmt_str,
+                position=pos_str,
+                start_num=s_num,
+            )
+    finally:
+        for s_doc in opened_docs.values():
+            try:
+                s_doc.close()
+            except Exception as exc:
+                logging.getLogger(__name__).debug("Failed closing source doc: %s", exc)
+        if not out_doc.is_closed:
+            out_doc.close()
+
+    return output_path
+
+
+def export_pdf_groups(
+    sources: dict[str, str],
+    groups: list[dict[str, Any]],
+    output_dir: str,
+    page_numbers: dict[str, Any] | None = None,
+) -> list[str]:
+    # Export named PDF groups into separate files.
+    os.makedirs(output_dir, exist_ok=True)
+    exported: list[str] = []
+    for idx, grp in enumerate(groups):
+        grp_name = str(grp.get("name", f"Group_{idx + 1}")).strip() or f"Group_{idx + 1}"
+        safe_name = "".join(ch if ch.isalnum() or ch in ("-", "_") else "_" for ch in grp_name)
+        target_path = os.path.join(output_dir, f"{safe_name}.pdf")
+        pages_list = grp.get("pages", [])
+        assemble_pdf_workspace(sources, pages_list, target_path, page_numbers=page_numbers)
+        exported.append(target_path)
+    return exported

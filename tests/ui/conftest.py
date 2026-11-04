@@ -4,11 +4,12 @@ import time
 from pathlib import Path
 from typing import Any, Generator
 
-from playwright.sync_api import Browser, sync_playwright
+from playwright.sync_api import Browser, Page, sync_playwright
 import pytest
 
+from app.web.api import WebApi
 from tests.fixtures import make_fixtures
-from tests.ui.harness import launch_browser, write_report
+from tests.ui.harness import VIEWPORTS, launch_browser, make_page, write_report
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -40,16 +41,20 @@ def browser() -> Generator[Browser, None, None]:
         b.close()
 
 
+@pytest.fixture
+def page(browser: Browser, api: Any) -> Generator[Page, None, None]:
+    # Per-test page fixture for walkthrough and scenario execution.
+    session = make_page(browser, api, VIEWPORTS[0], theme="dark", ui_scale=1.0)
+    p = session["page"]
+    yield p
+    p.close()
+
+
 @pytest.fixture(scope="session")
 def api(tmp_path_factory: pytest.TempPathFactory) -> Any:
     # Session fixture providing WebApi instance with isolated settings.
     settings_dir = tmp_path_factory.mktemp("settings")
     os.environ["FOSS_SETTINGS_DIR"] = str(settings_dir)
-    try:
-        from app.web.api import WebApi
-    except ImportError:
-        from app.web.api.base import BaseApi as WebApi  # type: ignore
-
     instance = WebApi()
     if not hasattr(instance, "_dialog_answers"):
         instance._dialog_answers = []

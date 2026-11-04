@@ -96,7 +96,17 @@ def make_email_payload(to: str, subject: str = "", body: str = "") -> str:
     if body:
         params["body"] = body
     query = urllib.parse.urlencode(params)
-    return f"mailto:{to}{query}" if query else f"mailto:{to}"
+    return f"mailto:{to}?{query}" if query else f"mailto:{to}"
+
+
+def make_whatsapp_payload(phone: str, text: str = "") -> str:
+    """Format a WhatsApp click-to-chat URL."""
+    digits = re.sub(r"\D", "", phone)
+    if not digits:
+        return ""
+    if text:
+        return f"https://wa.me/{digits}?text={urllib.parse.quote(text)}"
+    return f"https://wa.me/{digits}"
 
 
 def make_phone_payload(number: str) -> str:
@@ -449,20 +459,28 @@ def generate_barcode(
         segments.append("n")
 
     total_pixels = sum((1 if token == "n" else 2) for token in segments) * cell_width
-    image = Image.new("RGBA", (total_pixels + 2, max(20, int(height))), bg + (255,))
+    quiet_bottom = max(28, int(height * 0.22)) if include_label else 0
+    bar_height = max(20, int(height))
+    total_height = bar_height + quiet_bottom
+    image = Image.new("RGBA", (total_pixels + 2, total_height), bg + (255,))
     draw = ImageDraw.Draw(image)
 
     current_x = 0
     for idx, token in enumerate(segments):
         segment_width = (1 if token == "n" else 2) * cell_width
         if idx % 2 == 0:
-            draw.rectangle((current_x, 0, current_x + segment_width - 1, image.height - 1), fill=fg + (255,))
+            draw.rectangle((current_x, 0, current_x + segment_width - 1, bar_height - 1), fill=fg + (255,))
         current_x += segment_width
 
     if include_label:
         font = ImageFont.load_default()
-        label_y = max(0, height - 16)
-        draw.text((6, label_y), value.upper(), font=font, fill=fg + (255,))
+        label_text = value.upper()
+        bbox = font.getbbox(label_text)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        text_x = max(0, (image.width - text_w) // 2)
+        text_y = bar_height + max(2, (quiet_bottom - text_h) // 2)
+        draw.text((text_x, text_y), label_text, font=font, fill=fg + (255,))
     return image
 
 
@@ -692,15 +710,15 @@ def decode_qr_and_barcodes(source: str | Image.Image | object) -> list[dict]:
     if not results:
         for arr in (gray_arr, rgb_arr):
             try:
-                val, pts, _ = qr_detector.detectAndDecode(arr)
-                val = val.strip()
-                if val and val not in seen_payloads:
-                    seen_payloads.add(val)
+                decoded_val, point_coords, _ = qr_detector.detectAndDecode(arr)
+                decoded_text = decoded_val.strip()
+                if decoded_text and decoded_text not in seen_payloads:
+                    seen_payloads.add(decoded_text)
                     results.append({
                         "type": "QR Code",
-                        "payload": val,
-                        "parsed": parse_qr_payload(val),
-                        "points": pts.tolist() if pts is not None else [],
+                        "payload": decoded_text,
+                        "parsed": parse_qr_payload(decoded_text),
+                        "points": point_coords.tolist() if point_coords is not None else [],
                     })
             except Exception:
                 continue

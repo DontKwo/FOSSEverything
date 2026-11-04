@@ -10,6 +10,8 @@ window.FOSS = window.FOSS || {};
           var v = attrs[k];
           if (k === "className") {
             element.className = v;
+          } else if (k === "htmlFor") {
+            element.setAttribute("for", String(v));
           } else if (k === "style") {
             if (typeof v === "string") {
               var styleRules = v.split(";");
@@ -50,10 +52,18 @@ window.FOSS = window.FOSS || {};
           element.appendChild(document.createTextNode(String(child)));
         } else if (child.nodeType) {
           element.appendChild(child);
+        } else if (child.el && child.el.nodeType) {
+          element.appendChild(child.el);
         }
       }
     }
     return element;
+  }
+
+  function append(parent, child) {
+    if (!parent || !child) return;
+    var node = child.nodeType ? child : (child.el && child.el.nodeType ? child.el : null);
+    if (node) parent.appendChild(node);
   }
 
   function qs(selector, parent) {
@@ -72,7 +82,7 @@ window.FOSS = window.FOSS || {};
 
   // Prevent mouse wheel from inadvertently altering number inputs
   document.addEventListener("wheel", function (e) {
-    if (document.activeElement && document.activeElement.type === "number") {
+    if (e.target === document.activeElement && document.activeElement.type === "number" && !e.ctrlKey) {
       document.activeElement.blur();
     }
   }, { passive: true });
@@ -81,7 +91,7 @@ window.FOSS = window.FOSS || {};
     el: el,
     qs: qs,
     qsa: qsa,
-    on: on
+    on: on,
+    append: append
   };
 })();
-

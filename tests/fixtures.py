@@ -79,9 +79,9 @@ def calc_tone_wav(path: Path) -> str:
         wav_file.setnchannels(1)
         wav_file.setsampwidth(2)
         wav_file.setframerate(sample_rate)
-        for i in range(num_samples):
-            val = int(32767.0 * 0.5 * math.sin(2.0 * math.pi * freq_hz * (i / sample_rate)))
-            wav_file.writeframes(struct.pack("<h", val))
+        for sample_idx in range(num_samples):
+            sample_val = int(32767.0 * 0.5 * math.sin(2.0 * math.pi * freq_hz * (sample_idx / sample_rate)))
+            wav_file.writeframes(struct.pack("<h", sample_val))
     return str(path.resolve())
 
 
@@ -196,6 +196,10 @@ def make_fixtures(target_dir: Path) -> dict[str, str]:
     sha = hashlib.sha256(b"Hello FOSSEverything.\nSecond line of plain text.\n").hexdigest()
     manifest_path.write_text(f"{sha}  sample.txt\n", encoding="utf-8")
     fixtures["manifest.sha256"] = str(manifest_path.resolve())
+
+    playlist_path = target_dir / "playlist.m3u8"
+    playlist_path.write_text("#EXTM3U\n#EXTINF:180,Artist Name - Track Title\ntrack.mp3\n", encoding="utf-8")
+    fixtures["playlist.m3u8"] = str(playlist_path.resolve())
 
     return fixtures
 

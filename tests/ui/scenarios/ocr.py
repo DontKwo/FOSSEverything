@@ -8,12 +8,12 @@ def calc_clear_overlays(page: Page) -> None:
     try:
         page.mouse.move(0, 0)
     except Exception:
-        pass
+        page.wait_for_timeout(0)
     page.evaluate(
         "if (window.FOSS && window.FOSS.tooltips) window.FOSS.tooltips.hide(); "
         "var t = document.getElementById('tooltip-host'); if (t) t.innerHTML = ''; "
         "var h = document.getElementById('toast-host'); if (h) h.innerHTML = ''; "
-        "var el = document.getElementById('view-root'); if (el) el.scrollTop = 0;"
+        "document.querySelectorAll('.tool-panel-container, #view-root, .workbench, .page, .scroll-main').forEach(function (el) { el.scrollTop = 0; el.scrollLeft = 0; });"
     )
 
 
@@ -30,6 +30,8 @@ def scenario_document(page: Page, fixtures: dict[str, str], api: Any) -> None:
     page.wait_for_timeout(300)
 
     expect(page.locator("[data-testid='ocr-char-word-count']")).to_be_visible()
+    text_val = page.input_value("[data-testid='ocr-text-result']")
+    assert "object Object" not in text_val
     calc_clear_overlays(page)
 
 
@@ -55,11 +57,17 @@ def scenario_batch(page: Page, fixtures: dict[str, str], api: Any) -> None:
     # Queue batch OCR items and run processing.
     sample1 = fixtures.get("sample.png", "sample.png")
     sample2 = fixtures.get("sample2.png", sample1)
+    folder_path = str(Path(sample1).parent)
     out_dir = str(Path(sample1).parent)
     api._dialog_answers.append([sample1, sample2])
+    api._dialog_answers.append(folder_path)
 
     page.evaluate("window.FOSS.router.open('ocr', 'batch')")
     page.click("[data-testid='ocr-batch-add-btn']")
+    page.wait_for_timeout(200)
+
+    expect(page.locator("[data-testid='ocr-batch-add-folder-btn']")).to_be_visible()
+    page.click("[data-testid='ocr-batch-add-folder-btn']")
     page.wait_for_timeout(200)
 
     page.fill("[data-testid='ocr-batch-out-folder']", out_dir)

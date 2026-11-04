@@ -24,15 +24,18 @@ window.FOSS = window.FOSS || {};
     var currentFile = "";
     var currentPage = 0;
     var totalPages = 1;
+    var fileInspection = null;
 
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "OCR Studio" }),
-      window.FOSS.dom.el("p", { className: "text-muted text-sm", text: "Extract copyable text from scanned documents and images, or generate searchable PDFs offline." })
-    ]);
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "ocr-status",
+      text: "Ready"
+    });
 
-    var statusBar = window.FOSS.dom.el("div", { className: "text-xs text-muted", "data-testid": "ocr-status", text: "Ready" });
-
-    var errorBanner = window.FOSS.dom.el("div", { className: "banner danger", "data-testid": "ocr-error", hidden: true }, [
+    var errorBanner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden",
+      "data-testid": "ocr-error"
+    }, [
       window.FOSS.icons.el("alert", 18),
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
     ]);
@@ -40,47 +43,118 @@ window.FOSS = window.FOSS || {};
     function showError(msg) {
       var s = errorBanner.querySelector(".banner-msg");
       if (s) s.textContent = msg;
-      errorBanner.removeAttribute("hidden");
+      errorBanner.classList.remove("hidden");
       statusBar.textContent = "Error: " + msg;
     }
+
     function clearError() {
-      errorBanner.setAttribute("hidden", "true");
+      errorBanner.classList.add("hidden");
     }
 
-    var resultHost = window.FOSS.dom.el("div", { "data-testid": "ocr-result-host", hidden: true });
+    var resultHost = window.FOSS.dom.el("div", {
+      className: "hidden",
+      "data-testid": "ocr-result-host"
+    });
+
     function showResult(path, titleText) {
       resultHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({ testid: "ocr-result-card", title: titleText || "OCR Completed", outputPath: path });
+      var card = window.FOSS.components.resultCard({
+        testid: "ocr-result-card",
+        title: titleText || "OCR Completed",
+        outputPath: path
+      });
       resultHost.appendChild(card);
-      resultHost.removeAttribute("hidden");
+      resultHost.classList.remove("hidden");
     }
 
-    // Document Preview Element
-    var previewCard = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-2",
-      style: { border: "1px solid var(--border)", padding: "var(--space-3)", flex: "1 1 320px", minWidth: "280px" }
-    });
-    var previewHeading = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Document Preview" });
+    // Searchable PDF status banner
+    var searchableBanner = window.FOSS.dom.el("div", {
+      className: "banner info hidden",
+      "data-testid": "ocr-searchable-banner"
+    }, [
+      window.FOSS.icons.el("info", 18),
+      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
+    ]);
 
+    function updateSearchableBanner(insp) {
+      if (!insp || !insp.searchable_pages || insp.searchable_pages.length === 0) {
+        searchableBanner.classList.add("hidden");
+        return;
+      }
+      var msg;
+      if (insp.is_fully_searchable) {
+        msg = "All " + insp.page_count + " pages are already searchable and will be preserved automatically.";
+      } else {
+        msg = insp.searchable_pages.length + " of " + insp.page_count + " pages already contain searchable text and will be preserved automatically.";
+      }
+      searchableBanner.querySelector(".banner-msg").textContent = msg;
+      searchableBanner.classList.remove("hidden");
+    }
+
+    // Page preview element with zoom controls and expanded viewport
+    var previewZoom = 1.0;
     var previewImg = window.FOSS.dom.el("img", {
       "data-testid": "ocr-preview-img",
-      alt: "open a document to see preview",
-      style: {
-        maxWidth: "100%",
-        maxHeight: "280px",
-        objectFit: "contain",
-        display: "none",
-        margin: "0 auto",
-        backgroundColor: "var(--bg-raised)",
-        borderRadius: "var(--radius-md)"
-      }
+      alt: "Open a document to see preview",
+      className: "hidden",
+      style: "max-width: 100%; height: auto; object-fit: contain; margin: 0 auto; background: var(--bg-raised); border-radius: var(--radius-md); transition: transform 0.15s ease;"
     });
 
     var previewPlaceholder = window.FOSS.dom.el("div", {
       className: "text-muted text-sm text-center",
-      style: { padding: "var(--space-8) var(--space-4)", backgroundColor: "var(--bg-raised)", borderRadius: "var(--radius-md)" },
+      style: "padding: var(--space-6) var(--space-4); background: var(--bg-raised); border-radius: var(--radius-md);",
       text: "No document loaded"
     });
+
+    var previewCanvas = window.FOSS.dom.el("div", {
+      className: "ocr-preview-canvas",
+      "data-testid": "ocr-preview-canvas",
+      style: "min-height: 26rem; max-height: 40rem; overflow: auto; display: flex; align-items: center; justify-content: center; background: var(--bg-raised); border-radius: var(--radius-md); padding: var(--space-2); position: relative;"
+    }, [previewImg, previewPlaceholder]);
+
+    var zoomLevelLabel = window.FOSS.dom.el("span", {
+      className: "text-xs font-mono",
+      "data-testid": "ocr-zoom-level",
+      text: "100%"
+    });
+
+    function applyZoom(delta, reset) {
+      if (reset) previewZoom = 1.0;
+      else previewZoom = Math.min(3.0, Math.max(0.4, Math.round((previewZoom + delta) * 10) / 10));
+      previewImg.style.setProperty("transform", "scale(" + previewZoom + ")");
+      previewImg.style.setProperty("transform-origin", "center center");
+      zoomLevelLabel.textContent = Math.round(previewZoom * 100) + "%";
+    }
+
+    var zoomOutBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-xs btn-icon",
+      title: "Zoom Out",
+      "data-testid": "ocr-zoom-out",
+      "aria-label": "Zoom Out",
+      onclick: function () { applyZoom(-0.2, false); }
+    }, [window.FOSS.icons.el("minus", 12)]);
+
+    var zoomResetBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-xs",
+      title: "Reset Zoom",
+      "data-testid": "ocr-zoom-reset",
+      "aria-label": "Reset Zoom",
+      onclick: function () { applyZoom(0, true); }
+    }, [zoomLevelLabel]);
+
+    var zoomInBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-xs btn-icon",
+      title: "Zoom In",
+      "data-testid": "ocr-zoom-in",
+      "aria-label": "Zoom In",
+      onclick: function () { applyZoom(0.2, false); }
+    }, [window.FOSS.icons.el("plus", 12)]);
+
+    var zoomControls = window.FOSS.dom.el("div", { className: "row gap-1 items-center" }, [
+      zoomOutBtn,
+      zoomResetBtn,
+      zoomInBtn
+    ]);
 
     var pageIndicator = window.FOSS.dom.el("span", {
       className: "text-xs font-semibold",
@@ -88,592 +162,773 @@ window.FOSS = window.FOSS || {};
       text: "Page 1 of 1"
     });
 
+    var pageTypeBadge = window.FOSS.dom.el("span", {
+      className: "badge badge-neutral text-xs",
+      "data-testid": "ocr-page-type-badge",
+      text: "Scanned"
+    });
+
+    function updatePageBadge() {
+      if (!fileInspection) {
+        pageTypeBadge.textContent = "Scanned";
+        return;
+      }
+      var pNum = currentPage + 1;
+      if (fileInspection.searchable_pages && fileInspection.searchable_pages.indexOf(pNum) !== -1) {
+        pageTypeBadge.textContent = "Searchable";
+        pageTypeBadge.className = "badge badge-success text-xs";
+      } else if (fileInspection.hybrid_pages && fileInspection.hybrid_pages.indexOf(pNum) !== -1) {
+        pageTypeBadge.textContent = "Hybrid";
+        pageTypeBadge.className = "badge badge-warning text-xs";
+      } else {
+        pageTypeBadge.textContent = "Scanned";
+        pageTypeBadge.className = "badge badge-neutral text-xs";
+      }
+    }
+
     var prevBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "ocr-prev-btn",
-      "aria-label": "< prev",
-      title: "< prev",
-      type: "button",
-      style: { minWidth: "36px", minHeight: "36px" },
-      onClick: function () {
+      "aria-label": "Previous Page",
+      title: "Previous Page",
+      disabled: true,
+      onclick: function () {
         if (currentPage > 0) {
           currentPage--;
-          updatePreview();
+          loadPagePreview();
         }
       }
-    }, [window.FOSS.dom.el("span", { text: "< prev" })]);
+    }, [window.FOSS.icons.el("arrow-left", 16), window.FOSS.dom.el("span", { text: "Previous" })]);
 
     var nextBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "ocr-next-btn",
-      "aria-label": "Next >",
-      title: "Next >",
-      type: "button",
-      style: { minWidth: "36px", minHeight: "36px" },
-      onClick: function () {
+      "aria-label": "Next Page",
+      title: "Next Page",
+      disabled: true,
+      onclick: function () {
         if (currentPage < totalPages - 1) {
           currentPage++;
-          updatePreview();
+          loadPagePreview();
         }
       }
-    }, [window.FOSS.dom.el("span", { text: "Next >" })]);
+    }, [window.FOSS.dom.el("span", { text: "Next" }), window.FOSS.icons.el("arrow-right", 16)]);
 
-    var navRow = window.FOSS.dom.el("div", {
-      className: "row items-center justify-between",
-      style: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", marginTop: "var(--space-2)" }
-    }, [prevBtn, pageIndicator, nextBtn]);
-
-    previewCard.appendChild(previewHeading);
-    previewCard.appendChild(previewPlaceholder);
-    previewCard.appendChild(previewImg);
-    previewCard.appendChild(navRow);
-
-    function updatePreview() {
-      if (!currentFile) {
-        previewPlaceholder.style.setProperty("display", "block");
-        previewImg.style.setProperty("display", "none");
-        previewPlaceholder.textContent = "open a document to see preview";
-        return;
-      }
-      previewPlaceholder.style.setProperty("display", "none");
-      previewImg.style.setProperty("display", "block");
+    function loadPagePreview() {
+      if (!currentFile) return;
       pageIndicator.textContent = "Page " + (currentPage + 1) + " of " + totalPages;
+      prevBtn.disabled = currentPage <= 0;
+      nextBtn.disabled = currentPage >= totalPages - 1;
+      updatePageBadge();
 
       if (currentFile.toLowerCase().endsWith(".pdf")) {
-        ctx.api("pdf_render_page", { file_path: currentFile, page_number: currentPage, dpi: 100 }).then(function (res) {
-          if (res && res.ok && res.data_url) {
-            previewImg.src = res.data_url;
+        window.FOSS.api("pdf_render_page", { file_path: currentFile, page_number: currentPage }).then(function (res) {
+          if (res && res.image_data) {
+            previewImg.src = res.image_data;
+            previewImg.classList.remove("hidden");
+            previewPlaceholder.classList.add("hidden");
           }
         });
       } else {
-        ctx.api("images_load_data", { file_path: currentFile }).then(function (res) {
-          if (res && res.ok && res.data_url) {
+        window.FOSS.api("image_to_data_url", { file_path: currentFile }).then(function (res) {
+          if (res && res.data_url) {
             previewImg.src = res.data_url;
+            previewImg.classList.remove("hidden");
+            previewPlaceholder.classList.add("hidden");
           }
         });
       }
     }
 
-    var filePicker = window.FOSS.components.filePicker({
-      testid: "ocr-file-picker",
-      title: "select a pdf or image file (png, jpg, tiff, webp, bmp, etc)",
-      fileTypes: ["pdf", "png", "jpg", "jpeg", "webp", "tiff", "bmp"],
-      onSelect: function (val) {
-        currentFile = val;
-        clearError();
-        currentPage = 0;
-        totalPages = 1;
-        statusBar.textContent = "Loaded: " + val.split(/[/\\]/).pop();
+    var previewCard = window.FOSS.dom.el("div", { className: "card card-compact stack-sm" }, [
+      window.FOSS.dom.el("div", { className: "row-between items-center" }, [
+        window.FOSS.dom.el("h3", { className: "card-title text-base", text: "OCR Preview" }),
+        window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+          zoomControls,
+          pageTypeBadge
+        ])
+      ]),
+      previewCanvas,
+      window.FOSS.dom.el("div", { className: "row-between" }, [
+        prevBtn,
+        pageIndicator,
+        nextBtn
+      ])
+    ]);
 
-        if (val.toLowerCase().endsWith(".pdf")) {
-          ctx.api("pdf_open_doc", { file_path: val }).then(function (res) {
-            if (res && res.ok) {
-              totalPages = res.page_count || 1;
-              updatePreview();
-            }
-          });
-        } else {
-          updatePreview();
-        }
-      },
-      onClear: function () {
-        currentFile = "";
-        previewImg.src = "";
-        previewPlaceholder.style.setProperty("display", "block");
-        previewImg.style.setProperty("display", "none");
-        previewPlaceholder.textContent = "no document loaded";
-        pageIndicator.textContent = "Page 1 of 1";
-      }
-    });
-
-    // Configuration Group
-    var configCard = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-3",
-      style: { border: "1px solid var(--border)", padding: "var(--space-3)", flex: "1 1 320px", minWidth: "280px" }
-    });
-    var configHeading = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "OCR Configuration" });
-
+    // OCR Settings Card
     var langSelect = window.FOSS.dom.el("select", {
-      className: "input",
+      className: "select",
       "data-testid": "ocr-language",
-      "aria-label": "Language",
-      title: "Language",
-      style: { minHeight: "36px", minWidth: "140px" }
+      "aria-label": "OCR Language"
     }, [
-      window.FOSS.dom.el("option", { value: "eng", text: "English (eng)" }),
+      window.FOSS.dom.el("option", { value: "eng", text: "English (eng)", selected: true }),
       window.FOSS.dom.el("option", { value: "spa", text: "Spanish (spa)" }),
       window.FOSS.dom.el("option", { value: "fra", text: "French (fra)" }),
       window.FOSS.dom.el("option", { value: "deu", text: "German (deu)" }),
       window.FOSS.dom.el("option", { value: "ita", text: "Italian (ita)" }),
-      window.FOSS.dom.el("option", { value: "por", text: "Portuguese (por)" })
+      window.FOSS.dom.el("option", { value: "por", text: "Portuguese (por)" }),
+      window.FOSS.dom.el("option", { value: "chi_sim", text: "Chinese Simplified (chi_sim)" }),
+      window.FOSS.dom.el("option", { value: "jpn", text: "Japanese (jpn)" }),
+      window.FOSS.dom.el("option", { value: "rus", text: "Russian (rus)" })
     ]);
+
+    window.FOSS.api("ocr_languages", {}).then(function (res) {
+      if (res && res.catalog) {
+        langSelect.innerHTML = "";
+        Object.keys(res.catalog).forEach(function (code) {
+          var opt = window.FOSS.dom.el("option", {
+            value: code,
+            text: res.catalog[code] + " (" + code + ")",
+            selected: code === "eng"
+          });
+          langSelect.appendChild(opt);
+        });
+      }
+    });
 
     var dpiSelect = window.FOSS.dom.el("select", {
-      className: "input",
+      className: "select",
       "data-testid": "ocr-dpi",
-      "aria-label": "Resolution",
-      title: "Resolution",
-      style: { minHeight: "36px", minWidth: "180px" }
+      "aria-label": "OCR DPI Resolution"
     }, [
-      window.FOSS.dom.el("option", { value: "150", text: "Standard (150 DPI) - Fast" }),
-      window.FOSS.dom.el("option", { value: "200", selected: true, text: "High Quality (200 DPI) - Recommended" }),
-      window.FOSS.dom.el("option", { value: "300", text: "Ultra (300 DPI) - Fine text / Receipts" })
-    ]);
-
-    var formatSelect = window.FOSS.dom.el("select", {
-      className: "input",
-      "data-testid": "ocr-format",
-      "aria-label": "Output Format",
-      title: "Output Format",
-      style: { minHeight: "36px", minWidth: "140px" }
-    }, [
-      window.FOSS.dom.el("option", { value: "txt", text: "Plain Text (.txt)" }),
-      window.FOSS.dom.el("option", { value: "md", text: "Markdown (.md)" }),
-      window.FOSS.dom.el("option", { value: "pdf", text: "Searchable PDF (.pdf)" })
+      window.FOSS.dom.el("option", { value: "150", text: "150 DPI (Fast)" }),
+      window.FOSS.dom.el("option", { value: "200", text: "200 DPI (Recommended)", selected: true }),
+      window.FOSS.dom.el("option", { value: "300", text: "300 DPI (Fine Print)" })
     ]);
 
     var pageRangeInput = window.FOSS.dom.el("input", {
-      className: "input",
       type: "text",
+      className: "input",
+      placeholder: "All (or e.g. 1-4, 7, 10-12)",
       "data-testid": "ocr-page-range",
-      placeholder: "All pages (or e.g. 1-3, 5)",
-      "aria-label": "Pages",
-      title: "Pages",
-      style: { minHeight: "36px", minWidth: "160px" }
+      "aria-label": "Page selection ranges"
     });
 
-    var ocrProgress = window.FOSS.components.progress({
-      testid: "ocr-progress",
-      percent: 0,
-      message: "Ready"
+    var forceOverwriteCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      checked: false,
+      "data-testid": "ocr-force-reocr-check",
+      "aria-label": "Force re-OCR on pages with existing searchable text"
     });
-    ocrProgress.el.classList.add("hidden");
+    var forceOverwriteLabel = window.FOSS.dom.el("label", { className: "row gap-2 text-xs" }, [
+      forceOverwriteCheck,
+      window.FOSS.dom.el("span", { text: "Force re-OCR on existing searchable text" })
+    ]);
+
+    var progressBar = window.FOSS.components.progress({ testid: "ocr-progress" });
+    progressBar.el.classList.add("hidden");
 
     var extractBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
       "data-testid": "ocr-extract-btn",
-      "aria-label": "Extract Text (OCR)",
-      title: "Extract Text (OCR)",
-      type: "button",
-      style: { minHeight: "36px" },
-      onClick: function () {
-        if (!currentFile) {
-          showError("Select a document first.");
-          return;
-        }
-        clearError();
-        statusBar.textContent = "Running OCR recognition...";
-        ocrProgress.el.classList.remove("hidden");
-        ocrProgress.update(25, "Analyzing document structure and layout...");
-        var progTimer = setInterval(function () {
-          var cur = parseInt(ocrProgress.el.getAttribute("aria-valuenow") || "25", 10);
-          if (cur < 85) ocrProgress.update(cur + 15, "Recognizing characters...");
-        }, 300);
-        var dpiVal = parseInt(dpiSelect.value, 10) || 200;
-        ctx.api("ocr_recognize_file", { file_path: currentFile, language: langSelect.value, dpi: dpiVal }).then(function (res) {
-          clearInterval(progTimer);
-          if (res && res.ok) {
-            ocrProgress.update(100, "OCR extraction complete.");
-            var txt = res.text || "";
-            textArea.value = txt;
-            updateCount(txt);
-            statusBar.textContent = "OCR recognition completed.";
-          } else {
-            ocrProgress.el.classList.add("hidden");
-            showError((res && res.error) || "OCR extraction failed.");
-          }
-        }).catch(function (err) {
-          clearInterval(progTimer);
-          ocrProgress.el.classList.add("hidden");
-          showError(err.message || "OCR extraction failed.");
-        });
+      disabled: true,
+      onclick: function () {
+        runTextExtraction();
       }
-    }, [
-      window.FOSS.icons.el("file-text", 18),
-      window.FOSS.dom.el("span", { text: "Extract Text (OCR)" })
-    ]);
+    }, [window.FOSS.icons.el("file-text", 16), window.FOSS.dom.el("span", { text: "Extract Text" })]);
 
     var makePdfBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary",
       "data-testid": "ocr-make-pdf-btn",
-      "aria-label": "Make Searchable PDF",
-      title: "Make Searchable PDF",
-      type: "button",
-      style: { minHeight: "36px" },
-      onClick: function () {
-        if (!currentFile) {
-          showError("Select a document first.");
-          return;
-        }
-        ctx.api("select_save_path", { title: "Save Searchable PDF", default_name: "searchable.pdf", file_types: ["pdf"] }).then(function (res) {
-          var saveP = (res && res.paths && res.paths[0]) || "";
-          if (!saveP) return;
-          clearError();
-          statusBar.textContent = "Synthesizing searchable PDF...";
-          ocrProgress.el.classList.remove("hidden");
-          ocrProgress.update(20, "Rasterizing document pages...");
-          var pdfTimer = setInterval(function () {
-            var cur = parseInt(ocrProgress.el.getAttribute("aria-valuenow") || "20", 10);
-            if (cur < 85) ocrProgress.update(cur + 15, "Synthesizing searchable text layer...");
-          }, 350);
-          var dpiVal = parseInt(dpiSelect.value, 10) || 200;
-          ctx.api("ocr_create_searchable_pdf", { input_path: currentFile, output_path: saveP, language: langSelect.value, dpi: dpiVal }).then(function (pres) {
-            clearInterval(pdfTimer);
-            if (pres && pres.ok && pres.output_path) {
-              ocrProgress.update(100, "Searchable PDF synthesized.");
-              statusBar.textContent = "Searchable PDF created.";
-              showResult(pres.output_path, "Searchable PDF Created");
-            } else {
-              ocrProgress.el.classList.add("hidden");
-              showError((pres && pres.error) || "Failed to create searchable PDF.");
-            }
-          }).catch(function (err) {
-            clearInterval(pdfTimer);
-            ocrProgress.el.classList.add("hidden");
-            showError(err.message || "Failed to create searchable PDF.");
-          });
-        });
+      disabled: true,
+      onclick: function () {
+        runMakeSearchablePdf();
       }
-    }, [
-      window.FOSS.icons.el("layers", 18),
-      window.FOSS.dom.el("span", { text: "Make Searchable PDF" })
+    }, [window.FOSS.icons.el("pdf", 16), window.FOSS.dom.el("span", { text: "Save Searchable PDF..." })]);
+
+    var settingsCard = window.FOSS.dom.el("div", { className: "card card-compact stack-sm" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "OCR Settings" }),
+      window.FOSS.dom.el("div", { className: "field" }, [
+        window.FOSS.dom.el("label", { text: "Language" }),
+        langSelect
+      ]),
+      window.FOSS.dom.el("div", { className: "field" }, [
+        window.FOSS.dom.el("label", { text: "Resolution" }),
+        dpiSelect
+      ]),
+      window.FOSS.dom.el("div", { className: "field" }, [
+        window.FOSS.dom.el("label", { text: "Page Range" }),
+        pageRangeInput
+      ]),
+      forceOverwriteLabel,
+      progressBar.el,
+      window.FOSS.dom.el("div", { className: "row gap-2 mt-2" }, [extractBtn, makePdfBtn])
     ]);
 
-    var controlsRow = window.FOSS.dom.el("div", {
-      className: "row items-end",
-      style: { display: "flex", flexWrap: "wrap", gap: "var(--space-3)", width: "100%" }
-    }, [
-      window.FOSS.components.field("Language", langSelect),
-      window.FOSS.components.field("Resolution", dpiSelect),
-      window.FOSS.components.field("Output Format", formatSelect),
-      window.FOSS.components.field("Pages", pageRangeInput),
-      extractBtn,
-      makePdfBtn
-    ]);
-
-    configCard.appendChild(configHeading);
-    configCard.appendChild(controlsRow);
-
-    // Text Display & Counter Area
-    var textCard = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-2",
-      style: { width: "100%", border: "1px solid var(--border)", padding: "var(--space-3)" }
+    // File picker
+    var filePicker = window.FOSS.components.filePicker({
+      testid: "ocr-file-picker",
+      label: "Choose PDF or Image File",
+      fileTypes: ["PDF and Images (*.pdf;*.png;*.jpg;*.jpeg;*.webp;*.tiff;*.bmp)", "All Files (*.*)"],
+      onSelect: function (file) {
+        var p = typeof file === "string" ? file : (file ? file.path : "");
+        if (!p) return;
+        loadFile(p);
+      }
     });
 
-    var countLabel = window.FOSS.dom.el("span", {
-      className: "text-xs text-muted font-mono",
-      "data-testid": "ocr-char-word-count",
-      text: "0 characters | 0 words"
-    });
+    function loadFile(filePath) {
+      clearError();
+      currentFile = filePath;
+      currentPage = 0;
+      extractBtn.disabled = false;
+      makePdfBtn.disabled = false;
+      statusBar.textContent = "Loaded: " + filePath;
 
-    function updateCount(txt) {
-      var str = (txt && typeof txt === "string") ? txt : "";
-      var chars = str.length;
-      var words = str.trim() ? str.trim().split(/\s+/).length : 0;
-      countLabel.textContent = chars + " characters | " + words + " words";
+      if (filePath.toLowerCase().endsWith(".pdf")) {
+        window.FOSS.api("ocr_inspect_file", { file_path: filePath }).then(function (res) {
+          if (res && res.page_count) {
+            fileInspection = res;
+            totalPages = res.page_count;
+            updateSearchableBanner(res);
+            loadPagePreview();
+          }
+        });
+      } else {
+        fileInspection = null;
+        totalPages = 1;
+        searchableBanner.classList.add("hidden");
+        loadPagePreview();
+      }
     }
 
-    var textHeadingRow = window.FOSS.dom.el("div", {
-      className: "row items-center justify-between",
-      style: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }
-    }, [
-      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "extracted text" }),
-      countLabel
-    ]);
+    // Right Column: Extracted Text
+    var statsBadge = window.FOSS.dom.el("span", {
+      className: "badge badge-neutral text-xs",
+      "data-testid": "ocr-char-word-count",
+      text: "0 characters / 0 words"
+    });
 
     var textArea = window.FOSS.dom.el("textarea", {
-      className: "input scroll-y",
+      className: "code-editor grow",
       "data-testid": "ocr-text-result",
-      placeholder: "extracted ocr text will appear here. you can edit and format the text directly.",
-      "aria-label": "extracted text",
-      title: "extracted text",
-      rows: 8,
-      style: { width: "100%", minHeight: "160px", fontFamily: "var(--font-mono)", fontSize: "var(--text-sm)", lineHeight: "1.5" },
+      placeholder: "Extracted text appears here. Existing searchable text is preserved unless Force re-OCR is checked.",
+      "aria-label": "Extracted OCR text",
+      style: "min-height: 22rem; height: 100%; width: 100%; font-family: monospace; resize: none;",
       onInput: function () {
-        updateCount(textArea.value);
+        updateTextStats();
       }
     });
+
+    function updateTextStats() {
+      var txt = textArea.value;
+      var chars = txt.length;
+      var words = txt.trim() ? txt.trim().split(/\s+/).length : 0;
+      statsBadge.textContent = chars + " characters / " + words + " words";
+    }
+
+    var formatSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-dense": "true",
+      "data-testid": "ocr-output-format",
+      "aria-label": "Output text format"
+    }, [
+      window.FOSS.dom.el("option", { value: "txt", text: "Plain Text (.txt)", selected: true }),
+      window.FOSS.dom.el("option", { value: "md", text: "Markdown (.md)" })
+    ]);
 
     var copyBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "ocr-copy-btn",
-      "aria-label": "Copy Extracted Text",
       title: "Copy Extracted Text",
-      type: "button",
-      style: { minHeight: "36px" },
-      onClick: function () {
-        if (!textArea.value) return;
+      onclick: function () {
         copyToClipboard(textArea.value);
-        statusBar.textContent = "Copied text to clipboard.";
+        window.FOSS.toast.show("Copied extracted text to clipboard", "success");
       }
-    }, [
-      window.FOSS.icons.el("copy", 16),
-      window.FOSS.dom.el("span", { text: "Copy" })
-    ]);
+    }, [window.FOSS.icons.el("clipboard", 16), window.FOSS.dom.el("span", { text: "Copy" })]);
 
     var saveTextBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "ocr-save-text-btn",
-      "aria-label": "Save Extracted Text",
-      title: "Save Extracted Text",
-      type: "button",
-      style: { minHeight: "36px" },
-      onClick: function () {
-        if (!textArea.value) {
-          showError("No text to save.");
+      title: "Save Extracted Text File",
+      onclick: function () {
+        if (!textArea.value.trim()) {
+          showError("No extracted text to save");
           return;
         }
         var ext = formatSelect.value === "md" ? ".md" : ".txt";
-        ctx.api("select_save_path", { title: "Save OCR Text", default_name: "ocr_text" + ext, file_types: [ext.slice(1)] }).then(function (res) {
-          var saveP = (res && res.paths && res.paths[0]) || "";
-          if (!saveP) return;
-          ctx.api("save_file_text", { path: saveP, content: textArea.value }).then(function (sres) {
-            statusBar.textContent = "Saved extracted text to " + saveP;
-            showResult(saveP, "Text File Saved");
+        var filterDesc = formatSelect.value === "md" ? "Markdown Files" : "Text Files";
+        window.FOSS.api("select_save_path", {
+          title: "Save Extracted Text",
+          default_name: "extracted_text" + ext,
+          file_types: [{ name: filterDesc, extensions: [ext.replace(".", "")] }]
+        }).then(function (dlg) {
+          var chosenPath = (dlg && (dlg.path || dlg.file_path || dlg.output_path)) || "";
+          if (!chosenPath) return;
+          if (!chosenPath.toLowerCase().endsWith(ext)) {
+            chosenPath = chosenPath + ext;
+          }
+          window.FOSS.api("write_text_file", { path: chosenPath, content: textArea.value }).then(function () {
+            window.FOSS.toast.show("Saved text to " + chosenPath, "success");
           });
         });
       }
+    }, [window.FOSS.icons.el("save", 16), window.FOSS.dom.el("span", { text: "Save Text..." })]);
+
+    var textCard = window.FOSS.dom.el("div", {
+      className: "card card-compact stack-sm grow",
+      style: "height: 100%; display: flex; flex-direction: column;"
     }, [
-      window.FOSS.icons.el("save", 16),
-      window.FOSS.dom.el("span", { text: "Save File" })
+      window.FOSS.dom.el("div", { className: "row-between" }, [
+        window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Extracted Text" }),
+        statsBadge
+      ]),
+      textArea,
+      window.FOSS.dom.el("div", { className: "row-between mt-2" }, [
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [
+          window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Format:" }),
+          formatSelect
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [
+          copyBtn,
+          saveTextBtn
+        ])
+      ])
     ]);
 
-    var textActionsRow = window.FOSS.dom.el("div", {
-      className: "row items-center",
-      style: { display: "flex", gap: "var(--space-2)", marginTop: "var(--space-2)" }
-    }, [copyBtn, saveTextBtn]);
+    function runTextExtraction() {
+      if (!currentFile) return;
+      clearError();
+      progressBar.el.classList.remove("hidden");
+      progressBar.setIndeterminate(true);
+      statusBar.textContent = "Extracting text with OCR...";
 
-    textCard.appendChild(textHeadingRow);
-    textCard.appendChild(textArea);
-    textCard.appendChild(textActionsRow);
+      var params = {
+        file_path: currentFile,
+        language: langSelect.value,
+        dpi: parseInt(dpiSelect.value, 10),
+        force_reocr: forceOverwriteCheck.checked,
+        force_overwrite: forceOverwriteCheck.checked,
+        page_range: pageRangeInput.value.trim()
+      };
 
-    var splitTop = window.FOSS.dom.el("div", {
-      className: "row",
-      style: { display: "flex", flexWrap: "wrap", gap: "var(--space-3)", width: "100%" }
-    }, [configCard, previewCard]);
+      window.FOSS.api("ocr_recognize_file", params).then(function (res) {
+        progressBar.el.classList.add("hidden");
+        if (res && res.text !== undefined) {
+          textArea.value = res.text;
+          updateTextStats();
+          statusBar.textContent = "Extraction complete (" + res.text.length + " chars)";
+        } else {
+          showError((res && res.error) || "OCR extraction failed");
+        }
+      }).catch(function (err) {
+        progressBar.el.classList.add("hidden");
+        showError(String(err));
+      });
+    }
 
-    panel.appendChild(header);
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(resultHost);
-    panel.appendChild(ocrProgress.el);
-    panel.appendChild(filePicker.el);
-    panel.appendChild(splitTop);
-    panel.appendChild(textCard);
+    function runMakeSearchablePdf() {
+      if (!currentFile) return;
+      clearError();
+      window.FOSS.api("select_save_path", {
+        title: "Save Searchable PDF",
+        default_name: "searchable.pdf",
+        file_types: [{ name: "PDF Documents", extensions: ["pdf"] }]
+      }).then(function (dlg) {
+        var chosenPath = (dlg && (dlg.path || dlg.file_path || dlg.output_path)) || "";
+        if (!chosenPath) return;
+        if (!chosenPath.toLowerCase().endsWith(".pdf")) {
+          chosenPath = chosenPath + ".pdf";
+        }
+        progressBar.el.classList.remove("hidden");
+        progressBar.setIndeterminate(true);
+        statusBar.textContent = "Generating searchable PDF...";
+
+        var params = {
+          input_path: currentFile,
+          output_path: chosenPath,
+          language: langSelect.value,
+          dpi: parseInt(dpiSelect.value, 10),
+          force_reocr: forceOverwriteCheck.checked,
+          force_overwrite: forceOverwriteCheck.checked,
+          page_range: pageRangeInput.value.trim()
+        };
+
+        window.FOSS.api("ocr_create_searchable_pdf", params).then(function (res) {
+          progressBar.el.classList.add("hidden");
+          if (res && res.output_path) {
+            showResult(res.output_path, "Searchable PDF Created");
+            statusBar.textContent = "Searchable PDF generated: " + res.output_path;
+          } else {
+            showError((res && res.error) || "Failed to create searchable PDF");
+          }
+        }).catch(function (err) {
+          progressBar.el.classList.add("hidden");
+          showError(String(err));
+        });
+      });
+    }
+
+    var leftCol = window.FOSS.dom.el("div", {
+      className: "stack-sm",
+      style: "width: var(--split-left, 24rem); flex-shrink: 0;"
+    }, [
+      filePicker.el,
+      searchableBanner,
+      previewCard,
+      settingsCard
+    ]);
+
+    var splitArea = window.FOSS.dom.el("div", {
+      className: "split resizable markdown-workbench-split grow",
+      "data-testid": "ocr-split"
+    }, [
+      leftCol,
+      window.FOSS.components.splitDivider({ targetSplit: null, testid: "ocr-split-divider" }),
+      textCard
+    ]);
+
+    panel.appendChild(window.FOSS.dom.el("div", { className: "stack grow", style: "height: 100%; min-height: 0;" }, [
+      errorBanner,
+      resultHost,
+      splitArea
+    ]));
+
+    ctx.state = ctx.state || {};
+    ctx.state.loadFile = loadFile;
   }
 
   // TAB 2: Batch OCR
   function renderBatchOcr(panel, ctx) {
     panel.innerHTML = "";
-    var batchFiles = [];
-    var outFolder = "";
+    var queue = [];
 
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Batch OCR" }),
-      window.FOSS.dom.el("p", { className: "text-muted text-sm", text: "Queue multiple documents and images for bulk offline optical character recognition." })
-    ]);
-
-    var statusBar = window.FOSS.dom.el("div", { className: "text-xs text-muted", "data-testid": "ocr-batch-status", text: "Ready" });
-
-    var errorBanner = window.FOSS.dom.el("div", { className: "banner danger", "data-testid": "ocr-batch-error", hidden: true }, [
+    var errorBanner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden",
+      "data-testid": "ocr-batch-error"
+    }, [
       window.FOSS.icons.el("alert", 18),
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
     ]);
 
     function showError(msg) {
-      var s = errorBanner.querySelector(".banner-msg");
-      if (s) s.textContent = msg;
-      errorBanner.removeAttribute("hidden");
-      statusBar.textContent = "Error: " + msg;
+      errorBanner.querySelector(".banner-msg").textContent = msg;
+      errorBanner.classList.remove("hidden");
     }
+
     function clearError() {
-      errorBanner.setAttribute("hidden", "true");
+      errorBanner.classList.add("hidden");
     }
 
-    var resultHost = window.FOSS.dom.el("div", { "data-testid": "ocr-batch-result", hidden: true });
-    function showResult(path, titleText) {
-      resultHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({ testid: "ocr-batch-result-card", title: titleText || "Batch Complete", outputPath: path });
-      resultHost.appendChild(card);
-      resultHost.removeAttribute("hidden");
-    }
-
-    var filesList = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-1 scroll-y",
-      "data-testid": "ocr-batch-list",
-      style: { maxHeight: "200px", minHeight: "80px", overflowY: "auto", border: "1px solid var(--border)", padding: "var(--space-2)" }
+    var resultHost = window.FOSS.dom.el("div", {
+      className: "hidden",
+      "data-testid": "ocr-batch-result"
     });
 
-    function renderBatchFiles() {
-      filesList.innerHTML = "";
-      if (batchFiles.length === 0) {
-        filesList.appendChild(window.FOSS.dom.el("div", { className: "text-muted text-sm", text: "No files added to batch." }));
-        return;
-      }
-      batchFiles.forEach(function (f, idx) {
-        var row = window.FOSS.dom.el("div", {
-          className: "row items-center justify-between",
-          style: { display: "flex", justifyContent: "space-between", padding: "var(--space-1) var(--space-2)" }
-        }, [
-          window.FOSS.dom.el("span", { className: "text-sm", text: (idx + 1) + ". " + f.split(/[/\\]/).pop() }),
-          window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Queued" })
-        ]);
-        filesList.appendChild(row);
-      });
-    }
-
+    // Top action bar
     var addFilesBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "ocr-batch-add-btn",
-      "aria-label": "open file",
-      title: "open file",
-      type: "button",
-      style: { minHeight: "36px" },
-      onClick: function () {
-        ctx.api("select_files", { title: "Select Documents for Batch OCR", file_types: ["pdf", "png", "jpg", "jpeg", "webp", "tiff", "bmp"] }).then(function (res) {
-          if (res && res.paths && res.paths.length > 0) {
-            batchFiles = batchFiles.concat(res.paths);
-            renderBatchFiles();
-            statusBar.textContent = "Added " + res.paths.length + " files. Total: " + batchFiles.length;
+      onclick: function () {
+        window.FOSS.api("select_files", { file_types: ["PDF and Images (*.pdf;*.png;*.jpg;*.jpeg;*.webp;*.tiff;*.bmp)", "All Files (*.*)"] }).then(function (res) {
+          if (res && res.paths) {
+            addPathsToQueue(res.paths);
           }
         });
       }
-    }, [
-      window.FOSS.icons.el("plus", 16),
-      window.FOSS.dom.el("span", { text: "Open File" })
+    }, [window.FOSS.icons.el("file", 16), window.FOSS.dom.el("span", { text: "Add Files" })]);
+
+    var addFolderBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "ocr-batch-add-folder-btn",
+      onclick: function () {
+        window.FOSS.api("select_folder", { title: "Select Folder for Batch OCR" }).then(function (res) {
+          var folderP = (res && (res.path || res.folder_path || res.output_dir)) || "";
+          if (folderP) {
+            addPathsToQueue([folderP]);
+          }
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 16), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
+
+    var recursiveCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      checked: true,
+      "data-testid": "ocr-batch-recursive",
+      "aria-label": "Include subfolders when scanning folders"
+    });
+    var recursiveLabel = window.FOSS.dom.el("label", { className: "row gap-1 text-xs text-muted" }, [
+      recursiveCheck,
+      window.FOSS.dom.el("span", { text: "Include Subfolders" })
     ]);
 
-    var folderInput = window.FOSS.dom.el("input", {
-      className: "input",
+    var clearBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "data-testid": "ocr-batch-clear-btn",
+      onclick: function () {
+        queue = [];
+        renderQueueTable();
+      }
+    }, [window.FOSS.icons.el("trash", 16), window.FOSS.dom.el("span", { text: "Clear Queue" })]);
+
+    var topBar = window.FOSS.dom.el("div", { className: "row-between" }, [
+      window.FOSS.dom.el("div", { className: "row gap-2" }, [
+        addFilesBtn,
+        addFolderBtn,
+        recursiveLabel
+      ]),
+      clearBtn
+    ]);
+
+    function addPathsToQueue(paths) {
+      clearError();
+      paths.forEach(function (p) {
+        if (queue.indexOf(p) === -1) {
+          queue.push(p);
+        }
+      });
+      renderQueueTable();
+    }
+
+    // Options Bar
+    var langSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-dense": "true",
+      "data-testid": "ocr-batch-language",
+      "aria-label": "Batch OCR Language"
+    }, [
+      window.FOSS.dom.el("option", { value: "eng", text: "English (eng)", selected: true })
+    ]);
+
+    window.FOSS.api("ocr_languages", {}).then(function (res) {
+      if (res && res.catalog) {
+        langSelect.innerHTML = "";
+        Object.keys(res.catalog).forEach(function (code) {
+          var opt = window.FOSS.dom.el("option", {
+            value: code,
+            text: res.catalog[code] + " (" + code + ")",
+            selected: code === "eng"
+          });
+          langSelect.appendChild(opt);
+        });
+      }
+    });
+
+    var dpiSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-dense": "true",
+      "data-testid": "ocr-batch-dpi",
+      "aria-label": "Batch OCR Resolution"
+    }, [
+      window.FOSS.dom.el("option", { value: "150", text: "150 DPI" }),
+      window.FOSS.dom.el("option", { value: "200", text: "200 DPI", selected: true }),
+      window.FOSS.dom.el("option", { value: "300", text: "300 DPI" })
+    ]);
+
+    var formatSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-dense": "true",
+      "data-testid": "ocr-batch-format",
+      "aria-label": "Batch Output Format"
+    }, [
+      window.FOSS.dom.el("option", { value: "pdf", text: "Searchable PDF (.pdf)", selected: true }),
+      window.FOSS.dom.el("option", { value: "txt", text: "Plain Text (.txt)" }),
+      window.FOSS.dom.el("option", { value: "md", text: "Markdown (.md)" })
+    ]);
+
+    var outFolderInput = window.FOSS.dom.el("input", {
       type: "text",
+      className: "input grow",
+      placeholder: "Same folder as each source file",
       "data-testid": "ocr-batch-out-folder",
-      placeholder: "Save in source file folder",
-      "aria-label": "Output Folder",
-      title: "Output Folder",
-      style: { minHeight: "36px", minWidth: "200px" }
+      "data-truncate-ok": "true",
+      title: "Batch destination folder",
+      "aria-label": "Batch destination folder"
     });
 
     var browseFolderBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "ocr-batch-browse-folder",
-      "aria-label": "Output Folder",
-      title: "Output Folder",
-      type: "button",
-      style: { minHeight: "36px" },
-      onClick: function () {
-        ctx.api("select_folder", { title: "Select Output Folder" }).then(function (res) {
-          var p = (res && res.paths && res.paths[0]) || "";
-          if (p) {
-            outFolder = p;
-            folderInput.value = p;
-          }
+      "aria-label": "Browse destination folder",
+      title: "Browse destination folder",
+      onclick: function () {
+        window.FOSS.api("select_folder", { title: "Select Destination Folder" }).then(function (res) {
+          var p = (res && (res.path || res.folder_path || res.output_dir)) || "";
+          if (p) outFolderInput.value = p;
         });
       }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Output Folder" })
-    ]);
+    }, [window.FOSS.icons.el("folder", 16), window.FOSS.dom.el("span", { text: "Browse..." })]);
 
-    var batchFormatSelect = window.FOSS.dom.el("select", {
-      className: "input",
-      "data-testid": "ocr-batch-format",
-      "aria-label": "Format",
-      title: "Format",
-      style: { minHeight: "36px", minWidth: "160px" }
-    }, [
-      window.FOSS.dom.el("option", { value: "pdf", text: "Searchable PDF (.pdf)" }),
-      window.FOSS.dom.el("option", { value: "txt", text: "Plain Text (.txt)" })
-    ]);
-
-    var batchProgress = window.FOSS.components.progress({
-      testid: "ocr-batch-progress",
-      percent: 0,
-      message: "Ready"
+    var forceOverwriteCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      checked: false,
+      "data-testid": "ocr-batch-force-reocr-check",
+      "aria-label": "Force re-OCR existing searchable text in batch",
+      title: "Force re-OCR existing searchable text in batch"
     });
-    batchProgress.el.classList.add("hidden");
+    var forceOverwriteLabel = window.FOSS.dom.el("label", { className: "row gap-1 text-xs text-muted" }, [
+      forceOverwriteCheck,
+      window.FOSS.dom.el("span", { text: "Force re-OCR" })
+    ]);
 
     var runBatchBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
       "data-testid": "ocr-run-batch-btn",
-      "aria-label": "Run Batch OCR",
-      title: "Run Batch OCR",
-      type: "button",
-      style: { minHeight: "36px" },
-      onClick: function () {
-        if (batchFiles.length === 0) {
-          showError("Add at least one document to batch.");
-          return;
-        }
-        clearError();
-        statusBar.textContent = "Processing batch OCR (" + batchFiles.length + " files)...";
-        batchProgress.el.classList.remove("hidden");
-        batchProgress.update(15, "Starting batch OCR on " + batchFiles.length + " files...");
-        var bTimer = setInterval(function () {
-          var cur = parseInt(batchProgress.el.getAttribute("aria-valuenow") || "15", 10);
-          if (cur < 85) batchProgress.update(cur + 15, "Processing batch OCR queue...");
-        }, 400);
-        var makePdf = batchFormatSelect.value === "pdf";
-        ctx.api("ocr_batch", {
-          file_paths: batchFiles,
-          searchable_pdf: makePdf,
-          output_dir: folderInput.value.trim() || undefined
-        }).then(function (bres) {
-          clearInterval(bTimer);
-          if (bres && bres.ok) {
-            batchProgress.update(100, "Batch OCR completed for " + bres.count + " items.");
-            statusBar.textContent = "Batch OCR completed for " + bres.count + " items.";
-            showResult(folderInput.value || batchFiles[0], "Batch OCR Completed");
-          } else {
-            batchProgress.el.classList.add("hidden");
-            showError((bres && bres.error) || "Batch OCR failed.");
-          }
-        }).catch(function (err) {
-          clearInterval(bTimer);
-          batchProgress.el.classList.add("hidden");
-          showError(err.message || "Batch OCR failed.");
-        });
+      onclick: function () {
+        executeBatch();
       }
-    }, [
-      window.FOSS.icons.el("layers", 18),
-      window.FOSS.dom.el("span", { text: "Run Batch OCR" })
+    }, [window.FOSS.icons.el("play", 16), window.FOSS.dom.el("span", { text: "Run Batch OCR" })]);
+
+    var optionsBar = window.FOSS.dom.el("div", { className: "card card-compact stack-sm" }, [
+      window.FOSS.dom.el("div", { className: "row gap-3 wrap" }, [
+        window.FOSS.dom.el("div", { className: "row gap-1 text-xs text-muted" }, [
+          window.FOSS.dom.el("span", { text: "Language:" }),
+          langSelect
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-1 text-xs text-muted" }, [
+          window.FOSS.dom.el("span", { text: "DPI:" }),
+          dpiSelect
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-1 text-xs text-muted" }, [
+          window.FOSS.dom.el("span", { text: "Format:" }),
+          formatSelect
+        ]),
+        forceOverwriteLabel
+      ]),
+      window.FOSS.dom.el("div", { className: "row gap-2" }, [
+        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Destination:" }),
+        outFolderInput,
+        browseFolderBtn,
+        runBatchBtn
+      ])
     ]);
 
-    var batchCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3", style: { width: "100%", maxWidth: "100%", minWidth: "0" } });
-    var toolbar = window.FOSS.dom.el("div", {
-      className: "row items-end",
-      style: { display: "flex", flexWrap: "wrap", gap: "var(--space-3)", width: "100%" }
-    }, [
-      addFilesBtn,
-      window.FOSS.components.field("destination", folderInput),
-      browseFolderBtn,
-      window.FOSS.components.field("format", batchFormatSelect),
-      runBatchBtn
-    ]);
+    // Queue Table
+    var tableHost = window.FOSS.dom.el("div", { className: "grow", "data-testid": "ocr-batch-list" });
 
-    batchCard.appendChild(toolbar);
-    batchCard.appendChild(filesList);
+    function renderQueueTable() {
+      tableHost.innerHTML = "";
+      if (queue.length === 0) {
+        tableHost.appendChild(window.FOSS.dom.el("div", { className: "empty" }, [
+          window.FOSS.icons.el("file-text", 32),
+          window.FOSS.dom.el("p", { className: "empty-title", text: "Queue is empty" }),
+          window.FOSS.dom.el("p", { className: "empty-desc", text: "Add files or entire folders to process with Batch OCR." })
+        ]));
+        return;
+      }
 
-    renderBatchFiles();
+      var rows = queue.map(function (filePath, idx) {
+        var parts = filePath.replace(/\\/g, "/").split("/");
+        var fileName = parts[parts.length - 1];
+        var parentDir = parts.slice(0, -1).join("/");
 
-    panel.appendChild(header);
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(resultHost);
-    panel.appendChild(batchProgress.el);
-    panel.appendChild(batchCard);
+        var removeBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          "data-testid": "ocr-batch-remove-" + idx,
+          "aria-label": "Remove file " + fileName,
+          title: "Remove file " + fileName,
+          onclick: function () {
+            queue.splice(idx, 1);
+            renderQueueTable();
+          }
+        }, [window.FOSS.icons.el("x", 14)]);
+
+        return window.FOSS.dom.el("tr", {}, [
+          window.FOSS.dom.el("td", { text: String(idx + 1) }),
+          window.FOSS.dom.el("td", { text: fileName }),
+          window.FOSS.dom.el("td", { className: "text-muted text-xs", text: parentDir }),
+          window.FOSS.dom.el("td", { className: "text-muted text-xs", text: "Queued" }),
+          window.FOSS.dom.el("td", {}, [removeBtn])
+        ]);
+      });
+
+      var table = window.FOSS.dom.el("table", { className: "table" }, [
+        window.FOSS.dom.el("thead", {}, [
+          window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("th", { text: "#", style: "width: 2.5rem;" }),
+            window.FOSS.dom.el("th", { text: "File / Folder" }),
+            window.FOSS.dom.el("th", { text: "Location" }),
+            window.FOSS.dom.el("th", { text: "Status" }),
+            window.FOSS.dom.el("th", { text: "", style: "width: 3.5rem;" })
+          ])
+        ]),
+        window.FOSS.dom.el("tbody", {}, rows)
+      ]);
+
+      tableHost.appendChild(window.FOSS.dom.el("div", { className: "table-wrap scroll-x" }, [table]));
+    }
+
+    function executeBatch() {
+      if (queue.length === 0) {
+        showError("Batch queue is empty. Add files or folders first.");
+        return;
+      }
+      clearError();
+
+      var params = {
+        paths: queue.slice(),
+        recursive: recursiveCheck.checked,
+        language: langSelect.value,
+        dpi: parseInt(dpiSelect.value, 10),
+        format: formatSelect.value,
+        force_reocr: forceOverwriteCheck.checked,
+        force_overwrite: forceOverwriteCheck.checked,
+        output_dir: outFolderInput.value.trim() || undefined
+      };
+
+      runBatchBtn.disabled = true;
+      runBatchBtn.textContent = "Processing...";
+
+      window.FOSS.api("ocr_batch", params).then(function (res) {
+        runBatchBtn.disabled = false;
+        runBatchBtn.innerHTML = window.FOSS.icons.svg("play", 16) + " <span>Run Batch OCR</span>";
+        if (res && res.results) {
+          resultHost.innerHTML = "";
+          var card = window.FOSS.components.resultCard({
+            testid: "ocr-batch-result-card",
+            title: "Batch OCR Completed",
+            message: "Processed " + (res.count || res.results.length) + " files successfully."
+          });
+          resultHost.appendChild(card);
+          resultHost.classList.remove("hidden");
+        }
+      }).catch(function (err) {
+        runBatchBtn.disabled = false;
+        runBatchBtn.innerHTML = window.FOSS.icons.svg("play", 16) + " <span>Run Batch OCR</span>";
+        showError(String(err));
+      });
+    }
+
+    panel.appendChild(window.FOSS.dom.el("div", { className: "stack grow", style: "height: 100%;" }, [
+      topBar,
+      optionsBar,
+      errorBanner,
+      resultHost,
+      tableHost
+    ]));
+
+    renderQueueTable();
+
+    ctx.state = ctx.state || {};
+    ctx.state.addBatchPaths = addPathsToQueue;
   }
 
-  // Register OCR Tool
   window.FOSS.router.register({
     id: "ocr",
     title: "OCR Studio",
     navName: "OCR",
     category: "Documents",
     icon: "file-text",
+    workbench: true,
+    description: "Extract text from scans and images; create searchable PDFs completely offline.",
     tabs: [
-      { id: "document", label: "document ocr", render: renderDocumentOcr },
-      { id: "batch", label: "batch ocr", render: renderBatchOcr }
-    ]
+      { id: "document", label: "Document OCR", render: renderDocumentOcr },
+      { id: "batch", label: "Batch OCR", render: renderBatchOcr }
+    ],
+    onFiles: function (paths, ctx) {
+      if (!paths || paths.length === 0) return;
+      if (paths.length === 1 && !paths[0].endsWith("/") && !paths[0].endsWith("\\")) {
+        window.FOSS.router.open("ocr", "document");
+        if (ctx.state && ctx.state.loadFile) {
+          ctx.state.loadFile(paths[0]);
+        }
+      } else {
+        window.FOSS.router.open("ocr", "batch");
+        if (ctx.state && ctx.state.addBatchPaths) {
+          ctx.state.addBatchPaths(paths);
+        }
+      }
+    }
   });
 })();
-

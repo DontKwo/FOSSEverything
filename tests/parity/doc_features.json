@@ -49,11 +49,55 @@
   },
   "shared_app_shell_home_and_search-13": {
     "section": "Shared app shell, Home, and search",
-    "text": "**Keyboard-only Home tile navigation**: Home's app-tile grid is fully focusable and keyboard-operable - Tab onto a tile, use the arrow keys to move between tiles in any direction, and press Enter/Spac"
+    "text": "**Keyboard-only Home tile navigation**: Home's app-tile grid is fully focusable and keyboard-operable: Tab onto a tile, use the arrow keys to move between tiles in any direction, and press Enter/Space"
   },
   "shared_app_shell_home_and_search-14": {
     "section": "Shared app shell, Home, and search",
-    "text": "**Keyboard-only annotation editing**: PDF Studio's and Image Studio's shared annotation canvas supports Tab/Shift+Tab to cycle selection between annotations, arrow keys to nudge the selected annotatio"
+    "text": "**Keyboard-only annotation editing**: PDF Studio and Image Studio annotation canvases support Tab/Shift+Tab to cycle selection between annotations, arrow keys to nudge the selected annotation (Shift f"
+  },
+  "shared_app_shell_home_and_search-15": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**23 Canonical Sidebar Tools & Custom Sections**: The workbench provides 23 tools grouped into customizable sections with drag-reordering, section creation, and visibility toggles."
+  },
+  "shared_app_shell_home_and_search-16": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Expanded UI Zoom**: Supports fluid scaling from 50% to 250% via shortcut buttons, slider, and Ctrl+MouseWheel zooming."
+  },
+  "shared_app_shell_home_and_search-17": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**GitHub-Default Markdown Studio**: Live side-by-side editing, syntax highlighting, table generators, and HTML export using standard GitHub-flavored rendering."
+  },
+  "shared_app_shell_home_and_search-18": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Folded Office Architecture**: Office document conversions and metadata inspection are folded directly into File Converter and Metadata Tools."
+  },
+  "shared_app_shell_home_and_search-19": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Smart Non-Destructive OCR**: Automatically detects selectable text layers before running OCR and exports text with page boundaries."
+  },
+  "shared_app_shell_home_and_search-20": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Grouped PDF Merger & Organizer**: Drag-and-drop file and page reordering with multi-page selection, rotations, and split tools."
+  },
+  "shared_app_shell_home_and_search-21": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**SpaceX GNC Calibri Resume Layout**: Real-time resume preview using the single-column Calibri layout with ATS keyword density scoring."
+  },
+  "shared_app_shell_home_and_search-22": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Freeform Layered Collage**: Multi-layer canvas with rotation, border radius, shadow, and multi-format export (.psd, .ora, .tiff, .zip)."
+  },
+  "shared_app_shell_home_and_search-23": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Unified Background Removal**: Local rembg model manager supporting multiple models with download status tracking."
+  },
+  "shared_app_shell_home_and_search-24": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Zero-Regex Batch Renamer**: Interactive visual step pipeline with live before/after previews and collision detection."
+  },
+  "shared_app_shell_home_and_search-25": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Pint-Backed Unit Converter**: Dimensional analysis and unit conversions across extensive physical unit categories."
   },
   "pdf_studio-01": {
     "section": "PDF Studio",
@@ -69,7 +113,7 @@
   },
   "pdf_studio-04": {
     "section": "PDF Studio",
-    "text": "Visual Page Organizer: Reorder pages, rotate individual pages (90\u00c2\u00b0 CW/CCW), duplicate pages, and delete pages in a dedicated visual manager."
+    "text": "Visual Page Organizer: Reorder pages, rotate individual pages (90 deg CW/CCW), duplicate pages, and delete pages in a dedicated visual manager."
   },
   "pdf_studio-05": {
     "section": "PDF Studio",
@@ -93,7 +137,7 @@
   },
   "pdf_studio-10": {
     "section": "PDF Studio",
-    "text": "**Text Watermarking**: Stamp a customizable diagonal text watermark on all or selected PDF pages - configurable text, opacity, font size, color, and rotation angle using PyMuPDF's Shape API with morph"
+    "text": "**Text Watermarking**: Stamp a customizable diagonal text watermark on all or selected PDF pages: configurable text, opacity, font size, color, and rotation angle using PyMuPDF's Shape API with morph-"
   },
   "pdf_studio-11": {
     "section": "PDF Studio",
@@ -253,7 +297,7 @@
   },
   "file_converter-05": {
     "section": "File Converter",
-    "text": "Convert JSON, YAML, CSV, TOML, and INI among one another locally. Nested data is rejected for CSV output rather than flattened into incorrect columns."
+    "text": "Convert JSON, YAML, CSV, TOML, and INI among one another locally. Nested data is rejected for CSV output to prevent distortion of tabular columns."
   },
   "file_converter-06": {
     "section": "File Converter",
@@ -297,7 +341,7 @@
   },
   "file_converter-16": {
     "section": "File Converter",
-    "text": "**Calendar `.ics` import**: Parse external `.ics` calendar files (not just export them) back into structured events locally, including folded-line and escaped-text handling. See [CONVERSION_CAPABILITI"
+    "text": "**Calendar `.ics` import**: Parse external `.ics` calendar files (not just export them) back into structured events locally, including folded-line and escaped-text handling. Conversions between inhere"
   },
   "metadata_tools-01": {
     "section": "Metadata Tools",
@@ -717,7 +761,7 @@
   },
   "palette_extractor_eyedropper-02": {
     "section": "Palette Extractor & Eyedropper",
-    "text": "Open any image and extract its dominant color palette using Pillow's median-cut quantizer - fully offline, no network calls."
+    "text": "Open any image and extract its dominant color palette using Pillow's median-cut quantizer completely offline with zero network calls."
   },
   "palette_extractor_eyedropper-03": {
     "section": "Palette Extractor & Eyedropper",
@@ -785,11 +829,11 @@
   },
   "collage_maker-07": {
     "section": "Collage Maker",
-    "text": "All compositing runs locally with Pillow - no file uploads."
+    "text": "All compositing runs locally with Pillow with zero file uploads."
   },
   "collage_maker-08": {
     "section": "Collage Maker",
-    "text": "**Preset layouts**: Side-by-side 2-up, triptych, Instagram grid (3\u00d73), product grid (2\u00d72), story strip (1\u00d74), and wide panel (2\u00d71) framing presets are available for faster composition choices with pre"
+    "text": "**Preset layouts**: Side-by-side 2-up, triptych, Instagram grid (3x3), product grid (2x2), story strip (1x4), and wide panel (2x1) framing presets are available for faster composition choices with pre"
   },
   "collage_maker-09": {
     "section": "Collage Maker",

@@ -21,12 +21,43 @@ CSS_NAMED_COLORS = {
 }
 
 
+def rgb_to_hsl(rgb: tuple[int, int, int]) -> tuple[int, int, int]:
+    # Convert 8-bit RGB color channels to integer HSL degrees and percentages.
+    r_channel = rgb[0] / 255.0
+    g_channel = rgb[1] / 255.0
+    b_channel = rgb[2] / 255.0
+    max_c = max(r_channel, g_channel, b_channel)
+    min_c = min(r_channel, g_channel, b_channel)
+    delta = max_c - min_c
+    lightness = (max_c + min_c) / 2.0
+
+    if delta == 0:
+        hue = 0.0
+        saturation = 0.0
+    else:
+        if lightness < 0.5:
+            saturation = delta / (max_c + min_c)
+        else:
+            saturation = delta / (2.0 - max_c - min_c)
+
+        if max_c == r_channel:
+            hue = ((g_channel - b_channel) / delta) % 6.0
+        elif max_c == g_channel:
+            hue = ((b_channel - r_channel) / delta) + 2.0
+        else:
+            hue = ((r_channel - g_channel) / delta) + 4.0
+        hue *= 60.0
+
+    return (round(hue) % 360, round(saturation * 100.0), round(lightness * 100.0))
+
+
 @dataclass
 class ColorSwatch:
     hex_code: str
     rgb: tuple[int, int, int]
     percentage: float
     name: str | None = None
+    hsl: tuple[int, int, int] | None = None
 
     @property
     def rgb_str(self) -> str:
@@ -56,8 +87,11 @@ def contrast_ratio(rgb_a: tuple[int, int, int], rgb_b: tuple[int, int, int]) -> 
         channels = []
         for c in (r, g, b):
             channels.append(c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4)
-        r, g, b = channels
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+        r_lin, g_lin, b_lin = channels
+        lum_r = 0.2126 * r_lin
+        lum_g = 0.7152 * g_lin
+        lum_b = 0.0722 * b_lin
+        return lum_r + lum_g + lum_b
 
     lum_a = luminance(rgb_a)
     lum_b = luminance(rgb_b)
@@ -73,7 +107,7 @@ def kmeans_palette(
     max_iterations: int = 20,
     sample_step: int = 2,
 ) -> list[ColorSwatch]:
-    """Extract a palette using a lightweight K-means clustering pass over sampled pixels."""
+    # Extract palette swatches using K-means clustering with percentage cluster shares.
     thumb = img.copy().convert("RGB")
     if thumb.width > max_dimension or thumb.height > max_dimension:
         thumb.thumbnail((max_dimension, max_dimension), Image.LANCZOS)
@@ -95,23 +129,34 @@ def kmeans_palette(
             mask = labels == idx
             if mask.any():
                 new_centers[idx] = np.round(sample[mask].mean(axis=0))
+            else:
+                furthest_idx = int(distances.min(axis=1).argmax())
+                new_centers[idx] = sample[furthest_idx]
 
         if np.all(np.abs(new_centers - centers).sum(axis=1) <= 1):
             centers = new_centers
             break
         centers = new_centers
 
-    swatches = []
-    for center in centers:
-        rgb = tuple(max(0, min(255, int(v))) for v in center)
-        hex_code = f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
-        swatches.append(ColorSwatch(hex_code=hex_code, rgb=rgb, percentage=0.0, name=nearest_named_color(rgb)))
+    distances = ((sample[:, None, :] - centers[None, :, :]) ** 2).sum(axis=2)
+    labels = distances.argmin(axis=1)
+    total_samples = max(1, len(sample))
 
-    total_pixels = len(sample)
-    if total_pixels:
-        for swatch in swatches:
-            matches = int(np.all(sample == np.array(swatch.rgb, dtype=np.float64), axis=1).sum())
-            swatch.percentage = round(matches / total_pixels * 100, 1)
+    swatches: list[ColorSwatch] = []
+    for idx, center in enumerate(centers):
+        rgb_tuple = tuple(max(0, min(255, int(channel_val))) for channel_val in center)
+        hex_code = f"#{rgb_tuple[0]:02X}{rgb_tuple[1]:02X}{rgb_tuple[2]:02X}"
+        count = int((labels == idx).sum())
+        percentage = round((count / total_samples) * 100.0, 1)
+        swatches.append(ColorSwatch(
+            hex_code=hex_code,
+            rgb=rgb_tuple,
+            percentage=percentage,
+            name=nearest_named_color(rgb_tuple),
+            hsl=rgb_to_hsl(rgb_tuple),
+        ))
+
+    swatches.sort(key=lambda swatch: swatch.percentage, reverse=True)
     return swatches
 
 
@@ -155,7 +200,13 @@ def extract_palette(
         r, g, b = rgb
         hex_code = f"#{r:02X}{g:02X}{b:02X}"
         pct = round(count / total_pixels * 100, 1)
-        swatches.append(ColorSwatch(hex_code=hex_code, rgb=rgb, percentage=pct, name=nearest_named_color(rgb)))
+        swatches.append(ColorSwatch(
+            hex_code=hex_code,
+            rgb=rgb,
+            percentage=pct,
+            name=nearest_named_color(rgb),
+            hsl=rgb_to_hsl(rgb),
+        ))
 
     return swatches
 
@@ -182,6 +233,13 @@ def sample_pixel_color(img: Image.Image, x: int, y: int) -> ColorSwatch:
     clamped_y = max(0, min(rgb_img.height - 1, y))
     r, g, b = rgb_img.getpixel((clamped_x, clamped_y))[:3]
     hex_code = f"#{r:02X}{g:02X}{b:02X}"
-    return ColorSwatch(hex_code=hex_code, rgb=(r, g, b), percentage=0.0, name=nearest_named_color((r, g, b)))
+    rgb_tuple = (r, g, b)
+    return ColorSwatch(
+        hex_code=hex_code,
+        rgb=rgb_tuple,
+        percentage=0.0,
+        name=nearest_named_color(rgb_tuple),
+        hsl=rgb_to_hsl(rgb_tuple),
+    )
 
 

@@ -22,14 +22,20 @@ from app.features.image.ops import (
     blur_region,
     circle_crop_image,
     crop_image,
+    delete_rembg_model,
+    download_rembg_model,
     extract_gif_frames,
     flip_image,
     frames_to_gif,
+    get_rembg_models_dir,
     gif_to_video,
+    image_get_rembg_models,
+    list_rembg_models_status,
     load_image,
     pixelate_region,
     prefetch_background_removal_models,
     remove_background,
+    replace_background_color,
     resize_image,
     rotate_image,
     save_ascii_art,
@@ -41,9 +47,17 @@ from app.web.api.result import api_method, ok, require
 
 def _calc_load_img(file_path: str) -> Image.Image:
     # Open image and force pixel buffer loading to release file locks.
-    img = load_image(file_path)
-    img.load()
-    return img.copy()
+    source_img = load_image(file_path)
+    source_img.load()
+    return source_img.copy()
+
+
+def _calc_to_data_url(image_obj: Image.Image, format_name: str = "PNG") -> str:
+    # Convert PIL Image object to base64 data URL.
+    buffer = io.BytesIO()
+    image_obj.save(buffer, format=format_name)
+    base64_data = base64.b64encode(buffer.getvalue()).decode("ascii")
+    return f"data:image/{format_name.lower()};base64,{base64_data}"
 
 
 def calc_color_tuple(color_val: Any) -> tuple[int, int, int]:
@@ -66,7 +80,7 @@ class ImagesApiMixin:
         return ok(
             aspect_ratios=ASPECT_RATIO_PRESETS,
             models=BACKGROUND_REMOVAL_MODELS,
-            filters=list(FILTER_PRESETS.keys()),
+            filters=list(FILTER_PRESETS),
             formats=SINGLE_IMAGE_EXPORT_FORMATS,
             supported=SUPPORTED_FORMATS,
             charsets=ASCII_CHARSET_PRESETS,
@@ -74,15 +88,46 @@ class ImagesApiMixin:
         )
 
     @api_method
+    def image_get_rembg_models(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Return model catalog info for rembg models.
+        models = image_get_rembg_models()
+        return ok(models=models, models_dir=get_rembg_models_dir())
+
+    @api_method
+    def images_get_rembg_models(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Alias for returning model catalog info.
+        return self.image_get_rembg_models(params)
+
+    @api_method
+    def images_models_status(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Scan and return download status of all background removal models.
+        status_info = list_rembg_models_status()
+        return ok(**status_info)
+
+    @api_method
+    def images_download_model(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Download specified background removal model to unified models directory.
+        require(params, "model")
+        target_model = str(params["model"])
+        status_info = download_rembg_model(target_model)
+        return ok(**status_info)
+
+    @api_method
+    def images_delete_model(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Delete specified background removal model from unified models directory.
+        require(params, "model")
+        target_model = str(params["model"])
+        status_info = delete_rembg_model(target_model)
+        return ok(**status_info)
+
+    @api_method
     def images_load_data(self, params: dict[str, Any]) -> dict[str, Any]:
         # Load image file and return base64 data URL with dimensions.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        img = _calc_load_img(file_path)
-        buf = io.BytesIO()
-        img.save(buf, format="PNG")
-        b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-        return ok(data_url=f"data:image/png;base64,{b64}", width=img.width, height=img.height, file_path=file_path)
+        source_img = _calc_load_img(file_path)
+        data_url = _calc_to_data_url(source_img, "PNG")
+        return ok(data_url=data_url, width=source_img.width, height=source_img.height, file_path=file_path)
 
     @api_method
     def image_load_data(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -94,13 +139,11 @@ class ImagesApiMixin:
         # Load downscaled image preview data URL.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        img = _calc_load_img(file_path)
+        source_img = _calc_load_img(file_path)
         max_size = int(params.get("max_size", 1200))
-        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=85)
-        b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-        return ok(data_url=f"data:image/jpeg;base64,{b64}", width=img.width, height=img.height)
+        source_img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        data_url = _calc_to_data_url(source_img, "JPEG")
+        return ok(data_url=data_url, width=source_img.width, height=source_img.height)
 
     @api_method
     def image_load_preview(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -113,11 +156,14 @@ class ImagesApiMixin:
         require(params, "file_path")
         file_path = str(params["file_path"])
         degrees = int(params.get("degrees", 90))
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        rot = rotate_image(img, degrees)
-        save_image(rot, out_p)
-        return ok(output_path=out_p, width=rot.width, height=rot.height)
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        rotated_img = rotate_image(source_img, degrees)
+        if out_p:
+            save_image(rotated_img, out_p)
+        data_url = _calc_to_data_url(rotated_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=rotated_img.width, height=rotated_img.height)
 
     @api_method
     def image_rotate(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -130,11 +176,14 @@ class ImagesApiMixin:
         require(params, "file_path")
         file_path = str(params["file_path"])
         direction = str(params.get("direction", "horizontal"))
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        flipped = flip_image(img, direction)
-        save_image(flipped, out_p)
-        return ok(output_path=out_p)
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        flipped_img = flip_image(source_img, horizontal=(direction.lower() != "vertical"))
+        if out_p:
+            save_image(flipped_img, out_p)
+        data_url = _calc_to_data_url(flipped_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=flipped_img.width, height=flipped_img.height)
 
     @api_method
     def image_flip(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -146,14 +195,17 @@ class ImagesApiMixin:
         # Resize image dimensions with optional aspect ratio preservation.
         require(params, "file_path", "width", "height")
         file_path = str(params["file_path"])
-        w = int(params["width"])
-        h = int(params["height"])
+        req_width = int(params["width"])
+        req_height = int(params["height"])
         keep_aspect = bool(params.get("keep_aspect", True))
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        resized = resize_image(img, w, h, keep_aspect=keep_aspect)
-        save_image(resized, out_p)
-        return ok(output_path=out_p, width=resized.width, height=resized.height)
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        resized_img = resize_image(source_img, req_width, req_height, keep_aspect=keep_aspect)
+        if out_p:
+            save_image(resized_img, out_p)
+        data_url = _calc_to_data_url(resized_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=resized_img.width, height=resized_img.height)
 
     @api_method
     def image_resize(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -165,12 +217,17 @@ class ImagesApiMixin:
         # Crop rectangular area from image.
         require(params, "file_path", "x", "y", "width", "height")
         file_path = str(params["file_path"])
-        box = (int(params["x"]), int(params["y"]), int(params["x"]) + int(params["width"]), int(params["y"]) + int(params["height"]))
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        cropped = crop_image(img, box)
-        save_image(cropped, out_p)
-        return ok(output_path=out_p, width=cropped.width, height=cropped.height)
+        coord_x = int(params["x"])
+        coord_y = int(params["y"])
+        box = (coord_x, coord_y, coord_x + int(params["width"]), coord_y + int(params["height"]))
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        cropped_img = crop_image(source_img, box)
+        if out_p:
+            save_image(cropped_img, out_p)
+        data_url = _calc_to_data_url(cropped_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=cropped_img.width, height=cropped_img.height)
 
     @api_method
     def image_crop(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -182,11 +239,14 @@ class ImagesApiMixin:
         # Crop circular avatar from image.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        cropped = circle_crop_image(img)
-        save_image(cropped, out_p, format="PNG")
-        return ok(output_path=out_p)
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        cropped_img = circle_crop_image(source_img)
+        if out_p:
+            save_image(cropped_img, out_p, format="PNG")
+        data_url = _calc_to_data_url(cropped_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=cropped_img.width, height=cropped_img.height)
 
     @api_method
     def image_circle_crop(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -198,19 +258,28 @@ class ImagesApiMixin:
         # Adjust image brightness, contrast, sharpness, and color saturation.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        b = float(params.get("brightness", 1.0))
-        c = float(params.get("contrast", 1.0))
-        s = float(params.get("sharpness", 1.0))
-        sat = float(params.get("saturation", params.get("color", 1.0)))
-        b_val = b * 100 if b < 10 else b
-        c_val = c * 100 if c < 10 else c
-        s_val = s * 100 if s < 10 else s
-        sat_val = sat * 100 if sat < 10 else sat
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        adj = adjust_image(img, brightness=b_val, contrast=c_val, saturation=sat_val, sharpness=s_val)
-        save_image(adj, out_p)
-        return ok(output_path=out_p)
+        brightness_val = float(params.get("brightness", 1.0))
+        contrast_val = float(params.get("contrast", 1.0))
+        sharpness_val = float(params.get("sharpness", 1.0))
+        sat_val = float(params.get("saturation", params.get("color", 1.0)))
+        b_scaled = brightness_val * 100 if brightness_val < 10 else brightness_val
+        c_scaled = contrast_val * 100 if contrast_val < 10 else contrast_val
+        s_scaled = sharpness_val * 100 if sharpness_val < 10 else sharpness_val
+        sat_scaled = sat_val * 100 if sat_val < 10 else sat_val
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        adjusted_img = adjust_image(
+            source_img,
+            brightness=b_scaled,
+            contrast=c_scaled,
+            saturation=sat_scaled,
+            sharpness=s_scaled,
+        )
+        if out_p:
+            save_image(adjusted_img, out_p)
+        data_url = _calc_to_data_url(adjusted_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=adjusted_img.width, height=adjusted_img.height)
 
     @api_method
     def image_adjust(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -222,11 +291,14 @@ class ImagesApiMixin:
         # Automatically enhance image color balance and contrast.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        enh = auto_enhance(img)
-        save_image(enh, out_p)
-        return ok(output_path=out_p)
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        enhanced_img = auto_enhance(source_img)
+        if out_p:
+            save_image(enhanced_img, out_p)
+        data_url = _calc_to_data_url(enhanced_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=enhanced_img.width, height=enhanced_img.height)
 
     @api_method
     def image_auto_enhance(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -238,12 +310,15 @@ class ImagesApiMixin:
         # Apply artistic or photographic filter preset to image.
         require(params, "file_path", "filter_name")
         file_path = str(params["file_path"])
-        flt = str(params["filter_name"])
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        res = apply_filter_preset(img, flt)
-        save_image(res, out_p)
-        return ok(output_path=out_p)
+        filter_name = str(params["filter_name"])
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        filtered_img = apply_filter_preset(source_img, filter_name)
+        if out_p:
+            save_image(filtered_img, out_p)
+        data_url = _calc_to_data_url(filtered_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=filtered_img.width, height=filtered_img.height)
 
     @api_method
     def image_apply_filter_preset(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -255,12 +330,22 @@ class ImagesApiMixin:
         # Remove background using machine learning segmentation models.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        model = str(params.get("model", "u2net"))
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        nobg = remove_background(img, model_name=model)
-        save_image(nobg, out_p, format="PNG")
-        return ok(output_path=out_p)
+        model = str(params.get("model", "isnet-general-use"))
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        backdrop = str(params.get("backdrop", "transparent")).lower()
+        color_tuple = calc_color_tuple(params.get("color", "#ffffff"))
+        blur_radius = int(params.get("blur_radius", 25))
+        source_img = _calc_load_img(file_path)
+        nobg = remove_background(source_img, model_name=model)
+        if backdrop == "solid":
+            nobg = replace_background_color(nobg, color=(color_tuple[0], color_tuple[1], color_tuple[2], 255))
+        elif backdrop == "blur":
+            nobg = replace_background_color(nobg, blur_backdrop=True, blur_radius=blur_radius, original_img=source_img)
+        if out_p:
+            save_image(nobg, out_p, format="PNG")
+        data_url = _calc_to_data_url(nobg, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=nobg.width, height=nobg.height)
 
     @api_method
     def image_remove_background(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -279,14 +364,17 @@ class ImagesApiMixin:
         # Add decorative border frame around image.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        width = int(params.get("border_width", params.get("border_size", 10)))
+        border_size = int(params.get("border_width", params.get("border_size", 10)))
         color_tuple = calc_color_tuple(params.get("color", "#000000"))
         polaroid = bool(params.get("polaroid", False))
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        bordered = add_border(img, border_size=width, color=color_tuple, polaroid=polaroid)
-        save_image(bordered, out_p)
-        return ok(output_path=out_p)
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        bordered_img = add_border(source_img, border_size=border_size, color=color_tuple, polaroid=polaroid)
+        if out_p:
+            save_image(bordered_img, out_p)
+        data_url = _calc_to_data_url(bordered_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=bordered_img.width, height=bordered_img.height)
 
     @api_method
     def image_add_border(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -295,16 +383,19 @@ class ImagesApiMixin:
 
     @api_method
     def images_blur_region(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Apply Gaussian blur to specified image bounding box.
+        # Blur rectangular bounding box within image.
         require(params, "file_path", "box")
         file_path = str(params["file_path"])
-        box = tuple(int(v) for v in params["box"])
-        radius = int(params.get("radius", 15))
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        res = blur_region(img, box, radius=radius)
-        save_image(res, out_p)
-        return ok(output_path=out_p)
+        box = tuple(int(coord) for coord in params["box"])
+        blur_radius = int(params.get("radius", 15))
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        blurred_img = blur_region(source_img, box, radius=blur_radius)
+        if out_p:
+            save_image(blurred_img, out_p)
+        data_url = _calc_to_data_url(blurred_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=blurred_img.width, height=blurred_img.height)
 
     @api_method
     def image_blur_region(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -316,13 +407,16 @@ class ImagesApiMixin:
         # Censor image bounding box with pixelation mosaic.
         require(params, "file_path", "box")
         file_path = str(params["file_path"])
-        box = tuple(int(v) for v in params["box"])
+        box = tuple(int(coord) for coord in params["box"])
         pixel_size = int(params.get("pixel_size", 10))
-        out_p = str(params.get("output_path", file_path))
-        img = _calc_load_img(file_path)
-        res = pixelate_region(img, box, pixel_size=pixel_size)
-        save_image(res, out_p)
-        return ok(output_path=out_p)
+        overwrite = bool(params.get("overwrite", False))
+        out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        source_img = _calc_load_img(file_path)
+        pixelated_img = pixelate_region(source_img, box, pixel_size=pixel_size)
+        if out_p:
+            save_image(pixelated_img, out_p)
+        data_url = _calc_to_data_url(pixelated_img, "PNG")
+        return ok(output_path=out_p, data_url=data_url, width=pixelated_img.width, height=pixelated_img.height)
 
     @api_method
     def image_pixelate_region(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -333,17 +427,17 @@ class ImagesApiMixin:
     def images_aspect_box(self, params: dict[str, Any]) -> dict[str, Any]:
         # Calculate aspect ratio centered crop bounding box.
         require(params, "width", "height", "aspect_ratio")
-        w = int(params["width"])
-        h = int(params["height"])
+        full_width = int(params["width"])
+        full_height = int(params["height"])
         ratio_str = str(params["aspect_ratio"]).replace("/", ":")
         if ":" in ratio_str:
             parts = ratio_str.split(":")
-            rw = float(parts[0])
-            rh = float(parts[1])
+            ratio_w = float(parts[0])
+            ratio_h = float(parts[1])
         else:
-            rw = float(ratio_str)
-            rh = 1.0
-        box = aspect_ratio_crop_box(w, h, rw, rh)
+            ratio_w = float(ratio_str)
+            ratio_h = 1.0
+        box = aspect_ratio_crop_box(full_width, full_height, ratio_w, ratio_h)
         return ok(box=list(box))
 
     @api_method
@@ -351,14 +445,19 @@ class ImagesApiMixin:
         # Convert image to ASCII text art.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        img = _calc_load_img(file_path)
+        source_img = _calc_load_img(file_path)
         cols = int(params.get("columns", params.get("width", 80)))
-        charset = str(params.get("charset", "standard"))
+        raw_charset = str(params.get("charset", "standard"))
+        resolved_charset = raw_charset
+        for preset_name, preset_chars in ASCII_CHARSET_PRESETS.items():
+            if preset_name.lower() == raw_charset.lower():
+                resolved_charset = preset_chars
+                break
         from app.features.image.ops import image_to_ascii
-        art = image_to_ascii(img, width=cols, charset=charset)
+        art = image_to_ascii(source_img, width=cols, charset=resolved_charset)
         out_p = params.get("output_path")
         if out_p:
-            save_ascii_art(img, str(out_p), width=cols, charset=charset)
+            save_ascii_art(source_img, str(out_p), width=cols, charset=resolved_charset)
         return ok(ascii=art, output_path=out_p)
 
     @api_method
@@ -367,25 +466,34 @@ class ImagesApiMixin:
         action = str(params.get("action", "extract")).lower()
         if action == "extract":
             require(params, "file_path", "output_dir")
-            frames = extract_gif_frames(str(params["file_path"]), str(params["output_dir"]))
-            return ok(frames=frames)
+            frames = extract_gif_frames(str(params["file_path"]))
+            out_dir = Path(str(params["output_dir"]))
+            out_dir.mkdir(parents=True, exist_ok=True)
+            saved_paths: list[str] = []
+            for frame_idx, frame in enumerate(frames):
+                frame_path = out_dir / f"frame_{frame_idx + 1:04d}.png"
+                frame.save(frame_path, format="PNG")
+                saved_paths.append(str(frame_path))
+            return ok(frames=saved_paths, count=len(saved_paths))
         elif action == "create":
             require(params, "frame_paths", "output_path")
             fps = float(params.get("fps", 10.0))
             loop = int(params.get("loop", 0))
-            out_p = frames_to_gif(list(params["frame_paths"]), str(params["output_path"]), fps=fps, loop=loop)
+            duration_ms = max(10, round(1000.0 / max(1.0, fps)))
+            pil_frames = [_calc_load_img(str(frame_p)) for frame_p in params["frame_paths"]]
+            out_p = frames_to_gif(pil_frames, str(params["output_path"]), duration_ms=duration_ms, loop=loop)
             return ok(output_path=out_p)
         elif action == "video":
             require(params, "file_path", "output_path")
-            vid_p = gif_to_video(str(params["file_path"]), str(params["output_path"]))
-            return ok(output_path=vid_p)
+            video_out_path = gif_to_video(str(params["file_path"]), str(params["output_path"]))
+            return ok(output_path=video_out_path)
         return ok()
 
     @api_method
     def images_batch_process(self, params: dict[str, Any]) -> dict[str, Any]:
         # Batch execute pipeline operations across multiple images.
         require(params, "file_paths")
-        paths = [str(p) for p in params["file_paths"]]
+        paths = [str(input_p) for input_p in params["file_paths"]]
         out_dir = str(params.get("output_dir", "."))
         target_fmt = params.get("target_format")
         quality = int(params.get("quality", 85))
@@ -393,7 +501,7 @@ class ImagesApiMixin:
         if "width" in params and "height" in params:
             resize_to = (int(params["width"]), int(params["height"]))
         keep_aspect = bool(params.get("keep_aspect", True))
-        rm_bg = bool(params.get("remove_background", False))
+        remove_bg = bool(params.get("remove_background", False))
         bg_model = str(params.get("bg_model", "u2net"))
         results = batch_process(
             paths,
@@ -402,7 +510,7 @@ class ImagesApiMixin:
             quality=quality,
             resize_to=resize_to,
             keep_aspect=keep_aspect,
-            remove_background_enabled=rm_bg,
+            remove_background_enabled=remove_bg,
             bg_model=bg_model,
         )
         return ok(results=results, count=len(results))
@@ -421,8 +529,8 @@ class ImagesApiMixin:
         file_path = str(params["file_path"])
         output_path = str(params["output_path"])
         quality = int(params.get("quality", 80))
-        img = _calc_load_img(file_path)
-        save_image(img, output_path, quality=quality, compress_well=True)
+        source_img = _calc_load_img(file_path)
+        save_image(source_img, output_path, quality=quality, compress_well=True)
         return ok(output_path=output_path)
 
     @api_method

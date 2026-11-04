@@ -1,11 +1,7 @@
 from typing import Any
 
 from app.features.resume.ops import (
-    BulletPoint,
-    ContactInfo,
     MasterResume,
-    ResumeEntry,
-    ResumeSection,
     analyze_ats_match,
     apply_profile,
     create_sample_master_resume,
@@ -14,6 +10,7 @@ from app.features.resume.ops import (
     export_markdown,
     export_pdf,
     load_resume_file,
+    render_resume_preview_pages,
     resume_from_dict,
     resume_to_dict,
     save_profile,
@@ -42,33 +39,48 @@ class ResumeApiMixin:
         # Save master resume data structure to disk.
         require(params, "resume", "output_path")
         out_p = str(params["output_path"])
-        res_obj = resume_from_dict(dict(params["resume"]))
+        raw_resume = params["resume"]
+        res_obj = resume_from_dict(raw_resume if isinstance(raw_resume, MasterResume) else dict(raw_resume))
         save_resume_file(res_obj, out_p)
         return ok(output_path=out_p)
+
+    @api_method
+    def resume_render_preview(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Render high-DPI live preview pages for resume profile.
+        require(params, "resume")
+        raw_resume = params["resume"]
+        res_obj = resume_from_dict(raw_resume if isinstance(raw_resume, MasterResume) else dict(raw_resume))
+        profile = params.get("profile")
+        if profile:
+            apply_profile(res_obj, str(profile))
+        font_pt = float(params.get("font_pt", 11.0))
+        dpi = int(params.get("dpi", 160))
+        preview_data = render_resume_preview_pages(res_obj, dpi=dpi, font_pt=font_pt)
+        return ok(**preview_data)
 
     @api_method
     def resume_render_html(self, params: dict[str, Any]) -> dict[str, Any]:
         # Render HTML document preview for resume profile.
         require(params, "resume")
-        res_obj = resume_from_dict(dict(params["resume"]))
+        raw_resume = params["resume"]
+        res_obj = resume_from_dict(raw_resume if isinstance(raw_resume, MasterResume) else dict(raw_resume))
         profile = params.get("profile")
         if profile:
-            active_obj = apply_profile(res_obj, str(profile))
-        else:
-            active_obj = res_obj
+            apply_profile(res_obj, str(profile))
         layout = str(params.get("layout", "single"))
-        accent = str(params.get("accent_color", "#2563eb"))
-        html_out = export_html(active_obj, layout=layout, accent_color=accent)
+        accent = str(params.get("accent_color", "#000000"))
+        html_out = export_html(res_obj, layout=layout, accent_color=accent)
         return ok(html=html_out)
 
     @api_method
     def resume_export_markdown(self, params: dict[str, Any]) -> dict[str, Any]:
         # Export resume content as structured Markdown.
         require(params, "resume")
-        res_obj = resume_from_dict(dict(params["resume"]))
+        raw_resume = params["resume"]
+        res_obj = resume_from_dict(raw_resume if isinstance(raw_resume, MasterResume) else dict(raw_resume))
         profile = params.get("profile")
         if profile:
-            res_obj = apply_profile(res_obj, str(profile))
+            apply_profile(res_obj, str(profile))
         md_text = export_markdown(res_obj)
         out_p = params.get("output_path")
         if out_p:
@@ -81,13 +93,12 @@ class ResumeApiMixin:
         # Export resume profile to formatted PDF document.
         require(params, "resume", "output_path")
         out_p = str(params["output_path"])
-        res_obj = resume_from_dict(dict(params["resume"]))
+        raw_resume = params["resume"]
+        res_obj = resume_from_dict(raw_resume if isinstance(raw_resume, MasterResume) else dict(raw_resume))
         profile = params.get("profile")
         if profile:
-            res_obj = apply_profile(res_obj, str(profile))
-        layout = str(params.get("layout", "single"))
-        accent = str(params.get("accent_color", "#2563eb"))
-        export_pdf(res_obj, out_p, layout=layout, accent_color=accent)
+            apply_profile(res_obj, str(profile))
+        export_pdf(res_obj, out_p)
         return ok(output_path=out_p)
 
     @api_method
@@ -95,10 +106,11 @@ class ResumeApiMixin:
         # Export resume profile to Word DOCX document.
         require(params, "resume", "output_path")
         out_p = str(params["output_path"])
-        res_obj = resume_from_dict(dict(params["resume"]))
+        raw_resume = params["resume"]
+        res_obj = resume_from_dict(raw_resume if isinstance(raw_resume, MasterResume) else dict(raw_resume))
         profile = params.get("profile")
         if profile:
-            res_obj = apply_profile(res_obj, str(profile))
+            apply_profile(res_obj, str(profile))
         export_docx(res_obj, out_p)
         return ok(output_path=out_p)
 
@@ -106,7 +118,8 @@ class ResumeApiMixin:
     def resume_analyze_ats(self, params: dict[str, Any]) -> dict[str, Any]:
         # Analyze keyword matching score against job description.
         require(params, "resume", "job_description")
-        res_obj = resume_from_dict(dict(params["resume"]))
+        raw_resume = params["resume"]
+        res_obj = resume_from_dict(raw_resume if isinstance(raw_resume, MasterResume) else dict(raw_resume))
         job_desc = str(params["job_description"])
         res = analyze_ats_match(res_obj, job_desc)
         score = float(res.get("score", 0))
@@ -117,15 +130,17 @@ class ResumeApiMixin:
     @api_method
     def resume_save_profile(self, params: dict[str, Any]) -> dict[str, Any]:
         # Save tailored profile configuration inside master resume.
-        require(params, "resume", "profile_name", "selection")
-        res_obj = resume_from_dict(dict(params["resume"]))
-        save_profile(res_obj, str(params["profile_name"]), dict(params["selection"]))
+        require(params, "resume", "profile_name")
+        raw_resume = params["resume"]
+        res_obj = resume_from_dict(raw_resume if isinstance(raw_resume, MasterResume) else dict(raw_resume))
+        save_profile(res_obj, str(params["profile_name"]))
         return ok(resume=resume_to_dict(res_obj))
 
     @api_method
     def resume_apply_profile(self, params: dict[str, Any]) -> dict[str, Any]:
         # Apply profile filter to master resume.
         require(params, "resume", "profile_name")
-        res_obj = resume_from_dict(dict(params["resume"]))
-        filtered = apply_profile(res_obj, str(params["profile_name"]))
-        return ok(resume=resume_to_dict(filtered))
+        raw_resume = params["resume"]
+        res_obj = resume_from_dict(raw_resume if isinstance(raw_resume, MasterResume) else dict(raw_resume))
+        apply_profile(res_obj, str(params["profile_name"]))
+        return ok(resume=resume_to_dict(res_obj))

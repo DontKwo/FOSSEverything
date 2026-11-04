@@ -40,7 +40,7 @@ class ImageOperationsTests(unittest.TestCase):
         self.assertEqual(result.mode, "RGBA")
 
     def test_normalize_model_name_maps_balanced_to_working_default(self) -> None:
-        self.assertEqual(image_ops._normalize_model_name("Balanced"), "bria-rmbg")
+        self.assertEqual(image_ops._normalize_model_name("Balanced"), "u2net")
         self.assertEqual(image_ops._normalize_model_name("u2net"), "u2net")
 
     def test_perspective_crop_image(self) -> None:
@@ -55,9 +55,9 @@ class ImageOperationsTests(unittest.TestCase):
         self.assertEqual(result.mode, "RGBA")
 
     def test_batch_remove_background(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            input_dir = os.path.join(tmp, "inputs")
-            output_dir = os.path.join(tmp, "outputs")
+        with tempfile.TemporaryDirectory() as temp_dir_str:
+            input_dir = os.path.join(temp_dir_str, "inputs")
+            output_dir = os.path.join(temp_dir_str, "outputs")
             os.makedirs(input_dir, exist_ok=True)
             os.makedirs(output_dir, exist_ok=True)
             p1 = os.path.join(input_dir, "one.png")

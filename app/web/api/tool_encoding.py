@@ -3,6 +3,8 @@ from typing import Any
 
 from app.features.encoding.ops import (
     base64_decode_text,
+    binary_decode_to_bytes,
+    binary_encode_bytes,
     base64_decode_to_file,
     base64_encode_file,
     base64_encode_text,
@@ -40,6 +42,12 @@ class EncodingApiMixin:
             res = html_encode(text) if direction == "encode" else html_decode(text)
         elif method == "html_numeric":
             res = html_encode_numeric(text) if direction == "encode" else html_decode(text)
+        elif method == "binary":
+            if direction == "encode":
+                res = binary_encode_bytes(text.encode("utf-8"), spaced=bool(params.get("spaced", True)))
+            else:
+                raw_b = binary_decode_to_bytes(text)
+                res = raw_b.decode("utf-8")
         else:
             return fail(f"Unsupported encoding method: {method}", code="InvalidMethod")
         return ok(result=res)
@@ -166,3 +174,25 @@ class EncodingApiMixin:
         # Decode HTML entities into plain text.
         require(params, "text")
         return ok(result=html_decode(str(params["text"])))
+
+    @api_method
+    def encoding_binary_encode_text(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Encode string to 8-bit binary representation.
+        require(params, "text")
+        spaced = bool(params.get("spaced", True))
+        return ok(result=binary_encode_bytes(str(params["text"]).encode("utf-8"), spaced=spaced))
+
+    @api_method
+    def encoding_binary_decode_text(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Decode 8-bit binary representation to text.
+        require(params, "text")
+        raw_b = binary_decode_to_bytes(str(params["text"]))
+        return ok(result=raw_b.decode("utf-8"))
+
+    @api_method
+    def encoding_binary_text(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Alias for binary text encoding.
+        direction = str(params.get("direction", "encode")).lower()
+        if direction == "decode":
+            return self.encoding_binary_decode_text(params)
+        return self.encoding_binary_encode_text(params)

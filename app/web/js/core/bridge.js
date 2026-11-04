@@ -10,11 +10,13 @@ window.FOSS = window.FOSS || {};
     }
     if (!readyPromise) {
       readyPromise = new Promise(function (resolve) {
+        var checkInterval = null;
         window.addEventListener("pywebviewready", function () {
+          if (checkInterval) clearInterval(checkInterval);
           resolve();
         }, { once: true });
         // Fallback check
-        var checkInterval = setInterval(function () {
+        checkInterval = setInterval(function () {
           if (window.pywebview && window.pywebview.api) {
             clearInterval(checkInterval);
             resolve();
@@ -48,18 +50,19 @@ window.FOSS = window.FOSS || {};
     });
   }
 
-  function api(name, params) {
+  function api(name, params, options) {
     var p = params || {};
+    var opts = options || {};
     return resolveMethod(name).then(function (fn) {
       return fn(p).then(function (res) {
-        if (res && res.ok === false && res.error) {
+        if (res && res.ok === false && res.error && !opts.silent) {
           if (window.FOSS.toast) window.FOSS.toast.show(res.error, "error");
         }
         return res;
       });
     }).catch(function (exc) {
       var msg = exc && exc.message ? exc.message : String(exc);
-      if (window.FOSS.toast) window.FOSS.toast.show(msg, "error");
+      if (!opts.silent && window.FOSS.toast) window.FOSS.toast.show(msg, "error");
       return { ok: false, error: msg };
     });
   }
@@ -68,23 +71,36 @@ window.FOSS = window.FOSS || {};
     var opts = options || {};
     var onProgress = opts.onProgress || function () {};
     var pollInterval = null;
+    var cancelFn = null;
 
-    return new Promise(function (resolve, reject) {
+    var jobPromise = new Promise(function (resolve, reject) {
       api("job_start", { method: method, params: params || {} }).then(function (startRes) {
         if (!startRes.ok) {
           resolve(startRes);
           return;
         }
         var jobId = startRes.id;
+        cancelFn = function () {
+          if (pollInterval) clearInterval(pollInterval);
+          return api("job_cancel", { id: jobId });
+        };
+        if (typeof opts.onStart === "function") {
+          opts.onStart({ jobId: jobId, cancel: cancelFn });
+        }
 
         function check() {
-          api("job_poll", { id: jobId }).then(function (pollRes) {
+          api("job_poll", { id: jobId }, { silent: true }).then(function (pollRes) {
             if (!pollRes.ok) {
               clearInterval(pollInterval);
               resolve(pollRes);
               return;
             }
-            onProgress(pollRes.progress || 0.0, pollRes.message || "");
+            var rawProg = typeof pollRes.progress === "number" ? pollRes.progress : 0;
+            var pct = rawProg;
+            if (rawProg > 0 && rawProg <= 1.0) {
+              pct = Math.round(rawProg * 100);
+            }
+            onProgress(pct, pollRes.message || "");
 
             if (pollRes.state === "done") {
               clearInterval(pollInterval);
@@ -105,9 +121,15 @@ window.FOSS = window.FOSS || {};
         pollInterval = setInterval(check, 250);
       });
     });
+
+    jobPromise.cancel = function () {
+      if (cancelFn) return cancelFn();
+      return Promise.resolve({ ok: true });
+    };
+
+    return jobPromise;
   }
 
   window.FOSS.api = api;
   window.FOSS.job = job;
 })();
-

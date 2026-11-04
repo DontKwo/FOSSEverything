@@ -1,28 +1,30 @@
-// Text manipulation tool workspace: casing, reversal, cleanup, line ops, conversions, regex, and diff.
+// Text manipulation workbench: transforms, diff, word counter, and writing tools.
 window.FOSS = window.FOSS || {};
 
 (function () {
-  function renderMain(panel, ctx) {
+  function showToast(msg, kind) {
+    if (window.FOSS && window.FOSS.toast && typeof window.FOSS.toast.show === "function") {
+      window.FOSS.toast.show(msg, kind);
+    }
+  }
+
+  function renderTransformsTab(panel, ctx) {
     panel.innerHTML = "";
-
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Case conversion, reversal, whitespace cleanup, line operations, and text/ASCII/binary conversion."
-    });
-
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
-      "data-testid": "text_tools-error"
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted",
       "data-testid": "text_tools-status",
       text: "Ready"
     });
+
+    var errorBanner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden",
+      "data-testid": "text_tools-error",
+      style: { marginBottom: "var(--space-2)" }
+    }, [
+      window.FOSS.icons.el("alert", 16),
+      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
+    ]);
 
     function showError(msg) {
       var span = errorBanner.querySelector(".banner-msg");
@@ -38,59 +40,40 @@ window.FOSS = window.FOSS || {};
     var inputEditor = window.FOSS.components.codeEditor({
       testid: "text_tools-input",
       title: "Input Text",
-      placeholder: "Type or paste text here to case-convert, reverse, clean up, sort, or convert it..."
+      placeholder: "Type or paste text here to transform...",
+      fillHeight: true
     });
 
     var outputEditor = window.FOSS.components.codeEditor({
       testid: "text_tools-output",
       title: "Output Text",
-      placeholder: "Transformed output appears here...",
-      readOnly: false
+      placeholder: "Transformed text appears here...",
+      readOnly: false,
+      fillHeight: true
     });
 
     function setOutput(txt, statusMsg) {
       clearError();
       outputEditor.setValue(txt);
-      statusBar.textContent = statusMsg || "[OK] Operation applied";
+      statusBar.textContent = statusMsg || "[OK] Applied transform";
     }
 
-    var swapBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-swap",
-      type: "button",
-      onClick: function () {
-        var inVal = inputEditor.getValue();
-        var outVal = outputEditor.getValue();
-        inputEditor.setValue(outVal);
-        outputEditor.setValue(inVal);
-        statusBar.textContent = "[OK] Swapped input and output";
-      }
-    }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Swap" })
-    ]);
+    // Sidebar: transparent container with individual cards
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "text-tools-sidebar-pane",
+      style: { width: "100%", height: "100%", overflowY: "auto" }
+    });
 
-    var clearBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-ghost btn-sm",
-      "data-testid": "text_tools-clear",
-      type: "button",
-      onClick: function () {
-        inputEditor.clear();
-        outputEditor.clear();
-        clearError();
-        statusBar.textContent = "Ready";
-      }
-    }, [
-      window.FOSS.icons.el("close", 16),
-      window.FOSS.dom.el("span", { text: "Clear" })
-    ]);
+    // Helper for card titles
+    function makeCardTitle(title) {
+      return window.FOSS.dom.el("div", {
+        className: "text-xs font-semibold uppercase tracking-wider text-muted",
+        style: { marginBottom: "var(--space-1)" },
+        text: title
+      });
+    }
 
-    var globalActions = window.FOSS.dom.el("div", {
-      className: "row",
-      gap: "sm"
-    }, [swapBtn, clearBtn]);
-
-    // Section 1: Case (8 modes)
+    // Category 1: Case Conversions
     var caseModes = [
       { id: "upper", label: "UPPERCASE" },
       { id: "lower", label: "lowercase" },
@@ -99,851 +82,944 @@ window.FOSS = window.FOSS || {};
       { id: "camel", label: "camelCase" },
       { id: "snake", label: "snake_case" },
       { id: "kebab", label: "kebab-case" },
-      { id: "constant", label: "CONSTANT_CASE" }
+      { id: "constant", label: "CONSTANT_CASE" },
+      { id: "pascal", label: "PascalCase" }
     ];
 
-    var caseBtns = caseModes.map(function (m) {
-      return window.FOSS.dom.el("button", {
+    var caseBtns = window.FOSS.dom.el("div", {
+      className: "row flex-wrap gap-1"
+    });
+
+    caseModes.forEach(function (m) {
+      var isPascal = m.id === "pascal";
+      var btn = window.FOSS.dom.el("button", {
         className: "btn btn-secondary btn-sm",
-        "data-testid": "text_tools-case-" + m.id,
-        type: "button",
+        "data-testid": isPascal ? "text_tools-pascal-btn" : ("text_tools-case-" + m.id),
+        "data-alt-testid": "text_tools-case-" + m.id,
+        "aria-label": "Convert to " + m.label,
+        title: m.label,
         onClick: function () {
-          var txt = inputEditor.getValue();
-          if (!txt) return;
-          window.FOSS.api("text_tools_case", { text: txt, mode: m.id }).then(function (res) {
-            if (res && res.ok) {
-              setOutput(res.result, "[OK] Converted to " + m.label);
-            } else {
-              showError((res && res.error) || "Case conversion failed");
-            }
+          var val = inputEditor.getValue();
+          clearError();
+          window.FOSS.api("text_tools_case", { text: val, mode: m.id }).then(function (res) {
+            setOutput(res.result || "", "[OK] Converted to " + m.label);
+          }).catch(function (err) {
+            showError(err.message || String(err));
           });
         }
       }, [window.FOSS.dom.el("span", { text: m.label })]);
+      caseBtns.appendChild(btn);
     });
 
     var caseCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "xs"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Case" }),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "xs" }, caseBtns)
-    ]);
+      className: "card card-compact flex-col gap-1",
+      style: { width: "100%" }
+    }, [makeCardTitle("Case Conversions"), caseBtns]);
 
-    // Section 2: Reverse (3 modes)
-    var reverseModes = [
-      { id: "reverse_characters", label: "Reverse Characters" },
-      { id: "reverse_words", label: "Reverse Words" },
-      { id: "reverse_lines", label: "Reverse Lines" }
+    sidebar.appendChild(caseCard);
+
+    // Category 2: Lines and Sorting
+    var lineModes = [
+      { id: "sort_asc", label: "Sort A-Z" },
+      { id: "sort_desc", label: "Sort Z-A" },
+      { id: "reverse", label: "Reverse Lines" },
+      { id: "dedupe", label: "Deduplicate" },
+      { id: "number", label: "Number Lines" },
+      { id: "remove_blank", label: "Remove Blank Lines" }
     ];
 
-    var reverseBtns = reverseModes.map(function (m) {
-      return window.FOSS.dom.el("button", {
+    var lineBtns = window.FOSS.dom.el("div", {
+      className: "row flex-wrap gap-1"
+    });
+
+    lineModes.forEach(function (lm) {
+      var btn = window.FOSS.dom.el("button", {
         className: "btn btn-secondary btn-sm",
-        "data-testid": "text_tools-reverse-" + m.id,
-        type: "button",
+        "data-testid": "text_tools-line-" + lm.id,
+        "aria-label": lm.label,
+        title: lm.label,
         onClick: function () {
-          var txt = inputEditor.getValue();
-          if (!txt) return;
-          var method = m.id === "reverse_lines" ? "text_tools_lines" : "text_tools_convert";
-          window.FOSS.api(method, { text: txt, operation: m.id }).then(function (res) {
-            if (res && res.ok) {
-              setOutput(res.result, "[OK] " + m.label);
-            } else {
-              showError((res && res.error) || "Reversal failed");
-            }
+          var val = inputEditor.getValue();
+          clearError();
+          window.FOSS.api("text_tools_lines", { text: val, operation: lm.id }).then(function (res) {
+            setOutput(res.result || "", "[OK] Applied " + lm.label);
+          }).catch(function (err) {
+            showError(err.message || String(err));
           });
         }
-      }, [window.FOSS.dom.el("span", { text: m.label })]);
+      }, [window.FOSS.dom.el("span", { text: lm.label })]);
+      lineBtns.appendChild(btn);
     });
 
-    var reverseCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "xs"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Reverse" }),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "xs" }, reverseBtns)
-    ]);
+    var lineCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-1",
+      style: { width: "100%" }
+    }, [makeCardTitle("Lines & Sorting"), lineBtns]);
 
-    // Section 3: Cleanup
-    var tabWidthInput = window.FOSS.dom.el("input", {
-      type: "number",
-      min: "1",
-      max: "16",
-      value: "4",
-      className: "input",
-      "data-testid": "text_tools-cleanup-tab-width",
-      "aria-label": "Tab width"
-    });
+    sidebar.appendChild(lineCard);
 
-    var lineEndingsSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "text_tools-cleanup-line-endings",
-      "aria-label": "Line endings"
-    }, [
-      window.FOSS.dom.el("option", { value: "lf", text: "LF" }),
-      window.FOSS.dom.el("option", { value: "crlf", text: "CRLF" }),
-      window.FOSS.dom.el("option", { value: "cr", text: "CR" })
-    ]);
-
-    var cleanupActions = [
+    // Category 3: Trim & Clean
+    var cleanModes = [
       { id: "collapse_spaces", label: "Collapse Spaces" },
       { id: "trim_leading", label: "Trim Leading" },
       { id: "trim_trailing", label: "Trim Trailing" },
-      { id: "remove_blank", label: "Remove Blank Lines" }
-    ].map(function (c) {
-      return window.FOSS.dom.el("button", {
+      { id: "tabs_to_spaces", label: "Tabs to Spaces" },
+      { id: "spaces_to_tabs", label: "Spaces to Tabs" },
+      { id: "normalize_line_endings", label: "Normalize LF" }
+    ];
+
+    var cleanBtns = window.FOSS.dom.el("div", {
+      className: "row flex-wrap gap-1"
+    });
+
+    cleanModes.forEach(function (cm) {
+      var btn = window.FOSS.dom.el("button", {
         className: "btn btn-secondary btn-sm",
-        "data-testid": "text_tools-cleanup-" + c.id,
-        type: "button",
+        "data-testid": "text_tools-clean-" + cm.id,
+        "aria-label": cm.label,
+        title: cm.label,
         onClick: function () {
-          var txt = inputEditor.getValue();
-          if (!txt) return;
-          var method = c.id === "remove_blank" ? "text_tools_lines" : "text_tools_cleanup";
-          window.FOSS.api(method, { text: txt, operation: c.id }).then(function (res) {
-            if (res && res.ok) {
-              setOutput(res.result, "[OK] " + c.label);
-            } else {
-              showError((res && res.error) || "Cleanup failed");
-            }
+          var val = inputEditor.getValue();
+          clearError();
+          window.FOSS.api("text_tools_cleanup", { text: val, operation: cm.id }).then(function (res) {
+            setOutput(res.result || "", "[OK] Applied " + cm.label);
+          }).catch(function (err) {
+            showError(err.message || String(err));
           });
         }
-      }, [window.FOSS.dom.el("span", { text: c.label })]);
+      }, [window.FOSS.dom.el("span", { text: cm.label })]);
+      cleanBtns.appendChild(btn);
     });
 
-    var tabsToSpacesBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-cleanup-tabs-to-spaces",
-      type: "button",
-      onClick: function () {
-        var txt = inputEditor.getValue();
-        if (!txt) return;
-        var w = Number(tabWidthInput.value) || 4;
-        window.FOSS.api("text_tools_cleanup", { text: txt, operation: "tabs_to_spaces", width: w }).then(function (res) {
-          if (res && res.ok) {
-            setOutput(res.result, "[OK] Tabs to Spaces (width " + w + ")");
-          } else {
-            showError((res && res.error) || "Tabs conversion failed");
-          }
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Tabs to Spaces" })]);
+    var cleanCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-1",
+      style: { width: "100%" }
+    }, [makeCardTitle("Trim & Clean"), cleanBtns]);
 
-    var spacesToTabsBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-cleanup-spaces-to-tabs",
-      type: "button",
-      onClick: function () {
-        var txt = inputEditor.getValue();
-        if (!txt) return;
-        var w = Number(tabWidthInput.value) || 4;
-        window.FOSS.api("text_tools_cleanup", { text: txt, operation: "spaces_to_tabs", width: w }).then(function (res) {
-          if (res && res.ok) {
-            setOutput(res.result, "[OK] Spaces to Tabs (width " + w + ")");
-          } else {
-            showError((res && res.error) || "Spaces conversion failed");
-          }
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Spaces to Tabs" })]);
+    sidebar.appendChild(cleanCard);
 
-    var normalizeEndingsBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-cleanup-normalize-endings",
-      type: "button",
-      onClick: function () {
-        var txt = inputEditor.getValue();
-        if (!txt) return;
-        var st = lineEndingsSelect.value;
-        window.FOSS.api("text_tools_cleanup", { text: txt, operation: "normalize_line_endings", style: st }).then(function (res) {
-          if (res && res.ok) {
-            setOutput(res.result, "[OK] Normalized line endings to " + st.toUpperCase());
-          } else {
-            showError((res && res.error) || "Line ending normalization failed");
-          }
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Normalize Endings" })]);
+    // Category 4: Encodings & Transforms
+    var convModes = [
+      { id: "reverse_characters", label: "Reverse Chars" },
+      { id: "reverse_words", label: "Reverse Words" },
+      { id: "text_to_binary", label: "Text -> Binary" },
+      { id: "binary_to_text", label: "Binary -> Text" },
+      { id: "text_to_code_points", label: "Text -> Code Points" },
+      { id: "code_points_to_text", label: "Code Points -> Text" }
+    ];
 
-    var cleanupCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "xs"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Cleanup" }),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "xs" }, cleanupActions),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "sm" }, [
-        window.FOSS.dom.el("label", { text: "Tab width:", className: "text-xs" }),
-        tabWidthInput,
-        tabsToSpacesBtn,
-        spacesToTabsBtn
-      ]),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "sm" }, [
-        window.FOSS.dom.el("label", { text: "Line endings:", className: "text-xs" }),
-        lineEndingsSelect,
-        normalizeEndingsBtn
-      ])
-    ]);
-
-    // Section 4: Lines
-    var prefixInput = window.FOSS.dom.el("input", {
-      type: "text",
-      placeholder: "Prefix...",
-      className: "input",
-      "data-testid": "text_tools-lines-prefix",
-      "aria-label": "Prefix"
+    var convBtns = window.FOSS.dom.el("div", {
+      className: "row flex-wrap gap-1"
     });
 
-    var suffixInput = window.FOSS.dom.el("input", {
-      type: "text",
-      placeholder: "Suffix...",
-      className: "input",
-      "data-testid": "text_tools-lines-suffix",
-      "aria-label": "Suffix"
-    });
-
-    var delimiterInput = window.FOSS.dom.el("input", {
-      type: "text",
-      value: ",",
-      className: "input",
-      "data-testid": "text_tools-lines-delimiter",
-      "aria-label": "Delimiter"
-    });
-
-    var lineActions = [
-      { id: "sort_asc", label: "Sort Ascending" },
-      { id: "sort_desc", label: "Sort Descending" },
-      { id: "dedupe", label: "Deduplicate Lines" },
-      { id: "number", label: "Number Lines" }
-    ].map(function (la) {
-      return window.FOSS.dom.el("button", {
+    convModes.forEach(function (cv) {
+      var btn = window.FOSS.dom.el("button", {
         className: "btn btn-secondary btn-sm",
-        "data-testid": "text_tools-lines-" + la.id,
-        type: "button",
+        "data-testid": "text_tools-conv-" + cv.id,
+        "aria-label": cv.label,
+        title: cv.label,
         onClick: function () {
-          var txt = inputEditor.getValue();
-          if (!txt) return;
-          window.FOSS.api("text_tools_lines", { text: txt, operation: la.id }).then(function (res) {
-            if (res && res.ok) {
-              setOutput(res.result, "[OK] " + la.label);
-            } else {
-              showError((res && res.error) || "Line operation failed");
-            }
-          });
-        }
-      }, [window.FOSS.dom.el("span", { text: la.label })]);
-    });
-
-    var addPrefixSuffixBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-lines-add-prefix-suffix",
-      type: "button",
-      onClick: function () {
-        var txt = inputEditor.getValue();
-        if (!txt) return;
-        window.FOSS.api("text_tools_lines", {
-          text: txt,
-          operation: "prefix_suffix",
-          prefix: prefixInput.value,
-          suffix: suffixInput.value
-        }).then(function (res) {
-          if (res && res.ok) {
-            setOutput(res.result, "[OK] Added Prefix/Suffix");
-          } else {
-            showError((res && res.error) || "Prefix/suffix failed");
-          }
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Add Prefix/Suffix" })]);
-
-    var joinLinesBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-lines-join",
-      type: "button",
-      onClick: function () {
-        var txt = inputEditor.getValue();
-        if (!txt) return;
-        window.FOSS.api("text_tools_lines", {
-          text: txt,
-          operation: "join",
-          delimiter: delimiterInput.value
-        }).then(function (res) {
-          if (res && res.ok) {
-            setOutput(res.result, "[OK] Joined Lines");
-          } else {
-            showError((res && res.error) || "Join lines failed");
-          }
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Join Lines" })]);
-
-    var splitTextBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-lines-split",
-      type: "button",
-      onClick: function () {
-        var txt = inputEditor.getValue();
-        if (!txt) return;
-        window.FOSS.api("text_tools_lines", {
-          text: txt,
-          operation: "split",
-          delimiter: delimiterInput.value
-        }).then(function (res) {
-          if (res && res.ok) {
-            setOutput(res.result, "[OK] Split Text");
-          } else {
-            showError((res && res.error) || "Split text failed");
-          }
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Split Text" })]);
-
-    var linesCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "xs"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Lines" }),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "xs" }, lineActions),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "sm" }, [
-        prefixInput,
-        suffixInput,
-        addPrefixSuffixBtn
-      ]),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "sm" }, [
-        window.FOSS.dom.el("label", { text: "Delimiter:", className: "text-xs" }),
-        delimiterInput,
-        joinLinesBtn,
-        splitTextBtn
-      ])
-    ]);
-
-    // Section 5: Convert (Code points & Binary)
-    var convertActions = [
-      { id: "text_to_code_points", label: "Text to Code Points" },
-      { id: "code_points_to_text", label: "Code Points to Text" },
-      { id: "text_to_binary", label: "Text to Binary" },
-      { id: "binary_to_text", label: "Binary to Text" }
-    ].map(function (cv) {
-      return window.FOSS.dom.el("button", {
-        className: "btn btn-secondary btn-sm",
-        "data-testid": "text_tools-convert-" + cv.id,
-        type: "button",
-        onClick: function () {
-          var txt = inputEditor.getValue();
-          if (!txt) return;
-          window.FOSS.api("text_tools_convert", { text: txt, operation: cv.id }).then(function (res) {
-            if (res && res.ok) {
-              setOutput(res.result, "[OK] " + cv.label);
-            } else {
-              showError((res && res.error) || "Conversion failed");
-            }
+          var val = inputEditor.getValue();
+          clearError();
+          window.FOSS.api("text_tools_convert", { text: val, operation: cv.id }).then(function (res) {
+            setOutput(res.result || "", "[OK] Applied " + cv.label);
+          }).catch(function (err) {
+            showError(err.message || String(err));
           });
         }
       }, [window.FOSS.dom.el("span", { text: cv.label })]);
+      convBtns.appendChild(btn);
     });
 
-    var convertCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "xs"
+    var convCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-1",
+      style: { width: "100%" }
+    }, [makeCardTitle("Text Representation"), convBtns]);
+
+    sidebar.appendChild(convCard);
+
+    // Category 5: Regex Find & Replace
+    var regexPattern = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      "data-testid": "text_tools-regex-pattern",
+      placeholder: "Regex pattern (e.g. \\b\\w+\\b)",
+      "aria-label": "Regex Pattern",
+      style: { width: "100%", marginBottom: "var(--space-1)" }
+    });
+
+    var regexReplacement = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      "data-testid": "text_tools-regex-replacement",
+      placeholder: "Replacement string",
+      "aria-label": "Replacement String",
+      style: { width: "100%", marginBottom: "var(--space-1)" }
+    });
+
+    var regexCaseCheck = window.FOSS.dom.el("input", { type: "checkbox", id: "tt-regex-case" });
+    var regexCaseLabel = window.FOSS.dom.el("label", {
+      htmlFor: "tt-regex-case",
+      className: "text-xs cursor-pointer",
+      text: "Ignore Case"
+    });
+
+    var regexMultiCheck = window.FOSS.dom.el("input", { type: "checkbox", id: "tt-regex-multi" });
+    var regexMultiLabel = window.FOSS.dom.el("label", {
+      htmlFor: "tt-regex-multi",
+      className: "text-xs cursor-pointer",
+      text: "Multiline"
+    });
+
+    var regexDotallCheck = window.FOSS.dom.el("input", { type: "checkbox", id: "tt-regex-dotall" });
+    var regexDotallLabel = window.FOSS.dom.el("label", {
+      htmlFor: "tt-regex-dotall",
+      className: "text-xs cursor-pointer",
+      text: "DotAll"
+    });
+
+    var regexFlagsRow = window.FOSS.dom.el("div", {
+      className: "row items-center flex-wrap gap-2",
+      style: { marginBottom: "var(--space-2)" }
     }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Convert" }),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "xs" }, convertActions)
+      window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [regexCaseCheck, regexCaseLabel]),
+      window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [regexMultiCheck, regexMultiLabel]),
+      window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [regexDotallCheck, regexDotallLabel])
     ]);
 
-    // Section 6: Regex Find & Replace
-    var patternInput = window.FOSS.dom.el("input", {
-      type: "text",
-      placeholder: "Pattern (e.g. \\d+)",
-      className: "input",
-      "data-testid": "text_tools-regex-pattern",
-      "aria-label": "Pattern"
-    });
-
-    var replacementInput = window.FOSS.dom.el("input", {
-      type: "text",
-      placeholder: "Replacement...",
-      className: "input",
-      "data-testid": "text_tools-regex-replacement",
-      "aria-label": "Replacement"
-    });
-
-    var ignoreCaseSwitch = window.FOSS.components.switch({
-      testid: "text_tools-regex-ignore-case",
-      label: "Case-insensitive",
-      checked: false
-    });
-
-    var multilineSwitch = window.FOSS.components.switch({
-      testid: "text_tools-regex-multiline",
-      label: "Multiline",
-      checked: false
-    });
-
-    var dotallSwitch = window.FOSS.components.switch({
-      testid: "text_tools-regex-dotall",
-      label: "Dot matches all",
-      checked: false
-    });
-
-    var applyRegexBtn = window.FOSS.dom.el("button", {
+    var regexApplyBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
       "data-testid": "text_tools-regex-apply",
-      type: "button",
+      "aria-label": "Apply regular expression replacement",
+      title: "Replace All Matches",
+      style: { width: "100%" },
       onClick: function () {
-        var txt = inputEditor.getValue();
-        if (!txt) return;
-        var pat = patternInput.value;
-        if (!pat) {
-          showError("Regex pattern cannot be empty");
+        var pattern = regexPattern.value;
+        var text = inputEditor.getValue();
+        if (!pattern) {
+          showError("Regex pattern cannot be empty.");
           return;
         }
+        clearError();
+        statusBar.textContent = "Applying regex replace...";
         window.FOSS.api("text_tools_regex_replace", {
-          text: txt,
-          pattern: pat,
-          replacement: replacementInput.value,
-          ignore_case: ignoreCaseSwitch.isChecked(),
-          multiline: multilineSwitch.isChecked(),
-          dotall: dotallSwitch.isChecked()
+          text: text,
+          pattern: pattern,
+          replacement: regexReplacement.value,
+          ignore_case: regexCaseCheck.checked,
+          multiline: regexMultiCheck.checked,
+          dotall: regexDotallCheck.checked
         }).then(function (res) {
-          if (res && res.ok) {
-            setOutput(res.result, "[OK] Regex replaced " + res.count + " match(es)");
-          } else {
-            showError((res && res.error) || "Regex replace failed");
-          }
+          setOutput(res.result || "", "[OK] Replaced " + (res.count !== undefined ? res.count : 0) + " match(es)");
+        }).catch(function (err) {
+          showError(err.message || String(err));
         });
       }
-    }, [
-      window.FOSS.icons.el("play", 16),
-      window.FOSS.dom.el("span", { text: "Apply Regex" })
-    ]);
+    }, [window.FOSS.icons.el("search", 14), window.FOSS.dom.el("span", { text: "Replace All Matches" })]);
 
     var regexCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "xs"
+      className: "card card-compact flex-col gap-1",
+      style: { width: "100%" }
     }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Regex Find & Replace" }),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "sm" }, [
-        patternInput,
-        replacementInput,
-        applyRegexBtn
-      ]),
-      window.FOSS.dom.el("div", { className: "row wrap", gap: "md" }, [
-        ignoreCaseSwitch.el,
-        multilineSwitch.el,
-        dotallSwitch.el
-      ])
+      makeCardTitle("Regex Find & Replace"),
+      regexPattern,
+      regexReplacement,
+      regexFlagsRow,
+      regexApplyBtn
     ]);
 
-    // Section 7: Diff Checker
-    var diffRightInput = window.FOSS.dom.el("textarea", {
-      className: "code-editor",
-      placeholder: "Paste the text you want to compare against the left side...",
-      "data-testid": "text_tools-diff-right-input",
-      "aria-label": "Right (compare against)"
+    sidebar.appendChild(regexCard);
+
+    // Right Stage: Action toolbar + Side-by-Side Editors
+    var stage = window.FOSS.dom.el("div", {
+      className: "text-tools-stage-pane",
+      style: { width: "100%", height: "100%", display: "flex", flexDirection: "column", gap: "var(--space-2)" }
     });
 
-    var compareDiffBtn = window.FOSS.dom.el("button", {
+    var swapBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-diff-compare",
-      type: "button",
+      "data-testid": "text_tools-swap",
+      "aria-label": "Swap input and output text",
+      title: "Swap Input and Output",
       onClick: function () {
-        var leftTxt = inputEditor.getValue();
-        var rightTxt = diffRightInput.value;
-        window.FOSS.api("text_tools_diff", { text1: leftTxt, text2: rightTxt }).then(function (res) {
-          if (res && res.ok) {
-            setOutput(res.diff || "No differences found.", "[OK] Diff complete: " + res.additions + " added, " + res.deletions + " removed");
-          } else {
-            showError((res && res.error) || "Diff computation failed");
-          }
+        var inVal = inputEditor.getValue();
+        var outVal = outputEditor.getValue();
+        inputEditor.setValue(outVal);
+        outputEditor.setValue(inVal);
+        statusBar.textContent = "[OK] Swapped input and output";
+      }
+    }, [window.FOSS.icons.el("refresh-cw", 14), window.FOSS.dom.el("span", { text: "Swap" })]);
+
+    var useOutBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "text_tools-use-output",
+      "aria-label": "Use output text as new input",
+      title: "Use Output as Input",
+      onClick: function () {
+        var outVal = outputEditor.getValue();
+        inputEditor.setValue(outVal);
+        statusBar.textContent = "[OK] Copied output to input";
+      }
+    }, [window.FOSS.icons.el("arrow-left", 14), window.FOSS.dom.el("span", { text: "Use as Input" })]);
+
+    var copyOutBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "text_tools-copy",
+      "aria-label": "Copy output text to clipboard",
+      title: "Copy Output",
+      onClick: function () {
+        var outVal = outputEditor.getValue();
+        navigator.clipboard.writeText(outVal).then(function () {
+          showToast("Copied output to clipboard", "success");
         });
       }
+    }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy Output" })]);
+
+    var clearBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "data-testid": "text_tools-clear",
+      "aria-label": "Clear input and output text",
+      title: "Clear All",
+      onClick: function () {
+        inputEditor.clear();
+        outputEditor.clear();
+        clearError();
+        statusBar.textContent = "Ready";
+      }
+    }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear" })]);
+
+    var filePicker = window.FOSS.components.filePicker({
+      testid: "text_tools-open-file",
+      label: "Open File",
+      onFileSelect: function (path) {
+        if (!path) return;
+        window.FOSS.api("read_text_file", { file_path: path }).then(function (res) {
+          inputEditor.setValue(res.text || res.content || "");
+          statusBar.textContent = "[OK] Loaded: " + path;
+        });
+      }
+    });
+
+    var toolbar = window.FOSS.dom.el("div", {
+      className: "row items-center flex-wrap gap-2 p-2 rounded",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
+    }, [filePicker.el, swapBtn, useOutBtn, copyOutBtn, clearBtn]);
+
+    var editorsGrid = window.FOSS.dom.el("div", {
+      className: "row gap-2 items-stretch code-editor-fill",
+      style: { flex: "1 1 0%", minHeight: "22rem", width: "100%" }
     }, [
-      window.FOSS.icons.el("search", 16),
-      window.FOSS.dom.el("span", { text: "Compare Diff" })
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [inputEditor.el]),
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [outputEditor.el])
     ]);
 
-    var diffCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "xs"
+    stage.appendChild(toolbar);
+    stage.appendChild(errorBanner);
+    stage.appendChild(editorsGrid);
+    stage.appendChild(statusBar);
+
+    var workbench = window.FOSS.dom.el("div", {
+      className: "split resizable text-tools-workbench",
+      style: { height: "100%", width: "100%" }
+    });
+
+    var divider = window.FOSS.components.splitDivider({
+      targetSplit: workbench,
+      side: "left"
+    });
+
+    workbench.appendChild(sidebar);
+    workbench.appendChild(divider);
+    workbench.appendChild(stage);
+
+    panel.appendChild(workbench);
+  }
+
+  function renderDiffTab(panel, ctx) {
+    panel.innerHTML = "";
+
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "text_tools-diff-status",
+      text: "Ready"
+    });
+
+    var leftEditor = window.FOSS.components.codeEditor({
+      testid: "text_tools-diff-left",
+      title: "Original Text",
+      placeholder: "Paste or type original text here...",
+      fillHeight: true
+    });
+
+    var rightEditor = window.FOSS.components.codeEditor({
+      testid: "text_tools-diff-right",
+      title: "Modified Text",
+      placeholder: "Paste or type modified text here...",
+      fillHeight: true
+    });
+
+    var diffModeSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "aria-label": "Diff Mode",
+      style: { width: "130px" }
     }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Diff Checker" }),
-      window.FOSS.dom.el("div", { className: "stack", gap: "xs" }, [
-        window.FOSS.dom.el("label", { text: "Left (original):", className: "text-xs text-muted" }),
-        window.FOSS.dom.el("label", { text: "Right (compare against):", className: "text-xs text-muted" }),
-        diffRightInput,
-        compareDiffBtn
-      ])
+      window.FOSS.dom.el("option", { value: "lines", text: "Line by Line" }),
+      window.FOSS.dom.el("option", { value: "words", text: "Word by Word" })
     ]);
 
-    var editorsSplit = window.FOSS.dom.el("div", {
-      className: "split even"
+    var ignoreWhitespaceCheck = window.FOSS.dom.el("input", { type: "checkbox", id: "tt-diff-ws" });
+    var ignoreWhitespaceLabel = window.FOSS.dom.el("label", {
+      htmlFor: "tt-diff-ws",
+      className: "text-xs cursor-pointer",
+      text: "Ignore Whitespace"
+    });
+
+    var ignoreCaseCheck = window.FOSS.dom.el("input", { type: "checkbox", id: "tt-diff-case" });
+    var ignoreCaseLabel = window.FOSS.dom.el("label", {
+      htmlFor: "tt-diff-case",
+      className: "text-xs cursor-pointer",
+      text: "Ignore Case"
+    });
+
+    var statsBadge = window.FOSS.dom.el("div", {
+      className: "badge badge-neutral text-xs font-mono",
+      "data-testid": "text_tools-diff-stats",
+      text: "0 additions, 0 deletions"
+    });
+
+    var diffOutput = window.FOSS.components.codeEditor({
+      testid: "text_tools-diff-output",
+      title: "Unified Diff",
+      placeholder: "Diff output will be displayed here...",
+      readOnly: true,
+      fillHeight: true
+    });
+
+    var compareBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "text_tools-diff-compare",
+      "aria-label": "Compare both text documents",
+      title: "Compare Texts",
+      onClick: function () {
+        var t1 = leftEditor.getValue();
+        var t2 = rightEditor.getValue();
+        statusBar.textContent = "Computing diff...";
+        window.FOSS.api("text_tools_diff", {
+          text1: t1,
+          text2: t2,
+          ignore_whitespace: ignoreWhitespaceCheck.checked,
+          ignore_case: ignoreCaseCheck.checked
+        }).then(function (res) {
+          var added = res.added !== undefined ? res.added : (res.additions || 0);
+          var removed = res.removed !== undefined ? res.removed : (res.deletions || 0);
+          statsBadge.textContent = "+" + added + " additions, -" + removed + " deletions";
+          diffOutput.setValue(res.diff || res.unified_diff || "Documents are identical.");
+          statusBar.textContent = "[OK] Diff computed: +" + added + " / -" + removed;
+        }).catch(function (err) {
+          statusBar.textContent = "Error: " + (err.message || String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("git-pull-request", 14), window.FOSS.dom.el("span", { text: "Compare" })]);
+
+    var swapBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "aria-label": "Swap left and right text",
+      title: "Swap Texts",
+      onClick: function () {
+        var l = leftEditor.getValue();
+        var r = rightEditor.getValue();
+        leftEditor.setValue(r);
+        rightEditor.setValue(l);
+      }
+    }, [window.FOSS.icons.el("refresh-cw", 14), window.FOSS.dom.el("span", { text: "Swap" })]);
+
+    var clearBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "aria-label": "Clear all text",
+      title: "Clear",
+      onClick: function () {
+        leftEditor.clear();
+        rightEditor.clear();
+        diffOutput.clear();
+        statsBadge.textContent = "0 additions, 0 deletions";
+        statusBar.textContent = "Ready";
+      }
+    }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear" })]);
+
+    var toolbar = window.FOSS.dom.el("div", {
+      className: "row items-center flex-wrap gap-2 p-2 rounded",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
     }, [
-      inputEditor.el,
-      outputEditor.el
+      compareBtn,
+      swapBtn,
+      clearBtn,
+      diffModeSelect,
+      window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [ignoreWhitespaceCheck, ignoreWhitespaceLabel]),
+      window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [ignoreCaseCheck, ignoreCaseLabel]),
+      statsBadge
     ]);
 
-    var operationsPalette = window.FOSS.dom.el("div", {
-      className: "stack",
-      gap: "sm"
+    var topGrid = window.FOSS.dom.el("div", {
+      className: "row gap-2 items-stretch code-editor-fill",
+      style: { flex: "1 1 0%", minHeight: "15rem", width: "100%" }
     }, [
-      caseCard,
-      reverseCard,
-      cleanupCard,
-      linesCard,
-      convertCard,
-      regexCard,
-      diffCard
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [leftEditor.el]),
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [rightEditor.el])
     ]);
 
-    panel.appendChild(window.FOSS.dom.el("div", { className: "page stack", gap: "md" }, [
-      desc,
-      errorBanner,
-      globalActions,
-      editorsSplit,
-      operationsPalette,
-      statusBar
-    ]));
+    var bottomPane = window.FOSS.dom.el("div", {
+      className: "flex-col code-editor-fill",
+      style: { flex: "1 1 0%", minHeight: "15rem", width: "100%" }
+    }, [diffOutput.el]);
+
+    panel.appendChild(window.FOSS.dom.el("div", {
+      className: "flex-col gap-2",
+      style: { height: "100%", width: "100%", overflowY: "auto" }
+    }, [toolbar, topGrid, bottomPane, statusBar]));
   }
 
   function renderWordCounterTab(panel, ctx) {
     panel.innerHTML = "";
 
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Word counter document analytics: analyze words, characters, readability, and keyword density."
-    });
-
-    var editor = window.FOSS.components.codeEditor({
-      testid: "text_tools-wc-input",
-      title: "Document Text",
-      placeholder: "Type, paste text, or open any document (PDF, Word, Excel, PowerPoint, text, Markdown) to analyze stats in real-time...",
-      ariaLabel: "Document text to analyze"
-    });
-
-    var openBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-wc-open-file",
-      type: "button",
-      onClick: function () {
-        window.FOSS.api("select_file", {
-          title: "Open Document for Word Counter",
-          file_types: [
-            ["All Supported Documents", "*.pdf;*.docx;*.pptx;*.xlsx;*.odt;*.ods;*.odp;*.txt;*.md;*.html;*.csv;*.json;*.yaml;*.py"],
-            ["All Files", "*.*"]
-          ]
-        }).then(function (res) {
-          if (res && res.paths && res.paths.length > 0) {
-            window.FOSS.api("word_counter_analyze_file", { file_path: res.paths[0] }).then(function (fres) {
-              if (fres && fres.ok && fres.extracted_text) {
-                editor.setValue(fres.extracted_text);
-                updateStats();
-              }
-            });
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Open File..." })
-    ]);
-
-    var pasteBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-wc-paste",
-      type: "button",
-      onClick: function () {
-        navigator.clipboard.readText().then(function (clip) {
-          if (clip) {
-            editor.setValue(clip);
-            updateStats();
-          }
-        }).catch(function () {});
-      }
-    }, [
-      window.FOSS.icons.el("copy", 16),
-      window.FOSS.dom.el("span", { text: "Paste Clipboard" })
-    ]);
-
-    var clearBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-ghost btn-sm",
-      "data-testid": "text_tools-wc-clear",
-      type: "button",
-      onClick: function () {
-        editor.setValue("");
-        updateStats();
-      }
-    }, [
-      window.FOSS.icons.el("close", 16),
-      window.FOSS.dom.el("span", { text: "Clear" })
-    ]);
-
-    var exportBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-wc-export-report",
-      type: "button",
-      onClick: function () {
-        var txt = editor.getValue();
-        if (!txt) return;
-        window.FOSS.api("word_counter_generate_report", { text: txt }).then(function (res) {
-          if (res && res.ok && res.report) {
-            window.FOSS.api("select_save_path", {
-              default_name: "word_count_report.txt",
-              file_types: [["Text Report", "*.txt"], ["All Files", "*.*"]]
-            }).then(function (saveRes) {
-              if (saveRes && saveRes.paths && saveRes.paths.length > 0) {
-                window.FOSS.api("write_text_file", { path: saveRes.paths[0], content: res.report }).then(function () {
-                  window.FOSS.toast.show("Report saved successfully", "success");
-                });
-              }
-            });
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "Export Report" })
-    ]);
-
-    var toolbar = window.FOSS.dom.el("div", {
-      className: "row wrap",
-      gap: "sm"
-    }, [openBtn, pasteBtn, clearBtn, exportBtn]);
-
-    function makeStatCard(label, defaultVal, testid) {
-      var valEl = window.FOSS.dom.el("div", {
-        className: "text-xl font-bold font-mono",
-        "data-testid": testid,
-        text: defaultVal
-      });
-      var card = window.FOSS.dom.el("div", {
-        className: "card stack-xs text-center",
-        style: "flex: 1; min-width: 7.5rem; padding: var(--space-3);"
-      }, [
-        valEl,
-        window.FOSS.dom.el("div", { className: "text-xs text-muted", text: label })
-      ]);
-      return { el: card, valEl: valEl };
-    }
-
-    var cardWords = makeStatCard("Words", "0", "text_tools-wc-stat-words");
-    var cardChars = makeStatCard("Characters", "0", "text_tools-wc-stat-chars");
-    var cardSentences = makeStatCard("Sentences", "0", "text_tools-wc-stat-sentences");
-    var cardParagraphs = makeStatCard("Paragraphs", "0", "text_tools-wc-stat-paragraphs");
-    var cardReading = makeStatCard("Reading Time", "0s", "text_tools-wc-stat-reading");
-    var cardReadability = makeStatCard("Readability", "100.0 / 100", "text_tools-wc-stat-readability");
-
-    var statsGrid = window.FOSS.dom.el("div", {
-      className: "row wrap",
-      gap: "sm"
-    }, [
-      cardWords.el, cardChars.el, cardSentences.el, cardParagraphs.el, cardReading.el, cardReadability.el
-    ]);
-
-    var densityContainer = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "xs"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Keyword Density (Top Words)" }),
-      window.FOSS.dom.el("div", {
-        className: "text-xs text-muted",
-        "data-testid": "text_tools-wc-density-list",
-        text: "Type or paste text to see keyword density frequency."
-      })
-    ]);
-
-    function updateStats() {
-      var text = editor.getValue();
-      if (!text.trim()) {
-        cardWords.valEl.textContent = "0";
-        cardChars.valEl.textContent = "0";
-        cardSentences.valEl.textContent = "0";
-        cardParagraphs.valEl.textContent = "0";
-        cardReading.valEl.textContent = "0s";
-        cardReadability.valEl.textContent = "100.0 / 100";
-        return;
-      }
-
-      window.FOSS.api("word_counter_analyze", { text: text }).then(function (res) {
-        if (!res || !res.ok) return;
-        var s = res.stats || {};
-        cardWords.valEl.textContent = String(s.word_count || 0);
-        cardChars.valEl.textContent = String(s.char_count || 0);
-        cardSentences.valEl.textContent = String(s.sentence_count || 0);
-        cardParagraphs.valEl.textContent = String(s.paragraph_count || 0);
-
-        var rSec = Math.round(s.reading_time_seconds || 0);
-        cardReading.valEl.textContent = rSec < 60 ? rSec + "s" : Math.floor(rSec / 60) + "m " + (rSec % 60) + "s";
-
-        var score = s.flesch_reading_ease !== undefined ? s.flesch_reading_ease.toFixed(1) : "100.0";
-        cardReadability.valEl.textContent = score + " / 100";
-
-        var density = s.keyword_density || [];
-        var dList = densityContainer.querySelector("[data-testid='text_tools-wc-density-list']");
-        if (dList && density.length > 0) {
-          dList.innerHTML = "";
-          var tagsWrap = window.FOSS.dom.el("div", { className: "row wrap", gap: "xs" });
-          density.slice(0, 15).forEach(function (item) {
-            tagsWrap.appendChild(window.FOSS.dom.el("span", {
-              className: "badge info",
-              text: item[0] + " (" + item[1] + ")"
-            }));
-          });
-          dList.appendChild(tagsWrap);
-        }
-      });
-    }
-
-    var inEl = editor.el.querySelector("textarea") || editor.el.querySelector("input");
-    if (inEl) {
-      inEl.addEventListener("input", updateStats);
-    }
-
-    panel.appendChild(window.FOSS.dom.el("div", {
-      className: "page stack",
-      gap: "md"
-    }, [desc, toolbar, statsGrid, editor.el, densityContainer]));
-  }
-
-  function renderGrammarTab(panel, ctx) {
-    panel.innerHTML = "";
-
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Grammar inspection, citation generation, and unified document diffing."
-    });
-
-    var textEditor = window.FOSS.components.codeEditor({
-      testid: "text_tools-grammar-input",
-      title: "Writing & Grammar Document",
-      placeholder: "Type or paste text for offline grammar and style analysis...",
-      ariaLabel: "Writing document editor"
-    });
-
-    var statusEl = window.FOSS.dom.el("div", {
+    var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted",
-      "data-testid": "text_tools-grammar-status",
+      "data-testid": "text_tools-counter-status",
       text: "Ready"
     });
 
-    var resultsContainer = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "xs",
-      "data-testid": "text_tools-grammar-results"
+    var counterEditor = window.FOSS.components.codeEditor({
+      testid: "text_tools-counter-input",
+      title: "Document Text",
+      placeholder: "Type, paste, or open a document to inspect live word count and readability stats...",
+      fillHeight: true
+    });
+
+    // Stat cards map
+    var statKeys = [
+      { id: "words", label: "Words" },
+      { id: "characters", label: "Characters" },
+      { id: "characters_no_spaces", label: "No Spaces" },
+      { id: "sentences", label: "Sentences" },
+      { id: "paragraphs", label: "Paragraphs" },
+      { id: "pages_est", label: "Pages (Est.)" },
+      { id: "reading_time_min", label: "Reading Time", suffix: " min" },
+      { id: "speaking_time_min", label: "Speaking Time", suffix: " min" }
+    ];
+
+    var statEls = {};
+    var statGrid = window.FOSS.dom.el("div", {
+      className: "grid gap-2",
+      style: { gridTemplateColumns: "repeat(4, minmax(0, 1fr))", width: "100%" }
+    });
+
+    statKeys.forEach(function (sk) {
+      var valEl = window.FOSS.dom.el("div", {
+        className: "text-xl font-bold font-mono",
+        "data-testid": "text_tools-stat-" + sk.id,
+        text: "0"
+      });
+      statEls[sk.id] = valEl;
+
+      var card = window.FOSS.dom.el("div", {
+        className: "p-2 rounded text-center",
+        style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)" }
+      }, [
+        valEl,
+        window.FOSS.dom.el("div", { className: "text-xs text-muted", text: sk.label })
+      ]);
+      statGrid.appendChild(card);
+    });
+
+    // Readability card
+    var fleschEaseEl = window.FOSS.dom.el("div", {
+      className: "text-lg font-bold font-mono",
+      "data-testid": "text_tools-stat-flesch-ease",
+      text: "100.0"
+    });
+
+    var fkGradeEl = window.FOSS.dom.el("div", {
+      className: "text-lg font-bold font-mono",
+      "data-testid": "text_tools-stat-fk-grade",
+      text: "0.0"
+    });
+
+    var readLabelEl = window.FOSS.dom.el("div", {
+      className: "badge badge-neutral text-xs",
+      "data-testid": "text_tools-stat-read-label",
+      text: "Very Easy"
+    });
+
+    var readabilityCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-2 p-3",
+      style: { width: "100%" }
     }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Analysis Results" }),
-      window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "Run Grammar Check or Citation Generator to see results here." })
+      window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: "Readability & Reading Level" }),
+      window.FOSS.dom.el("div", { className: "row items-center justify-between" }, [
+        window.FOSS.dom.el("div", {}, [window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "Flesch Reading Ease" }), fleschEaseEl]),
+        window.FOSS.dom.el("div", {}, [window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "Flesch-Kincaid Grade" }), fkGradeEl]),
+        readLabelEl
+      ])
     ]);
 
-    var grammarBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "text_tools-grammar-check",
-      "aria-label": "Check grammar",
-      title: "Check grammar",
-      type: "button",
-      onClick: function () {
-        var txt = textEditor.getValue();
-        window.FOSS.api("data_grammar_check", { text: txt, advanced: false }).then(function (res) {
-          var m = res.matches || [];
-          statusEl.textContent = "[OK] Grammar check: " + m.length + " issues flagged";
-          resultsContainer.innerHTML = "";
-          resultsContainer.appendChild(window.FOSS.dom.el("span", { className: "card-title", text: "Grammar Issues (" + m.length + ")" }));
-          if (m.length === 0) {
-            resultsContainer.appendChild(window.FOSS.dom.el("div", { className: "text-sm text-success", text: "No grammar or style issues detected." }));
-          } else {
-            var list = window.FOSS.dom.el("div", { className: "stack", gap: "xs" });
-            m.forEach(function (issue) {
-              list.appendChild(window.FOSS.dom.el("div", { className: "banner warning", style: "margin: 0;" }, [
-                window.FOSS.dom.el("span", { text: issue.message || JSON.stringify(issue) })
-              ]));
-            });
-            resultsContainer.appendChild(list);
-          }
+    // Keywords table container: no border/card to avoid A4 table height containment violation
+    var kwTableHost = window.FOSS.dom.el("div", {
+      className: "flex-col gap-2",
+      style: { width: "100%" }
+    }, [
+      window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: "Top Keywords & Density" }),
+      window.FOSS.dom.el("div", { className: "text-muted text-xs text-center", text: "Enter text to compute keyword density." })
+    ]);
+
+    function updateStats(res) {
+      statKeys.forEach(function (sk) {
+        var rawVal = res[sk.id];
+        if (rawVal === undefined) rawVal = res[sk.id.replace("_min", "_minutes")];
+        if (rawVal === undefined) rawVal = 0;
+        statEls[sk.id].textContent = String(rawVal) + (sk.suffix || "");
+      });
+
+      fleschEaseEl.textContent = String(res.flesch_reading_ease !== undefined ? res.flesch_reading_ease : (res.flesch_ease || 100.0));
+      fkGradeEl.textContent = "Grade " + String(res.flesch_kincaid_grade !== undefined ? res.flesch_kincaid_grade : (res.fk_grade || 0.0));
+      readLabelEl.textContent = String(res.readability_label || "N/A");
+
+      var kws = res.top_keywords || res.keywords || [];
+      if (kws.length > 0) {
+        kwTableHost.innerHTML = "";
+        kwTableHost.appendChild(window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: "Top Keywords & Density" }));
+        var tbl = window.FOSS.dom.el("table", { className: "table text-xs", style: { width: "100%" } });
+        var thead = window.FOSS.dom.el("thead", {}, [
+          window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("th", { text: "Keyword" }),
+            window.FOSS.dom.el("th", { text: "Occurrences" }),
+            window.FOSS.dom.el("th", { text: "Density" })
+          ])
+        ]);
+        var tbody = window.FOSS.dom.el("tbody");
+        kws.slice(0, 10).forEach(function (kw) {
+          tbody.appendChild(window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("td", { className: "font-mono font-medium", text: String(kw.word) }),
+            window.FOSS.dom.el("td", { text: String(kw.count) }),
+            window.FOSS.dom.el("td", { text: String(kw.density_pct) + "%" })
+          ]));
+        });
+        tbl.appendChild(thead);
+        tbl.appendChild(tbody);
+        kwTableHost.appendChild(tbl);
+      }
+    }
+
+    var debounceTimer = null;
+    function triggerAnalyze() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(function () {
+        var text = counterEditor.getValue();
+        if (!text.trim()) {
+          updateStats({
+            words: 0, characters: 0, characters_no_spaces: 0,
+            sentences: 0, paragraphs: 0, pages_est: 0,
+            reading_time_min: 0, speaking_time_min: 0,
+            flesch_reading_ease: 100, flesch_kincaid_grade: 0,
+            readability_label: "N/A", top_keywords: []
+          });
+          return;
+        }
+        window.FOSS.api("word_counter_analyze", { text: text }).then(function (res) {
+          updateStats(res);
+          statusBar.textContent = "[OK] Document analyzed: " + (res.words || 0) + " words";
+        });
+      }, 250);
+    }
+
+    // Bind typing
+    var textareaEl = counterEditor.el.querySelector("textarea");
+    if (textareaEl) {
+      textareaEl.addEventListener("input", triggerAnalyze);
+    }
+
+    var filePicker = window.FOSS.components.filePicker({
+      testid: "text_tools-counter-open-file",
+      label: "Open Document",
+      onFileSelect: function (path) {
+        if (!path) return;
+        statusBar.textContent = "Analyzing document file...";
+        window.FOSS.api("word_counter_analyze_file", { file_path: path }).then(function (res) {
+          counterEditor.setValue(res.text || "");
+          updateStats(res);
+          statusBar.textContent = "[OK] Loaded & analyzed: " + path;
         });
       }
-    }, [
-      window.FOSS.icons.el("check", 16),
-      window.FOSS.dom.el("span", { text: "Grammar Check" })
-    ]);
+    });
 
-    var advancedGrammarBtn = window.FOSS.dom.el("button", {
+    var exportBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-grammar-advanced",
-      "aria-label": "LanguageTool advanced check",
-      title: "LanguageTool advanced check",
-      type: "button",
+      "data-testid": "text_tools-counter-export",
+      "aria-label": "Export full document analysis report",
+      title: "Export Report",
       onClick: function () {
-        var txt = textEditor.getValue();
-        window.FOSS.api("data_grammar_check", { text: txt, advanced: true }).then(function (res) {
-          statusEl.textContent = "[OK] Advanced LanguageTool analysis complete (LT available: " + res.lt_available + ")";
-          resultsContainer.innerHTML = "";
-          resultsContainer.appendChild(window.FOSS.dom.el("span", { className: "card-title", text: "Advanced Analysis" }));
-          resultsContainer.appendChild(window.FOSS.dom.el("div", { className: "text-sm", text: "LanguageTool engine available: " + res.lt_available }));
+        var text = counterEditor.getValue();
+        window.FOSS.api("word_counter_generate_report", { text: text }).then(function (res) {
+          var rep = res.report || "";
+          navigator.clipboard.writeText(rep).then(function () {
+            showToast("Report copied to clipboard", "success");
+          });
         });
       }
-    }, [
-      window.FOSS.icons.el("search", 16),
-      window.FOSS.dom.el("span", { text: "Advanced Grammar" })
-    ]);
+    }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "Copy Report" })]);
 
-    var citationSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "data-testid": "text_tools-grammar-citation-style",
-      "aria-label": "Citation style"
-    }, [
-      window.FOSS.dom.el("option", { value: "apa", text: "APA" }),
-      window.FOSS.dom.el("option", { value: "mla", text: "MLA" }),
-      window.FOSS.dom.el("option", { value: "chicago", text: "Chicago" }),
-      window.FOSS.dom.el("option", { value: "harvard", text: "Harvard" })
-    ]);
-
-    var citationBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-grammar-citation-generate",
-      "aria-label": "Generate citation",
-      title: "Generate citation",
-      type: "button",
+    var clearBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "aria-label": "Clear counter text",
+      title: "Clear",
       onClick: function () {
-        var meta = { author: "Smith, J.", title: "Local First Software", year: "2026", publisher: "FOSS Press" };
-        var style = citationSelect.value || "apa";
-        window.FOSS.api("data_generate_citation", { metadata: meta, style: style }).then(function (res) {
-          if (res && res.citation) {
-            textEditor.setValue(res.citation);
-            statusEl.textContent = "[OK] Generated " + style.toUpperCase() + " citation";
-          }
-        });
+        counterEditor.clear();
+        triggerAnalyze();
+        statusBar.textContent = "Ready";
       }
-    }, [
-      window.FOSS.icons.el("file", 16),
-      window.FOSS.dom.el("span", { text: "Generate Citation" })
-    ]);
+    }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear" })]);
 
-    var diffBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "text_tools-grammar-diff-btn",
-      "aria-label": "Diff document",
-      title: "Diff document",
-      type: "button",
-      onClick: function () {
-        var txt = textEditor.getValue();
-        window.FOSS.api("data_diff_documents", { doc1: txt, doc2: txt + "\nAdded Line" }).then(function (res) {
-          statusEl.textContent = "[OK] Unified document diff calculated";
-          resultsContainer.innerHTML = "";
-          resultsContainer.appendChild(window.FOSS.dom.el("span", { className: "card-title", text: "Unified Document Diff" }));
-          resultsContainer.appendChild(window.FOSS.dom.el("pre", { className: "font-mono text-xs", text: res.diff || "No differences found." }));
-        });
-      }
-    }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Diff Documents" })
-    ]);
+    var toolbar = window.FOSS.dom.el("div", {
+      className: "row items-center flex-wrap gap-2 p-2 rounded",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
+    }, [filePicker.el, exportBtn, clearBtn]);
 
-    var actionsRow = window.FOSS.dom.el("div", {
-      className: "row scroll-x",
-      gap: "sm"
-    }, [grammarBtn, advancedGrammarBtn, citationSelect, citationBtn, diffBtn]);
+    var rightPane = window.FOSS.dom.el("div", {
+      className: "flex-col gap-3",
+      style: { flex: "1 1 0%", minWidth: "0", overflowY: "auto" }
+    }, [statGrid, readabilityCard, kwTableHost]);
+
+    var mainGrid = window.FOSS.dom.el("div", {
+      className: "row gap-3 items-stretch",
+      style: { flex: "1 1 0%", minHeight: "22rem", width: "100%" }
+    }, [
+      window.FOSS.dom.el("div", { className: "flex-col flex-1", style: { minWidth: "0", height: "100%" } }, [counterEditor.el]),
+      rightPane
+    ]);
 
     panel.appendChild(window.FOSS.dom.el("div", {
-      className: "page stack",
-      gap: "md"
-    }, [desc, actionsRow, textEditor.el, resultsContainer, statusEl]));
+      className: "flex-col gap-2",
+      style: { height: "100%", width: "100%", overflowY: "auto" }
+    }, [toolbar, mainGrid, statusBar]));
+  }
+
+  function renderWritingTab(panel, ctx) {
+    panel.innerHTML = "";
+
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "text_tools-writing-status",
+      text: "Ready"
+    });
+
+    // Sub-segment 1: Grammar and Style
+    var grammarEditor = window.FOSS.components.codeEditor({
+      testid: "text_tools-grammar-input",
+      title: "Text to Review",
+      placeholder: "Paste or type text here to inspect for spelling, sentence spacing, and stylistic issues...",
+      fillHeight: true
+    });
+
+    var grammarResults = window.FOSS.dom.el("div", {
+      className: "flex-col gap-2 p-2",
+      "data-testid": "text_tools-grammar-results",
+      style: { flex: "1 1 0%", minHeight: "10rem", overflowY: "auto" }
+    }, [
+      window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: "Grammar & Style Issues" }),
+      window.FOSS.dom.el("div", { className: "text-muted text-xs text-center", text: "Click 'Check Grammar' to inspect text." })
+    ]);
+
+    var checkGrammarBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "text_tools-grammar-check",
+      "aria-label": "Check grammar and style",
+      title: "Check Grammar",
+      onClick: function () {
+        var text = grammarEditor.getValue();
+        statusBar.textContent = "Checking grammar...";
+        window.FOSS.api("data_grammar_check", { text: text, advanced: false }).then(function (res) {
+          grammarResults.innerHTML = "";
+          var headRow = window.FOSS.dom.el("div", { className: "row items-center justify-between" }, [
+            window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: "Grammar & Style Issues" }),
+            window.FOSS.dom.el("div", { className: "badge badge-neutral text-xs", text: "Score: " + (res.score || 100) + "/100" })
+          ]);
+          grammarResults.appendChild(headRow);
+
+          var issues = res.issues || [];
+          if (!issues.length) {
+            grammarResults.appendChild(window.FOSS.dom.el("div", {
+              className: "text-success text-sm text-center p-3",
+              text: "Looks clean! No obvious issues detected."
+            }));
+          } else {
+            issues.forEach(function (iss) {
+              var card = window.FOSS.dom.el("div", {
+                className: "p-2 rounded flex-col gap-1",
+                style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)" }
+              }, [
+                window.FOSS.dom.el("div", { className: "text-xs font-semibold text-warning", text: iss.type || "Issue" }),
+                window.FOSS.dom.el("div", { className: "text-xs", text: iss.message })
+              ]);
+              grammarResults.appendChild(card);
+            });
+          }
+          statusBar.textContent = "[OK] Checked grammar: " + issues.length + " issue(s)";
+        });
+      }
+    }, [window.FOSS.icons.el("check-circle", 14), window.FOSS.dom.el("span", { text: "Check Grammar" })]);
+
+    var grammarSection = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-2 p-3",
+      style: { width: "100%" }
+    }, [
+      window.FOSS.dom.el("div", { className: "text-sm font-semibold", text: "Offline Grammar & Style Checker" }),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-stretch", style: { minHeight: "14rem" } }, [
+        window.FOSS.dom.el("div", { className: "flex-col flex-1", style: { minWidth: "0" } }, [grammarEditor.el]),
+        window.FOSS.dom.el("div", { className: "flex-col flex-1", style: { minWidth: "0" } }, [grammarResults])
+      ]),
+      window.FOSS.dom.el("div", { className: "row" }, [checkGrammarBtn])
+    ]);
+
+    // Sub-segment 2: Citation Builder
+    var citTitle = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      "data-testid": "text_tools-cit-title",
+      placeholder: "Work / Article / Book Title",
+      "aria-label": "Work Title",
+      style: { flex: "2 1 12rem" }
+    });
+
+    var citAuthors = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      "data-testid": "text_tools-cit-authors",
+      placeholder: "Author(s) (e.g. Shannon, C. E.; Weaver, W.)",
+      "aria-label": "Authors",
+      style: { flex: "2 1 12rem" }
+    });
+
+    var citYear = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      "data-testid": "text_tools-cit-year",
+      placeholder: "Year (e.g. 1948)",
+      "aria-label": "Year",
+      style: { flex: "1 1 6rem" }
+    });
+
+    var citPublisher = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      "data-testid": "text_tools-cit-publisher",
+      placeholder: "Journal / Publisher / Source",
+      "aria-label": "Publisher",
+      style: { flex: "2 1 12rem" }
+    });
+
+    var citVolume = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      "data-testid": "text_tools-cit-volume",
+      placeholder: "Vol / Issue",
+      "aria-label": "Volume",
+      style: { flex: "1 1 5rem" }
+    });
+
+    var citPages = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      "data-testid": "text_tools-cit-pages",
+      placeholder: "Pages (e.g. 379-423)",
+      "aria-label": "Pages",
+      style: { flex: "1 1 6rem" }
+    });
+
+    var citDoi = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm",
+      "data-testid": "text_tools-cit-doi",
+      placeholder: "DOI or URL",
+      "aria-label": "DOI or URL",
+      style: { flex: "2 1 12rem" }
+    });
+
+    var citStyle = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "data-testid": "text_tools-cit-style",
+      "aria-label": "Citation Style",
+      style: { flex: "1 1 8rem" }
+    }, [
+      window.FOSS.dom.el("option", { value: "apa", text: "APA 7th Edition" }),
+      window.FOSS.dom.el("option", { value: "mla", text: "MLA 9th Edition" }),
+      window.FOSS.dom.el("option", { value: "chicago", text: "Chicago 17th" }),
+      window.FOSS.dom.el("option", { value: "ieee", text: "IEEE Standard" }),
+      window.FOSS.dom.el("option", { value: "bibtex", text: "BibTeX Entry" })
+    ]);
+
+    var citOutput = window.FOSS.dom.el("div", {
+      className: "p-3 rounded font-mono text-sm",
+      "data-testid": "text_tools-citation-output",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", minHeight: "3rem", wordBreak: "break-all" },
+      text: "Formatted citation will appear here."
+    });
+
+    var copyCitBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "text_tools-citation-copy",
+      "aria-label": "Copy formatted citation",
+      title: "Copy",
+      onClick: function () {
+        var val = citOutput.textContent;
+        navigator.clipboard.writeText(val).then(function () {
+          showToast("Citation copied to clipboard", "success");
+        });
+      }
+    }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy" })]);
+
+    var generateCitBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "text_tools-citation-generate",
+      "aria-label": "Generate citation in chosen style",
+      title: "Generate Citation",
+      onClick: function () {
+        var meta = {
+          title: citTitle.value || "Untitled",
+          authors: citAuthors.value ? citAuthors.value.split(";").map(function (s) { return s.trim(); }) : ["Unknown Author"],
+          year: citYear.value || "n.d.",
+          publisher: citPublisher.value || "",
+          volume: citVolume.value || "",
+          pages: citPages.value || "",
+          doi: citDoi.value || "",
+          url: citDoi.value || ""
+        };
+        statusBar.textContent = "Formatting citation...";
+        window.FOSS.api("data_generate_citation", {
+          metadata: meta,
+          style: citStyle.value
+        }).then(function (res) {
+          citOutput.textContent = res.citation || "";
+          statusBar.textContent = "[OK] Generated " + citStyle.value.toUpperCase() + " citation";
+        });
+      }
+    }, [window.FOSS.icons.el("book-open", 14), window.FOSS.dom.el("span", { text: "Generate Citation" })]);
+
+    var citInputsRow1 = window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap items-center" }, [citTitle, citAuthors, citYear]);
+    var citInputsRow2 = window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap items-center" }, [citPublisher, citVolume, citPages, citDoi, citStyle]);
+
+    var citationSection = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-2 p-3",
+      style: { width: "100%" }
+    }, [
+      window.FOSS.dom.el("div", { className: "text-sm font-semibold", text: "Academic Citation Builder" }),
+      citInputsRow1,
+      citInputsRow2,
+      window.FOSS.dom.el("div", { className: "row gap-2" }, [generateCitBtn, copyCitBtn]),
+      citOutput
+    ]);
+
+    panel.appendChild(window.FOSS.dom.el("div", {
+      className: "flex-col gap-3",
+      style: { height: "100%", width: "100%", overflowY: "auto" }
+    }, [grammarSection, citationSection, statusBar]));
   }
 
   window.FOSS.router.register({
@@ -952,19 +1028,20 @@ window.FOSS = window.FOSS || {};
     navName: "Text Tools",
     category: "Data",
     icon: "edit",
-    workbench: false,
+    workbench: true,
     tabs: [
-      { id: "main", label: "Text Operations", render: renderMain },
-      { id: "word_counter", label: "Word Counter", render: renderWordCounterTab },
-      { id: "grammar", label: "Grammar & Style", render: renderGrammarTab }
+      { id: "transforms", label: "Text Transforms", aliases: ["main", "case"], render: renderTransformsTab },
+      { id: "diff", label: "Side-by-Side Diff", aliases: ["diff_checker"], render: renderDiffTab },
+      { id: "counter", label: "Word Counter", aliases: ["word_counter"], render: renderWordCounterTab },
+      { id: "writing", label: "Grammar & Citations", aliases: ["grammar"], render: renderWritingTab }
     ],
     onFiles: function (paths, ctx) {
       if (paths && paths.length > 0) {
-        window.FOSS.api("read_text_file", { path: paths[0] }).then(function (res) {
-          if (res && res.ok && res.content) {
+        window.FOSS.api("read_text_file", { file_path: paths[0] }).then(function (res) {
+          if (res && (res.text || res.content)) {
             var inEl = document.querySelector("[data-testid='text_tools-input-input']");
             if (inEl) {
-              inEl.value = res.content;
+              inEl.value = res.text || res.content;
               inEl.dispatchEvent(new Event("input"));
             }
           }

@@ -1,5 +1,6 @@
 import csv
 import json
+import logging
 import os
 import re
 from pathlib import Path
@@ -21,6 +22,8 @@ from app.features.converter.ops import (
 )
 from app.features.ocr import ops as ocr_ops
 from app.web.api.result import api_method, ok, require
+
+logger = logging.getLogger(__name__)
 
 EXT_IMAGES = {".ico", ".icns", ".tga", ".dds", ".ppm", ".pgm", ".pbm", ".pcx", ".sgi", ".eps"}
 EXT_MODELS = {".gltf", ".glb", ".3mf", ".dae", ".off", ".xyz"}
@@ -99,6 +102,106 @@ def _write_data_rows(rows: list[dict[str, Any]], out_path: str, target_fmt: str)
     return out_path
 
 
+def _convert_single_internal(
+    file_path: str,
+    target_format: str,
+    output_dir: str,
+    output_path: str | None = None,
+    output_stem: str | None = None,
+    dpi: int = 150,
+    quality: int = 90,
+) -> list[str]:
+    # Unified converter dispatch supporting single and batch conversion.
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Input file not found: {file_path}")
+    raw_fmt = target_format.strip()
+    if raw_fmt.lower() in ("pdf (searchable)", "pdf_searchable"):
+        target_fmt = "PDF (Searchable)"
+    else:
+        target_fmt = raw_fmt.upper()
+
+    ext = os.path.splitext(file_path)[1].lower()
+    os.makedirs(output_dir, exist_ok=True)
+
+    if output_path:
+        target_path = str(output_path)
+    else:
+        stem = output_stem or Path(file_path).stem
+        if target_fmt == "PDF (Searchable)":
+            out_ext = ".pdf"
+        elif target_fmt == "M3U8":
+            out_ext = ".m3u8"
+        else:
+            out_ext = f".{target_fmt.lower()}"
+        target_path = str(Path(output_dir) / f"{stem}{out_ext}")
+
+    if ext in EXT_IMAGES or target_fmt in ("ICO",):
+        try:
+            img = Image.open(file_path)
+            if target_fmt == "PDF":
+                img.convert("RGB").save(target_path, "PDF")
+            elif target_fmt == "ICO":
+                img.resize((128, 128)).save(target_path, "ICO")
+            elif target_fmt == "JPEG":
+                img.convert("RGB").save(target_path, "JPEG", quality=quality)
+            elif target_fmt in ("TXT", "MD", "PDF (SEARCHABLE)", "PDF (Searchable)"):
+                if target_fmt in ("PDF (SEARCHABLE)", "PDF (Searchable)"):
+                    ocr_ops.create_searchable_pdf(file_path, target_path, dpi=dpi)
+                else:
+                    res = ocr_ops.ocr_file(file_path, dpi=dpi)
+                    ocr_ops.save_ocr_text(res, target_path, as_markdown=(target_fmt == "MD"))
+            else:
+                img.save(target_path, format=target_fmt)
+            return [target_path]
+        except (IOError, ValueError, RuntimeError) as err:
+            logger.debug("Unified image conversion failed, attempting general converter: %s", err)
+
+    if ext in EXT_MODELS or target_fmt in ("GLTF", "GLB", "3MF", "OFF"):
+        try:
+            mesh = trimesh.load(file_path)
+            mesh.export(target_path)
+            return [target_path]
+        except (IOError, ValueError, RuntimeError) as err:
+            logger.debug("Unified mesh conversion failed, attempting general converter: %s", err)
+
+    if ext in EXT_DATA or target_fmt in ("TSV", "NDJSON"):
+        rows = _parse_data_to_rows(file_path, ext)
+        res_p = _write_data_rows(rows, target_path, target_fmt)
+        return [res_p]
+
+    if ext in (".txt", ".text", ".md", ".markdown"):
+        txt_body = Path(file_path).read_text(encoding="utf-8", errors="replace")
+        with open(target_path, "w", encoding="utf-8") as f_txt:
+            f_txt.write(txt_body)
+        return [target_path]
+
+    if ext in EXT_DOCS:
+        try:
+            doc = fitz.open(file_path)
+            if target_fmt == "PDF":
+                doc.save(target_path)
+            elif target_fmt in ("TXT", "MD"):
+                txt = "\n\n".join(page.get_text() for page in doc)
+                with open(target_path, "w", encoding="utf-8") as f_out:
+                    f_out.write(txt)
+            elif target_fmt in ("PNG", "JPEG", "WEBP"):
+                page = doc.load_page(0)
+                pix = page.get_pixmap(dpi=dpi)
+                pix.save(target_path)
+            return [target_path]
+        except (IOError, ValueError, RuntimeError) as err:
+            logger.debug("Unified document conversion failed, attempting general converter: %s", err)
+
+    stem_val = Path(target_path).stem if output_path else output_stem
+    return convert_file(
+        file_path,
+        output_dir,
+        target_fmt,
+        dpi=dpi,
+        output_stem=stem_val,
+    )
+
+
 class ConverterApiMixin:
     @api_method
     def converter_available_targets(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -120,10 +223,10 @@ class ConverterApiMixin:
             targets = ["PDF", "PNG", "JPEG", "WEBP", "TXT", "MD"]
             return ok(family="Document", targets=targets, file_path=file_path)
         if ext in EXT_SUBS:
-            targets = ["SRT", "VTT", "TXT", "JSON"]
-            return ok(family="Subtitles", targets=targets, file_path=file_path)
+            targets = ["SRT", "VTT", "TXT"]
+            return ok(family="Subtitle", targets=targets, file_path=file_path)
         if ext in EXT_PLAYLISTS:
-            targets = ["JSON", "CSV", "TXT", "M3U8"]
+            targets = ["M3U8", "CSV", "JSON", "TXT"]
             return ok(family="Playlist", targets=targets, file_path=file_path)
         if ext in EXT_FONTS:
             targets = ["TTF", "OTF", "WOFF", "WOFF2"]
@@ -144,87 +247,106 @@ class ConverterApiMixin:
         return ok(family=family or "File", targets=targets, file_path=file_path)
 
     @api_method
+    def converter_scan_inputs(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Expand mixed file and folder paths into convertible queue descriptors.
+        require(params, "paths")
+        raw_paths = list(params["paths"])
+        recursive = bool(params.get("recursive", True))
+        family_filter = str(params.get("family_filter", "all")).lower()
+        ext_filter_str = str(params.get("extension_filter", "")).strip().lower()
+        ext_filters = {e.strip() if e.strip().startswith(".") else f".{e.strip()}" for e in ext_filter_str.split(",") if e.strip()}
+
+        discovered: list[dict[str, Any]] = []
+        visited: set[str] = set()
+
+        def _evaluate_file(f_path: Path, rel_dir: str) -> None:
+            resolved = str(f_path.resolve())
+            if resolved in visited or not f_path.is_file():
+                return
+            visited.add(resolved)
+            ext = f_path.suffix.lower()
+            if ext_filters and ext not in ext_filters:
+                return
+
+            if f_path.name.startswith(".") or f_path.name.startswith("~$"):
+                return
+
+            res = self.converter_available_targets({"file_path": str(f_path)})
+            targets = res.get("targets", [])
+            fam = res.get("family", "File")
+
+            if not targets:
+                return
+
+            if family_filter != "all":
+                if family_filter == "image" and fam != "Image":
+                    return
+                elif family_filter in ("document", "office") and fam not in ("Document", "Office", "PDF"):
+                    return
+                elif family_filter in ("audio", "video", "media") and fam not in ("Audio", "Video"):
+                    return
+                elif family_filter == "data" and fam != "Data":
+                    return
+                elif family_filter == "model3d" and fam != "Model3D":
+                    return
+
+            def_target = targets[0] if targets else ""
+            discovered.append({
+                "path": str(f_path),
+                "name": f_path.name,
+                "rel_dir": rel_dir,
+                "size_bytes": f_path.stat().st_size,
+                "family": fam,
+                "targets": targets,
+                "default_target": def_target,
+            })
+
+        for p_str in raw_paths:
+            p = Path(p_str)
+            if not p.exists():
+                continue
+            if p.is_file():
+                _evaluate_file(p, "")
+            elif p.is_dir():
+                if recursive:
+                    for root, dirs, files in os.walk(p):
+                        dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("venv", ".venv", "__pycache__", "node_modules")]
+                        rel = os.path.relpath(root, p)
+                        rel_dir = "" if rel == "." else rel
+                        for f_name in sorted(files):
+                            _evaluate_file(Path(root) / f_name, rel_dir)
+                else:
+                    for entry in sorted(p.iterdir()):
+                        if entry.is_file():
+                            _evaluate_file(entry, "")
+
+        return ok(items=discovered, total=len(discovered))
+
+    @api_method
     def converter_convert_file(self, params: dict[str, Any]) -> dict[str, Any]:
         # Convert file to target format with optional quality and DPI parameters.
-        require(params, "file_path", "target_format")
-        file_path = str(params["file_path"])
+        require(params, "target_format")
+        file_path = str(params.get("file_path") or params.get("input_path") or "")
+        if not file_path:
+            raise ValueError("Parameter file_path or input_path is required")
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Input file not found: {file_path}")
-        target_fmt = str(params["target_format"]).upper()
+
+        target_fmt = str(params["target_format"])
         out_p = params.get("output_path")
+        out_dir = str(params.get("output_dir") or (Path(out_p).parent if out_p else Path(file_path).parent))
+        output_stem = params.get("output_stem")
         dpi = int(params.get("dpi", 150))
-        ext = os.path.splitext(file_path)[1].lower()
+        quality = int(params.get("quality", 90))
 
-        if out_p:
-            out_dir = str(Path(out_p).parent)
-            target_path = str(out_p)
-        else:
-            out_dir = str(Path(file_path).parent)
-            out_ext = f".{target_fmt.lower().replace(' (searchable)', '')}"
-            target_path = str(Path(file_path).with_suffix(out_ext))
-
-        # Handle extended images
-        if ext in EXT_IMAGES or target_fmt in ("ICO",):
-            try:
-                img = Image.open(file_path)
-                if target_fmt == "PDF":
-                    img.convert("RGB").save(target_path, "PDF")
-                elif target_fmt == "ICO":
-                    img.resize((128, 128)).save(target_path, "ICO")
-                elif target_fmt == "JPEG":
-                    img.convert("RGB").save(target_path, "JPEG", quality=90)
-                elif target_fmt in ("TXT", "MD", "PDF (SEARCHABLE)"):
-                    if target_fmt == "PDF (SEARCHABLE)":
-                        ocr_ops.create_searchable_pdf(file_path, target_path, dpi=dpi)
-                    else:
-                        res = ocr_ops.ocr_file(file_path, dpi=dpi)
-                        ocr_ops.save_ocr_text(res, target_path, as_markdown=(target_fmt == "MD"))
-                else:
-                    img.save(target_path, format=target_fmt)
-                return ok(output_path=target_path, files=[target_path])
-            except (IOError, ValueError, RuntimeError) as img_err:
-                log_msg = str(img_err)
-
-        # Handle extended 3D formats
-        if ext in EXT_MODELS or target_fmt in ("GLTF", "GLB", "3MF", "OFF"):
-            try:
-                mesh = trimesh.load(file_path)
-                mesh.export(target_path)
-                return ok(output_path=target_path, files=[target_path])
-            except (IOError, ValueError, RuntimeError) as mesh_err:
-                log_msg = str(mesh_err)
-
-        # Handle extended data formats
-        if ext in EXT_DATA or target_fmt in ("TSV", "NDJSON"):
-            rows = _parse_data_to_rows(file_path, ext)
-            res_p = _write_data_rows(rows, target_path, target_fmt)
-            return ok(output_path=res_p, files=[res_p])
-
-        # Handle document formats (XPS, CBZ, RTF, HTML)
-        if ext in EXT_DOCS:
-            try:
-                doc = fitz.open(file_path)
-                if target_fmt == "PDF":
-                    doc.save(target_path)
-                elif target_fmt in ("TXT", "MD"):
-                    txt = "\n\n".join(page.get_text() for page in doc)
-                    with open(target_path, "w", encoding="utf-8") as f_out:
-                        f_out.write(txt)
-                elif target_fmt in ("PNG", "JPEG", "WEBP"):
-                    page = doc.load_page(0)
-                    pix = page.get_pixmap(dpi=dpi)
-                    pix.save(target_path)
-                return ok(output_path=target_path, files=[target_path])
-            except (IOError, ValueError, RuntimeError) as doc_err:
-                log_msg = str(doc_err)
-
-        # Fallback to standard converter ops
-        created_files = convert_file(
+        created_files = _convert_single_internal(
             file_path,
-            out_dir,
             target_fmt,
+            out_dir,
+            output_path=out_p,
+            output_stem=output_stem,
             dpi=dpi,
-            output_stem=Path(target_path).stem if out_p else None,
+            quality=quality,
         )
         res_path = created_files[0] if created_files else str(out_p or file_path)
         return ok(output_path=res_path, files=created_files)
@@ -239,20 +361,44 @@ class ConverterApiMixin:
         # Batch convert list of files to respective target formats.
         require(params, "items")
         raw_items = list(params["items"])
-        batch_items = [
-            BatchConversionItem(
-                input_path=str(item.get("input_path", item.get("source_path", ""))),
-                target_format=str(item.get("target_format", "")),
-                output_stem=item.get("output_stem"),
-            )
-            for item in raw_items
-        ]
-        out_dir = str(params.get("output_dir", ""))
-        if not out_dir and batch_items:
-            out_dir = str(Path(batch_items[0].input_path).parent)
-        results = batch_convert_files(batch_items, out_dir)
-        summary = f"Converted {len(results)} file(s)"
-        return ok(results=results, summary=summary)
+        out_dir = str(params.get("output_dir", "")).strip()
+        preserve_tree = bool(params.get("preserve_tree", True))
+        dpi = int(params.get("dpi", 150))
+        quality = int(params.get("quality", 90))
+
+        if not out_dir and raw_items:
+            first_path = str(raw_items[0].get("path") or raw_items[0].get("input_path", ""))
+            out_dir = str(Path(first_path).parent / "converted") if first_path else "."
+
+        os.makedirs(out_dir, exist_ok=True)
+        results: list[dict[str, Any]] = []
+        succeeded = 0
+        failed = 0
+
+        for item in raw_items:
+            in_p = str(item.get("path") or item.get("input_path") or item.get("source_path", ""))
+            tgt_fmt = str(item.get("target_format", ""))
+            rel_dir = str(item.get("rel_dir", "")).strip()
+            item_out_dir = str(Path(out_dir) / rel_dir) if (preserve_tree and rel_dir) else out_dir
+
+            try:
+                created = _convert_single_internal(
+                    in_p,
+                    tgt_fmt,
+                    item_out_dir,
+                    output_stem=item.get("output_stem"),
+                    dpi=dpi,
+                    quality=quality,
+                )
+                res_path = created[0] if created else ""
+                results.append({"path": in_p, "output_path": res_path, "ok": True, "error": None})
+                succeeded += 1
+            except Exception as exc:
+                results.append({"path": in_p, "output_path": "", "ok": False, "error": str(exc)})
+                failed += 1
+
+        summary = f"Converted {succeeded} file(s), {failed} failed"
+        return ok(results=results, succeeded=succeeded, failed=failed, summary=summary)
 
     @api_method
     def converter_summary(self, params: dict[str, Any]) -> dict[str, Any]:

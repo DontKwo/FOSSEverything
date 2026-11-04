@@ -13,24 +13,47 @@ window.FOSS = window.FOSS || {};
     return "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
       "<style>" +
       "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; " +
-      "line-height: 1.6; color: " + fg + "; background: " + bg + "; padding: 16px; margin: 0; word-break: break-word; } " +
-      "a { color: " + linkColor + "; } " +
-      "code { background: " + codeBg + "; padding: 2px 5px; border-radius: 4px; font-size: 85%; } " +
-      "pre code { display: block; padding: 12px; overflow-x: auto; } " +
-      "blockquote { border-left: 4px solid " + border + "; margin: 0; padding-left: 16px; color: #888; } " +
+      "font-size: 15px; line-height: 1.6; color: " + fg + "; background: " + bg + "; padding: 20px; margin: 0; word-break: break-word; } " +
+      "a { color: " + linkColor + "; text-decoration: none; } " +
+      "a:hover { text-decoration: underline; } " +
+      "h1, h2, h3, h4 { margin-top: 20px; margin-bottom: 12px; font-weight: 600; } " +
+      "h1 { font-size: 1.8em; padding-bottom: 0.3em; border-bottom: 1px solid " + border + "; } " +
+      "h2 { font-size: 1.4em; padding-bottom: 0.3em; border-bottom: 1px solid " + border + "; } " +
+      "ul { list-style-type: disc; padding-left: 2em; margin-bottom: 16px; } " +
+      "ul ul { list-style-type: circle; } " +
+      "ul ul ul { list-style-type: square; } " +
+      "ol { list-style-type: decimal; padding-left: 2em; margin-bottom: 16px; } " +
+      "ol ol { list-style-type: lower-alpha; } " +
+      "ol ol ol { list-style-type: lower-roman; } " +
+      "li + li { margin-top: 0.25em; } " +
+      ".task-list-item { list-style-type: none; margin-left: -1.25em; } " +
+      ".task-list-item input { margin-right: 0.5em; vertical-align: middle; } " +
+      "code { background: " + codeBg + "; padding: 2px 6px; border-radius: 4px; font-size: 85%; font-family: monospace; } " +
+      "pre { background: " + codeBg + "; padding: 14px; border-radius: 6px; overflow-x: auto; font-size: 85%; margin-bottom: 16px; } " +
+      "pre code { padding: 0; background: transparent; } " +
+      ".code-header { background: " + codeBg + "; border: 1px solid " + border + "; border-bottom: none; padding: 4px 10px; font-size: 12px; font-family: monospace; color: #888; border-top-left-radius: 6px; border-top-right-radius: 6px; } " +
+      ".code-header + pre { border-top-left-radius: 0; border-top-right-radius: 0; border: 1px solid " + border + "; } " +
+      "blockquote { border-left: 4px solid " + border + "; margin: 0 0 16px 0; padding-left: 14px; color: #888; } " +
+      ".markdown-alert { padding: 8px 14px; margin-bottom: 16px; border-left: 4px solid #0969da; background: " + codeBg + "; border-radius: 0 6px 6px 0; } " +
+      ".markdown-alert-note { border-left-color: #0969da; } " +
+      ".markdown-alert-tip { border-left-color: #1a7f37; } " +
+      ".markdown-alert-important { border-left-color: #8250df; } " +
+      ".markdown-alert-warning { border-left-color: #9a6700; } " +
+      ".markdown-alert-caution { border-left-color: #cf222e; } " +
+      ".markdown-alert-title { font-weight: 600; margin: 0 0 4px 0; } " +
       "table { border-collapse: collapse; width: 100%; margin: 16px 0; } " +
       "th, td { border: 1px solid " + border + "; padding: 8px 12px; text-align: left; } " +
       "img { max-width: 100%; height: auto; } " +
+      ".footnotes { font-size: 12px; border-top: 1px solid " + border + "; padding-top: 14px; color: #888; margin-top: 24px; } " +
+      ".katex-display-math { text-align: center; margin: 16px 0; font-family: 'KaTeX_Math', 'Cambria Math', 'Times New Roman', serif; font-size: 1.15em; } " +
+      ".katex-inline-math { font-family: 'KaTeX_Math', 'Cambria Math', 'Times New Roman', serif; font-size: 1.05em; } " +
       "</style></head><body>" + (bodyHtml || "<p style=\"color:#888;font-style:italic;\">Preview is empty</p>") + "</body></html>";
   }
 
   function renderMain(panel, ctx) {
     panel.innerHTML = "";
 
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Interactive Markdown editor with live preview, syntax formatting, and export to HTML and PDF."
-    });
+    var activeFlavor = window.FOSS.store.get("markdown_flavor", "github");
 
     var errorBanner = window.FOSS.dom.el("div", {
       className: "banner danger hidden",
@@ -40,17 +63,10 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
     ]);
 
-    var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
-      "data-testid": "markdown-status",
-      text: "Ready"
-    });
-
     function showError(msg) {
       var span = errorBanner.querySelector(".banner-msg");
       if (span) span.textContent = msg;
       errorBanner.classList.remove("hidden");
-      statusBar.textContent = "Error: " + msg;
     }
 
     function clearError() {
@@ -62,21 +78,35 @@ window.FOSS = window.FOSS || {};
       "data-testid": "markdown-result-host"
     });
 
+    var statsBadge = window.FOSS.dom.el("span", {
+      className: "badge badge-neutral",
+      "data-testid": "markdown-stats",
+      text: "0 words / 0 lines"
+    });
+
     var editor = window.FOSS.components.codeEditor({
       testid: "markdown-editor",
-      title: "Markdown Source",
-      placeholder: "type or paste markdown here",
+      placeholder: "Type or paste Markdown here...",
       ariaLabel: "Markdown source editor",
+      fillHeight: true,
       onChange: function () {
+        updateStats();
         schedulePreview();
       }
     });
 
+    function updateStats() {
+      var txt = editor.getValue();
+      var lines = txt ? txt.split("\n").length : 0;
+      var words = txt.trim() ? txt.trim().split(/\s+/).length : 0;
+      statsBadge.textContent = words + " words / " + lines + " lines";
+    }
+
     var previewIframe = window.FOSS.dom.el("iframe", {
-      className: "markdown-preview-frame",
+      className: "markdown-preview-frame grow",
       "data-testid": "markdown-preview-frame",
       sandbox: "allow-same-origin allow-scripts",
-      title: "Markdown preview"
+      title: "Markdown live preview"
     });
 
     var previewTimer = null;
@@ -84,340 +114,512 @@ window.FOSS = window.FOSS || {};
       clearTimeout(previewTimer);
       previewTimer = setTimeout(function () {
         updatePreview();
-      }, 150);
+      }, 120);
     }
 
     function updatePreview() {
       var mdText = editor.getValue();
       if (!mdText.trim()) {
         previewIframe.srcdoc = calcPreviewDoc("");
-        statusBar.textContent = "Preview ready";
         return;
       }
-      window.FOSS.api("markdown_to_html", { markdown: mdText }).then(function (res) {
+      window.FOSS.api("markdown_to_html", { markdown: mdText, flavor: activeFlavor }).then(function (res) {
         if (res && res.html !== undefined) {
           previewIframe.srcdoc = calcPreviewDoc(res.html);
-          statusBar.textContent = "Preview updated";
         }
-      }).catch(function (err) {
-        showError(err && err.message ? err.message : String(err));
       });
     }
 
-    function wrapSelection(prefix, suffix, defaultPlaceholder) {
-      var el = editor.textarea;
-      var start = el.selectionStart;
-      var end = el.selectionEnd;
-      var val = el.value;
-      var sel = val.substring(start, end);
-      var insertVal = sel ? sel : defaultPlaceholder;
-      var replacement = prefix + insertVal + suffix;
-      el.value = val.substring(0, start) + replacement + val.substring(end);
-      el.selectionStart = start + prefix.length;
-      el.selectionEnd = start + prefix.length + insertVal.length;
-      el.focus();
-      schedulePreview();
+    if (window.FOSS.store && window.FOSS.store.subscribe) {
+      window.FOSS.store.subscribe("theme", function () {
+        updatePreview();
+      });
     }
 
-    function prefixLine(prefix, defaultText) {
-      var el = editor.textarea;
-      var start = el.selectionStart;
-      var val = el.value;
-      if (!val) {
-        el.value = prefix + defaultText + "\n";
-        el.selectionStart = el.selectionEnd = el.value.length;
-        el.focus();
-        schedulePreview();
-        return;
-      }
-      var lineStart = val.lastIndexOf("\n", start - 1);
-      lineStart = lineStart === -1 ? 0 : lineStart + 1;
-      el.value = val.substring(0, lineStart) + prefix + val.substring(lineStart);
-      el.selectionStart = el.selectionEnd = start + prefix.length;
-      el.focus();
-      schedulePreview();
-    }
-
-    function insertBlock(snippet) {
-      var el = editor.textarea;
-      var start = el.selectionStart;
-      var val = el.value;
-      var before = val.substring(0, start);
-      var after = val.substring(start);
-      var needsNlBefore = before.length > 0 && !before.endsWith("\n");
-      var textToInsert = (needsNlBefore ? "\n\n" : "") + snippet + "\n\n";
-      el.value = before + textToInsert + after;
-      el.selectionStart = el.selectionEnd = start + textToInsert.length;
-      el.focus();
-      schedulePreview();
-    }
-
-    function makeToolbarBtn(testid, title, label, onClick) {
-      return window.FOSS.dom.el("button", {
-        className: "btn btn-secondary btn-sm",
-        "data-testid": testid,
-        "aria-label": title,
-        title: title,
-        type: "button",
-        onClick: onClick
-      }, [
-        window.FOSS.dom.el("span", { text: label })
-      ]);
-    }
-
-    var toolbarRow = window.FOSS.dom.el("div", {
-      className: "markdown-toolbar row scroll-x",
-      gap: "xs"
-    }, [
-      makeToolbarBtn("markdown-bold", "Bold", "Bold", function () {
-        wrapSelection("**", "**", "bold text");
-      }),
-      makeToolbarBtn("markdown-italic", "Italic", "Italic", function () {
-        wrapSelection("*", "*", "italic text");
-      }),
-      makeToolbarBtn("markdown-heading", "Heading", "Heading", function () {
-        prefixLine("### ", "Heading");
-      }),
-      makeToolbarBtn("markdown-list", "Bullet List", "List", function () {
-        prefixLine("- ", "List item");
-      }),
-      makeToolbarBtn("markdown-numlist", "Numbered List", "1. List", function () {
-        prefixLine("1. ", "List item");
-      }),
-      makeToolbarBtn("markdown-link", "Insert Link", "Link", function () {
-        wrapSelection("[", "](https://example.com)", "link text");
-      }),
-      makeToolbarBtn("markdown-code", "Inline Code", "Code", function () {
-        wrapSelection("`", "`", "code");
-      }),
-      makeToolbarBtn("markdown-quote", "Blockquote", "Quote", function () {
-        prefixLine("> ", "Blockquote");
-      }),
-      makeToolbarBtn("markdown-table", "Insert Table", "Table", function () {
-        insertBlock("| Column 1 | Column 2 |\n| :--- | :--- |\n| Item 1 | Item 2 |");
-      }),
-      makeToolbarBtn("markdown-hr", "Horizontal Rule", "HR", function () {
-        insertBlock("---");
-      })
-    ]);
-
+    // Top action bar
     var openBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "markdown-open",
-      "aria-label": "Open Markdown file",
-      title: "Open Markdown file",
-      type: "button",
+      title: "Open Markdown File",
       onClick: function () {
-        window.FOSS.api("select_file", {}).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          var filePath = res.paths[0];
-          window.FOSS.api("read_text_file", { file_path: filePath }).then(function (readRes) {
-            editor.setValue(readRes.content || "");
-            schedulePreview();
-            clearError();
-            statusBar.textContent = "[OK] Loaded " + filePath;
-          }).catch(function (err) {
-            showError("Failed to read file: " + (err && err.message ? err.message : String(err)));
-          });
+        window.FOSS.api("select_file", { file_types: ["Markdown Files (*.md;*.markdown;*.txt)", "All Files (*.*)"] }).then(function (res) {
+          if (res && res.path) {
+            window.FOSS.api("read_text_file", { path: res.path }).then(function (readRes) {
+              if (readRes && readRes.content !== undefined) {
+                editor.setValue(readRes.content);
+                updateStats();
+                updatePreview();
+              }
+            });
+          }
         });
       }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Open" })
-    ]);
+    }, [window.FOSS.icons.el("folder", 16), window.FOSS.dom.el("span", { text: "Open" })]);
 
     var saveBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "markdown-save",
-      "aria-label": "Save Markdown file",
-      title: "Save Markdown file",
-      type: "button",
+      title: "Save Markdown File (Ctrl+S)",
       onClick: function () {
-        var content = editor.getValue();
-        window.FOSS.api("select_save_path", { default_name: "document.md" }).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          var savePath = res.paths[0];
-          window.FOSS.api("write_text_file", { file_path: savePath, content: content }).then(function () {
-            clearError();
-            statusBar.textContent = "[OK] Saved to " + savePath;
-          }).catch(function (err) {
-            showError("Failed to save: " + (err && err.message ? err.message : String(err)));
-          });
+        saveMarkdownFile();
+      }
+    }, [window.FOSS.icons.el("save", 16), window.FOSS.dom.el("span", { text: "Save .md" })]);
+
+    function saveMarkdownFile() {
+      var text = editor.getValue();
+      window.FOSS.api("select_save_path", {
+        title: "Save Markdown Document",
+        default_name: "document.md",
+        file_types: [{ name: "Markdown Files", extensions: ["md"] }]
+      }).then(function (res) {
+        var chosenPath = (res && (res.path || res.file_path || res.output_path)) || "";
+        if (!chosenPath) return;
+        if (!chosenPath.toLowerCase().endsWith(".md")) {
+          chosenPath = chosenPath + ".md";
+        }
+        window.FOSS.api("write_text_file", { path: chosenPath, content: text }).then(function (wRes) {
+          if (wRes && wRes.ok) {
+            window.FOSS.toast.show("Saved to " + chosenPath, "success");
+          }
         });
-      }
-    }, [
-      window.FOSS.icons.el("file", 16),
-      window.FOSS.dom.el("span", { text: "Save" })
-    ]);
-
-    var clearBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-ghost btn-sm",
-      "data-testid": "markdown-clear",
-      "aria-label": "Clear editor content",
-      title: "Clear editor content",
-      type: "button",
-      onClick: function () {
-        editor.setValue("");
-        updatePreview();
-        clearError();
-        statusBar.textContent = "Editor cleared";
-      }
-    }, [
-      window.FOSS.icons.el("trash", 16),
-      window.FOSS.dom.el("span", { text: "Clear" })
-    ]);
-
-    var editorFooter = window.FOSS.dom.el("div", {
-      className: "row",
-      gap: "sm"
-    }, [openBtn, saveBtn, clearBtn]);
-
-    var editorCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm",
-      "data-testid": "markdown-card-editor"
-    }, [
-      window.FOSS.dom.el("h3", { className: "card-title", text: "Markdown Source" }),
-      toolbarRow,
-      editor.el,
-      editorFooter
-    ]);
-
-    function showResult(path, titleText) {
-      resultHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({
-        testid: "markdown-result",
-        title: titleText,
-        outputPath: path
       });
-      resultHost.appendChild(card);
-      resultHost.classList.remove("hidden");
+    }
+
+    var flavorSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-dense": "true",
+      "data-testid": "markdown-flavor-select",
+      "aria-label": "Select Markdown flavor parser",
+      onChange: function (e) {
+        activeFlavor = e.target.value;
+        window.FOSS.store.set("markdown_flavor", activeFlavor);
+        updatePreview();
+      }
+    }, [
+      window.FOSS.dom.el("option", { value: "github", text: "GitHub Flavored Markdown (Default)", selected: activeFlavor === "github" || activeFlavor === "gfm" }),
+      window.FOSS.dom.el("option", { value: "gfm", text: "GFM", style: "display: none;" }),
+      window.FOSS.dom.el("option", { value: "commonmark", text: "CommonMark", selected: activeFlavor === "commonmark" }),
+      window.FOSS.dom.el("option", { value: "strict", text: "Strict Standard Markdown", selected: activeFlavor === "strict" })
+    ]);
+
+    function exportHtml() {
+      clearError();
+      var mdText = editor.getValue();
+      if (!mdText.trim()) {
+        showError("Cannot export empty document");
+        return;
+      }
+      window.FOSS.api("select_save_path", {
+        title: "Export HTML Document",
+        default_name: "document.html",
+        file_types: [{ name: "HTML Documents", extensions: ["html"] }]
+      }).then(function (dlg) {
+        var chosenPath = (dlg && (dlg.path || dlg.file_path || dlg.output_path)) || "";
+        if (!chosenPath) return;
+        if (!chosenPath.toLowerCase().endsWith(".html")) {
+          chosenPath = chosenPath + ".html";
+        }
+        window.FOSS.api("markdown_export_html", { markdown: mdText, output_path: chosenPath, flavor: activeFlavor }).then(function (res) {
+          if (res && res.output_path) {
+            renderExportSuccess(res.output_path);
+          }
+        });
+      });
     }
 
     var exportHtmlBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "markdown-export-html-btn",
+      onClick: exportHtml
+    }, [window.FOSS.icons.el("external", 16), window.FOSS.dom.el("span", { text: "Export HTML" })]);
+
+    var exportHtmlCompactBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
       "data-testid": "markdown-export-html",
-      "aria-label": "Export to HTML",
-      title: "Export to HTML",
-      type: "button",
-      onClick: function () {
-        var content = editor.getValue();
-        if (!content.trim()) {
-          showError("Cannot export empty Markdown document.");
-          return;
-        }
-        window.FOSS.api("select_save_path", { default_name: "document.html" }).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          var savePath = res.paths[0];
-          window.FOSS.api("markdown_export_html", { markdown: content, output_path: savePath }).then(function () {
-            clearError();
-            showResult(savePath, "HTML Document Exported");
-            statusBar.textContent = "[OK] Exported HTML to " + savePath;
-          }).catch(function (err) {
-            showError("HTML export failed: " + (err && err.message ? err.message : String(err)));
-          });
-        });
-      }
-    }, [
-      window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "Export HTML" })
-    ]);
+      onClick: exportHtml
+    }, [window.FOSS.icons.el("external", 16), window.FOSS.dom.el("span", { text: "HTML" })]);
 
     var exportPdfBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
+      className: "btn btn-primary btn-sm",
       "data-testid": "markdown-export-pdf",
-      "aria-label": "Export to PDF",
-      title: "Export to PDF",
-      type: "button",
       onClick: function () {
-        var content = editor.getValue();
-        if (!content.trim()) {
-          showError("Cannot export empty Markdown document.");
+        clearError();
+        var mdText = editor.getValue();
+        if (!mdText.trim()) {
+          showError("Cannot export empty document");
           return;
         }
-        window.FOSS.api("select_save_path", { default_name: "document.pdf" }).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          var savePath = res.paths[0];
-          window.FOSS.api("markdown_export_pdf", { markdown: content, output_path: savePath }).then(function () {
-            clearError();
-            showResult(savePath, "PDF Document Exported");
-            statusBar.textContent = "[OK] Exported PDF to " + savePath;
-          }).catch(function (err) {
-            showError("PDF export failed: " + (err && err.message ? err.message : String(err)));
+        window.FOSS.api("select_save_path", {
+          title: "Export PDF Document",
+          default_name: "document.pdf",
+          file_types: [{ name: "PDF Documents", extensions: ["pdf"] }]
+        }).then(function (dlg) {
+          var chosenPath = (dlg && (dlg.path || dlg.file_path || dlg.output_path)) || "";
+          if (!chosenPath) return;
+          if (!chosenPath.toLowerCase().endsWith(".pdf")) {
+            chosenPath = chosenPath + ".pdf";
+          }
+          window.FOSS.api("markdown_export_pdf", { markdown: mdText, output_path: chosenPath, flavor: activeFlavor }).then(function (res) {
+            if (res && res.output_path) {
+              renderExportSuccess(res.output_path);
+            }
           });
         });
       }
-    }, [
-      window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "Export PDF" })
+    }, [window.FOSS.icons.el("download", 16), window.FOSS.dom.el("span", { text: "Export PDF" })]);
+
+    function renderExportSuccess(filePath) {
+      resultHost.innerHTML = "";
+      resultHost.classList.remove("hidden");
+      var card = window.FOSS.components.resultCard({
+        testid: "markdown-result",
+        title: "Export Complete",
+        message: "Saved: " + filePath,
+        outputPath: filePath
+      });
+      resultHost.appendChild(card);
+    }
+
+    var topBar = window.FOSS.dom.el("div", { className: "row-between" }, [
+      window.FOSS.dom.el("div", { className: "row gap-2" }, [
+        openBtn,
+        saveBtn,
+        window.FOSS.dom.el("label", { className: "row gap-1 text-xs text-muted" }, [
+          window.FOSS.dom.el("span", { text: "Parser:" }),
+          flavorSelect
+        ])
+      ]),
+      window.FOSS.dom.el("div", { className: "row gap-2" }, [
+        statsBadge,
+        exportHtmlBtn,
+        exportHtmlCompactBtn,
+        exportPdfBtn
+      ])
     ]);
 
-    var previewHeader = window.FOSS.dom.el("div", {
-      className: "row",
-      style: "justify-content: space-between; align-items: center;"
-    }, [
-      window.FOSS.dom.el("h3", { className: "card-title", text: "Preview" }),
-      window.FOSS.dom.el("div", { className: "row", gap: "xs" }, [exportHtmlBtn, exportPdfBtn])
-    ]);
+    // Formatting Toolbar Helpers
+    function insertSnippet(type, params) {
+      clearError();
+      var ta = editor.textarea;
+      var selStart = ta.selectionStart;
+      var selEnd = ta.selectionEnd;
+      var selText = ta.value.substring(selStart, selEnd);
 
-    var previewCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm",
-      "data-testid": "markdown-card-preview"
-    }, [
-      previewHeader,
-      previewIframe
-    ]);
+      var p = Object.assign({}, params || {}, { snippet_type: type, text: selText });
+      window.FOSS.api("markdown_format_snippet", p).then(function (res) {
+        if (res && res.snippet !== undefined) {
+          var before = ta.value.substring(0, selStart);
+          var after = ta.value.substring(selEnd);
+          ta.value = before + res.snippet + after;
+          ta.selectionStart = ta.selectionEnd = selStart + res.snippet.length;
+          ta.focus();
+          updateStats();
+          schedulePreview();
+        }
+      });
+    }
 
-    var viewModeSegmented = window.FOSS.components.segmented({
-      testid: "markdown-view-toggle",
-      items: [
-        { id: "both", label: "Side-by-side" },
-        { id: "edit", label: "Editor" },
-        { id: "preview", label: "Preview" }
-      ],
-      value: "both",
-      onChange: function (val) {
-        if (val === "both") {
-          editorCard.classList.remove("hidden");
-          previewCard.classList.remove("hidden");
-        } else if (val === "edit") {
-          editorCard.classList.remove("hidden");
-          previewCard.classList.add("hidden");
-        } else if (val === "preview") {
-          editorCard.classList.add("hidden");
-          previewCard.classList.remove("hidden");
+    function indentSelection(spaces) {
+      var ta = editor.textarea;
+      var selStart = ta.selectionStart;
+      var selEnd = ta.selectionEnd;
+      var val = ta.value;
+
+      var lineStart = val.lastIndexOf("\n", selStart - 1) + 1;
+      var lineEnd = val.indexOf("\n", selEnd);
+      if (lineEnd === -1) lineEnd = val.length;
+
+      var targetLines = val.substring(lineStart, lineEnd).split("\n");
+      var modified;
+      if (spaces > 0) {
+        var pad = "  ";
+        modified = targetLines.map(function (l) { return l.length > 0 ? pad + l : l; }).join("\n");
+      } else {
+        modified = targetLines.map(function (l) {
+          if (l.startsWith("  ")) return l.substring(2);
+          if (l.startsWith(" ")) return l.substring(1);
+          return l;
+        }).join("\n");
+      }
+      ta.value = val.substring(0, lineStart) + modified + val.substring(lineEnd);
+      ta.selectionStart = lineStart;
+      ta.selectionEnd = lineStart + modified.length;
+      updateStats();
+      schedulePreview();
+    }
+
+    // Keyboard Shortcuts & Smart List Continuation on textarea
+    editor.textarea.addEventListener("keydown", function (e) {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        indentSelection(e.shiftKey ? -2 : 2);
+      } else if (e.key === "Enter") {
+        var ta = editor.textarea;
+        var pos = ta.selectionStart;
+        var val = ta.value;
+        var lineStart = val.lastIndexOf("\n", pos - 1) + 1;
+        var currentLine = val.substring(lineStart, pos);
+
+        var listMatch = currentLine.match(/^(\s*)([-*+]|\d+\.)\s+(\[[ xX]\]\s+)?(.*)$/);
+        if (listMatch) {
+          e.preventDefault();
+          var indent = listMatch[1];
+          var marker = listMatch[2];
+          var task = listMatch[3];
+          var content = listMatch[4];
+
+          if (!content.trim()) {
+            // Exit list item if empty
+            var cleared = indent.length >= 2 ? indent.substring(2) : "";
+            ta.value = val.substring(0, lineStart) + cleared + val.substring(pos);
+            ta.selectionStart = ta.selectionEnd = lineStart + cleared.length;
+          } else {
+            var nextMarker;
+            if (/^\d+\./.test(marker)) {
+              var num = parseInt(marker, 10);
+              nextMarker = (num + 1) + ".";
+            } else {
+              nextMarker = marker;
+            }
+            var nextTask = task ? "[ ] " : "";
+            var insertStr = "\n" + indent + nextMarker + " " + nextTask;
+            ta.value = val.substring(0, pos) + insertStr + val.substring(pos);
+            ta.selectionStart = ta.selectionEnd = pos + insertStr.length;
+          }
+          updateStats();
+          schedulePreview();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && !e.altKey) {
+        if (e.key === "b" || e.key === "B") {
+          e.preventDefault();
+          insertSnippet("wrap", { marker: "**", placeholder: "bold text" });
+        } else if (e.key === "i" || e.key === "I") {
+          e.preventDefault();
+          insertSnippet("wrap", { marker: "*", placeholder: "italic text" });
+        } else if (e.key === "k" || e.key === "K") {
+          e.preventDefault();
+          insertSnippet("link", { label: "link text" });
+        } else if (e.key === "s" || e.key === "S") {
+          e.preventDefault();
+          saveMarkdownFile();
         }
       }
     });
 
-    var topRow = window.FOSS.dom.el("div", {
-      className: "row",
-      style: "justify-content: space-between; align-items: center;"
+    // Toolbar Buttons
+    var toolbar = window.FOSS.dom.el("div", {
+      className: "markdown-toolbar row gap-1",
+      "data-testid": "markdown-toolbar"
     }, [
-      statusBar,
-      viewModeSegmented.el
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-h1",
+        title: "Heading 1",
+        onClick: function () { insertSnippet("heading", { level: 1 }); }
+      }, [window.FOSS.dom.el("strong", { text: "H1" })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-h2",
+        title: "Heading 2",
+        onClick: function () { insertSnippet("heading", { level: 2 }); }
+      }, [window.FOSS.dom.el("strong", { text: "H2" })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-heading",
+        title: "Heading 3",
+        onClick: function () { insertSnippet("heading", { level: 3 }); }
+      }, [window.FOSS.dom.el("strong", { text: "H3" })]),
+
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-bold",
+        title: "Bold (Ctrl+B)",
+        onClick: function () { insertSnippet("wrap", { marker: "**", placeholder: "bold text" }); }
+      }, [window.FOSS.dom.el("strong", { text: "B" })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-italic",
+        title: "Italic (Ctrl+I)",
+        onClick: function () { insertSnippet("wrap", { marker: "*", placeholder: "italic text" }); }
+      }, [window.FOSS.dom.el("em", { text: "I" })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-strike",
+        title: "Strikethrough",
+        onClick: function () { insertSnippet("wrap", { marker: "~~", placeholder: "strikethrough text" }); }
+      }, [window.FOSS.dom.el("s", { text: "S" })]),
+
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-list",
+        title: "Bullet List",
+        onClick: function () { insertSnippet("list_item", { ordered: false }); }
+      }, [window.FOSS.icons.el("file-text", 16), window.FOSS.dom.el("span", { text: "Bullet" })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-numlist",
+        title: "Numbered List",
+        onClick: function () { insertSnippet("list_item", { ordered: true }); }
+      }, [window.FOSS.icons.el("file-text", 16), window.FOSS.dom.el("span", { text: "1. 2." })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-tasklist",
+        title: "Task Checkbox",
+        onClick: function () {
+          var ta = editor.textarea;
+          var pos = ta.selectionStart;
+          var ins = "- [ ] ";
+          ta.value = ta.value.substring(0, pos) + ins + ta.value.substring(pos);
+          ta.selectionStart = ta.selectionEnd = pos + ins.length;
+          ta.focus();
+          updateStats();
+          schedulePreview();
+        }
+      }, [window.FOSS.icons.el("check-square", 16), window.FOSS.dom.el("span", { text: "Task" })]),
+
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-indent",
+        title: "Indent (Tab)",
+        onClick: function () { indentSelection(2); }
+      }, [window.FOSS.icons.el("indent", 16)]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-outdent",
+        title: "Outdent (Shift+Tab)",
+        onClick: function () { indentSelection(-2); }
+      }, [window.FOSS.icons.el("outdent", 16)]),
+
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-quote",
+        title: "Quote Block",
+        onClick: function () { insertSnippet("blockquote", {}); }
+      }, [window.FOSS.dom.el("span", { text: "Quote" })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-callout",
+        title: "GFM Note Alert",
+        onClick: function () {
+          var ta = editor.textarea;
+          var pos = ta.selectionStart;
+          var ins = "> [!NOTE]\n> Important details here.\n\n";
+          ta.value = ta.value.substring(0, pos) + ins + ta.value.substring(pos);
+          ta.selectionStart = ta.selectionEnd = pos + ins.length;
+          ta.focus();
+          updateStats();
+          schedulePreview();
+        }
+      }, [window.FOSS.icons.el("info", 16), window.FOSS.dom.el("span", { text: "Callout" })]),
+
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-code",
+        title: "Inline Code",
+        onClick: function () { insertSnippet("wrap", { marker: "`", placeholder: "code" }); }
+      }, [window.FOSS.dom.el("code", { text: "<>" })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-codeblock",
+        title: "Code Block",
+        onClick: function () { insertSnippet("code_block", { language: "python" }); }
+      }, [window.FOSS.icons.el("code", 16), window.FOSS.dom.el("span", { text: "Block" })]),
+
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-table",
+        title: "Insert Table",
+        onClick: function () { insertSnippet("markdown_table", { rows: 2, cols: 3 }); }
+      }, [window.FOSS.icons.el("columns", 16), window.FOSS.dom.el("span", { text: "Table" })]),
+
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-link",
+        title: "Link (Ctrl+K)",
+        onClick: function () { insertSnippet("link", { label: "link text" }); }
+      }, [window.FOSS.icons.el("external", 16), window.FOSS.dom.el("span", { text: "Link" })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-image",
+        title: "Image",
+        onClick: function () { insertSnippet("image", { alt: "image description" }); }
+      }, [window.FOSS.icons.el("image", 16), window.FOSS.dom.el("span", { text: "Image" })]),
+
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-footnote",
+        title: "Footnote",
+        onClick: function () {
+          var ta = editor.textarea;
+          var pos = ta.selectionStart;
+          var ins = "[^1]\n\n[^1]: Footnote details here.\n";
+          ta.value = ta.value.substring(0, pos) + ins + ta.value.substring(pos);
+          ta.selectionStart = ta.selectionEnd = pos + ins.length;
+          ta.focus();
+          updateStats();
+          schedulePreview();
+        }
+      }, [window.FOSS.dom.el("span", { text: "[^1]" })]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-testid": "markdown-hr",
+        title: "Horizontal Rule",
+        onClick: function () { insertSnippet("horizontal_rule", {}); }
+      }, [window.FOSS.dom.el("span", { text: "---" })])
+    ]);
+
+    // Resizable Split Panes
+    var editorCard = window.FOSS.dom.el("div", {
+      className: "card stack-sm grow code-editor-fill",
+      "data-testid": "markdown-card-editor"
+    }, [
+      toolbar,
+      editor.el
+    ]);
+
+    var previewCard = window.FOSS.dom.el("div", {
+      className: "card stack-sm grow code-editor-fill",
+      "data-testid": "markdown-preview"
+    }, [
+      window.FOSS.dom.el("div", { className: "row-between" }, [
+        window.FOSS.dom.el("h3", { className: "card-title", text: "Live Preview" }),
+        window.FOSS.dom.el("span", { className: "badge badge-neutral text-xs", text: "Auto-synced" })
+      ]),
+      previewIframe
     ]);
 
     var splitArea = window.FOSS.dom.el("div", {
-      className: "split even",
+      className: "split resizable even markdown-workbench-split",
       "data-testid": "markdown-split"
     }, [
       editorCard,
+      window.FOSS.components.splitDivider({ targetSplit: null, testid: "markdown-split-divider" }),
       previewCard
     ]);
 
     panel.appendChild(window.FOSS.dom.el("div", {
-      className: "stack",
-      gap: "md"
+      className: "stack grow",
+      style: "height: 100%; min-height: 0;"
     }, [
-      desc,
-      topRow,
+      topBar,
       errorBanner,
       resultHost,
       splitArea
     ]));
 
+    // Wire onFiles support
+    ctx.state = ctx.state || {};
+    ctx.state.loadFile = function (filePath) {
+      window.FOSS.api("read_text_file", { path: filePath }).then(function (readRes) {
+        if (readRes && readRes.content !== undefined) {
+          editor.setValue(readRes.content);
+          updateStats();
+          updatePreview();
+        }
+      });
+    };
+
+    updateStats();
     updatePreview();
   }
 
@@ -427,9 +629,15 @@ window.FOSS = window.FOSS || {};
     navName: "Markdown",
     category: "Documents",
     icon: "file",
-    workbench: false,
+    workbench: true,
+    description: "Side-by-side Markdown editor and live renderer with GitHub GFM, CommonMark, and HTML/PDF export.",
     tabs: [
       { id: "main", label: "Markdown Studio", render: renderMain }
-    ]
+    ],
+    onFiles: function (paths, ctx) {
+      if (paths && paths.length > 0 && ctx.state && ctx.state.loadFile) {
+        ctx.state.loadFile(paths[0]);
+      }
+    }
   });
 })();

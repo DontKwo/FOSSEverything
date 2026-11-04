@@ -1,3 +1,4 @@
+import re
 from typing import Any
 
 from app.features.text_tools.ops import (
@@ -25,6 +26,7 @@ from app.features.text_tools.ops import (
     to_constant_case,
     to_kebab_case,
     to_lowercase,
+    to_pascal_case,
     to_sentence_case,
     to_snake_case,
     to_title_case,
@@ -58,6 +60,8 @@ class TextToolsApiMixin:
             res = to_kebab_case(text)
         elif mode in ("constant", "constantcase"):
             res = to_constant_case(text)
+        elif mode in ("pascal", "pascalcase"):
+            res = to_pascal_case(text)
         else:
             return fail(f"Unsupported case mode: {mode}", code="InvalidMode")
         return ok(result=res)
@@ -78,7 +82,7 @@ class TextToolsApiMixin:
             res = sort_lines(text, reverse=False)
         elif op == "sort_desc":
             res = sort_lines(text, reverse=True)
-        elif op == "reverse":
+        elif op in ("reverse", "reverse_lines"):
             res = reverse_lines(text)
         elif op == "dedupe":
             res = dedupe_lines(text)
@@ -160,14 +164,21 @@ class TextToolsApiMixin:
     def text_tools_regex_replace(self, params: dict[str, Any]) -> dict[str, Any]:
         # Perform regular expression search and replace.
         require(params, "text", "pattern", "replacement")
-        res, count = regex_replace(
-            str(params["text"]),
-            str(params["pattern"]),
-            str(params["replacement"]),
-            ignore_case=bool(params.get("ignore_case", False)),
-            multiline=bool(params.get("multiline", False)),
-            dotall=bool(params.get("dotall", False)),
-        )
+        text = str(params["text"])
+        pattern = str(params["pattern"])
+        replacement = str(params["replacement"])
+        flags = 0
+        if params.get("ignore_case"):
+            flags |= re.IGNORECASE
+        if params.get("multiline"):
+            flags |= re.MULTILINE
+        if params.get("dotall"):
+            flags |= re.DOTALL
+        try:
+            compiled = re.compile(pattern, flags)
+            res, count = compiled.subn(replacement, text)
+        except re.error as exc:
+            return fail(f"Invalid regex pattern: {exc}", code="InvalidRegex")
         return ok(result=res, count=count)
 
     @api_method

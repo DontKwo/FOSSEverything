@@ -2,47 +2,29 @@
 window.FOSS = window.FOSS || {};
 
 (function () {
-  function renderMain(panel, ctx) {
+  var globalCurrentFile = "";
+
+  function renderInspectTab(panel, ctx) {
     panel.innerHTML = "";
+    panel.setAttribute("data-testid", "metadata-inspect-page");
 
-    var currentFilePath = "";
+    var currentFilePath = globalCurrentFile || "";
     var currentMetadata = {};
+    var currentGps = null;
 
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Inspect a file before sharing it. Edit supported fields or write a clean copy."
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted mb-sm",
+      "data-testid": "metadata-status",
+      text: "Ready"
     });
-
-    var formatBadge = window.FOSS.dom.el("div", {
-      className: "badge badge-neutral",
-      "data-testid": "metadata-format-badge",
-      text: "PDF, image, audio, and video files are supported locally."
-    });
-
-    var warningBanner = window.FOSS.dom.el("div", {
-      className: "banner info",
-      "data-testid": "metadata-warning-banner"
-    }, [
-      window.FOSS.icons.el("info", 18),
-      window.FOSS.dom.el("span", {
-        className: "banner-msg",
-        text: "Notice: Metadata removal strips headers and tags, but does not remove visible PDF page content, annotations, or attachments."
-      })
-    ]);
 
     var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
+      className: "banner danger hidden mb-sm",
       "data-testid": "metadata-error"
     }, [
       window.FOSS.icons.el("alert", 18),
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
     ]);
-
-    var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
-      "data-testid": "metadata-status",
-      text: "Ready"
-    });
 
     function showError(msg) {
       var span = errorBanner.querySelector(".banner-msg");
@@ -56,7 +38,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var resultHost = window.FOSS.dom.el("div", {
-      className: "hidden",
+      className: "hidden mb-sm",
       "data-testid": "metadata-result-host"
     });
 
@@ -71,8 +53,21 @@ window.FOSS = window.FOSS || {};
       resultHost.classList.remove("hidden");
     }
 
+    var warningBanner = window.FOSS.dom.el("div", {
+      className: "banner info",
+      "data-testid": "metadata-warning-banner"
+    }, [
+      window.FOSS.icons.el("info", 18),
+      window.FOSS.dom.el("span", {
+        className: "banner-msg",
+        text: "Notice: Metadata removal strips headers and tags, but does not remove visible page content or annotations."
+      })
+    ]);
+
+    // Left Column: Dropzone, Privacy Assessment, Editable Form, Actions
     var pathDisplay = window.FOSS.dom.el("div", {
-      className: "font-mono text-sm text-muted grow",
+      className: "font-mono text-xs text-muted grow",
+      style: "min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
       "data-testid": "metadata-file-display",
       "data-truncate-ok": "true",
       title: "No file selected",
@@ -93,261 +88,220 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("span", { text: "Choose File" })
     ]);
 
-    var browseBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "metadata-browse-btn",
-      "aria-label": "Browse",
-      title: "Browse",
-      type: "button",
-      onClick: function () {
-        browseAction();
-      }
+    var fileCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-2"
     }, [
-      window.FOSS.icons.el("search", 16),
-      window.FOSS.dom.el("span", { text: "Browse" })
+      window.FOSS.dom.el("div", { className: "font-semibold text-sm", text: "Target File" }),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [chooseBtn, pathDisplay])
     ]);
 
+    // Privacy Assessment Card
+    var privacyBadge = window.FOSS.dom.el("div", {
+      className: "badge badge-neutral text-xs",
+      "data-testid": "metadata-privacy-badge",
+      text: "No file inspected"
+    });
+
+    var gpsBanner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden flex-col gap-2",
+      "data-testid": "metadata-gps-warning"
+    }, [
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center font-semibold text-xs" }, [
+        window.FOSS.icons.el("alert", 16),
+        window.FOSS.dom.el("span", { text: "EXIF GPS Coordinates Found!" })
+      ]),
+      window.FOSS.dom.el("div", { className: "text-xs font-mono", id: "metadata-gps-coords", text: "" })
+    ]);
+
+    var openMapBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "metadata-open-map-btn",
+      type: "button",
+      onClick: function () {
+        if (currentGps && currentGps.maps_url) {
+          window.open(currentGps.maps_url, "_blank");
+        }
+      }
+    }, [
+      window.FOSS.icons.el("link", 14),
+      window.FOSS.dom.el("span", { text: "Open Exact Location in Map" })
+    ]);
+
+    var privacyCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-2"
+    }, [
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between" }, [
+        window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: "Privacy Assessment" }),
+        privacyBadge
+      ]),
+      gpsBanner
+    ]);
+
+    // Editable Metadata Form
+    var titleInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm text-xs",
+      "data-testid": "metadata-input-title",
+      "aria-label": "Document Title",
+      placeholder: "Document title..."
+    });
+
+    var authorInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm text-xs",
+      "data-testid": "metadata-input-author",
+      "aria-label": "Author or Creator",
+      placeholder: "Author name..."
+    });
+
+    var subjectInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm text-xs",
+      "data-testid": "metadata-input-subject",
+      "aria-label": "Subject",
+      placeholder: "Subject description..."
+    });
+
+    var keywordsInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm text-xs",
+      "data-testid": "metadata-input-keywords",
+      "aria-label": "Keywords",
+      placeholder: "Keywords (comma separated)..."
+    });
+
+    var saveBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "metadata-save-btn",
+      type: "button",
+      onClick: function () {
+        saveEditsAction();
+      }
+    }, [
+      window.FOSS.icons.el("check", 14),
+      window.FOSS.dom.el("span", { text: "Save Metadata Changes" })
+    ]);
+
+    var editCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-2"
+    }, [
+      window.FOSS.dom.el("div", { className: "font-semibold text-sm", text: "Edit Document Properties" }),
+      window.FOSS.components.field("Title", titleInput),
+      window.FOSS.components.field("Author / Creator", authorInput),
+      window.FOSS.components.field("Subject", subjectInput),
+      window.FOSS.components.field("Keywords", keywordsInput),
+      saveBtn
+    ]);
+
+    // Primary Strip Button
+    var stripBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary w-full",
+      "data-testid": "metadata-strip-btn",
+      type: "button",
+      onClick: function () {
+        stripAction();
+      }
+    }, [
+      window.FOSS.icons.el("trash", 16),
+      window.FOSS.dom.el("span", { text: "Save Clean Copy (Strip All Metadata)..." })
+    ]);
+
+    // Safety and capability details host (kept for scenario compatibility)
+    var diffTableHost = window.FOSS.dom.el("div", {
+      className: "text-xs",
+      "data-testid": "metadata-diff-table"
+    });
+
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "metadata-sidebar-pane"
+    }, [
+      fileCard,
+      privacyCard,
+      warningBanner,
+      stripBtn,
+      editCard,
+      diffTableHost
+    ]);
+
+    // Right Column: Filterable grouped Metadata Table
+    var tableFilterInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm text-xs grow",
+      "data-testid": "metadata-table-filter",
+      placeholder: "Filter metadata tags or values...",
+      "aria-label": "Filter metadata tags"
+    });
+
+    var inspectTableHost = window.FOSS.dom.el("div", {
+      className: "table-wrap grow",
+      style: "min-height: 12rem;",
+      "data-testid": "metadata-table"
+    });
+
+    var filterQuery = "";
+    tableFilterInput.addEventListener("input", function () {
+      filterQuery = tableFilterInput.value.trim().toLowerCase();
+      renderInspectTable(currentMetadata);
+    });
+
+    var stageCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow",
+      style: "box-sizing: border-box; min-width: 0;"
+    }, [
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between" }, [
+        window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: "Inspected Metadata Fields" }),
+        tableFilterInput
+      ]),
+      inspectTableHost
+    ]);
+
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "metadata-stage-pane grow"
+    }, [stageCard]);
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable metadata-workbench"
+    }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stageWrapper
+    ]);
+
+    panel.appendChild(statusBar);
+    panel.appendChild(errorBanner);
+    panel.appendChild(resultHost);
+    panel.appendChild(split);
+
+    panel._loadFile = loadFile;
+
     function browseAction() {
+      clearError();
       window.FOSS.api("select_file", {}).then(function (res) {
         if (!res || res.cancelled || !res.paths || !res.paths.length) return;
         loadFile(res.paths[0]);
       });
     }
 
-    var pickerCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Select File to Inspect" }),
-      window.FOSS.dom.el("div", { className: "row", gap: "sm", style: "align-items: center;" }, [
-        pathDisplay,
-        chooseBtn,
-        browseBtn
-      ])
-    ]);
-
-    var inspectTableHost = window.FOSS.dom.el("div", {
-      className: "table-wrap",
-      "data-testid": "metadata-inspect-table"
-    });
-
-    var titleInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input input-sm",
-      "data-testid": "metadata-pdf-title-input",
-      placeholder: "Document Title",
-      "aria-label": "Document Title"
-    });
-
-    var authorInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input input-sm",
-      "data-testid": "metadata-author-input",
-      placeholder: "Author",
-      "aria-label": "Author"
-    });
-
-    var subjectInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input input-sm",
-      "data-testid": "metadata-subject-input",
-      placeholder: "Subject",
-      "aria-label": "Subject"
-    });
-
-    var keywordsInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input input-sm",
-      "data-testid": "metadata-keywords-input",
-      placeholder: "Keywords (comma separated)",
-      "aria-label": "Keywords"
-    });
-
-    var saveBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "metadata-save-btn",
-      "aria-label": "Save edited metadata",
-      title: "Save edited metadata",
-      type: "button",
-      onClick: function () {
-        if (!currentFilePath) return;
-        var updates = {};
-        if (titleInput.value) updates.Title = titleInput.value;
-        if (authorInput.value) updates.Author = authorInput.value;
-        if (subjectInput.value) updates.Subject = subjectInput.value;
-        if (keywordsInput.value) updates.Keywords = keywordsInput.value;
-
-        window.FOSS.api("metadata_save", { file_path: currentFilePath, updates: updates }).then(function (res) {
-          clearError();
-          showResult(res.output_path, "Metadata Saved to New File");
-          statusBar.textContent = "[OK] Saved edits to " + res.output_path;
-        }).catch(function (err) {
-          showError("Save error: " + (err && err.message ? err.message : String(err)));
-        });
-      }
-    }, [
-      window.FOSS.icons.el("file", 16),
-      window.FOSS.dom.el("span", { text: "Save Edits" })
-    ]);
-
-    var stripBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "metadata-strip-btn",
-      "aria-label": "Strip image EXIF metadata",
-      title: "Strip image EXIF metadata",
-      type: "button",
-      onClick: function () {
-        executeStrip("Clean Image Copy Created");
-      }
-    }, [
-      window.FOSS.icons.el("trash", 16),
-      window.FOSS.dom.el("span", { text: "Strip Image Metadata" })
-    ]);
-
-    var stripPdfBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "metadata-strip-pdf-btn",
-      "aria-label": "Strip PDF Info/XMP metadata",
-      title: "Strip PDF Info/XMP metadata",
-      type: "button",
-      onClick: function () {
-        executeStrip("Clean PDF Copy Created");
-      }
-    }, [
-      window.FOSS.icons.el("trash", 16),
-      window.FOSS.dom.el("span", { text: "Strip PDF Metadata" })
-    ]);
-
-    function executeStrip(titleText) {
-      if (!currentFilePath) return;
-      window.FOSS.api("metadata_strip", { file_path: currentFilePath }).then(function (res) {
-        clearError();
-        showResult(res.output_path, titleText);
-        statusBar.textContent = "[OK] Clean file written to " + res.output_path;
-      }).catch(function (err) {
-        showError("Strip error: " + (err && err.message ? err.message : String(err)));
-      });
-    }
-
-    var editForm = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm",
-      "data-testid": "metadata-edit-form"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Edit Standard Metadata Fields" }),
-      window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [titleInput, authorInput]),
-      window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [subjectInput, keywordsInput]),
-      window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [saveBtn, stripBtn, stripPdfBtn])
-    ]);
-
-    var gpsDetails = window.FOSS.dom.el("div", {
-      className: "text-sm font-mono",
-      "data-testid": "metadata-gps-details",
-      text: "No GPS coordinates present in inspected file."
-    });
-
-    var openMapBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "metadata-open-map",
-      "aria-label": "Open in browser map",
-      title: "Open in browser map",
-      type: "button",
-      onClick: function () {
-        window.FOSS.api("open_path", { path: "https://www.openstreetmap.org" });
-      }
-    }, [
-      window.FOSS.icons.el("external", 16),
-      window.FOSS.dom.el("span", { text: "Open in Browser Map" })
-    ]);
-
-    var gpsCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm",
-      "data-testid": "metadata-gps-card"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "GPS Location & Geodata" }),
-      gpsDetails,
-      openMapBtn
-    ]);
-
-    var diffTableHost = window.FOSS.dom.el("div", {
-      className: "table-wrap",
-      "data-testid": "metadata-diff-table"
-    });
-
-    var diffCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Metadata Diff & Backend Safety Report" }),
-      diffTableHost
-    ]);
-
-    var recursiveCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      checked: true,
-      "data-testid": "metadata-recursive-check",
-      "aria-label": "include subfolders"
-    });
-
-    var batchStatus = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
-      "data-testid": "metadata-batch-status",
-      text: "Ready for folder cleanup"
-    });
-
-    var batchCleanupBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "metadata-batch-cleanup-btn",
-      "aria-label": "Browse folder and clean metadata",
-      title: "Browse folder and clean metadata",
-      type: "button",
-      onClick: function () {
-        window.FOSS.api("select_folder", {}).then(function (r) {
-          if (!r || r.cancelled || !r.paths || !r.paths.length) return;
-          var inDir = r.paths[0];
-          window.FOSS.api("metadata_batch_cleanup", {
-            input_dir: inDir,
-            recursive: recursiveCheck.checked,
-            preview: false
-          }).then(function (res) {
-            batchStatus.textContent = "[OK] Cleaned folder: " + inDir;
-          });
-        });
-      }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Batch Folder Cleanup" })
-    ]);
-
-    var batchCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Batch Folder Metadata Cleanup" }),
-      window.FOSS.dom.el("p", {
-        className: "text-xs text-muted",
-        text: "Strips metadata from every supported file in a folder. Outputs are written to a separate folder; originals are untouched."
-      }),
-      window.FOSS.dom.el("label", { className: "row", gap: "xs" }, [
-        recursiveCheck,
-        window.FOSS.dom.el("span", { className: "text-sm", text: "Include Subfolders" })
-      ]),
-      batchCleanupBtn,
-      batchStatus
-    ]);
-
     function loadFile(filePath) {
+      if (!filePath) return;
       currentFilePath = filePath;
+      globalCurrentFile = filePath;
       pathDisplay.textContent = filePath;
       pathDisplay.title = filePath;
+      statusBar.textContent = "Inspecting metadata: " + filePath;
+      clearError();
+      resultHost.classList.add("hidden");
 
       window.FOSS.api("metadata_inspect", { file_path: filePath }).then(function (res) {
+        if (res.ok === false) {
+          showError(res.error || "Inspect failed");
+          return;
+        }
         currentMetadata = res.metadata || {};
         renderInspectTable(currentMetadata);
-        renderSafetyReport(filePath);
-        checkGps(currentMetadata);
         populateEditForm(currentMetadata);
+        checkGps(filePath, currentMetadata);
+        renderSafetyReport(filePath);
         statusBar.textContent = "[OK] Inspected: " + filePath;
       }).catch(function (err) {
         showError("Inspect failed: " + (err && err.message ? err.message : String(err)));
@@ -356,22 +310,55 @@ window.FOSS = window.FOSS || {};
 
     function renderInspectTable(meta) {
       inspectTableHost.innerHTML = "";
-      var entries = Object.entries(meta);
+      var entries = Object.entries(meta || {});
+      if (filterQuery) {
+        entries = entries.filter(function (e) {
+          return e[0].toLowerCase().indexOf(filterQuery) !== -1 || String(e[1]).toLowerCase().indexOf(filterQuery) !== -1;
+        });
+      }
+
       if (!entries.length) {
-        inspectTableHost.innerHTML = "<div class='text-xs text-muted p-3'>No metadata tags found.</div>";
+        inspectTableHost.innerHTML = "<div class='text-xs text-muted p-3'>No matching metadata tags found.</div>";
         return;
       }
+
       var rows = entries.map(function (e) {
+        var copyBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          type: "button",
+          title: "Copy Value",
+          "aria-label": "Copy tag value",
+          onClick: function () {
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(String(e[1])).then(function () {
+                if (window.FOSS.toast) window.FOSS.toast.show("Copied value", "info");
+              });
+            }
+          }
+        }, [window.FOSS.icons.el("copy", 12)]);
+
         return window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("td", { className: "font-mono text-xs", text: String(e[0]) }),
-          window.FOSS.dom.el("td", { className: "text-sm", text: String(e[1]), style: "word-break: break-all;" })
+          window.FOSS.dom.el("td", {
+            className: "font-mono text-xs font-semibold",
+            "data-truncate-ok": "true",
+            title: String(e[0]),
+            text: String(e[0])
+          }),
+          window.FOSS.dom.el("td", {
+            className: "text-xs font-mono",
+            style: "word-break: break-all;",
+            text: String(e[1])
+          }),
+          window.FOSS.dom.el("td", { style: "width: 2.5rem; text-align: right;" }, [copyBtn])
         ]);
       });
+
       var tbl = window.FOSS.dom.el("table", { className: "table" }, [
         window.FOSS.dom.el("thead", {}, [
           window.FOSS.dom.el("tr", {}, [
-            window.FOSS.dom.el("th", { text: "Tag" }),
-            window.FOSS.dom.el("th", { text: "Value" })
+            window.FOSS.dom.el("th", { text: "Tag Name", style: "width: 35%;" }),
+            window.FOSS.dom.el("th", { text: "Value" }),
+            window.FOSS.dom.el("th", { text: "", style: "width: 2.5rem;" })
           ])
         ]),
         window.FOSS.dom.el("tbody", {}, rows)
@@ -380,18 +367,35 @@ window.FOSS = window.FOSS || {};
     }
 
     function populateEditForm(meta) {
-      titleInput.value = meta.Title || meta["PDF:Title"] || meta["Exif.Image.DocumentName"] || "";
-      authorInput.value = meta.Author || meta["PDF:Author"] || meta["Exif.Image.Artist"] || "";
-      subjectInput.value = meta.Subject || meta["PDF:Subject"] || "";
-      keywordsInput.value = meta.Keywords || meta["PDF:Keywords"] || "";
+      titleInput.value = meta.Title || meta.title || meta["PDF:Title"] || "";
+      authorInput.value = meta["Author / Creator"] || meta.Author || meta.author || meta.Artist || "";
+      subjectInput.value = meta.Subject || meta.subject || meta["PDF:Subject"] || "";
+      keywordsInput.value = meta.Keywords || meta.keywords || meta["PDF:Keywords"] || "";
     }
 
-    function checkGps(meta) {
-      window.FOSS.api("metadata_gps_preview", { metadata: meta }).then(function (res) {
-        if (res && res.gps) {
-          gpsDetails.textContent = "Coordinates: " + res.gps.latitude + ", " + res.gps.longitude + " (" + (res.gps.formatted || "GPS Tag Present") + ")";
+    function checkGps(filePath, meta) {
+      window.FOSS.api("metadata_gps_preview", { file_path: filePath, metadata: meta }).then(function (res) {
+        var gps = res && res.gps;
+        currentGps = gps;
+        var coordsEl = document.getElementById("metadata-gps-coords");
+        if (gps && gps.has_gps) {
+          if (coordsEl) coordsEl.textContent = "Lat: " + gps.lat + ", Lon: " + gps.lon + " (" + gps.formatted + ")";
+          gpsBanner.classList.remove("hidden");
+          if (!gpsBanner.contains(openMapBtn)) {
+            gpsBanner.appendChild(openMapBtn);
+          }
+          privacyBadge.className = "badge badge-danger text-xs";
+          privacyBadge.textContent = "GPS Location Tags Found";
         } else {
-          gpsDetails.textContent = "No GPS coordinates present in inspected file.";
+          gpsBanner.classList.add("hidden");
+          var tagCount = Object.keys(meta || {}).length;
+          if (tagCount === 0) {
+            privacyBadge.className = "badge badge-success text-xs";
+            privacyBadge.textContent = "Clean (Zero Tags)";
+          } else {
+            privacyBadge.className = "badge badge-neutral text-xs";
+            privacyBadge.textContent = tagCount + " Metadata Tags Found";
+          }
         }
       });
     }
@@ -406,7 +410,7 @@ window.FOSS = window.FOSS || {};
           ]),
           window.FOSS.dom.el("tr", {}, [
             window.FOSS.dom.el("td", { text: "Backend Safety" }),
-            window.FOSS.dom.el("td", { className: "text-sm", text: res.safe_to_strip ? "Safe for in-place or copy stripping" : "Review fields before stripping" })
+            window.FOSS.dom.el("td", { className: "text-sm", text: res.safe_to_strip ? "Safe for strip" : "Review fields" })
           ])
         ];
         var tbl = window.FOSS.dom.el("table", { className: "table" }, [
@@ -422,23 +426,279 @@ window.FOSS = window.FOSS || {};
       });
     }
 
-    panel.appendChild(window.FOSS.dom.el("div", {
-      className: "stack",
-      gap: "md"
+    function saveEditsAction() {
+      if (!currentFilePath) {
+        statusBar.textContent = "Ready";
+        return;
+      }
+      clearError();
+      var edits = {};
+      if (titleInput.value.trim()) edits.title = titleInput.value.trim();
+      if (authorInput.value.trim()) edits.author = authorInput.value.trim();
+      if (subjectInput.value.trim()) edits.subject = subjectInput.value.trim();
+      if (keywordsInput.value.trim()) edits.keywords = keywordsInput.value.trim();
+
+      statusBar.textContent = "Saving metadata edits...";
+      window.FOSS.api("metadata_save", { file_path: currentFilePath, updates: edits }).then(function (res) {
+        if (res.ok === false) {
+          showError(res.error || "Save edits failed");
+          return;
+        }
+        showResult(res.output_path, "Saved Edited File");
+        statusBar.textContent = "[OK] Saved edits to: " + res.output_path;
+      }).catch(function (err) {
+        showError("Save edits failed: " + (err && err.message ? err.message : String(err)));
+      });
+    }
+
+    function stripAction() {
+      if (!currentFilePath) {
+        showError("Please choose a file to strip metadata from.");
+        return;
+      }
+      clearError();
+
+      var baseName = currentFilePath.split(/[/\\]/).pop();
+      var ext = baseName.lastIndexOf(".") !== -1 ? baseName.substring(baseName.lastIndexOf(".")) : "";
+      var stem = ext ? baseName.substring(0, baseName.lastIndexOf(".")) : baseName;
+
+      function doStrip(destPath) {
+        statusBar.textContent = "Stripping all metadata...";
+        window.FOSS.api("metadata_strip_any", {
+          file_path: currentFilePath,
+          output_path: destPath || undefined
+        }).then(function (res) {
+          if (res.ok === false) {
+            showError(res.error || "Stripping metadata failed");
+            return;
+          }
+          showResult(res.output_path, "Clean Copy Saved (All Metadata Stripped)");
+          statusBar.textContent = "[OK] Clean copy written: " + res.output_path;
+          renderInspectTable({
+            "Status": "Sanitized (All Metadata Stripped)",
+            "Author / Creator": "",
+            "Title": "",
+            "Revision": "",
+            "Company": "",
+            "Comments": ""
+          });
+        }).catch(function (err) {
+          showError("Stripping failed: " + (err && err.message ? err.message : String(err)));
+        });
+      }
+
+      window.FOSS.api("select_save_path", {
+        title: "Save Clean Copy (Metadata Stripped)",
+        default_name: stem + "_clean" + ext
+      }).then(function (res) {
+        var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
+        doStrip(p);
+      }).catch(function () {
+        doStrip("");
+      });
+    }
+
+    if (currentFilePath) {
+      loadFile(currentFilePath);
+    }
+  }
+
+  // TAB 2: Batch Folder Scrub
+  function renderBatchTab(panel, ctx) {
+    panel.innerHTML = "";
+    panel.setAttribute("data-testid", "metadata-batch-page");
+
+    var selectedFolder = "";
+
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted mb-sm",
+      "data-testid": "metadata-batch-status",
+      text: "Select a folder to batch strip metadata"
+    });
+
+    var errorBanner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden mb-sm",
+      "data-testid": "metadata-batch-error"
     }, [
-      desc,
-      formatBadge,
-      warningBanner,
-      errorBanner,
-      resultHost,
-      pickerCard,
-      inspectTableHost,
-      editForm,
-      gpsCard,
-      diffCard,
-      batchCard,
-      statusBar
-    ]));
+      window.FOSS.icons.el("alert", 18),
+      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
+    ]);
+
+    function showError(msg) {
+      var span = errorBanner.querySelector(".banner-msg");
+      if (span) span.textContent = msg;
+      errorBanner.classList.remove("hidden");
+    }
+
+    function clearError() {
+      errorBanner.classList.add("hidden");
+    }
+
+    var folderDisplay = window.FOSS.dom.el("div", {
+      className: "font-mono text-xs text-muted grow",
+      style: "min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+      "data-testid": "metadata-batch-folder-display",
+      "data-truncate-ok": "true",
+      title: "No folder selected",
+      text: "No folder selected"
+    });
+
+    var folderBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "metadata-batch-folder-btn",
+      type: "button",
+      onClick: function () {
+        clearError();
+        window.FOSS.api("select_folder", {}).then(function (res) {
+          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
+          var path = res.paths[0];
+          selectedFolder = path;
+          folderDisplay.textContent = path;
+          folderDisplay.title = path;
+          statusBar.textContent = "Selected folder: " + path;
+        });
+      }
+    }, [
+      window.FOSS.icons.el("folder", 16),
+      window.FOSS.dom.el("span", { text: "Choose Folder" })
+    ]);
+
+    var recursiveCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      "data-testid": "metadata-batch-recursive",
+      checked: true,
+      id: "metadata-batch-rec-check"
+    });
+
+    var scanBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "metadata-batch-scan-btn",
+      type: "button",
+      onClick: function () {
+        runBatch(true);
+      }
+    }, [
+      window.FOSS.icons.el("search", 14),
+      window.FOSS.dom.el("span", { text: "Scan Folder (Dry Run)" })
+    ]);
+
+    var scrubBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "metadata-batch-scrub-btn",
+      type: "button",
+      onClick: function () {
+        runBatch(false);
+      }
+    }, [
+      window.FOSS.icons.el("trash", 14),
+      window.FOSS.dom.el("span", { text: "Scrub Metadata" })
+    ]);
+
+    var leftCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3",
+      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
+    }, [
+      window.FOSS.dom.el("div", { className: "font-semibold text-sm", text: "Batch Scrub Settings" }),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [folderBtn, folderDisplay]),
+      window.FOSS.dom.el("label", { className: "row gap-2 items-center text-xs" }, [
+        recursiveCheck,
+        window.FOSS.dom.el("span", { text: "Include Subfolders" })
+      ]),
+      window.FOSS.dom.el("div", { className: "row gap-2 pt-sm" }, [scanBtn, scrubBtn])
+    ]);
+
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "metadata-sidebar-pane"
+    }, [leftCard]);
+
+    var tableHost = window.FOSS.dom.el("div", {
+      className: "table-wrap grow",
+      style: "min-height: 12rem;",
+      "data-testid": "metadata-batch-table"
+    }, [
+      window.FOSS.dom.el("div", { className: "text-xs text-muted p-3", text: "No scan or scrub results yet." })
+    ]);
+
+    var stageCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow",
+      style: "box-sizing: border-box; min-width: 0;"
+    }, [
+      window.FOSS.dom.el("div", { className: "font-semibold text-sm", text: "Batch Scan & Scrub Results" }),
+      tableHost
+    ]);
+
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "metadata-stage-pane grow"
+    }, [stageCard]);
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable metadata-workbench"
+    }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stageWrapper
+    ]);
+
+    panel.appendChild(statusBar);
+    panel.appendChild(errorBanner);
+    panel.appendChild(split);
+
+    function runBatch(preview) {
+      if (!selectedFolder) {
+        showError("Please choose a folder to batch scrub.");
+        return;
+      }
+      clearError();
+      statusBar.textContent = (preview ? "Scanning folder: " : "Scrubbing folder: ") + selectedFolder + "...";
+      window.FOSS.api("metadata_batch_cleanup", {
+        input_dir: selectedFolder,
+        recursive: recursiveCheck.checked,
+        preview: preview
+      }).then(function (res) {
+        if (res.ok === false) {
+          showError(res.error || "Batch operation failed");
+          return;
+        }
+        var results = res.results || {};
+        var fileList = results.files || [];
+        statusBar.textContent = "[OK] Processed " + (results.processed || 0) + ", skipped " + (results.skipped || 0) + ", errors " + (results.errors || 0);
+
+        tableHost.innerHTML = "";
+        if (!fileList.length) {
+          tableHost.innerHTML = "<div class='text-xs text-muted p-3'>No files processed in selected folder.</div>";
+          return;
+        }
+
+        var rows = fileList.map(function (f) {
+          var fPath = typeof f === "string" ? f : f.path;
+          var fCount = typeof f === "object" ? f.metadata_fields : "-";
+          return window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("td", {
+              className: "font-mono text-xs",
+              "data-truncate-ok": "true",
+              title: fPath,
+              text: fPath
+            }),
+            window.FOSS.dom.el("td", { className: "text-xs font-mono", text: String(fCount) }),
+            window.FOSS.dom.el("td", { className: "text-xs font-semibold text-success", text: preview ? "Detected" : "Cleaned" })
+          ]);
+        });
+
+        var tbl = window.FOSS.dom.el("table", { className: "table" }, [
+          window.FOSS.dom.el("thead", {}, [
+            window.FOSS.dom.el("tr", {}, [
+              window.FOSS.dom.el("th", { text: "File" }),
+              window.FOSS.dom.el("th", { text: "Metadata Fields", style: "width: 8rem;" }),
+              window.FOSS.dom.el("th", { text: "Status", style: "width: 6rem;" })
+            ])
+          ]),
+          window.FOSS.dom.el("tbody", {}, rows)
+        ]);
+        tableHost.appendChild(tbl);
+      }).catch(function (err) {
+        showError("Batch failed: " + (err && err.message ? err.message : String(err)));
+      });
+    }
   }
 
   window.FOSS.router.register({
@@ -447,9 +707,18 @@ window.FOSS = window.FOSS || {};
     navName: "Metadata",
     category: "Utilities",
     icon: "file",
-    workbench: false,
+    workbench: true,
+    onFiles: function (paths) {
+      if (!paths || !paths.length) return;
+      window.FOSS.router.open("metadata", "inspect");
+      var inspectPanel = document.querySelector("[data-testid='metadata-inspect-page']");
+      if (inspectPanel && inspectPanel._loadFile) {
+        inspectPanel._loadFile(paths[0]);
+      }
+    },
     tabs: [
-      { id: "main", label: "Inspect & Edit", render: renderMain }
+      { id: "inspect", label: "Inspect, Edit & Strip", aliases: ["main", "strip"], render: renderInspectTab },
+      { id: "batch", label: "Batch Folder Scrub", render: renderBatchTab }
     ]
   });
 })();

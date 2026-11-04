@@ -568,11 +568,7 @@
     ],
     "batch_remove_background": [
       "file_paths",
-      "output_dir",
-      "model_name",
-      "filename_template",
-      "overwrite",
-      "progress_cb"
+      "options"
     ],
     "load_image": [
       "path"
@@ -598,10 +594,20 @@
     "circle_crop_image": [
       "img"
     ],
-    "build_layer_mask": [
+    "build_rectangle_mask": [
       "size",
-      "shape",
       "box",
+      "feather",
+      "invert"
+    ],
+    "build_ellipse_mask": [
+      "size",
+      "box",
+      "feather",
+      "invert"
+    ],
+    "build_circle_mask": [
+      "size",
       "radius",
       "feather",
       "invert"
@@ -635,13 +641,7 @@
     ],
     "adjust_image": [
       "img",
-      "brightness",
-      "contrast",
-      "saturation",
-      "sharpness",
-      "blur_radius",
-      "grayscale",
-      "warmth"
+      "adjustments"
     ],
     "auto_enhance": [
       "img"
@@ -691,12 +691,7 @@
     "batch_process": [
       "paths",
       "output_dir",
-      "target_format",
-      "quality",
-      "resize_to",
-      "keep_aspect",
-      "remove_background_enabled",
-      "bg_model",
+      "options",
       "progress_cb"
     ],
     "image_to_ascii": [
@@ -1068,11 +1063,7 @@
     ],
     "search_history": [
       "conn",
-      "process_name",
-      "domain",
-      "start_date",
-      "end_date",
-      "limit"
+      "filters"
     ],
     "top_processes": [
       "conn",
@@ -1684,12 +1675,7 @@
       "file_paths"
     ],
     "save_cross_folder_plan": [
-      "name",
-      "source_folders",
-      "mode",
-      "params",
-      "target_dir",
-      "processed_files"
+      "config"
     ],
     "find_new_files_for_plan": [
       "source_folders",

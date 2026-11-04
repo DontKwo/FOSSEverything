@@ -927,3 +927,89 @@ def burn_subtitles(input_path: str, output_path: str, subtitle_file: str, font_s
     if res.returncode != 0:
         raise RuntimeError(f"FFmpeg subtitle burn-in failed:\n{res.stderr}")
     return output_path
+
+
+def change_playback_speed(input_path: str, output_path: str, speed_factor: float = 1.0) -> str:
+    # Adjust video and audio playback speed by speed_factor (0.25x to 4.0x).
+    if speed_factor <= 0.0:
+        raise ValueError("Speed factor must be positive.")
+    ffmpeg = get_ffmpeg_path()
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    info = get_media_info(input_path)
+    has_v = bool(info.get("has_video"))
+    has_a = bool(info.get("has_audio"))
+
+    def calc_atempo(factor: float) -> str:
+        tokens: list[float] = []
+        rem = factor
+        while rem > 2.0:
+            tokens.append(2.0)
+            rem /= 2.0
+        while rem < 0.5:
+            tokens.append(0.5)
+            rem /= 0.5
+        tokens.append(round(rem, 4))
+        return ",".join(f"atempo={t}" for t in tokens)
+
+    cmd = [ffmpeg, "-y", "-i", input_path]
+    inv_speed = 1.0 / speed_factor
+    if has_v and has_a:
+        a_filter = calc_atempo(speed_factor)
+        filter_expr = f"[0:v]setpts={inv_speed:.6f}*PTS[v];[0:a]{a_filter}[a]"
+        cmd.extend(["-filter_complex", filter_expr, "-map", "[v]", "-map", "[a]"])
+    elif has_v:
+        cmd.extend(["-vf", f"setpts={inv_speed:.6f}*PTS"])
+    elif has_a:
+        cmd.extend(["-af", calc_atempo(speed_factor)])
+
+    cmd.append(output_path)
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"FFmpeg speed adjustment failed:\n{proc.stderr}")
+    return output_path
+
+
+def reverse_media(input_path: str, output_path: str) -> str:
+    # Reverse video frames and audio samples backward in time.
+    ffmpeg = get_ffmpeg_path()
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    info = get_media_info(input_path)
+    has_v = bool(info.get("has_video"))
+    has_a = bool(info.get("has_audio"))
+
+    cmd = [ffmpeg, "-y", "-i", input_path]
+    if has_v and has_a:
+        cmd.extend(["-vf", "reverse", "-af", "areverse"])
+    elif has_v:
+        cmd.extend(["-vf", "reverse"])
+    elif has_a:
+        cmd.extend(["-af", "areverse"])
+
+    cmd.append(output_path)
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"FFmpeg media reversal failed:\n{proc.stderr}")
+    return output_path
+
+
+def video_to_gif(
+    input_path: str,
+    output_path: str,
+    start_time: float = 0.0,
+    duration: float | None = None,
+    fps: int = 15,
+    width: int = 480,
+) -> str:
+    # Convert video segment into an optimized animated GIF with palettegen.
+    ffmpeg = get_ffmpeg_path()
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    cmd = [ffmpeg, "-y", "-ss", f"{start_time:.3f}"]
+    if duration is not None and duration > 0:
+        cmd.extend(["-t", f"{duration:.3f}"])
+    cmd.extend(["-i", input_path])
+    filter_expr = f"fps={fps},scale={width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
+    cmd.extend(["-vf", filter_expr, output_path])
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"FFmpeg GIF conversion failed:\n{proc.stderr}")
+    return output_path

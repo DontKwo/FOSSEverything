@@ -87,6 +87,7 @@ def build(onefile: bool = False) -> None:
         "mapbox_earcut",
         "psutil",
         "matplotlib",
+        "pint",
     ]
     for imp in hidden_imports:
         cmd.extend(["--hidden-import", imp])
@@ -95,6 +96,7 @@ def build(onefile: bool = False) -> None:
         cmd.extend(["--exclude-module", exc])
 
     cmd.extend(["--collect-all", "language_tool_python"])
+    cmd.extend(["--collect-all", "pint"])
 
     # The optional CAD backend ships native binaries PyInstaller can't auto-discover.
     try:

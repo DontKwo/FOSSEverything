@@ -1,16 +1,20 @@
-// AI Background Removal and Replacement Tool.
+// Image Studio: AI Background Removal, Transformations, and Creative Media.
 window.FOSS = window.FOSS || {};
 
 (function () {
   function renderBackground(panel, ctx) {
     panel.innerHTML = "";
     var currentFile = "";
+    var currentOriginalDataUrl = "";
+    var currentCutoutDataUrl = "";
+    var modelsCatalog = [];
+    var modelsDir = "";
 
     var header = window.FOSS.dom.el("div", { className: "card-header" }, [
       window.FOSS.dom.el("h2", { className: "card-title", text: "AI Background Removal" }),
       window.FOSS.dom.el("p", {
         className: "text-muted text-sm",
-        text: "All models run locally. A selected model may download once, then remains on this computer."
+        text: "Local segmentation models. Models download once into your unified settings directory."
       })
     ]);
 
@@ -55,11 +59,237 @@ window.FOSS = window.FOSS || {};
       resultHost.classList.remove("hidden");
     }
 
-    var mainCard = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-3",
-      style: "width: 100%; max-width: 100%; min-width: 0;"
+    // Split container
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable images-workbench-split",
+      "data-testid": "images-bg-split"
     });
 
+    var sidebar = window.FOSS.dom.el("div", { className: "images-sidebar-pane" });
+    var stage = window.FOSS.dom.el("div", { className: "images-stage-pane" });
+
+    // Model Selector
+    var modelSelect = window.FOSS.dom.el("select", {
+      className: "input",
+      "data-testid": "images-bg-model-select",
+      "aria-label": "Background Removal Model",
+      title: "Background Removal Model",
+      style: "width: 100%;"
+    });
+
+    // Model Manager Card
+    var modelManagerCard = window.FOSS.dom.el("div", {
+      className: "card flex-col gap-2",
+      "data-testid": "images-model-manager",
+      style: "width: 100%; font-size: var(--text-xs);"
+    });
+
+    var modelManagerHeader = window.FOSS.dom.el("div", {
+      className: "row items-center justify-between",
+      style: "gap: var(--space-2);"
+    }, [
+      window.FOSS.dom.el("span", { className: "font-semibold", text: "AI Models Storage" }),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-sm",
+        "data-testid": "images-open-models-dir-btn",
+        text: "Open Folder",
+        onClick: function () {
+          if (modelsDir) {
+            window.FOSS.api("open_path", { path: modelsDir });
+          }
+        }
+      })
+    ]);
+
+    var modelListContainer = window.FOSS.dom.el("div", {
+      style: "max-height: 12rem; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-1);"
+    });
+
+    modelManagerCard.appendChild(modelManagerHeader);
+    modelManagerCard.appendChild(modelListContainer);
+
+    function refreshModelsList() {
+      window.FOSS.api("image_get_rembg_models", {}).then(function (res) {
+        if (!res || !res.models || !res.models.length) {
+          return window.FOSS.api("images_models_status", {});
+        }
+        return res;
+      }).catch(function () {
+        return window.FOSS.api("images_models_status", {});
+      }).then(function (res) {
+        if (!res || !res.models) return;
+        modelsCatalog = res.models;
+        modelsDir = res.models_dir || "";
+
+        // Populate select
+        var previousVal = modelSelect.value;
+        modelSelect.innerHTML = "";
+        var bestDefault = "";
+
+        modelsCatalog.forEach(function (m) {
+          var mId = m.id || m.name;
+          var mLabel = m.label || (m.name + (m.description ? " (" + m.description + ")" : ""));
+          var mSize = m.download_size || (m.size_mb ? m.size_mb + " MB" : "");
+          var isDownloaded = !!(m.downloaded || m.cached || m.local_cache);
+          var statusTag = isDownloaded ? "[Downloaded" + (mSize ? " - " + mSize : "") + "]" : "[Not Downloaded" + (mSize ? " - " + mSize : "") + "]";
+          var opt = window.FOSS.dom.el("option", {
+            value: mId,
+            text: statusTag + " " + mLabel
+          });
+          modelSelect.appendChild(opt);
+          if (isDownloaded && !bestDefault) {
+            bestDefault = mId;
+          }
+        });
+
+        if (previousVal) {
+          modelSelect.value = previousVal;
+        } else if (bestDefault) {
+          modelSelect.value = bestDefault;
+        } else {
+          modelSelect.value = "isnet-general-use";
+        }
+
+        // Populate Manager list
+        modelListContainer.innerHTML = "";
+        modelsCatalog.forEach(function (m) {
+          var mId = m.id || m.name;
+          var mLabel = m.label || (m.name + (m.description ? " (" + m.description + ")" : ""));
+          var mSize = m.download_size || (m.size_mb ? m.size_mb + " MB" : "");
+          var isDownloaded = !!(m.downloaded || m.cached || m.local_cache);
+
+          var row = window.FOSS.dom.el("div", {
+            className: "row items-center justify-between",
+            style: "padding: var(--space-1) 0; border-bottom: 1px solid var(--border);"
+          });
+
+          var labelCol = window.FOSS.dom.el("div", { className: "flex-col", style: "min-width: 0; flex: 1 1 0%;" }, [
+            window.FOSS.dom.el("span", { className: "font-semibold truncate", text: mLabel }),
+            window.FOSS.dom.el("span", { className: "text-muted text-xs", text: mSize })
+          ]);
+
+          var actionCol = window.FOSS.dom.el("div", { className: "row items-center gap-1" });
+          if (isDownloaded) {
+            var badge = window.FOSS.dom.el("span", { className: "badge success text-xs", text: "Downloaded" });
+            var delBtn = window.FOSS.dom.el("button", {
+              className: "btn btn-sm btn-ghost",
+              "data-testid": "images-model-del-" + mId,
+              text: "Delete",
+              onClick: function () {
+                statusBar.textContent = "Deleting model " + mId + "...";
+                window.FOSS.api("images_delete_model", { model: mId }).then(function () {
+                  statusBar.textContent = "Model " + mId + " deleted.";
+                  refreshModelsList();
+                }).catch(function (err) {
+                  showError(err && err.message ? err.message : String(err));
+                });
+              }
+            });
+            actionCol.appendChild(badge);
+            actionCol.appendChild(delBtn);
+          } else {
+            var badge = window.FOSS.dom.el("span", { className: "badge warning text-xs", text: "Not Downloaded" });
+            var dlBtn = window.FOSS.dom.el("button", {
+              className: "btn btn-sm btn-secondary",
+              "data-testid": "images-model-dl-" + mId,
+              text: "Download",
+              onClick: function () {
+                statusBar.textContent = "Downloading " + mLabel + "...";
+                window.FOSS.api("images_download_model", { model: mId }).then(function () {
+                  statusBar.textContent = "Downloaded " + mLabel + " successfully.";
+                  refreshModelsList();
+                }).catch(function (err) {
+                  showError(err && err.message ? err.message : String(err));
+                });
+              }
+            });
+            actionCol.appendChild(badge);
+            actionCol.appendChild(dlBtn);
+          }
+
+          row.appendChild(labelCol);
+          row.appendChild(actionCol);
+          modelListContainer.appendChild(row);
+        });
+      }).catch(function (err) {
+        showError("Failed to query models: " + (err && err.message ? err.message : String(err)));
+      });
+    }
+
+    refreshModelsList();
+
+    // Stage elements
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "images-stage-wrapper checkerboard-bg",
+      "data-testid": "images-stage-wrapper"
+    });
+
+    var previewCutout = window.FOSS.dom.el("img", {
+      className: "images-preview-img hidden",
+      "data-testid": "images-cutout-preview",
+      alt: "Cutout Preview"
+    });
+
+    var previewOriginal = window.FOSS.dom.el("img", {
+      className: "images-preview-img hidden",
+      "data-testid": "images-original-preview",
+      alt: "Original Preview"
+    });
+
+    var emptyPlaceholder = window.FOSS.dom.el("div", {
+      className: "text-muted text-sm text-center",
+      text: "Open an image to preview cutout or compare before/after."
+    });
+
+    stageWrapper.appendChild(emptyPlaceholder);
+    stageWrapper.appendChild(previewCutout);
+    stageWrapper.appendChild(previewOriginal);
+
+    var viewMode = "cutout"; // cutout | original | both
+    var viewModeToggle = window.FOSS.components.segmented({
+      testid: "images-view-mode-toggle",
+      options: [
+        { value: "cutout", label: "Cutout" },
+        { value: "original", label: "Original" },
+        { value: "both", label: "Side-by-Side" }
+      ],
+      value: "cutout",
+      onChange: function (val) {
+        viewMode = val;
+        updateStageView();
+      }
+    });
+
+    function updateStageView() {
+      if (!currentFile) {
+        emptyPlaceholder.classList.remove("hidden");
+        previewCutout.classList.add("hidden");
+        previewOriginal.classList.add("hidden");
+        return;
+      }
+      emptyPlaceholder.classList.add("hidden");
+      if (viewMode === "original") {
+        previewOriginal.classList.remove("hidden");
+        previewCutout.classList.add("hidden");
+      } else if (viewMode === "cutout") {
+        previewOriginal.classList.add("hidden");
+        if (currentCutoutDataUrl) {
+          previewCutout.src = currentCutoutDataUrl;
+          previewCutout.classList.remove("hidden");
+        } else {
+          previewOriginal.classList.remove("hidden");
+        }
+      } else {
+        // Both
+        previewOriginal.classList.remove("hidden");
+        if (currentCutoutDataUrl) {
+          previewCutout.src = currentCutoutDataUrl;
+          previewCutout.classList.remove("hidden");
+        }
+      }
+    }
+
+    // File Picker
     var filePicker = window.FOSS.components.filePicker({
       testid: "images-bg-picker",
       title: "Select Image for Background Removal",
@@ -68,80 +298,158 @@ window.FOSS = window.FOSS || {};
         currentFile = val;
         clearError();
         statusBar.textContent = "Selected: " + (val ? val.split(/[/\\]/).pop() : "");
+        currentCutoutDataUrl = "";
+        window.FOSS.api("images_load_data", { file_path: currentFile }).then(function (res) {
+          if (res && res.data_url) {
+            currentOriginalDataUrl = res.data_url;
+            previewOriginal.src = currentOriginalDataUrl;
+            updateStageView();
+          }
+        });
       },
       onClear: function () {
         currentFile = "";
+        currentOriginalDataUrl = "";
+        currentCutoutDataUrl = "";
+        updateStageView();
       }
     });
 
-    var modelSelect = window.FOSS.dom.el("select", {
+    // Backdrop controls
+    var backdropSelect = window.FOSS.dom.el("select", {
       className: "input",
-      "data-testid": "images-bg-model-select",
-      "aria-label": "Background Model",
-      title: "Background Model",
-      style: "min-width: 160px;"
+      "data-testid": "images-backdrop-select",
+      "aria-label": "Backdrop Type",
+      title: "Backdrop Type",
+      style: "width: 100%;"
     }, [
-      window.FOSS.dom.el("option", { value: "u2netp", text: "U2Net-P (Fast Lightweight)" }),
-      window.FOSS.dom.el("option", { value: "u2net", text: "U2Net (Balanced Standard)" }),
-      window.FOSS.dom.el("option", { value: "isnet-general-use", text: "ISNet (General Use)" }),
-      window.FOSS.dom.el("option", { value: "birefnet-general", text: "BiRefNet (General, High Precision)" }),
-      window.FOSS.dom.el("option", { value: "birefnet-portrait", text: "BiRefNet (Portrait)" })
+      window.FOSS.dom.el("option", { value: "transparent", text: "Transparent (PNG)" }),
+      window.FOSS.dom.el("option", { value: "solid", text: "Solid Color" }),
+      window.FOSS.dom.el("option", { value: "blur", text: "Blurred Original Backdrop" })
     ]);
 
-    var removeBgChk = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      checked: true,
-      "aria-label": "Remove Background (Local AI Model)",
-      title: "Remove Background (Local AI Model)"
+    var colorPicker = window.FOSS.dom.el("input", {
+      type: "color",
+      value: "#ffffff",
+      className: "input",
+      "data-testid": "images-backdrop-color",
+      "aria-label": "Backdrop Color",
+      title: "Backdrop Color",
+      style: "width: 3rem; height: 2.2rem; padding: 0.1rem;"
     });
 
-    var removeBgLbl = window.FOSS.dom.el("label", {
-      className: "row items-center",
-      style: "gap: var(--space-2); cursor: pointer;"
+    var blurSlider = window.FOSS.dom.el("input", {
+      type: "range",
+      min: "5",
+      max: "50",
+      value: "25",
+      className: "input",
+      "data-testid": "images-backdrop-blur",
+      "aria-label": "Backdrop Blur Radius",
+      title: "Backdrop Blur Radius"
+    });
+
+    var backdropOptionsRow = window.FOSS.dom.el("div", {
+      className: "row items-center gap-2 flex-wrap",
+      style: "margin-top: var(--space-1);"
     }, [
-      removeBgChk,
-      window.FOSS.dom.el("span", { text: "Remove Background (Local AI Model)" })
+      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Color:" }),
+      colorPicker,
+      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Blur:" }),
+      blurSlider
     ]);
 
+    // Primary action button
     var removeBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
-      "data-testid": "images-bg-btn",
+      "data-testid": "images-remove-bg-btn",
       "aria-label": "Remove Background",
       title: "Remove Background",
       onClick: function () {
         if (!currentFile) return showError("Select an image first.");
+        clearError();
         window.FOSS.api("select_save_path", {
-          title: "Save Transparent PNG",
-          default_name: "nobg.png",
-          filters: [{ name: "PNG Image", extensions: ["png"] }]
-        }).then(function (res) {
-          var outP = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
-          if (!outP) return;
-          statusBar.textContent = "Running background removal model...";
+          title: "Save Cutout PNG",
+          default_name: "cutout.png",
+          file_types: [
+            { name: "PNG Image", extensions: ["png"] }
+          ]
+        }).then(function (saveRes) {
+          if (!saveRes || saveRes.cancelled) return;
+          var chosenPath = (saveRes.path || (saveRes.paths && saveRes.paths[0]) || "").trim();
+          if (!chosenPath) return;
+          if (!chosenPath.toLowerCase().endsWith(".png")) {
+            chosenPath = chosenPath + ".png";
+          }
+          statusBar.textContent = "Removing background with " + modelSelect.value + "...";
+          removeBtn.disabled = true;
+
           window.FOSS.api("images_remove_background", {
             file_path: currentFile,
             model: modelSelect.value,
-            output_path: outP
-          }).then(function () {
-            showResult(outP, "Transparent Image Saved");
-            statusBar.textContent = "Saved to " + outP;
+            backdrop: backdropSelect.value,
+            color: colorPicker.value,
+            blur_radius: parseInt(blurSlider.value, 10) || 25,
+            output_path: chosenPath
+          }).then(function (res) {
+            removeBtn.disabled = false;
+            if (res && res.data_url) {
+              currentCutoutDataUrl = res.data_url;
+              viewMode = "cutout";
+              viewModeToggle.setValue("cutout");
+              updateStageView();
+              statusBar.textContent = "Background removed and saved to " + chosenPath;
+              saveCutoutBtn.classList.remove("hidden");
+              showResult(chosenPath, "Cutout Saved Successfully");
+            }
           }).catch(function (err) {
+            removeBtn.disabled = false;
             showError(err && err.message ? err.message : String(err));
           });
-        }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
         });
       }
     }, [
       window.FOSS.icons.el("sparkles", 16),
       window.FOSS.dom.el("span", { text: "Remove Background" })
     ]);
+    // Also attach alias data-testid
+    removeBtn.setAttribute("data-testid", "images-remove-bg-btn");
+
+    var saveCutoutBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
+      "data-testid": "images-save-cutout-btn",
+      text: "Save Cutout PNG...",
+      onClick: function () {
+        if (!currentCutoutDataUrl || !currentFile) return showError("Generate a cutout first.");
+        window.FOSS.api("select_save_path", {
+          title: "Save Cutout PNG",
+          default_name: "cutout.png",
+          file_types: [{ name: "PNG Image", extensions: ["png"] }]
+        }).then(function (res) {
+          var outP = (res && res.path) || (res && res.paths && res.paths.length > 0 ? res.paths[0] : "");
+          if (!outP) return;
+          if (!outP.toLowerCase().endsWith(".png")) outP += ".png";
+          window.FOSS.api("images_remove_background", {
+            file_path: currentFile,
+            model: modelSelect.value,
+            backdrop: backdropSelect.value,
+            color: colorPicker.value,
+            blur_radius: parseInt(blurSlider.value, 10) || 25,
+            output_path: outP
+          }).then(function () {
+            showResult(outP, "Cutout Saved");
+            statusBar.textContent = "Saved to " + outP;
+          }).catch(function (err) {
+            showError(err && err.message ? err.message : String(err));
+          });
+        });
+      }
+    });
 
     var batchBgBtn = window.FOSS.dom.el("button", {
       className: "btn",
       "data-testid": "images-batch-bg-btn",
-      "aria-label": "Batch Background Removal",
-      title: "Batch Background Removal",
+      text: "Batch Removal...",
       onClick: function () {
         window.FOSS.api("select_files", {
           title: "Select Images for Batch Background Removal",
@@ -159,44 +467,616 @@ window.FOSS = window.FOSS || {};
                 bg_model: modelSelect.value
               }).then(function () {
                 showResult(outD, "Batch Background Removal Complete");
+                statusBar.textContent = "Batch processing complete.";
+              }).catch(function (err) {
+                showError(err && err.message ? err.message : String(err));
               });
             });
           }
         });
       }
+    });
+
+    var actionsCard = window.FOSS.dom.el("div", {
+      className: "card flex-col gap-2",
+      style: "width: 100%;"
     }, [
-      window.FOSS.icons.el("layers", 16),
-      window.FOSS.dom.el("span", { text: "Batch Background Removal" })
+      window.FOSS.components.field("AI Model", modelSelect),
+      window.FOSS.components.field("Backdrop", backdropSelect),
+      backdropOptionsRow,
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap", style: "margin-top: var(--space-2);" }, [
+        removeBtn,
+        saveCutoutBtn,
+        batchBgBtn
+      ])
     ]);
 
-    var bgControls = window.FOSS.dom.el("div", {
-      className: "row items-end",
-      style: "display: flex; flex-wrap: wrap; gap: var(--space-3); width: 100%;"
+    sidebar.appendChild(filePicker.el);
+    sidebar.appendChild(actionsCard);
+    sidebar.appendChild(modelManagerCard);
+
+    var stageHeader = window.FOSS.dom.el("div", {
+      className: "row items-center justify-between flex-wrap gap-2",
+      style: "margin-bottom: var(--space-1);"
     }, [
-      window.FOSS.components.field("Model", modelSelect),
-      removeBgLbl,
-      removeBtn,
-      batchBgBtn
+      window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: "Interactive Preview" }),
+      viewModeToggle
     ]);
 
-    mainCard.appendChild(filePicker.el);
-    mainCard.appendChild(bgControls);
+    stage.appendChild(stageHeader);
+    stage.appendChild(stageWrapper);
+
+    split.appendChild(sidebar);
+    split.appendChild(window.FOSS.components.splitDivider({ vertical: true }));
+    split.appendChild(stage);
 
     panel.appendChild(header);
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
     panel.appendChild(resultHost);
-    panel.appendChild(mainCard);
+    panel.appendChild(split);
+  }
+
+  function renderTransform(panel, ctx) {
+    panel.innerHTML = "";
+    var currentFile = "";
+    var previewDataUrl = "";
+
+    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
+      window.FOSS.dom.el("h2", { className: "card-title", text: "Crop, Resize & Adjust" }),
+      window.FOSS.dom.el("p", {
+        className: "text-muted text-sm",
+        text: "Non-destructive image transformations. Saves as a new file without modifying originals."
+      })
+    ]);
+
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "images-tf-status",
+      text: "Ready"
+    });
+
+    var errorBanner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden",
+      "data-testid": "images-tf-error"
+    }, [
+      window.FOSS.icons.el("alert", 18),
+      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
+    ]);
+
+    function showError(msg) {
+      var s = errorBanner.querySelector(".banner-msg");
+      if (s) s.textContent = msg;
+      errorBanner.classList.remove("hidden");
+    }
+
+    function clearError() {
+      errorBanner.classList.add("hidden");
+    }
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable images-workbench-split",
+      "data-testid": "images-tf-split"
+    });
+
+    var sidebar = window.FOSS.dom.el("div", { className: "images-sidebar-pane" });
+    var stage = window.FOSS.dom.el("div", { className: "images-stage-pane" });
+
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "images-stage-wrapper checkerboard-bg",
+      "data-testid": "images-tf-stage-wrapper"
+    });
+
+    var previewImg = window.FOSS.dom.el("img", {
+      className: "images-preview-img hidden",
+      "data-testid": "images-tf-preview",
+      alt: "Transform Preview"
+    });
+
+    var emptyPlaceholder = window.FOSS.dom.el("div", {
+      className: "text-muted text-sm",
+      text: "Open an image to start transforming."
+    });
+
+    stageWrapper.appendChild(emptyPlaceholder);
+    stageWrapper.appendChild(previewImg);
+
+    function updatePreview(url) {
+      if (url) {
+        previewDataUrl = url;
+        previewImg.src = url;
+        previewImg.classList.remove("hidden");
+        emptyPlaceholder.classList.add("hidden");
+      }
+    }
+
+    var filePicker = window.FOSS.components.filePicker({
+      testid: "images-tf-picker",
+      title: "Select Image",
+      fileTypes: ["png", "jpg", "jpeg", "webp"],
+      onSelect: function (val) {
+        currentFile = val;
+        clearError();
+        statusBar.textContent = "Selected: " + (val ? val.split(/[/\\]/).pop() : "");
+        window.FOSS.api("images_load_data", { file_path: currentFile }).then(function (res) {
+          if (res && res.data_url) {
+            updatePreview(res.data_url);
+            if (widthInput && res.width) widthInput.value = res.width;
+            if (heightInput && res.height) heightInput.value = res.height;
+          }
+        });
+      },
+      onClear: function () {
+        currentFile = "";
+        previewDataUrl = "";
+        previewImg.classList.add("hidden");
+        emptyPlaceholder.classList.remove("hidden");
+      }
+    });
+
+    // Transforms Card
+    var transformsCard = window.FOSS.dom.el("div", {
+      className: "card flex-col gap-2",
+      style: "width: 100%;"
+    });
+
+    // Rotation / Flip Buttons
+    var rotFlipRow = window.FOSS.dom.el("div", { className: "row gap-1 items-center flex-wrap" }, [
+      window.FOSS.dom.el("button", {
+        className: "btn btn-sm",
+        "data-testid": "images-rotate-ccw",
+        text: "Rotate 90 CCW",
+        onClick: function () {
+          if (!currentFile) return showError("Open an image first.");
+          window.FOSS.api("images_rotate", { file_path: currentFile, degrees: 270 }).then(function (res) {
+            if (res && res.data_url) updatePreview(res.data_url);
+          });
+        }
+      }),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-sm",
+        "data-testid": "images-rotate-cw",
+        text: "Rotate 90 CW",
+        onClick: function () {
+          if (!currentFile) return showError("Open an image first.");
+          window.FOSS.api("images_rotate", { file_path: currentFile, degrees: 90 }).then(function (res) {
+            if (res && res.data_url) updatePreview(res.data_url);
+          });
+        }
+      }),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-sm",
+        "data-testid": "images-flip-h",
+        text: "Flip H",
+        onClick: function () {
+          if (!currentFile) return showError("Open an image first.");
+          window.FOSS.api("images_flip", { file_path: currentFile, direction: "horizontal" }).then(function (res) {
+            if (res && res.data_url) updatePreview(res.data_url);
+          });
+        }
+      }),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-sm",
+        "data-testid": "images-flip-v",
+        text: "Flip V",
+        onClick: function () {
+          if (!currentFile) return showError("Open an image first.");
+          window.FOSS.api("images_flip", { file_path: currentFile, direction: "vertical" }).then(function (res) {
+            if (res && res.data_url) updatePreview(res.data_url);
+          });
+        }
+      })
+    ]);
+
+    // Resize controls
+    var widthInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input",
+      placeholder: "Width",
+      "aria-label": "Width",
+      title: "Width",
+      style: "width: 5rem;"
+    });
+    var heightInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input",
+      placeholder: "Height",
+      "aria-label": "Height",
+      title: "Height",
+      style: "width: 5rem;"
+    });
+    var resizeBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-sm",
+      "data-testid": "images-resize-btn",
+      text: "Resize",
+      onClick: function () {
+        if (!currentFile) return showError("Open an image first.");
+        var w = parseInt(widthInput.value, 10);
+        var h = parseInt(heightInput.value, 10);
+        if (!w || !h) return showError("Enter valid dimensions.");
+        window.FOSS.api("images_resize", { file_path: currentFile, width: w, height: h }).then(function (res) {
+          if (res && res.data_url) updatePreview(res.data_url);
+        });
+      }
+    });
+
+    var circleCropBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-sm",
+      "data-testid": "images-circle-crop",
+      text: "Circle Crop",
+      onClick: function () {
+        if (!currentFile) return showError("Open an image first.");
+        window.FOSS.api("images_circle_crop", { file_path: currentFile }).then(function (res) {
+          if (res && res.data_url) updatePreview(res.data_url);
+        });
+      }
+    });
+
+    var resizeRow = window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+      widthInput,
+      window.FOSS.dom.el("span", { text: "x" }),
+      heightInput,
+      resizeBtn,
+      circleCropBtn
+    ]);
+
+    // Adjustment sliders
+    var brightSlider = window.FOSS.dom.el("input", {
+      type: "range",
+      min: "20",
+      max: "200",
+      value: "100",
+      className: "input",
+      "aria-label": "Brightness",
+      title: "Brightness"
+    });
+    var contrastSlider = window.FOSS.dom.el("input", {
+      type: "range",
+      min: "20",
+      max: "200",
+      value: "100",
+      className: "input",
+      "aria-label": "Contrast",
+      title: "Contrast"
+    });
+    var satSlider = window.FOSS.dom.el("input", {
+      type: "range",
+      min: "0",
+      max: "200",
+      value: "100",
+      className: "input",
+      "aria-label": "Saturation",
+      title: "Saturation"
+    });
+
+    function applyAdjustments() {
+      if (!currentFile) return;
+      window.FOSS.api("images_adjust", {
+        file_path: currentFile,
+        brightness: parseInt(brightSlider.value, 10),
+        contrast: parseInt(contrastSlider.value, 10),
+        saturation: parseInt(satSlider.value, 10)
+      }).then(function (res) {
+        if (res && res.data_url) updatePreview(res.data_url);
+      });
+    }
+
+    brightSlider.addEventListener("change", applyAdjustments);
+    contrastSlider.addEventListener("change", applyAdjustments);
+    satSlider.addEventListener("change", applyAdjustments);
+
+    var autoEnhanceBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-sm",
+      "data-testid": "images-auto-enhance",
+      text: "Auto Enhance",
+      onClick: function () {
+        if (!currentFile) return showError("Open an image first.");
+        window.FOSS.api("images_auto_enhance", { file_path: currentFile }).then(function (res) {
+          if (res && res.data_url) updatePreview(res.data_url);
+        });
+      }
+    });
+
+    // Filter presets
+    var filterSelect = window.FOSS.dom.el("select", {
+      className: "input",
+      "data-testid": "images-filter-select",
+      "aria-label": "Filter Preset",
+      title: "Filter Preset",
+      style: "width: 100%;"
+    }, [
+      window.FOSS.dom.el("option", { value: "Auto Enhance", text: "Auto Enhance" }),
+      window.FOSS.dom.el("option", { value: "Vivid", text: "Vivid" }),
+      window.FOSS.dom.el("option", { value: "Warm Tone", text: "Warm Tone" }),
+      window.FOSS.dom.el("option", { value: "Cool Tone", text: "Cool Tone" }),
+      window.FOSS.dom.el("option", { value: "Grayscale", text: "Grayscale" })
+    ]);
+
+    var applyFilterBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-sm",
+      text: "Apply Filter",
+      onClick: function () {
+        if (!currentFile) return showError("Open an image first.");
+        window.FOSS.api("images_apply_filter", { file_path: currentFile, filter_name: filterSelect.value }).then(function (res) {
+          if (res && res.data_url) updatePreview(res.data_url);
+        });
+      }
+    });
+
+    // Save copy button
+    var saveCopyBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      "data-testid": "images-tf-save",
+      text: "Save Copy As...",
+      onClick: function () {
+        if (!currentFile) return showError("Open an image first.");
+        var origExt = (currentFile.split(".").pop() || "png").toLowerCase();
+        var defExt = "." + origExt;
+        window.FOSS.api("select_save_path", {
+          title: "Save Transformed Image",
+          default_name: "transformed" + defExt,
+          file_types: [
+            { name: "Image (" + defExt + ")", extensions: [origExt] },
+            { name: "PNG Image", extensions: ["png"] },
+            { name: "JPEG Image", extensions: ["jpg", "jpeg"] },
+            { name: "WebP Image", extensions: ["webp"] }
+          ]
+        }).then(function (res) {
+          if (!res || res.cancelled) return;
+          var outP = (res && res.path) || (res && res.paths && res.paths.length > 0 ? res.paths[0] : "");
+          if (!outP) return;
+          window.FOSS.api("images_adjust", {
+            file_path: currentFile,
+            brightness: parseInt(brightSlider.value, 10),
+            contrast: parseInt(contrastSlider.value, 10),
+            saturation: parseInt(satSlider.value, 10),
+            output_path: outP
+          }).then(function () {
+            statusBar.textContent = "Saved to " + outP;
+          });
+        });
+      }
+    });
+
+    transformsCard.appendChild(window.FOSS.dom.el("span", { className: "font-semibold text-xs", text: "Transformations" }));
+    transformsCard.appendChild(rotFlipRow);
+    transformsCard.appendChild(resizeRow);
+    transformsCard.appendChild(window.FOSS.dom.el("span", { className: "font-semibold text-xs", text: "Adjustments" }));
+    transformsCard.appendChild(window.FOSS.dom.el("div", { className: "row items-center gap-2" }, [
+      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Brightness:" }),
+      brightSlider,
+      autoEnhanceBtn
+    ]));
+    transformsCard.appendChild(window.FOSS.dom.el("div", { className: "row items-center gap-2" }, [
+      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Contrast:" }),
+      contrastSlider
+    ]));
+    transformsCard.appendChild(window.FOSS.dom.el("div", { className: "row items-center gap-2" }, [
+      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Saturation:" }),
+      satSlider
+    ]));
+    transformsCard.appendChild(window.FOSS.dom.el("div", { className: "row items-center gap-2", style: "margin-top: var(--space-1);" }, [
+      filterSelect,
+      applyFilterBtn
+    ]));
+    transformsCard.appendChild(window.FOSS.dom.el("div", { style: "margin-top: var(--space-2);" }, [saveCopyBtn]));
+
+    sidebar.appendChild(filePicker.el);
+    sidebar.appendChild(transformsCard);
+
+    stage.appendChild(stageWrapper);
+
+    split.appendChild(sidebar);
+    split.appendChild(window.FOSS.components.splitDivider({ vertical: true }));
+    split.appendChild(stage);
+
+    panel.appendChild(header);
+    panel.appendChild(statusBar);
+    panel.appendChild(errorBanner);
+    panel.appendChild(split);
+  }
+
+  function renderCreative(panel, ctx) {
+    panel.innerHTML = "";
+    var currentFile = "";
+
+    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
+      window.FOSS.dom.el("h2", { className: "card-title", text: "GIF & ASCII Art" }),
+      window.FOSS.dom.el("p", {
+        className: "text-muted text-sm",
+        text: "Create and extract animated GIFs, or generate ASCII art text from photos."
+      })
+    ]);
+
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "images-cr-status",
+      text: "Ready"
+    });
+
+    var asciiPre = window.FOSS.dom.el("pre", {
+      className: "code-block",
+      "data-testid": "images-ascii-preview",
+      style: "font-family: monospace; white-space: pre; overflow: auto; max-height: 24rem; font-size: 0.5rem; line-height: 1;"
+    });
+
+    var charsetSelect = window.FOSS.dom.el("select", {
+      className: "input",
+      "data-testid": "images-ascii-charset",
+      "aria-label": "ASCII Character Set",
+      title: "ASCII Character Set",
+      style: "width: 10rem;"
+    }, [
+      window.FOSS.dom.el("option", { value: "standard", text: "Standard" }),
+      window.FOSS.dom.el("option", { value: "detailed", text: "Detailed" }),
+      window.FOSS.dom.el("option", { value: "blocks", text: "Blocks" }),
+      window.FOSS.dom.el("option", { value: "minimal", text: "Minimal" })
+    ]);
+
+    var widthInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input",
+      value: "80",
+      "aria-label": "ASCII Columns Width",
+      title: "ASCII Columns Width",
+      style: "width: 5rem;"
+    });
+
+    var generateAsciiBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      "data-testid": "images-ascii-gen-btn",
+      text: "Generate ASCII Art",
+      onClick: function () {
+        if (!currentFile) return;
+        statusBar.textContent = "Rendering ASCII art...";
+        window.FOSS.api("images_to_ascii", {
+          file_path: currentFile,
+          columns: parseInt(widthInput.value, 10) || 80,
+          charset: charsetSelect.value
+        }).then(function (res) {
+          if (res && res.ascii) {
+            asciiPre.textContent = res.ascii;
+            statusBar.textContent = "ASCII art rendered.";
+          }
+        });
+      }
+    });
+
+    var saveAsciiBtn = window.FOSS.dom.el("button", {
+      className: "btn",
+      "data-testid": "images-ascii-save-btn",
+      text: "Save .txt...",
+      onClick: function () {
+        if (!asciiPre.textContent) return;
+        window.FOSS.api("select_save_path", {
+          title: "Save ASCII Art",
+          default_name: "ascii_art.txt",
+          filters: [{ name: "Text File", extensions: ["txt"] }]
+        }).then(function (res) {
+          var outP = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
+          if (!outP) return;
+          window.FOSS.api("write_text_file", { path: outP, content: asciiPre.textContent }).then(function () {
+            statusBar.textContent = "Saved to " + outP;
+          });
+        });
+      }
+    });
+
+    var asciiCard = window.FOSS.dom.el("div", {
+      className: "card flex-col gap-2",
+      style: "width: 100%;"
+    }, [
+      window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: "ASCII Art Generator" }),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Preset:" }),
+        charsetSelect,
+        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Width:" }),
+        widthInput,
+        generateAsciiBtn,
+        saveAsciiBtn
+      ]),
+      asciiPre
+    ]);
+
+    // GIF tools card
+    var gifCard = window.FOSS.dom.el("div", {
+      className: "card flex-col gap-2",
+      style: "width: 100%; margin-top: var(--space-3);"
+    }, [
+      window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: "GIF Studio" }),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+        window.FOSS.dom.el("button", {
+          className: "btn",
+          "data-testid": "images-gif-extract-btn",
+          text: "Extract GIF Frames...",
+          onClick: function () {
+            window.FOSS.api("select_files", {
+              title: "Select Animated GIF",
+              file_types: ["gif"]
+            }).then(function (fRes) {
+              if (!fRes || !fRes.paths || fRes.paths.length === 0) return;
+              var gifP = fRes.paths[0];
+              window.FOSS.api("select_directory", { title: "Select Destination Directory for Frames" }).then(function (dRes) {
+                var outD = dRes && dRes.paths && dRes.paths.length > 0 ? dRes.paths[0] : "";
+                if (!outD) return;
+                statusBar.textContent = "Extracting frames...";
+                window.FOSS.api("images_gif_ops", {
+                  action: "extract",
+                  file_path: gifP,
+                  output_dir: outD
+                }).then(function (res) {
+                  statusBar.textContent = "Extracted " + (res && res.count ? res.count : "all") + " frames to " + outD;
+                });
+              });
+            });
+          }
+        }),
+        window.FOSS.dom.el("button", {
+          className: "btn",
+          "data-testid": "images-gif-create-btn",
+          text: "Create GIF from Images...",
+          onClick: function () {
+            window.FOSS.api("select_files", {
+              title: "Select Ordered Frame Images",
+              file_types: ["png", "jpg", "jpeg"]
+            }).then(function (fRes) {
+              if (!fRes || !fRes.paths || fRes.paths.length === 0) return;
+              var framePaths = fRes.paths;
+              window.FOSS.api("select_save_path", {
+                title: "Save Animated GIF",
+                default_name: "animation.gif",
+                filters: [{ name: "GIF Animation", extensions: ["gif"] }]
+              }).then(function (sRes) {
+                var outP = sRes && sRes.paths && sRes.paths.length > 0 ? sRes.paths[0] : "";
+                if (!outP) return;
+                statusBar.textContent = "Assembling GIF...";
+                window.FOSS.api("images_gif_ops", {
+                  action: "create",
+                  frame_paths: framePaths,
+                  output_path: outP,
+                  fps: 10
+                }).then(function () {
+                  statusBar.textContent = "Created animated GIF at " + outP;
+                });
+              });
+            });
+          }
+        })
+      ])
+    ]);
+
+    var filePicker = window.FOSS.components.filePicker({
+      testid: "images-cr-picker",
+      title: "Select Image for ASCII Art",
+      fileTypes: ["png", "jpg", "jpeg", "webp"],
+      onSelect: function (val) {
+        currentFile = val;
+        statusBar.textContent = "Selected: " + (val ? val.split(/[/\\]/).pop() : "");
+      },
+      onClear: function () {
+        currentFile = "";
+        asciiPre.textContent = "";
+      }
+    });
+
+    panel.appendChild(header);
+    panel.appendChild(statusBar);
+    panel.appendChild(filePicker.el);
+    panel.appendChild(asciiCard);
+    panel.appendChild(gifCard);
   }
 
   window.FOSS.router.register({
     id: "images",
-    title: "Image Tools",
+    title: "Image Studio",
     navName: "Images",
     category: "Visuals",
     icon: "image",
+    workbench: true,
     tabs: [
-      { id: "background", label: "Background", render: renderBackground }
+      { id: "background", label: "Background", render: renderBackground },
+      { id: "transform", label: "Transform", render: renderTransform },
+      { id: "creative", label: "Creative", render: renderCreative }
     ]
   });
 })();

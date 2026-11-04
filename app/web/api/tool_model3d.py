@@ -24,8 +24,8 @@ class Model3dApiMixin:
         # Return geometry bounding box, volume, vertex count, and watertight status.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        m3d: Model3D = load(file_path)
-        stats = info(m3d)
+        model_data: Model3D = load(file_path)
+        stats = info(model_data)
         return ok(info=stats, cad_hint=CAD_INSTALL_HINT, file_path=file_path)
 
     @api_method
@@ -33,9 +33,9 @@ class Model3dApiMixin:
         # Load 3D model and return serialized mesh coordinates.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        m3d = load(file_path)
-        stats = info(m3d)
-        verts, faces = tessellated_preview(m3d)
+        model_data = load(file_path)
+        stats = info(model_data)
+        verts, faces = tessellated_preview(model_data)
         v_bytes = np.asarray(verts, dtype=np.float32).tobytes()
         f_bytes = np.asarray(faces, dtype=np.uint32).tobytes()
         v_b64 = base64.b64encode(v_bytes).decode("ascii")
@@ -59,17 +59,24 @@ class Model3dApiMixin:
         # Slice 3D model across one or more geometric cutting planes.
         require(params, "file_path", "planes", "output_dir")
         file_path = str(params["file_path"])
-        planes = list(params["planes"])
+        planes_list = list(params["planes"])
         out_dir = str(params["output_dir"])
-        m3d = load(file_path)
-        cuts = [(tuple(p["origin"]), tuple(p["normal"])) for p in planes]
-        pieces = cut_multi(m3d, cuts)
+        cap_solid = bool(params.get("cap", True))
+        model_data = load(file_path)
+        cuts = [(tuple(item["origin"]), tuple(item["normal"])) for item in planes_list]
+        pieces = cut_multi(model_data, cuts, cap=cap_solid)
         results: list[str] = []
-        for i, piece in enumerate(pieces):
-            out_p = f"{out_dir}/piece_{i+1}.stl"
-            export(piece, out_p)
-            results.append(out_p)
-        return ok(pieces=results, count=len(results))
+        piece_stats: list[dict[str, Any]] = []
+        for piece_index, piece in enumerate(pieces):
+            piece_path = f"{out_dir}/piece_{piece_index + 1}.stl"
+            export(piece, piece_path)
+            results.append(piece_path)
+            piece_stats.append({
+                "piece_index": piece_index + 1,
+                "path": piece_path,
+                "info": info(piece),
+            })
+        return ok(pieces=results, count=len(results), details=piece_stats)
 
     @api_method
     def model3d_cut_mesh(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -81,12 +88,12 @@ class Model3dApiMixin:
         # Repair non-manifold edges, invert normals, and fix holes in mesh.
         require(params, "file_path", "output_path")
         file_path = str(params["file_path"])
-        out_p = str(params["output_path"])
-        m3d = load(file_path)
-        repaired = repair(m3d)
-        export(repaired, out_p)
+        output_path = str(params["output_path"])
+        model_data = load(file_path)
+        repaired = repair(model_data)
+        export(repaired, output_path)
         new_stats = info(repaired)
-        return ok(output_path=out_p, info=new_stats)
+        return ok(output_path=output_path, info=new_stats)
 
     @api_method
     def model3d_repair_mesh(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -96,15 +103,23 @@ class Model3dApiMixin:
     @api_method
     def model3d_scale(self, params: dict[str, Any]) -> dict[str, Any]:
         # Rescale model dimensions by uniform or axis-specific factors.
-        require(params, "file_path", "factor", "output_path")
+        require(params, "file_path", "output_path")
         file_path = str(params["file_path"])
-        factor = float(params["factor"])
-        out_p = str(params["output_path"])
-        m3d = load(file_path)
-        scaled = scale(m3d, factor)
-        export(scaled, out_p)
+        output_path = str(params["output_path"])
+        model_data = load(file_path)
+        if "factor_x" in params or "factor_y" in params or "factor_z" in params:
+            factor_val = float(params.get("factor", 1.0))
+            factor_x = float(params.get("factor_x", factor_val))
+            factor_y = float(params.get("factor_y", factor_val))
+            factor_z = float(params.get("factor_z", factor_val))
+            scaled = scale(model_data, factor_x, factor_y, factor_z)
+        else:
+            require(params, "factor")
+            factor = float(params["factor"])
+            scaled = scale(model_data, factor)
+        export(scaled, output_path)
         new_stats = info(scaled)
-        return ok(output_path=out_p, info=new_stats)
+        return ok(output_path=output_path, info=new_stats)
 
     @api_method
     def model3d_scale_mesh(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -115,20 +130,20 @@ class Model3dApiMixin:
     def model3d_measure(self, params: dict[str, Any]) -> dict[str, Any]:
         # Calculate Euclidean distance between two selected 3D coordinates.
         require(params, "p1", "p2")
-        p1 = tuple(float(v) for v in params["p1"])
-        p2 = tuple(float(v) for v in params["p2"])
-        dist = measure_distance(p1, p2)
-        return ok(distance=round(dist, 4))
+        point_1 = tuple(float(coord_val) for coord_val in params["p1"])
+        point_2 = tuple(float(coord_val) for coord_val in params["p2"])
+        measured_distance = measure_distance(point_1, point_2)
+        return ok(distance=round(measured_distance, 4))
 
     @api_method
     def model3d_export(self, params: dict[str, Any]) -> dict[str, Any]:
         # Convert and export 3D model to STL, OBJ, or PLY format.
         require(params, "file_path", "output_path")
         file_path = str(params["file_path"])
-        out_p = str(params["output_path"])
+        output_path = str(params["output_path"])
         fmt = params.get("format")
-        m3d = load(file_path)
-        res_p = export(m3d, out_p, fmt=str(fmt) if fmt else None)
+        model_data = load(file_path)
+        res_p = export(model_data, output_path, fmt=str(fmt) if fmt else None)
         return ok(output_path=res_p)
 
     @api_method
@@ -136,11 +151,14 @@ class Model3dApiMixin:
         # Re-center geometry at origin (0, 0, 0) and export centered mesh.
         require(params, "file_path", "output_path")
         file_path = str(params["file_path"])
-        out_p = str(params["output_path"])
-        m3d = load(file_path)
-        if m3d.backend == "mesh" and m3d.mesh is not None:
-            center = (m3d.mesh.bounds[0] + m3d.mesh.bounds[1]) / 2.0
-            m3d.mesh.apply_translation(-center)
-        export(m3d, out_p)
-        new_stats = info(m3d)
-        return ok(output_path=out_p, info=new_stats)
+        output_path = str(params["output_path"])
+        model_data = load(file_path)
+        if model_data.backend == "mesh" and model_data.mesh is not None:
+            center = (model_data.mesh.bounds[0] + model_data.mesh.bounds[1]) / 2.0
+            model_data.mesh.apply_translation(-center)
+        elif model_data.backend == "brep" and model_data.shape is not None:
+            from app.features.model3d import brep_backend
+            model_data.shape = brep_backend.brep_center(model_data.shape)
+        export(model_data, output_path)
+        new_stats = info(model_data)
+        return ok(output_path=output_path, info=new_stats)

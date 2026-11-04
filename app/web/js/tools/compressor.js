@@ -1,4 +1,4 @@
-// Centralized File Compressor: compress PDF documents, images, audio, video, and archives in one place.
+// Centralized File Compressor: compress PDF documents, images, audio, video, and archives.
 window.FOSS = window.FOSS || {};
 
 (function () {
@@ -10,30 +10,12 @@ window.FOSS = window.FOSS || {};
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 
-  function detectCategory(path) {
-    if (!path) return "Unknown";
-    var ext = path.split(".").pop().toLowerCase();
-    if (ext === "pdf") return "PDF";
-    if (["png", "jpg", "jpeg", "webp", "bmp", "tiff", "gif", "avif"].indexOf(ext) >= 0) return "Image";
-    if (["mp4", "mkv", "mov", "avi", "webm", "mp3", "wav", "aac", "ogg", "flac", "m4a"].indexOf(ext) >= 0) return "Media";
-    if (["zip", "tar", "gz", "bz2", "7z"].indexOf(ext) >= 0) return "Archive";
-    return "Other";
-  }
-
-  function renderSingle(panel, ctx) {
+  function renderCompressor(panel, ctx) {
     panel.innerHTML = "";
     panel.setAttribute("data-testid", "compressor-page");
 
-    var currentFile = "";
-    var currentCat = "Unknown";
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Universal File Compressor" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Compress any PDF, image, video, audio file, or archive locally with optimal compression engines."
-      })
-    ]);
+    var queueItems = [];
+    var isCompressing = false;
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted mb-sm",
@@ -53,7 +35,6 @@ window.FOSS = window.FOSS || {};
       var span = errorBanner.querySelector(".banner-msg");
       if (span) span.textContent = msg;
       errorBanner.classList.remove("hidden");
-      statusBar.textContent = "Error: " + msg;
     }
 
     function clearError() {
@@ -76,233 +57,439 @@ window.FOSS = window.FOSS || {};
       resultHost.classList.remove("hidden");
     }
 
-    var fileDisplay = window.FOSS.dom.el("div", {
-      className: "font-mono text-sm text-muted grow",
-      "data-testid": "compressor-file-display",
-      "data-truncate-ok": "true",
-      title: "No file selected",
-      text: "No file selected"
+    // Left Column: Compression Settings
+    var presetSelect = window.FOSS.dom.el("select", {
+      className: "input",
+      "data-testid": "compressor-preset-select",
+      "aria-label": "Compression Preset",
+      title: "Compression Preset",
+      onChange: function () {
+        updateRatioEstimate();
+      }
+    }, [
+      window.FOSS.dom.el("option", { value: "light", text: "Low (Fast)" }),
+      window.FOSS.dom.el("option", { value: "balanced", text: "Medium (Balanced)", selected: "selected" }),
+      window.FOSS.dom.el("option", { value: "aggressive", text: "High (Maximum Compression)" })
+    ]);
+
+    var ratioEstimateReadout = window.FOSS.dom.el("div", {
+      className: "text-xs font-mono text-muted p-2 rounded bg-neutral",
+      "data-testid": "compressor-ratio-estimate",
+      text: "Estimated ratio: ~30-50% reduction (Medium / Balanced)"
     });
 
-    var typeBadge = window.FOSS.dom.el("span", {
-      className: "badge badge-neutral",
-      "data-testid": "compressor-type-badge",
-      text: "Auto-detect"
+    function updateRatioEstimate() {
+      var val = presetSelect.value;
+      if (val === "light") {
+        ratioEstimateReadout.textContent = "Estimated ratio: ~15-30% reduction (Low / Fast)";
+      } else if (val === "aggressive") {
+        ratioEstimateReadout.textContent = "Estimated ratio: ~50-75% reduction (High / Maximum Compression)";
+      } else {
+        ratioEstimateReadout.textContent = "Estimated ratio: ~30-50% reduction (Medium / Balanced)";
+      }
+    }
+
+    var pngQuantizeCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      className: "checkbox checkbox-sm",
+      "data-testid": "compressor-png-quantize",
+      "aria-label": "Quantize PNG Palette",
+      title: "Quantize PNG Palette",
+      checked: true
     });
 
-    var chooseBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
+    var maxDimInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input font-mono text-xs",
+      "data-testid": "compressor-max-dim",
+      placeholder: "e.g. 1920 (optional)",
+      "aria-label": "Max Image Dimension",
+      title: "Max Image Dimension"
+    });
+
+    var targetMbInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input font-mono text-xs",
+      "data-testid": "compressor-target-mb",
+      placeholder: "e.g. 25 (optional)",
+      "aria-label": "Target Video Size MB",
+      title: "Target Video Size MB"
+    });
+
+    var outputDirInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input font-mono text-xs grow",
+      "data-testid": "compressor-out-dir",
+      placeholder: "Default: next to source (_compressed)",
+      "aria-label": "Output Folder",
+      title: "Output Folder"
+    });
+
+    var browseDirBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "compressor-browse-dir-btn",
+      type: "button",
+      onClick: function () {
+        window.FOSS.api("select_folder", { title: "Select Output Folder" }).then(function (res) {
+          if (res && res.path) outputDirInput.value = res.path;
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Browse..." })]);
+
+    var runBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      "data-testid": "compressor-run-btn",
+      type: "button",
+      onClick: function () {
+        executeCompression();
+      }
+    }, [window.FOSS.icons.el("download", 16), window.FOSS.dom.el("span", { text: "Compress Items" })]);
+
+    var sidebarCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Compression Settings" }),
+      window.FOSS.components.field("Preset", presetSelect),
+      ratioEstimateReadout,
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+        pngQuantizeCheck,
+        window.FOSS.dom.el("label", {
+          className: "text-xs font-semibold cursor-pointer",
+          text: "Quantize PNG Palette (50-75% smaller)"
+        })
+      ]),
+      window.FOSS.components.field("Max Image Dimension (px)", maxDimInput),
+      window.FOSS.components.field("Target Video Size (MB)", targetMbInput),
+      window.FOSS.dom.el("div", { className: "flex-col gap-1" }, [
+        window.FOSS.dom.el("label", { className: "text-xs font-semibold text-muted", text: "Output Folder" }),
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [outputDirInput, browseDirBtn])
+      ]),
+      runBtn
+    ]);
+
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "compressor-sidebar-pane",
+      style: "width: 100%; min-width: 0;"
+    }, [sidebarCard]);
+
+    // Right Column: Queue & Savings Table
+    var addFilesBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
       "data-testid": "compressor-choose-file",
-      "aria-label": "Choose file",
-      title: "Choose file",
       type: "button",
       onClick: function () {
         clearError();
-        window.FOSS.api("select_file", {}).then(function (res) {
+        window.FOSS.api("select_files", { title: "Select Files to Compress" }).then(function (res) {
           if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          loadFile(res.paths[0]);
+          addPathsToQueue(res.paths);
         });
       }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Choose File" })
-    ]);
+    }, [window.FOSS.icons.el("file-plus", 14), window.FOSS.dom.el("span", { text: "Add Files..." })]);
 
-    var fileCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" }, [
-      window.FOSS.dom.el("div", { className: "flex items-center justify-between flex-wrap gap-2" }, [
-        fileDisplay,
-        window.FOSS.dom.el("div", { className: "row gap-sm items-center" }, [typeBadge, chooseBtn])
-      ])
-    ]);
-
-    // Compression settings options
-    var pdfLevelSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "compressor-pdf-level",
-      "aria-label": "PDF Compression level"
-    }, [
-      window.FOSS.dom.el("option", { value: "lossless", text: "Lossless (remove duplicate metadata & objects)" }),
-      window.FOSS.dom.el("option", { value: "medium", text: "Balanced (downscale images to 150 DPI)" }),
-      window.FOSS.dom.el("option", { value: "max", text: "Maximum (downscale images to 72 DPI)" })
-    ]);
-
-    var imageQualitySlider = window.FOSS.components.slider({
-      testid: "compressor-image-quality",
-      label: "Image Quality (JPEG / WebP)",
-      min: 10,
-      max: 100,
-      step: 5,
-      value: 80,
-      unit: "%"
-    });
-
-    var mediaTargetInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input input-sm",
-      "data-testid": "compressor-media-target-mb",
-      "aria-label": "Target size in MB",
-      value: "25",
-      style: "width: 6rem;"
-    });
-
-    var mediaPresetSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "compressor-media-preset",
-      "aria-label": "Media compression speed"
-    }, [
-      window.FOSS.dom.el("option", { value: "medium", text: "Balanced (medium speed & size)" }),
-      window.FOSS.dom.el("option", { value: "fast", text: "Fast Encoding" }),
-      window.FOSS.dom.el("option", { value: "veryslow", text: "Maximum Compression (smaller size)" })
-    ]);
-
-    var optionsContainer = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-3",
-      "data-testid": "compressor-options-card"
-    }, [
-      window.FOSS.dom.el("span", { className: "card-title", text: "Compression Settings" }),
-      window.FOSS.dom.el("div", {
-        className: "text-xs text-muted",
-        "data-testid": "compressor-options-hint",
-        text: "Select a file above to configure compression settings."
-      })
-    ]);
-
-    function loadFile(path) {
-      currentFile = path;
-      fileDisplay.textContent = path;
-      fileDisplay.title = path;
-      currentCat = detectCategory(path);
-      typeBadge.textContent = currentCat;
-      clearError();
-      updateOptionsView();
-    }
-
-    function updateOptionsView() {
-      optionsContainer.innerHTML = "";
-      optionsContainer.appendChild(window.FOSS.dom.el("span", { className: "card-title", text: currentCat + " Compression Settings" }));
-
-      if (currentCat === "PDF") {
-        optionsContainer.appendChild(window.FOSS.dom.el("label", { className: "text-sm text-muted", text: "Compression Level" }));
-        optionsContainer.appendChild(pdfLevelSelect);
-      } else if (currentCat === "Image") {
-        optionsContainer.appendChild(imageQualitySlider.el);
-      } else if (currentCat === "Media") {
-        optionsContainer.appendChild(window.FOSS.dom.el("div", { className: "row gap-sm items-center" }, [
-          window.FOSS.dom.el("label", { className: "text-sm text-muted", text: "Target File Size:" }),
-          mediaTargetInput,
-          window.FOSS.dom.el("span", { className: "text-sm text-muted", text: "MB (for Discord, Email, or Slack)" })
-        ]));
-        optionsContainer.appendChild(window.FOSS.dom.el("label", { className: "text-sm text-muted", text: "Encoding Speed / Effort" }));
-        optionsContainer.appendChild(mediaPresetSelect);
-      } else {
-        optionsContainer.appendChild(window.FOSS.dom.el("p", {
-          className: "text-xs text-muted",
-          text: "Standard compression will be applied using local ZIP/archive deflate algorithms."
-        }));
+    var addFolderBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "compressor-add-folder-btn",
+      type: "button",
+      onClick: function () {
+        clearError();
+        window.FOSS.api("select_folder", { title: "Select Folder to Compress" }).then(function (res) {
+          if (!res || res.cancelled || !res.path) return;
+          addPathsToQueue([res.path]);
+        });
       }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
 
-      var compressBtn = window.FOSS.dom.el("button", {
-        className: "btn btn-primary btn-sm",
-        "data-testid": "compressor-run-btn",
-        "aria-label": "Compress file",
-        title: "Compress file",
-        type: "button",
-        onClick: runCompression
-      }, [
-        window.FOSS.icons.el("download", 16),
-        window.FOSS.dom.el("span", { text: "Compress File" })
-      ]);
+    var clearBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "data-testid": "compressor-clear-btn",
+      type: "button",
+      onClick: function () {
+        queueItems = [];
+        renderQueueTable();
+      }
+    }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear" })]);
 
-      optionsContainer.appendChild(window.FOSS.dom.el("div", { className: "row mt-sm" }, [compressBtn]));
+    function addPathsToQueue(paths) {
+      statusBar.textContent = "Scanning input files...";
+      window.FOSS.api("compressor_scan_inputs", {
+        paths: paths,
+        recursive: true
+      }).then(function (res) {
+        if (!res || !res.items) return;
+        res.items.forEach(function (it) {
+          var exists = queueItems.some(function (q) { return q.path === it.path; });
+          if (!exists) {
+            queueItems.push({
+              path: it.path,
+              name: it.name,
+              category: it.category || "General",
+              size_bytes: it.size_bytes || 0,
+              compressed_bytes: 0,
+              saved_bytes: 0,
+              saved_pct: 0,
+              status: "Queued",
+              output_path: ""
+            });
+          }
+        });
+        renderQueueTable();
+        statusBar.textContent = "Queue: " + queueItems.length + " item(s) ready";
+      }).catch(function (err) {
+        showError((err && err.message) || String(err));
+      });
     }
 
-    function runCompression() {
-      if (!currentFile) {
-        showError("Please select a file to compress.");
+    var tableHost = window.FOSS.dom.el("div", {
+      className: "table-wrap grow flex-col gap-2",
+      "data-testid": "compressor-queue-table",
+      style: "min-width: 0; width: 100%; box-sizing: border-box;"
+    });
+
+    var savingsBanner = window.FOSS.dom.el("div", {
+      className: "text-xs font-mono text-muted p-2 rounded bg-neutral hidden",
+      "data-testid": "compressor-savings-banner",
+      text: ""
+    });
+
+    function renderQueueTable() {
+      tableHost.innerHTML = "";
+      if (queueItems.length === 0) {
+        tableHost.appendChild(window.FOSS.dom.el("div", {
+          className: "text-muted text-sm p-8 text-center font-mono",
+          text: "Compression queue is empty. Click Add Files or Add Folder above."
+        }));
+        runBtn.textContent = "Compress Items";
+        runBtn.disabled = true;
+        savingsBanner.classList.add("hidden");
         return;
       }
+
+      runBtn.textContent = "Compress " + queueItems.length + " Items";
+      runBtn.disabled = false;
+
+      var rows = queueItems.map(function (it, idx) {
+        var savingsBadge;
+        if (it.status === "Done") {
+          if (it.saved_bytes > 0) {
+            savingsBadge = window.FOSS.dom.el("span", {
+              className: "badge badge-success text-xs font-mono",
+              style: "white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;",
+              "data-truncate-ok": "true",
+              title: "-" + it.saved_pct + "% (" + formatBytes(it.saved_bytes) + ")",
+              text: "-" + it.saved_pct + "%"
+            });
+          } else {
+            savingsBadge = window.FOSS.dom.el("span", {
+              className: "badge badge-neutral text-xs font-mono",
+              style: "white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;",
+              "data-truncate-ok": "true",
+              title: "Optimal file size",
+              text: "Optimal"
+            });
+          }
+        } else if (it.status === "Failed") {
+          savingsBadge = window.FOSS.dom.el("span", {
+            className: "badge badge-danger text-xs",
+            style: "white-space: nowrap;",
+            text: "Failed"
+          });
+        } else if (it.status === "Compressing...") {
+          savingsBadge = window.FOSS.dom.el("span", {
+            className: "badge badge-warning text-xs",
+            style: "white-space: nowrap;",
+            text: "Working..."
+          });
+        } else {
+          savingsBadge = window.FOSS.dom.el("span", {
+            className: "badge badge-neutral text-xs",
+            style: "white-space: nowrap;",
+            text: "Queued"
+          });
+        }
+
+        var removeBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-icon btn-ghost btn-sm",
+          style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
+          "aria-label": "Remove from queue",
+          title: "Remove from queue",
+          onClick: function () {
+            queueItems.splice(idx, 1);
+            renderQueueTable();
+          }
+        }, [window.FOSS.icons.el("x", 14)]);
+
+        return window.FOSS.dom.el("tr", {}, [
+          window.FOSS.dom.el("td", {
+            className: "font-semibold text-sm",
+            style: "width: 30%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: it.name,
+            "data-truncate-ok": "true",
+            title: it.path
+          }),
+          window.FOSS.dom.el("td", {
+            className: "text-xs text-muted",
+            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: it.category,
+            "data-truncate-ok": "true",
+            title: it.category
+          }),
+          window.FOSS.dom.el("td", {
+            className: "text-xs font-mono text-muted",
+            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: formatBytes(it.size_bytes),
+            "data-truncate-ok": "true",
+            title: formatBytes(it.size_bytes)
+          }),
+          window.FOSS.dom.el("td", {
+            className: "text-xs font-mono",
+            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: it.compressed_bytes > 0 ? formatBytes(it.compressed_bytes) : "-",
+            "data-truncate-ok": "true",
+            title: it.compressed_bytes > 0 ? formatBytes(it.compressed_bytes) : "-"
+          }),
+          window.FOSS.dom.el("td", {
+            style: "width: 25%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            "data-truncate-ok": "true",
+            title: "-" + it.saved_pct + "%"
+          }, [savingsBadge]),
+          window.FOSS.dom.el("td", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;" }, [removeBtn])
+        ]);
+      });
+
+      var table = window.FOSS.dom.el("table", {
+        className: "table w-full",
+        style: "table-layout: fixed; width: 100%; min-width: 0;"
+      }, [
+        window.FOSS.dom.el("thead", {}, [
+          window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("th", { style: "width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "File", "data-truncate-ok": "true", title: "File" }),
+            window.FOSS.dom.el("th", { style: "width: 15%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Type", "data-truncate-ok": "true", title: "Type" }),
+            window.FOSS.dom.el("th", { style: "width: 15%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Orig", "data-truncate-ok": "true", title: "Original" }),
+            window.FOSS.dom.el("th", { style: "width: 15%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Comp", "data-truncate-ok": "true", title: "Compressed" }),
+            window.FOSS.dom.el("th", { style: "width: 25%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Saved", "data-truncate-ok": "true", title: "Savings" }),
+            window.FOSS.dom.el("th", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;", text: "", "data-truncate-ok": "true", title: "Actions" })
+          ])
+        ]),
+        window.FOSS.dom.el("tbody", {}, rows)
+      ]);
+
+      tableHost.appendChild(table);
+    }
+
+    function executeCompression() {
+      if (queueItems.length === 0 || isCompressing) return;
+      isCompressing = true;
       clearError();
-      statusBar.textContent = "Compressing " + currentCat.toLowerCase() + " file...";
+      statusBar.textContent = "Compressing items...";
 
-      var ext = currentFile.split(".").pop();
-      var defaultOut = currentFile.replace(/\.[^/.]+$/, "") + "_compressed." + ext;
+      queueItems.forEach(function (it) { it.status = "Compressing..."; });
+      renderQueueTable();
 
-      if (currentCat === "PDF") {
-        var lvl = pdfLevelSelect.value;
-        window.FOSS.api("pdf_compress", {
-          input_path: currentFile,
-          output_path: defaultOut,
-          level: lvl
+      var pset = presetSelect.value;
+      var qPng = pngQuantizeCheck.checked;
+      var maxDim = parseInt(maxDimInput.value, 10) || undefined;
+      var targetMb = parseInt(targetMbInput.value, 10) || undefined;
+      var outDir = outputDirInput.value.trim();
+
+      function runBatchWithCustomPath(customPath) {
+        window.FOSS.api("compressor_compress_items", {
+          items: queueItems.map(function (it) {
+            return {
+              path: it.path,
+              category: it.category,
+              output_path: customPath || undefined
+            };
+          }),
+          preset: pset,
+          lossy_png: qPng,
+          max_dimension: maxDim,
+          target_size_mb: targetMb,
+          output_dir: outDir || undefined
         }).then(function (res) {
-          if (res && res.output_path) {
-            statusBar.textContent = "Compressed PDF successfully: " + res.output_path;
-            showResult(res.output_path, "PDF Compressed Successfully");
+          isCompressing = false;
+          if (res && res.results) {
+            res.results.forEach(function (r, i) {
+              if (queueItems[i]) {
+                queueItems[i].status = r.ok ? "Done" : "Failed";
+                queueItems[i].compressed_bytes = r.compressed_bytes || 0;
+                queueItems[i].saved_bytes = r.saved_bytes || 0;
+                queueItems[i].saved_pct = r.saved_pct || 0;
+                queueItems[i].output_path = r.output_path || "";
+              }
+            });
+            statusBar.textContent = "Compression complete (" + (res.succeeded || 0) + " succeeded, " + (res.failed || 0) + " failed)";
+            if (res.total_original_bytes > 0) {
+              var bannerText = "Total Reduced: " + formatBytes(res.total_original_bytes) + " -> " + formatBytes(res.total_compressed_bytes) +
+                " (Saved " + formatBytes(res.total_saved_bytes) + " / " + res.total_saved_pct + "%)";
+              savingsBanner.textContent = bannerText;
+              savingsBanner.classList.remove("hidden");
+            }
+            if (res.results.length === 1 && res.results[0].output_path) {
+              showResult(res.results[0].output_path, "Item Compressed Successfully");
+            }
           } else {
-            showError("Failed to compress PDF.");
+            statusBar.textContent = "Compression complete";
           }
+          renderQueueTable();
         }).catch(function (err) {
-          showError(err.message || "Compression error.");
+          isCompressing = false;
+          showError((err && err.message) || String(err));
+          statusBar.textContent = "Compression error";
         });
-      } else if (currentCat === "Image") {
-        var q = imageQualitySlider.getValue ? imageQualitySlider.getValue() : 80;
-        window.FOSS.api("images_compress", {
-          file_path: currentFile,
-          output_path: defaultOut,
-          quality: q
+      }
+
+      if (queueItems.length === 1) {
+        var baseName = queueItems[0].name;
+        var ext = baseName.lastIndexOf(".") !== -1 ? baseName.substring(baseName.lastIndexOf(".")) : "";
+        var stem = ext ? baseName.substring(0, baseName.lastIndexOf(".")) : baseName;
+        window.FOSS.api("select_save_path", {
+          title: "Save Compressed File",
+          default_name: stem + "_compressed" + ext
         }).then(function (res) {
-          if (res && res.output_path) {
-            statusBar.textContent = "Compressed image successfully: " + res.output_path;
-            showResult(res.output_path, "Image Compressed Successfully");
-          } else {
-            showError("Failed to compress image.");
-          }
-        }).catch(function (err) {
-          showError(err.message || "Compression error.");
-        });
-      } else if (currentCat === "Media") {
-        var mb = parseInt(mediaTargetInput.value, 10) || 25;
-        var pset = mediaPresetSelect.value || "medium";
-        window.FOSS.api("media_compress", {
-          file_path: currentFile,
-          output_path: defaultOut,
-          target_size_mb: mb,
-          preset: pset
-        }).then(function (res) {
-          if (res && res.output_path) {
-            statusBar.textContent = "Compressed media successfully: " + res.output_path;
-            showResult(res.output_path, "Media Compressed Successfully");
-          } else {
-            showError("Failed to compress media.");
-          }
-        }).catch(function (err) {
-          showError(err.message || "Compression error.");
+          var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
+          runBatchWithCustomPath(p);
+        }).catch(function () {
+          runBatchWithCustomPath("");
         });
       } else {
-        // Fallback to archive compression
-        var archiveOut = currentFile + ".zip";
-        window.FOSS.api("archive_create", {
-          file_paths: [currentFile],
-          output_path: archiveOut,
-          format: "zip"
-        }).then(function (res) {
-          if (res && res.output_path) {
-            statusBar.textContent = "Compressed archive created: " + res.output_path;
-            showResult(res.output_path, "Archive Compressed Successfully");
-          } else {
-            showError("Failed to create compressed archive.");
-          }
-        }).catch(function (err) {
-          showError(err.message || "Compression error.");
-        });
+        runBatchWithCustomPath("");
       }
     }
 
-    panel.appendChild(header);
+    var stageCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow",
+      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
+    }, [
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
+        window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap" }, [
+          addFilesBtn,
+          addFolderBtn
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [clearBtn])
+      ]),
+      tableHost,
+      savingsBanner
+    ]);
+
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "compressor-stage-pane grow",
+      style: "width: 100%; min-width: 0;"
+    }, [stageCard]);
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable compressor-workbench"
+    }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stageWrapper
+    ]);
+
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
     panel.appendChild(resultHost);
-    panel.appendChild(fileCard);
-    panel.appendChild(optionsContainer);
+    panel.appendChild(split);
+
+    renderQueueTable();
   }
 
   window.FOSS.router.register({
@@ -311,17 +498,13 @@ window.FOSS = window.FOSS || {};
     navName: "Compressor",
     category: "Utilities",
     icon: "download",
-    workbench: false,
+    workbench: true,
     tabs: [
-      { id: "single", label: "File Compressor", render: renderSingle }
+      { id: "main", label: "File Compressor", aliases: ["single"], render: renderCompressor }
     ],
     onFiles: function (paths, ctx) {
-      if (paths && paths.length > 0) {
-        var inEl = document.querySelector("[data-testid='compressor-file-display']");
-        if (inEl) {
-          renderSingle(document.querySelector("[data-testid='compressor-page']") || document.body, ctx);
-        }
-      }
+      if (!paths || !paths.length) return;
+      window.FOSS.router.open("compressor", "main");
     }
   });
 })();

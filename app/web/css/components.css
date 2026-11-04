@@ -6,6 +6,8 @@
   align-items: center;
   justify-content: center;
   height: var(--control-h);
+  min-height: var(--control-h);
+  flex-shrink: 0;
   padding-inline: var(--space-4);
   gap: var(--space-2);
   border-radius: var(--radius-md);
@@ -99,6 +101,7 @@
 
 .btn-sm {
   height: var(--control-h-sm);
+  min-width: var(--control-h-sm);
   padding-inline: var(--space-2);
   font-size: var(--text-xs);
 }
@@ -144,10 +147,14 @@
   width: 100%;
 }
 
+.row > .field {
+  width: auto;
+  flex: 1 1 10rem;
+}
+
 .field label {
   font-size: var(--text-xs);
   font-weight: 600;
-  text-transform: capitalize;
   letter-spacing: 0.02em;
   color: var(--text-muted);
 }
@@ -168,7 +175,8 @@ input[type="number"],
 input[type="email"],
 select,
 textarea,
-.input {
+.input,
+.select {
   height: var(--control-h);
   padding-inline: var(--space-3);
   background-color: var(--bg-input);
@@ -217,6 +225,8 @@ select {
   gap: var(--space-3);
   text-align: center;
   cursor: pointer;
+  max-width: 100%;
+  box-sizing: border-box;
   transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
 }
 
@@ -226,11 +236,16 @@ select {
   background-color: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
 }
 
+.file-picker .stack {
+  max-width: 100%;
+  min-width: 0;
+}
+
 .file-picker .picker-name {
   font-size: var(--text-md);
   font-weight: 600;
   color: var(--text);
-  max-width: 25rem;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -239,7 +254,7 @@ select {
 .file-picker .picker-path {
   font-size: var(--text-xs);
   color: var(--text-muted);
-  max-width: 30rem;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -275,6 +290,8 @@ select {
 
 .segmented button {
   height: var(--control-h-sm);
+  min-height: var(--control-h-sm);
+  flex-shrink: 0;
   padding-inline: var(--space-3);
   border: none;
   background-color: transparent;
@@ -330,6 +347,11 @@ select {
   background-color: var(--text);
   border-radius: 50%;
   transition: transform var(--dur-fast) var(--ease);
+}
+
+.switch input:focus-visible + .switch-slider {
+  outline: 0.125rem solid var(--focus);
+  outline-offset: 0.125rem;
 }
 
 .switch input:checked + .switch-slider {
@@ -407,6 +429,13 @@ table.table tbody tr:hover {
 }
 
 /* Badges and Chips */
+.badge-neutral,
+.badge.badge-neutral {
+  background-color: var(--bg-raised);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -510,6 +539,19 @@ table.table tbody tr:hover {
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.result-card .result-path {
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .result-card .result-title {
@@ -617,17 +659,19 @@ table.table tbody tr:hover {
 /* Cards and Panels */
 .card {
   background-color: var(--bg-surface);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--space-5);
+  padding: var(--space-4);
   box-shadow: var(--shadow-1);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  resize: both;
-  overflow: auto;
-  min-width: 12rem;
-  min-height: 4rem;
+  min-width: 0;
+}
+
+.card-compact {
+  padding: var(--space-3);
+  gap: var(--space-2);
 }
 
 .card-title {
@@ -640,16 +684,15 @@ table.table tbody tr:hover {
 .panel {
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   container-type: inline-size;
-  resize: both;
-  overflow: auto;
-  min-width: 12rem;
-  min-height: 4rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Tooltip */

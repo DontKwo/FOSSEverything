@@ -7,6 +7,8 @@ from typing import Any
 
 from PIL import Image
 
+from app.features.image.ops import load_image
+
 from app.features.palette.ops import (
     ColorSwatch,
     contrast_ratio,
@@ -22,11 +24,11 @@ def _calc_to_rgb(color_val: Any) -> tuple[int, int, int]:
     # Parse color representation into 3-tuple integer RGB channels.
     if isinstance(color_val, (list, tuple)) and len(color_val) >= 3:
         return (int(color_val[0]), int(color_val[1]), int(color_val[2]))
-    val = str(color_val).strip().lstrip("#")
-    if len(val) == 3:
-        val = "".join(c * 2 for c in val)
-    if len(val) == 6:
-        return (int(val[0:2], 16), int(val[2:4], 16), int(val[4:6], 16))
+    hex_clean = str(color_val).strip().lstrip("#")
+    if len(hex_clean) == 3:
+        hex_clean = "".join(char * 2 for char in hex_clean)
+    if len(hex_clean) == 6:
+        return (int(hex_clean[0:2], 16), int(hex_clean[2:4], 16), int(hex_clean[4:6], 16))
     return (0, 0, 0)
 
 
@@ -41,18 +43,17 @@ def calc_rgb_dist_sq(rgb1: tuple[int, int, int], rgb2: tuple[int, int, int]) -> 
 class PaletteApiMixin:
     @api_method
     def palette_load_image(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Load image and return thumbnail data URL and dimensions.
+        # Load image and return crisp thumbnail data URL and dimensions.
         require(params, "image_path")
         img_path = str(params["image_path"])
-        with Image.open(img_path) as raw_img:
-            img = raw_img.convert("RGB")
-            width, height = img.size
-            thumb = img.copy()
-            thumb.thumbnail((800, 600))
-            buf = io.BytesIO()
-            thumb.save(buf, format="PNG")
-            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-            data_url = f"data:image/png;base64,{b64}"
+        img = load_image(img_path).convert("RGB")
+        width, height = img.size
+        thumb = img.copy()
+        thumb.thumbnail((1400, 1400))
+        buf = io.BytesIO()
+        thumb.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        data_url = f"data:image/png;base64,{b64}"
         return ok(data_url=data_url, width=width, height=height, image_path=img_path)
 
     @api_method
@@ -64,20 +65,20 @@ class PaletteApiMixin:
         method = str(params.get("method", "median-cut"))
         if method == "median_cut":
             method = "median-cut"
-        with Image.open(img_path) as raw_img:
-            img = raw_img.convert("RGB")
-            width, height = img.size
-            swatches = extract_palette(img, n_colors=num_colors, method=method)
-            thumb = img.copy()
-            thumb.thumbnail((800, 600))
-            buf = io.BytesIO()
-            thumb.save(buf, format="PNG")
-            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
-            data_url = f"data:image/png;base64,{b64}"
+        img = load_image(img_path).convert("RGB")
+        width, height = img.size
+        swatches = extract_palette(img, n_colors=num_colors, method=method)
+        thumb = img.copy()
+        thumb.thumbnail((1400, 1400))
+        buf = io.BytesIO()
+        thumb.save(buf, format="PNG")
+        b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+        data_url = f"data:image/png;base64,{b64}"
         results = [
             {
                 "hex": s.hex_code.upper(),
                 "rgb": [s.rgb[0], s.rgb[1], s.rgb[2]],
+                "hsl": [s.hsl[0], s.hsl[1], s.hsl[2]] if s.hsl else [0, 0, 0],
                 "percentage": round(s.percentage, 1),
                 "name": s.name or nearest_named_color(s.rgb),
             }
@@ -92,15 +93,22 @@ class PaletteApiMixin:
         img_path = str(params["image_path"])
         x = int(params["x"])
         y = int(params["y"])
-        with Image.open(img_path) as raw_img:
-            img = raw_img.convert("RGB")
-            swatch = sample_pixel_color(img, x, y)
+        img = load_image(img_path).convert("RGB")
+        swatch = sample_pixel_color(img, x, y)
         r_val, g_val, b_val = swatch.rgb
         hex_color = swatch.hex_code.upper()
         c_white = contrast_ratio((r_val, g_val, b_val), (255, 255, 255))
         c_black = contrast_ratio((r_val, g_val, b_val), (0, 0, 0))
         name = swatch.css_name
-        return ok(rgb=[r_val, g_val, b_val], hex=hex_color, contrast_white=round(c_white, 2), contrast_black=round(c_black, 2), name=name)
+        hsl_list = [swatch.hsl[0], swatch.hsl[1], swatch.hsl[2]] if swatch.hsl else [0, 0, 0]
+        return ok(
+            rgb=[r_val, g_val, b_val],
+            hex=hex_color,
+            hsl=hsl_list,
+            contrast_white=round(c_white, 2),
+            contrast_black=round(c_black, 2),
+            name=name,
+        )
 
     @api_method
     def palette_contrast(self, params: dict[str, Any]) -> dict[str, Any]:

@@ -31,6 +31,20 @@ from app.system.shell_integration import (
 from app.web.api.result import api_method, fail, ok, require
 
 
+def format_dialog_file_types(types_param: Any) -> tuple[str, ...]:
+    # Format file extensions for pywebview create_file_dialog.
+    if not types_param:
+        return ('All Files (*.*)',)
+    if isinstance(types_param, str):
+        types_param = [t.strip() for t in types_param.split(',') if t.strip()]
+    if isinstance(types_param, (list, tuple, set)):
+        clean_exts = [str(ext).lstrip('.*').lower() for ext in types_param if str(ext).strip()]
+        if clean_exts:
+            patterns = ';'.join(f'*.{e}' for e in clean_exts)
+            return (f'Supported Files ({patterns})', 'All Files (*.*)')
+    return ('All Files (*.*)',)
+
+
 class BaseApi:
     def __init__(self) -> None:
         self._window: Any = None
@@ -164,7 +178,9 @@ class BaseApi:
     @api_method
     def reset_settings_defaults(self, params: dict[str, Any]) -> dict[str, Any]:
         # Reset user preferences in settings while preserving defaults.
-        reset_user_preferences()
+        reset_all_settings()
+        set_setting("theme", "dark")
+        set_setting("ui_scale", 1.0)
         return ok(message="Settings reset to defaults")
 
     @api_method
@@ -196,7 +212,8 @@ class BaseApi:
         if not self._window:
             return ok(paths=[], cancelled=True)
 
-        res = self._window.create_file_dialog(dialog_type=10)
+        ft = format_dialog_file_types(params.get('file_types'))
+        res = self._window.create_file_dialog(dialog_type=10, file_types=ft)
         if res and len(res) > 0:
             path_str = str(res[0])
             self._record_recent("recent_files", path_str)
@@ -209,22 +226,23 @@ class BaseApi:
         if self._dialog_answers:
             ans = self._dialog_answers.pop(0)
             if not ans:
-                return ok(paths=[], cancelled=True)
+                return ok(paths=[], file_paths=[], cancelled=True)
             paths_list = [str(p) for p in (ans if isinstance(ans, list) else [ans])]
             for p in paths_list:
                 self._record_recent("recent_files", p)
-            return ok(paths=paths_list, cancelled=False)
+            return ok(paths=paths_list, file_paths=paths_list, cancelled=False)
 
         if not self._window:
-            return ok(paths=[], cancelled=True)
+            return ok(paths=[], file_paths=[], cancelled=True)
 
-        res = self._window.create_file_dialog(dialog_type=10, allow_multiple=True)
+        ft = format_dialog_file_types(params.get('file_types'))
+        res = self._window.create_file_dialog(dialog_type=10, allow_multiple=True, file_types=ft)
         if res and len(res) > 0:
             paths_list = [str(p) for p in res]
             for p in paths_list:
                 self._record_recent("recent_files", p)
-            return ok(paths=paths_list, cancelled=False)
-        return ok(paths=[], cancelled=True)
+            return ok(paths=paths_list, file_paths=paths_list, cancelled=False)
+        return ok(paths=[], file_paths=[], cancelled=True)
 
     @api_method
     def select_folder(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -232,35 +250,46 @@ class BaseApi:
         if self._dialog_answers:
             ans = self._dialog_answers.pop(0)
             if not ans:
-                return ok(paths=[], cancelled=True)
-            return ok(paths=[str(ans)], cancelled=False)
+                return ok(paths=[], path="", folder_path="", output_dir="", cancelled=True)
+            p_str = str(ans)
+            return ok(paths=[p_str], path=p_str, folder_path=p_str, output_dir=p_str, cancelled=False)
 
         if not self._window:
-            return ok(paths=[], cancelled=True)
+            return ok(paths=[], path="", folder_path="", output_dir="", cancelled=True)
 
         res = self._window.create_file_dialog(dialog_type=20)
         if res and len(res) > 0:
-            return ok(paths=[str(res[0])], cancelled=False)
-        return ok(paths=[], cancelled=True)
+            p_str = str(res[0])
+            return ok(paths=[p_str], path=p_str, folder_path=p_str, output_dir=p_str, cancelled=False)
+        return ok(paths=[], path="", folder_path="", output_dir="", cancelled=True)
 
     @api_method
     def select_save_path(self, params: dict[str, Any]) -> dict[str, Any]:
         # Open save file path dialog.
+        default_name = str(params.get("default_name", "")).strip()
         if self._dialog_answers:
             ans = self._dialog_answers.pop(0)
             if not ans:
-                return ok(paths=[], path="", cancelled=True)
-            return ok(paths=[str(ans)], path=str(ans), cancelled=False)
+                return ok(paths=[], path="", file_path="", output_path="", cancelled=True)
+            p_str = str(ans)
+            if default_name and "." in default_name:
+                expected_ext = "." + default_name.rsplit(".", 1)[-1].lower()
+                if not p_str.lower().endswith(expected_ext):
+                    p_str = p_str + expected_ext
+            return ok(paths=[p_str], path=p_str, file_path=p_str, output_path=p_str, cancelled=False)
 
         if not self._window:
-            return ok(paths=[], path="", cancelled=True)
+            return ok(paths=[], path="", file_path="", output_path="", cancelled=True)
 
-        default_name = params.get("default_name", "")
         res = self._window.create_file_dialog(dialog_type=30, save_filename=default_name)
         if res:
             p_str = str(res) if isinstance(res, str) else str(res[0])
-            return ok(paths=[p_str], path=p_str, cancelled=False)
-        return ok(paths=[], path="", cancelled=True)
+            if default_name and "." in default_name:
+                expected_ext = "." + default_name.rsplit(".", 1)[-1].lower()
+                if not p_str.lower().endswith(expected_ext):
+                    p_str = p_str + expected_ext
+            return ok(paths=[p_str], path=p_str, file_path=p_str, output_path=p_str, cancelled=False)
+        return ok(paths=[], path="", file_path="", output_path="", cancelled=True)
 
     @api_method
     def get_theme_palette(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -273,8 +302,10 @@ class BaseApi:
     @api_method
     def read_text_file(self, params: dict[str, Any]) -> dict[str, Any]:
         # Read text content from given file path.
-        require(params, "file_path")
-        content = Path(params["file_path"]).read_text(encoding="utf-8", errors="replace")
+        fp = params.get("file_path") or params.get("path")
+        if not fp:
+            return fail("Parameter 'file_path' or 'path' is required", code="MissingParameter")
+        content = Path(fp).read_text(encoding="utf-8", errors="replace")
         return ok(content=content, text=content)
 
     @api_method
@@ -310,6 +341,11 @@ class BaseApi:
     def select_directory(self, params: dict[str, Any]) -> dict[str, Any]:
         # Alias for selecting folder dialog.
         return self.select_folder(params)
+
+    @api_method
+    def save_file_dialog(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Alias for selecting save path dialog.
+        return self.select_save_path(params)
 
     @api_method
     def open_path(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -402,7 +438,8 @@ class BaseApi:
     @api_method
     def shell_manual_instructions(self, params: dict[str, Any]) -> dict[str, Any]:
         # Return manual instructions for Windows file associations.
-        text = manual_association_instructions()
+        exts = params.get('extensions') or ['.pdf', '.png', '.docx', '.zip']
+        text = manual_association_instructions(exts)
         return ok(instructions=text)
 
     @api_method

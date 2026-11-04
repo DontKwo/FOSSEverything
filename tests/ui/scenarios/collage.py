@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Callable
 from playwright.sync_api import Page, expect
 
@@ -8,7 +9,7 @@ def calc_clear_overlays(page: Page) -> None:
         "if (window.FOSS && window.FOSS.tooltips) window.FOSS.tooltips.hide(); "
         "var t = document.getElementById('tooltip-host'); if (t) t.innerHTML = ''; "
         "var h = document.getElementById('toast-host'); if (h) h.innerHTML = ''; "
-        "var el = document.getElementById('view-root'); if (el) el.scrollTop = 0;"
+        "document.querySelectorAll('.tool-panel-container, #view-root, .workbench, .page, .scroll-main').forEach(function (el) { el.scrollTop = 0; el.scrollLeft = 0; });"
     )
 
 
@@ -27,6 +28,7 @@ def scenario_result(page: Page, fixtures: dict[str, str], api: Any) -> None:
     s1 = fixtures.get("sample.png", "sample.png")
     s2 = fixtures.get("sample2.png", "sample2.png")
     api._dialog_answers.append([s1, s2])
+    api._dialog_answers.append(str(Path(s1).parent / "out_collage.png"))
     page.evaluate("window.FOSS.router.open('collage', 'main')")
     page.click("[data-testid='collage-add-images']")
     page.wait_for_timeout(300)
@@ -68,9 +70,41 @@ def scenario_captions(page: Page, fixtures: dict[str, str], api: Any) -> None:
     calc_clear_overlays(page)
 
 
+def scenario_freeform(page: Page, fixtures: dict[str, str], api: Any) -> None:
+    # Switch to Freeform Layers mode, add images, and test layered export controls.
+    s1 = fixtures.get("sample.png", "sample.png")
+    s2 = fixtures.get("sample2.png", "sample2.png")
+    api._dialog_answers.append([s1, s2])
+    api._dialog_answers.append(str(Path(s1).parent / "out_layers.psd"))
+    page.evaluate("window.FOSS.router.open('collage', 'main')")
+    page.click("[data-testid='collage-mode-toggle-freeform']")
+    page.wait_for_timeout(200)
+
+    canvas = page.locator("[data-testid='collage-freeform-canvas']")
+    expect(canvas).to_be_visible()
+
+    page.click("[data-testid='collage-add-images']")
+    page.wait_for_timeout(300)
+
+    layers_list = page.locator("[data-testid='collage-layers-list']")
+    expect(layers_list).to_contain_text("sample")
+
+    page.click("[data-testid='collage-export-kind-layered']")
+    page.wait_for_timeout(200)
+    fmt = page.locator("[data-testid='collage-layered-format-select']")
+    expect(fmt).to_be_visible()
+
+    page.click("[data-testid='collage-export-layers-btn']")
+    page.wait_for_timeout(300)
+    res = page.locator("[data-testid='collage-result']")
+    expect(res).to_be_visible()
+    calc_clear_overlays(page)
+
+
 SCENARIOS: list[tuple[str, Callable[[Page, dict[str, str], Any], None]]] = [
     ("loaded", scenario_loaded),
     ("result", scenario_result),
     ("error", scenario_error),
     ("captions", scenario_captions),
+    ("freeform", scenario_freeform),
 ]

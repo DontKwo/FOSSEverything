@@ -1,5 +1,6 @@
 import base64
 import io
+import os
 from pathlib import Path
 from typing import Any
 
@@ -8,6 +9,7 @@ from app.features.media.ops import (
     batch_compress_media,
     batch_convert_media,
     batch_extract_audio,
+    change_playback_speed,
     compose_media_with_audio,
     compose_timeline,
     compress_media,
@@ -21,8 +23,10 @@ from app.features.media.ops import (
     get_media_info,
     mute_video,
     parse_subtitle_cues,
+    reverse_media,
     transcribe_audio,
     trim_media,
+    video_to_gif,
 )
 from app.web.api.result import api_method, fail, ok, require
 
@@ -34,9 +38,9 @@ class MediaApiMixin:
         require(params, "file_path")
         file_path = str(params["file_path"])
         info = get_media_info(file_path)
-        dur = float(info.get("duration", 0.0))
+        dur = float(info.get("duration_sec", info.get("duration", 0.0)))
         formatted_dur = format_timestamp(dur)
-        return ok(info=info, duration_formatted=formatted_dur, file_path=file_path)
+        return ok(info=info, duration_formatted=formatted_dur, duration_sec=dur, file_path=file_path)
 
     @api_method
     def media_info(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -58,7 +62,8 @@ class MediaApiMixin:
         out_p = str(params["output_path"])
         start = float(params["start_time"])
         end = float(params["end_time"])
-        res_p = trim_media(in_p, out_p, start, end)
+        fast = bool(params.get("fast_copy", True))
+        res_p = trim_media(in_p, out_p, start_time_sec=start, end_time_sec=end, fast_copy=fast)
         return ok(output_path=res_p)
 
     @api_method
@@ -86,12 +91,21 @@ class MediaApiMixin:
     @api_method
     def media_compress(self, params: dict[str, Any]) -> dict[str, Any]:
         # Compress video to meet target file size limit.
-        require(params, "input_path", "output_path")
-        in_p = str(params["input_path"])
-        out_p = str(params["output_path"])
-        preset = str(params.get("preset", "balanced"))
+        in_p = str(params.get("input_path") or params.get("file_path") or "")
+        if not in_p:
+            raise ValueError("Parameter input_path or file_path is required")
+        out_p = str(params.get("output_path") or Path(in_p).with_stem(Path(in_p).stem + "_compressed"))
+        raw_preset = str(params.get("preset", "balanced")).lower()
+        if raw_preset in ("high", "high_quality", "best", "light"):
+            preset = "high_quality"
+        elif raw_preset in ("low", "small_file", "maximum", "small"):
+            preset = "small_file"
+        else:
+            preset = "balanced"
+        original_bytes = os.path.getsize(in_p) if os.path.exists(in_p) else 0
         res_p = compress_media(in_p, out_p, preset=preset)
-        return ok(output_path=res_p)
+        compressed_bytes = os.path.getsize(res_p) if os.path.exists(res_p) else 0
+        return ok(output_path=res_p, original_bytes=original_bytes, compressed_bytes=compressed_bytes)
 
     @api_method
     def media_mute_video(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -116,8 +130,8 @@ class MediaApiMixin:
         out_p = params.get("output_path")
         if not out_p:
             import tempfile
-            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp:
-                out_p = tmp.name
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_file:
+                out_p = temp_file.name
         res_p = extract_frame(in_p, str(out_p), timestamp_sec=ts)
         from PIL import Image
         with Image.open(res_p) as img:
@@ -133,18 +147,68 @@ class MediaApiMixin:
         return self.media_extract_frame(params)
 
     @api_method
+    def media_speed_reverse(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Change playback speed or reverse audio/video.
+        require(params, "input_path", "output_path")
+        in_p = str(params["input_path"])
+        out_p = str(params["output_path"])
+        speed = float(params.get("speed_factor", 1.0))
+        do_reverse = bool(params.get("reverse", False))
+
+        if do_reverse:
+            if speed != 1.0:
+                import tempfile
+                with tempfile.NamedTemporaryFile(suffix=Path(out_p).suffix, delete=False) as temp_file:
+                    tmp_p = temp_file.name
+                try:
+                    change_playback_speed(in_p, tmp_p, speed_factor=speed)
+                    res_p = reverse_media(tmp_p, out_p)
+                finally:
+                    if os.path.exists(tmp_p):
+                        os.remove(tmp_p)
+            else:
+                res_p = reverse_media(in_p, out_p)
+        else:
+            res_p = change_playback_speed(in_p, out_p, speed_factor=speed)
+
+        return ok(output_path=res_p)
+
+    @api_method
+    def media_video_to_gif(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Convert video clip segment to optimized animated GIF.
+        require(params, "input_path", "output_path")
+        in_p = str(params["input_path"])
+        out_p = str(params["output_path"])
+        start = float(params.get("start_time", 0.0))
+        dur_val = params.get("duration")
+        dur = float(dur_val) if dur_val is not None else None
+        fps = int(params.get("fps", 15))
+        width = int(params.get("width", 480))
+        res_p = video_to_gif(in_p, out_p, start_time=start, duration=dur, fps=fps, width=width)
+        return ok(output_path=res_p)
+
+    @api_method
     def media_transcribe(self, params: dict[str, Any]) -> dict[str, Any]:
         # Transcribe audio track speech to subtitle file (SRT or VTT).
         require(params, "input_path")
         in_p = str(params["input_path"])
-        lang = params.get("language")
-        cues = transcribe_audio(in_p, language=lang)
+        lang = str(params.get("language", "en"))
+        res_dict = transcribe_audio(in_p, language=lang)
+        segments = res_dict.get("segments", [])
         out_p = params.get("output_path")
-        if out_p:
-            generate_subtitle_file(cues, str(out_p))
-        srt_text = generate_subtitles_from_transcription(cues)
-        parsed = parse_subtitle_cues(srt_text)
-        return ok(cues=parsed, srt=srt_text, count=len(parsed), output_path=out_p)
+        if out_p and segments:
+            fmt = str(params.get("subtitle_format", "srt"))
+            generate_subtitles_from_transcription(res_dict, str(out_p), subtitle_format=fmt)
+        parsed = parse_subtitle_cues(res_dict.get("text", "")) if not segments else segments
+        return ok(
+            text=res_dict.get("text", ""),
+            segments=segments,
+            count=len(segments),
+            cues=parsed,
+            status=res_dict.get("status", "success"),
+            warning=res_dict.get("warning", ""),
+            output_path=out_p,
+        )
 
     @api_method
     def media_compose_audio(self, params: dict[str, Any]) -> dict[str, Any]:

@@ -8,10 +8,13 @@ from PIL import Image
 
 def calc_luminance_arr(rgb: np.ndarray) -> np.ndarray:
     # Compute relative luminance matrix for RGB image array.
-    r = rgb[:, :, 0].astype(np.float32)
-    g = rgb[:, :, 1].astype(np.float32)
-    b = rgb[:, :, 2].astype(np.float32)
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    red_channel = rgb[:, :, 0].astype(np.float32)
+    green_channel = rgb[:, :, 1].astype(np.float32)
+    blue_channel = rgb[:, :, 2].astype(np.float32)
+    red_contrib = 0.2126 * red_channel
+    green_contrib = 0.7152 * green_channel
+    blue_contrib = 0.0722 * blue_channel
+    return red_contrib + green_contrib + blue_contrib
 
 
 def analyze(png_path: str, border_rects: list[dict[str, float]] | None = None) -> list[dict[str, Any]]:

@@ -159,6 +159,30 @@ def brep_scale(shape: Any, factor: float) -> Any:
     return BRepBuilderAPI_Transform(shape, trsf, True).Shape()
 
 
+def brep_translate(shape: Any, vec: tuple[float, float, float]) -> Any:
+    # Translate shape by vector (dx, dy, dz), returning a new shape.
+    from OCP.gp import gp_Trsf, gp_Vec
+    from OCP.BRepBuilderAPI import BRepBuilderAPI_Transform
+
+    trsf = gp_Trsf()
+    trsf.SetTranslation(gp_Vec(float(vec[0]), float(vec[1]), float(vec[2])))
+    return BRepBuilderAPI_Transform(shape, trsf, True).Shape()
+
+
+def brep_center(shape: Any) -> Any:
+    # Center shape bounding box at (0, 0, 0).
+    from OCP.Bnd import Bnd_Box
+    from OCP.BRepBndLib import BRepBndLib
+
+    bbox = Bnd_Box()
+    BRepBndLib.Add_s(shape, bbox)
+    xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
+    dx = -float((xmin + xmax) / 2.0)
+    dy = -float((ymin + ymax) / 2.0)
+    dz = -float((zmin + zmax) / 2.0)
+    return brep_translate(shape, (dx, dy, dz))
+
+
 def mesh_to_brep(vertices: np.ndarray, faces: np.ndarray, watertight: bool) -> Any:
     """Build a faceted (planar-triangle) BREP shell/solid from a triangle mesh."""
     from OCP.gp import gp_Pnt

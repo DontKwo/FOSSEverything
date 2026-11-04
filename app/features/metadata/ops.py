@@ -77,8 +77,7 @@ def inspect_metadata(path: str) -> dict[str, str]:
                     metadata[f"Image info: {key}"] = str(value)
             return metadata
     if kind == "Office":
-        from app.features.office import ops as office_ops
-        meta = office_ops.get_office_metadata(path)
+        meta = get_office_metadata(path)
         if not meta:
             meta["Status"] = "No standard metadata found in this Office file."
         return meta
@@ -127,6 +126,8 @@ def editable_keys(path: str) -> set[str]:
         return set(ExifTags.TAGS.values())
     if kind in ("Audio", "Video"):
         return set(MEDIA_TAG_KEYS)
+    if kind == "Office":
+        return {"title", "author", "subject", "keywords"}
     return set()
 
 
@@ -134,15 +135,17 @@ def save_edited_metadata(input_path: str, output_path: str, edits: dict[str, str
     """Write a new file with supported metadata fields changed locally."""
     import shutil
     kind = file_kind(input_path)
+    norm_edits = {str(k).lower(): v for k, v in edits.items()}
     if kind == "PDF":
         with pymupdf.open(input_path) as document:
             metadata = {k: v for k, v in document.metadata.items() if v not in (None, "")}
-            for key, value in edits.items():
-                if key in PDF_METADATA_KEYS:
-                    if value in (None, ""):
-                        metadata.pop(key, None)
-                    else:
-                        metadata[key] = value
+            for key, value in norm_edits.items():
+                for pdf_k in PDF_METADATA_KEYS:
+                    if pdf_k.lower() == key:
+                        if value in (None, ""):
+                            metadata.pop(pdf_k, None)
+                        else:
+                            metadata[pdf_k] = value
             document.set_metadata(metadata)
             document.save(output_path)
         return output_path
@@ -159,6 +162,8 @@ def save_edited_metadata(input_path: str, output_path: str, edits: dict[str, str
                         exif[name_to_tag[name]] = value
             image_ops.save_image(image, output_path, format=format_from_path(output_path), exif=exif.tobytes())
         return output_path
+    if kind == "Office":
+        return save_office_metadata(input_path, output_path, norm_edits)
     if kind in ("Audio", "Video"):
         ext = os.path.splitext(output_path)[1].lower()
         temp_path = output_path + ".tmp"
@@ -214,6 +219,8 @@ def save_edited_metadata(input_path: str, output_path: str, edits: dict[str, str
             raise
         shutil.move(temp_path, output_path)
         return output_path
+    if kind == "Office":
+        return save_office_metadata(input_path, output_path, edits)
 
     raise ValueError(f"Metadata Tools does not support this file format ({os.path.splitext(input_path)[1]}).")
 
@@ -247,8 +254,7 @@ def strip_metadata(input_path: str, output_path: str) -> str:
                 raise RuntimeError(f"Metadata stripping failed:\n{res.stderr}")
         return output_path
     if kind == "Office":
-        from app.features.office import ops as office_ops
-        return office_ops.strip_office_metadata(input_path, output_path)
+        return strip_office_metadata(input_path, output_path)
 
     raise ValueError(f"Metadata Tools does not support this file format ({os.path.splitext(input_path)[1]}).")
 
@@ -327,36 +333,108 @@ def metadata_support_report(path: str) -> dict[str, Any]:
     }
 
 
-def gps_preview_for_metadata(metadata: dict[str, str]) -> dict | None:
-    """Return a Google Maps URL, if GPS coordinates are present in metadata."""
+def extract_gps_info(image_path: str) -> dict[str, Any]:
+    """Read EXIF GPSInfo IFD (0x8825) from an image file and convert to signed decimal degrees."""
+    if not os.path.exists(image_path):
+        return {"has_gps": False}
+    try:
+        with Image.open(image_path) as img:
+            exif = img.getexif()
+            if not exif:
+                return {"has_gps": False}
+            gps_ifd = exif.get_ifd(0x8825)
+            if not gps_ifd:
+                return {"has_gps": False}
+
+            lat_ref = str(gps_ifd.get(1, "N")).upper()
+            lat_dms = gps_ifd.get(2)
+            lon_ref = str(gps_ifd.get(3, "E")).upper()
+            lon_dms = gps_ifd.get(4)
+            alt = gps_ifd.get(6)
+
+            if not lat_dms or not lon_dms:
+                return {"has_gps": False}
+
+            def _to_float(v: Any) -> float:
+                if hasattr(v, "numerator") and hasattr(v, "denominator"):
+                    return float(v.numerator) / float(v.denominator) if v.denominator != 0 else 0.0
+                return float(v)
+
+            lat = _to_float(lat_dms[0]) + _to_float(lat_dms[1]) / 60.0 + _to_float(lat_dms[2]) / 3600.0
+            if lat_ref == "S":
+                lat = -lat
+
+            lon = _to_float(lon_dms[0]) + _to_float(lon_dms[1]) / 60.0 + _to_float(lon_dms[2]) / 3600.0
+            if lon_ref == "W":
+                lon = -lon
+
+            alt_m: float | None = None
+            if alt is not None:
+                try:
+                    alt_m = _to_float(alt)
+                except Exception:
+                    alt_m = None
+
+            formatted = f"{lat:.6f}, {lon:.6f}"
+            maps_url = f"https://www.openstreetmap.org/?mlat={lat:.6f}&mlon={lon:.6f}#map=16/{lat:.6f}/{lon:.6f}"
+            return {
+                "has_gps": True,
+                "lat": lat,
+                "latitude": lat,
+                "lon": lon,
+                "longitude": lon,
+                "altitude_m": alt_m,
+                "formatted": formatted,
+                "maps_url": maps_url,
+            }
+    except Exception:
+        return {"has_gps": False}
+
+
+def strip_any_metadata(input_path: str, output_path: str) -> dict[str, Any]:
+    """Universal metadata stripper returning removed fields count and output path."""
+    before_fields = len(inspect_metadata(input_path))
+    res_path = strip_metadata(input_path, output_path)
+    return {
+        "output_path": res_path,
+        "removed_fields_count": before_fields,
+    }
+
+
+def gps_preview_for_metadata(metadata: dict[str, str], file_path: str = "") -> dict[str, Any] | None:
+    """Return an OpenStreetMap URL if GPS coordinates are present in file or metadata."""
+    if file_path:
+        gps_info = extract_gps_info(file_path)
+        if gps_info.get("has_gps"):
+            return gps_info
+
     gps_values = {str(key).lower(): value for key, value in metadata.items()}
-    candidates = [
-        ("gpslatitude", "gpslatituderef"),
-        ("gpslongitude", "gpslongituderef"),
-    ]
     lat = None
     lon = None
-    for key, ref_key in candidates:
-        if key in gps_values and ref_key in gps_values:
-            try:
-                lat = float(str(gps_values[key]).strip())
-                if gps_values[ref_key].strip().upper() == "S":
-                    lat *= -1
-            except ValueError:
-                lat = None
-        if key.replace("latitude", "longitude") in gps_values and ref_key.replace("latituderef", "longituderef") in gps_values:
-            try:
-                lon = float(str(gps_values[key.replace("latitude", "longitude")]).strip())
-                if gps_values[ref_key.replace("latituderef", "longituderef")].strip().upper() == "W":
-                    lon *= -1
-            except ValueError:
-                lon = None
+    if "gpslatitude" in gps_values and "gpslatituderef" in gps_values:
+        try:
+            lat = float(str(gps_values["gpslatitude"]).strip())
+            if str(gps_values["gpslatituderef"]).strip().upper() == "S":
+                lat = -lat
+        except ValueError:
+            lat = None
+    if "gpslongitude" in gps_values and "gpslongituderef" in gps_values:
+        try:
+            lon = float(str(gps_values["gpslongitude"]).strip())
+            if str(gps_values["gpslongituderef"]).strip().upper() == "W":
+                lon = -lon
+        except ValueError:
+            lon = None
     if lat is None or lon is None:
-        return None
+        return {"has_gps": False}
     return {
+        "has_gps": True,
+        "lat": lat,
         "latitude": lat,
+        "lon": lon,
         "longitude": lon,
-        "maps_url": f"https://www.google.com/maps?q={lat},{lon}",
+        "formatted": f"{lat:.6f}, {lon:.6f}",
+        "maps_url": f"https://www.openstreetmap.org/?mlat={lat:.6f}&mlon={lon:.6f}#map=16/{lat:.6f}/{lon:.6f}",
     }
 
 
@@ -390,7 +468,7 @@ def batch_metadata_cleanup(input_dir: str, output_dir: str, recursive: bool = Tr
     total = len(candidates)
     for index, source_path in enumerate(candidates, start=1):
         kind = file_kind(str(source_path))
-        if kind not in ("Image", "PDF", "Audio", "Video"):
+        if kind not in ("Image", "PDF", "Office", "Audio", "Video"):
             results["skipped"] += 1
             if progress_cb:
                 progress_cb(index, total, source_path.name)
@@ -415,3 +493,214 @@ def batch_metadata_cleanup(input_dir: str, output_dir: str, recursive: bool = Tr
             progress_cb(index, total, source_path.name)
 
     return results
+
+# ─── Office Metadata Operations ─────────────────────────────────────────────
+
+NS_CP = "http://schemas.openxmlformats.org/package/2006/metadata/core-properties"
+NS_DC = "http://purl.org/dc/elements/1.1/"
+NS_DCTERMS = "http://purl.org/dc/terms/"
+NS_EP = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"
+NS_CUSTOM = "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"
+
+
+def get_office_metadata(path: str) -> dict[str, str]:
+    # Extract metadata properties from Office documents (OOXML and OpenDocument).
+    import zipfile
+    import xml.etree.ElementTree as ET
+
+    meta: dict[str, str] = {}
+    if not os.path.exists(path):
+        return meta
+
+    ext = os.path.splitext(path)[1].lower()
+    if ext not in OFFICE_EXTENSIONS:
+        return meta
+
+    try:
+        with zipfile.ZipFile(path, "r") as archive:
+            names = archive.namelist()
+            if "docProps/core.xml" in names:
+                root = ET.fromstring(archive.read("docProps/core.xml"))
+                for elem in root:
+                    tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+                    text = elem.text
+                    if text and text.strip():
+                        if tag == "title":
+                            meta["Title"] = text.strip()
+                        elif tag == "creator":
+                            meta["Author / Creator"] = text.strip()
+                        elif tag == "subject":
+                            meta["Subject"] = text.strip()
+                        elif tag == "description":
+                            meta["Description"] = text.strip()
+                        elif tag == "keywords":
+                            meta["Keywords"] = text.strip()
+                        elif tag == "lastModifiedBy":
+                            meta["Last Modified By"] = text.strip()
+                        elif tag == "revision":
+                            meta["Revision"] = text.strip()
+                        elif tag == "created":
+                            meta["Created Date"] = text.strip()
+                        elif tag == "modified":
+                            meta["Modified Date"] = text.strip()
+
+            if "docProps/app.xml" in names:
+                root = ET.fromstring(archive.read("docProps/app.xml"))
+                for elem in root:
+                    tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+                    text = elem.text
+                    if text and text.strip():
+                        if tag == "Application":
+                            meta["Application"] = text.strip()
+                        elif tag == "Company":
+                            meta["Company"] = text.strip()
+                        elif tag == "Manager":
+                            meta["Manager"] = text.strip()
+                        elif tag == "Pages":
+                            meta["Pages"] = text.strip()
+                        elif tag == "Words":
+                            meta["Words"] = text.strip()
+                        elif tag == "Slides":
+                            meta["Slides"] = text.strip()
+                        elif tag == "HiddenSlides":
+                            meta["Hidden Slides"] = text.strip()
+                        elif tag == "TotalTime":
+                            meta["Total Edit Time (mins)"] = text.strip()
+
+            if "docProps/custom.xml" in names:
+                root = ET.fromstring(archive.read("docProps/custom.xml"))
+                cust_props = [elem.get("name") for elem in root if elem.tag.endswith("}property") and elem.get("name")]
+                if cust_props:
+                    meta["Custom Properties"] = ", ".join(cust_props)
+
+            if "meta.xml" in names:
+                root = ET.fromstring(archive.read("meta.xml"))
+                for elem in root.iter():
+                    tag = elem.tag.split("}")[-1] if "}" in elem.tag else elem.tag
+                    if elem.text and elem.text.strip():
+                        if tag == "title":
+                            meta["Title"] = elem.text.strip()
+                        elif tag in ("creator", "initial-creator"):
+                            meta["Author / Creator"] = elem.text.strip()
+                        elif tag == "subject":
+                            meta["Subject"] = elem.text.strip()
+                        elif tag == "description":
+                            meta["Description"] = elem.text.strip()
+                        elif tag == "date":
+                            meta["Modified Date"] = elem.text.strip()
+                        elif tag == "creation-date":
+                            meta["Created Date"] = elem.text.strip()
+                        elif tag == "editing-cycles":
+                            meta["Revision"] = elem.text.strip()
+                        elif tag == "editing-duration":
+                            meta["Total Edit Time"] = elem.text.strip()
+                        elif tag == "generator":
+                            meta["Application"] = elem.text.strip()
+    except Exception as exc:
+        raise RuntimeError(f"Could not read office metadata: {exc}") from exc
+
+    return meta
+
+
+def strip_office_metadata(input_path: str, output_path: str) -> str:
+    # Strip author, organization, and revision metadata from Office documents.
+    ext = os.path.splitext(input_path)[1].lower()
+    if ext == ".docx":
+        try:
+            import docx  # noqa: 22
+            doc = docx.Document(input_path)
+            core = doc.core_properties
+            core.author = ""
+            core.last_modified_by = ""
+            core.comments = ""
+            core.title = ""
+            doc.save(output_path)
+            return output_path
+        except Exception:  # noqa: 10
+            pass
+
+    import zipfile
+    import xml.etree.ElementTree as ET
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    with zipfile.ZipFile(input_path, "r") as zin:
+        with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                fname = item.filename
+                if fname == "docProps/core.xml":
+                    blank_core = (
+                        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+                        f'<cp:coreProperties xmlns:cp="{NS_CP}" xmlns:dc="{NS_DC}" xmlns:dcterms="{NS_DCTERMS}">\n'
+                        '    <dc:title></dc:title>\n'
+                        '    <dc:creator></dc:creator>\n'
+                        '    <cp:lastModifiedBy></cp:lastModifiedBy>\n'
+                        '    <cp:revision>1</cp:revision>\n'
+                        '</cp:coreProperties>'
+                    )
+                    zout.writestr(item, blank_core.encode("utf-8"))
+                elif fname == "docProps/app.xml":
+                    blank_app = (
+                        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+                        f'<Properties xmlns="{NS_EP}">\n'
+                        '    <Application>FOSSEverything</Application>\n'
+                        '    <Company></Company>\n'
+                        '</Properties>'
+                    )
+                    zout.writestr(item, blank_app.encode("utf-8"))
+                elif fname == "docProps/custom.xml":
+                    continue  # Drop custom properties entirely
+                elif fname == "_rels/.rels":
+                    rels_xml = zin.read(fname).decode("utf-8")
+                    cleaned_rels = re.sub(r'<Relationship[^>]*Target="docProps/custom\.xml"[^>]*/>', '', rels_xml)
+                    zout.writestr(item, cleaned_rels.encode("utf-8"))
+                elif fname == "meta.xml":
+                    blank_meta = '<?xml version="1.0" encoding="UTF-8"?><office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"/>'
+                    zout.writestr(item, blank_meta.encode("utf-8"))
+                else:
+                    zout.writestr(item, zin.read(fname))
+
+    return output_path
+
+
+def save_office_metadata(input_path: str, output_path: str, edits: dict[str, str]) -> str:
+    # Update core metadata fields in OOXML and ODF archives.
+    import zipfile
+    import xml.etree.ElementTree as ET
+
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    with zipfile.ZipFile(input_path, "r") as zin:
+        with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as zout:
+            for item in zin.infolist():
+                fname = item.filename
+                if fname == "docProps/core.xml":
+                    root = ET.fromstring(zin.read(fname))
+                    for field_name, field_value in edits.items():
+                        k_lower = field_name.lower()
+                        if k_lower in ("title", "subject", "keywords"):
+                            node = root.find(f".//{{{NS_DC}}}{k_lower}") or root.find(f".//{{{NS_CP}}}{k_lower}")
+                            if node is not None:
+                                node.text = field_value
+                            else:
+                                new_elem = ET.SubElement(root, f"{{{NS_DC}}}{k_lower}")
+                                new_elem.text = field_value
+                        elif k_lower in ("author", "creator"):
+                            node = root.find(f".//{{{NS_DC}}}creator")
+                            if node is not None:
+                                node.text = field_value
+                            else:
+                                new_elem = ET.SubElement(root, f"{{{NS_DC}}}creator")
+                                new_elem.text = field_value
+                    zout.writestr(item, ET.tostring(root, encoding="utf-8"))
+                elif fname == "meta.xml":
+                    root = ET.fromstring(zin.read(fname))
+                    for field_name, field_value in edits.items():
+                        k_lower = field_name.lower()
+                        target_tag = "creator" if k_lower == "author" else k_lower
+                        for node in root.iter():
+                            if node.tag.endswith("}" + target_tag):
+                                node.text = field_value
+                    zout.writestr(item, ET.tostring(root, encoding="utf-8"))
+                else:
+                    zout.writestr(item, zin.read(fname))
+
+    return output_path

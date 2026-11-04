@@ -30,6 +30,13 @@ def test_to_camel_case() -> None:
     assert text_tools_ops.to_camel_case("") == ""
 
 
+def test_to_pascal_case() -> None:
+    assert text_tools_ops.to_pascal_case("hello world example") == "HelloWorldExample"
+    assert text_tools_ops.to_pascal_case("snake_case_value") == "SnakeCaseValue"
+    assert text_tools_ops.to_pascal_case("kebab-case-value") == "KebabCaseValue"
+    assert text_tools_ops.to_pascal_case("") == ""
+
+
 def test_to_snake_case() -> None:
     assert text_tools_ops.to_snake_case("Hello World Example") == "hello_world_example"
     assert text_tools_ops.to_snake_case("camelCaseValue") == "camel_case_value"

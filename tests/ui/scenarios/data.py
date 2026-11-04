@@ -40,14 +40,14 @@ def scenario_result(page: Page, fixtures: dict[str, str], api: Any) -> None:
 
 
 def scenario_error(page: Page, fixtures: dict[str, str], api: Any) -> None:
-    # Open units tab and verify unit swap functionality.
-    page.evaluate("window.FOSS.router.open('data', 'units')")
-    swap_btn = page.locator("[data-testid='data-units-swap-btn']")
-    expect(swap_btn).to_be_visible()
-    swap_btn.click()
+    # Open utilities tab and verify random generator functionality.
+    page.evaluate("window.FOSS.router.open('data', 'utilities')")
+    gen_btn = page.locator("[data-testid='data-utilities-random-generate']")
+    expect(gen_btn).to_be_visible()
+    gen_btn.click()
     page.wait_for_timeout(100)
-    unit_out = page.locator("[data-testid='data-units-output']")
-    expect(unit_out).not_to_have_text("")
+    rand_out = page.locator("[data-testid='data-utilities-random-output']")
+    expect(rand_out).not_to_have_text("-")
     calc_clear_overlays(page)
 
 

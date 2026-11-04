@@ -1,67 +1,81 @@
-// Encoding and decoding tool workspace for text and file transformations.
+// Developer encoding workbench: text ciphers/encodings and binary file conversions.
 window.FOSS = window.FOSS || {};
 
 (function () {
+  function showToast(msg, kind) {
+    if (window.FOSS && window.FOSS.toast && typeof window.FOSS.toast.show === "function") {
+      window.FOSS.toast.show(msg, kind);
+    }
+  }
+
+  // Client-side cipher helpers for supplementary schemes
+  var MORSE_TABLE = {
+    A: ".-", B: "-...", C: "-.-.", D: "-..", E: ".", F: "..-.", G: "--.", H: "....",
+    I: "..", J: ".---", K: "-.-", L: ".-..", M: "--", N: "-.", O: "---", P: ".--.",
+    Q: "--.-", R: ".-.", S: "...", T: "-", U: "..-", V: "...-", W: ".--", X: "-..-",
+    Y: "-.--", Z: "--..", 1: ".----", 2: "..---", 3: "...--", 4: "....-", 5: ".....",
+    6: "-....", 7: "--...", 8: "---..", 9: "----.", 0: "-----", " ": "/"
+  };
+  var MORSE_REVERSE = {};
+  Object.keys(MORSE_TABLE).forEach(function (k) { MORSE_REVERSE[MORSE_TABLE[k]] = k; });
+
+  function rot13(str) {
+    return str.replace(/[a-zA-Z]/g, function (c) {
+      var base = c <= "Z" ? 65 : 97;
+      return String.fromCharCode(((c.charCodeAt(0) - base + 13) % 26) + base);
+    });
+  }
+
+  function caesar(str, shift) {
+    var s = (shift % 26 + 26) % 26;
+    return str.replace(/[a-zA-Z]/g, function (c) {
+      var base = c <= "Z" ? 65 : 97;
+      return String.fromCharCode(((c.charCodeAt(0) - base + s) % 26) + base);
+    });
+  }
+
+  function morseEncode(str) {
+    return str.toUpperCase().split("").map(function (c) {
+      return MORSE_TABLE[c] || c;
+    }).join(" ");
+  }
+
+  function morseDecode(str) {
+    return str.trim().split(/\s+/).map(function (code) {
+      return MORSE_REVERSE[code] || (code === "/" ? " " : code);
+    }).join("");
+  }
+
+  function inspectJwt(str) {
+    var parts = str.trim().split(".");
+    if (parts.length < 2) throw new Error("Invalid JWT format (requires header.payload.signature)");
+    function b64u(s) {
+      var norm = s.replace(/-/g, "+").replace(/_/g, "/");
+      while (norm.length % 4 !== 0) norm += "=";
+      return decodeURIComponent(escape(atob(norm)));
+    }
+    var head = JSON.parse(b64u(parts[0]));
+    var body = JSON.parse(b64u(parts[1]));
+    return "=== Header ===\n" + JSON.stringify(head, null, 2) + "\n\n=== Payload ===\n" + JSON.stringify(body, null, 2);
+  }
+
   function renderTextTab(panel, ctx) {
     panel.innerHTML = "";
-
-    var desc = window.FOSS.dom.el("p", {
-      className: "text-muted",
-      text: "Encode and decode text and files between Base64, URL/percent-encoding, HTML entities, hex, and binary."
-    });
-
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
-      "data-testid": "encoding-text-error"
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
-
-    var schemeSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "encoding-text-scheme",
-      "aria-label": "Scheme"
-    }, [
-      window.FOSS.dom.el("option", { value: "Base64", text: "Base64" }),
-      window.FOSS.dom.el("option", { value: "URL", text: "URL" }),
-      window.FOSS.dom.el("option", { value: "HTML", text: "HTML" }),
-      window.FOSS.dom.el("option", { value: "Hex", text: "Hex" })
-    ]);
-
-    var schemeField = window.FOSS.components.field("Scheme:", schemeSelect, null, false, "encoding-text-scheme-field");
-
-    var optionSwitch = window.FOSS.components.switch({
-      testid: "encoding-text-option",
-      label: "URL-safe alphabet",
-      checked: false
-    });
-
-    function updateOptionLabel() {
-      var s = schemeSelect.value;
-      if (s === "Base64") {
-        optionSwitch.setLabel("URL-safe alphabet");
-      } else if (s === "URL") {
-        optionSwitch.setLabel("Preserve reserved characters (full URL)");
-      } else if (s === "HTML") {
-        optionSwitch.setLabel("Numeric character references");
-      } else if (s === "Hex") {
-        optionSwitch.setLabel("Space-separated bytes");
-      }
-    }
-
-    schemeSelect.addEventListener("change", updateOptionLabel);
-
-    var editor = window.FOSS.components.codeEditor({
-      testid: "encoding-text-editor",
-      placeholder: "Type or paste text/encoded data here..."
-    });
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted",
       "data-testid": "encoding-text-status",
       text: "Ready"
     });
+
+    var errorBanner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden",
+      "data-testid": "encoding-text-error",
+      style: { marginBottom: "var(--space-2)" }
+    }, [
+      window.FOSS.icons.el("alert", 16),
+      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
+    ]);
 
     function showError(msg) {
       var span = errorBanner.querySelector(".banner-msg");
@@ -74,208 +88,317 @@ window.FOSS = window.FOSS || {};
       errorBanner.classList.add("hidden");
     }
 
-    var encodeBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "encoding-text-encode",
-      type: "button",
-      onClick: function () {
-        clearError();
-        var txt = editor.getValue();
-        if (!txt) {
-          statusBar.textContent = "Ready";
-          return;
-        }
-        var s = schemeSelect.value;
-        var opt = optionSwitch.isChecked();
-        var apiMethod = "encoding_base64_encode_text";
-        var params = { text: txt };
-
-        if (s === "Base64") {
-          apiMethod = "encoding_base64_encode_text";
-          params.url_safe = opt;
-        } else if (s === "URL") {
-          apiMethod = "encoding_url_encode";
-          params.full_url = opt;
-        } else if (s === "HTML") {
-          apiMethod = opt ? "encoding_html_encode_numeric" : "encoding_html_encode";
-        } else if (s === "Hex") {
-          apiMethod = "encoding_hex_encode_text";
-          params.spaced = opt;
-        }
-
-        window.FOSS.api(apiMethod, params).then(function (res) {
-          if (res && res.ok) {
-            editor.setValue(res.result);
-            statusBar.textContent = "[OK] Encoded with " + s;
-          } else {
-            showError((res && res.error) || "Encoding failed");
-          }
-        });
-      }
+    var schemeSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "data-testid": "encoding-text-scheme",
+      "aria-label": "Encoding Scheme",
+      style: { width: "180px" }
     }, [
-      window.FOSS.icons.el("play", 16),
-      window.FOSS.dom.el("span", { text: "Encode" })
+      window.FOSS.dom.el("option", { value: "Base64", text: "Base64" }),
+      window.FOSS.dom.el("option", { value: "Base64URL", text: "Base64 URL-Safe" }),
+      window.FOSS.dom.el("option", { value: "Hex", text: "Hexadecimal" }),
+      window.FOSS.dom.el("option", { value: "Binary", text: "Binary (8-bit)" }),
+      window.FOSS.dom.el("option", { value: "URL", text: "URL Percent-Encoding" }),
+      window.FOSS.dom.el("option", { value: "HTML", text: "HTML Named Entities" }),
+      window.FOSS.dom.el("option", { value: "HTMLNumeric", text: "HTML Numeric Entities" }),
+      window.FOSS.dom.el("option", { value: "ROT13", text: "ROT13 Cipher" }),
+      window.FOSS.dom.el("option", { value: "Caesar", text: "Caesar Cipher (+3)" }),
+      window.FOSS.dom.el("option", { value: "Morse", text: "Morse Code" }),
+      window.FOSS.dom.el("option", { value: "JWT", text: "JWT Token Inspector" })
     ]);
+
+    var spacedCheck = window.FOSS.dom.el("input", { type: "checkbox", id: "enc-spaced-check", checked: true });
+    var spacedLabel = window.FOSS.dom.el("label", {
+      htmlFor: "enc-spaced-check",
+      className: "text-xs cursor-pointer",
+      text: "Spaced Bytes"
+    });
+
+    var inputEditor = window.FOSS.components.codeEditor({
+      testid: "encoding-text-editor",
+      title: "Input Text",
+      placeholder: "Type or paste text/encoded data here...",
+      fillHeight: true
+    });
+
+    var outputEditor = window.FOSS.components.codeEditor({
+      testid: "encoding-text-output",
+      title: "Output Result",
+      placeholder: "Transformed output appears here...",
+      readOnly: false,
+      fillHeight: true
+    });
+
+    function executeTransform(direction) {
+      clearError();
+      var txt = inputEditor.getValue();
+      if (!txt) {
+        outputEditor.clear();
+        statusBar.textContent = "Ready";
+        return;
+      }
+      var s = schemeSelect.value;
+      statusBar.textContent = (direction === "encode" ? "Encoding" : "Decoding") + " with " + s + "...";
+
+      // Client-side quick schemes
+      if (s === "ROT13") {
+        outputEditor.setValue(rot13(txt));
+        statusBar.textContent = "[OK] Applied ROT13";
+        return;
+      }
+      if (s === "Caesar") {
+        outputEditor.setValue(caesar(txt, direction === "encode" ? 3 : -3));
+        statusBar.textContent = "[OK] Applied Caesar Cipher";
+        return;
+      }
+      if (s === "Morse") {
+        outputEditor.setValue(direction === "encode" ? morseEncode(txt) : morseDecode(txt));
+        statusBar.textContent = "[OK] Processed Morse Code";
+        return;
+      }
+      if (s === "JWT") {
+        try {
+          outputEditor.setValue(inspectJwt(txt));
+          statusBar.textContent = "[OK] Decoded JWT Token";
+        } catch (err) {
+          showError(err.message || String(err));
+        }
+        return;
+      }
+
+      // Backend API schemes
+      var apiMethod = "";
+      var params = { text: txt };
+
+      if (s === "Base64") {
+        apiMethod = direction === "encode" ? "encoding_base64_encode_text" : "encoding_base64_decode_text";
+        params.url_safe = false;
+      } else if (s === "Base64URL") {
+        apiMethod = direction === "encode" ? "encoding_base64_encode_text" : "encoding_base64_decode_text";
+        params.url_safe = true;
+      } else if (s === "Hex") {
+        apiMethod = direction === "encode" ? "encoding_hex_encode_text" : "encoding_hex_decode_text";
+        params.spaced = spacedCheck.checked;
+      } else if (s === "Binary") {
+        apiMethod = direction === "encode" ? "encoding_binary_encode_text" : "encoding_binary_decode_text";
+        params.spaced = spacedCheck.checked;
+      } else if (s === "URL") {
+        apiMethod = direction === "encode" ? "encoding_url_encode" : "encoding_url_decode";
+      } else if (s === "HTML") {
+        apiMethod = direction === "encode" ? "encoding_html_encode" : "encoding_html_decode";
+      } else if (s === "HTMLNumeric") {
+        apiMethod = direction === "encode" ? "encoding_html_encode_numeric" : "encoding_html_decode";
+        params.hex_format = false;
+      }
+
+      window.FOSS.api(apiMethod, params).then(function (res) {
+        if (res && res.ok) {
+          outputEditor.setValue(res.result !== undefined ? res.result : "");
+          statusBar.textContent = "[OK] " + (direction === "encode" ? "Encoded" : "Decoded") + " with " + s;
+        } else {
+          showError((res && res.error) || (direction + " failed"));
+        }
+      }).catch(function (err) {
+        showError(err.message || String(err));
+      });
+    }
+
+    var encodeBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "encoding-encode-btn",
+      "data-alt-testid": "encoding-text-encode",
+      "aria-label": "Encode input text",
+      title: "Encode",
+      onClick: function () { executeTransform("encode"); }
+    }, [window.FOSS.icons.el("play", 14), window.FOSS.dom.el("span", { text: "Encode" })]);
 
     var decodeBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "encoding-text-decode",
-      type: "button",
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "encoding-decode-btn",
+      "data-alt-testid": "encoding-text-decode",
+      "aria-label": "Decode input text",
+      title: "Decode",
+      onClick: function () { executeTransform("decode"); }
+    }, [window.FOSS.icons.el("refresh-cw", 14), window.FOSS.dom.el("span", { text: "Decode" })]);
+
+    var swapBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "encoding-text-swap",
+      "aria-label": "Swap input and output text",
+      title: "Swap Input and Output",
       onClick: function () {
-        clearError();
-        var txt = editor.getValue();
-        if (!txt) {
-          statusBar.textContent = "Ready";
-          return;
-        }
-        var s = schemeSelect.value;
-        var opt = optionSwitch.isChecked();
-        var apiMethod = "encoding_base64_decode_text";
-        var params = { text: txt };
+        var inV = inputEditor.getValue();
+        var outV = outputEditor.getValue();
+        inputEditor.setValue(outV);
+        outputEditor.setValue(inV);
+        statusBar.textContent = "[OK] Swapped input and output";
+      }
+    }, [window.FOSS.icons.el("arrow-left-right", 14), window.FOSS.dom.el("span", { text: "Swap" })]);
 
-        if (s === "Base64") {
-          apiMethod = "encoding_base64_decode_text";
-          params.url_safe = opt;
-        } else if (s === "URL") {
-          apiMethod = "encoding_url_decode";
-        } else if (s === "HTML") {
-          apiMethod = "encoding_html_decode";
-        } else if (s === "Hex") {
-          apiMethod = "encoding_hex_decode_text";
-        }
-
-        window.FOSS.api(apiMethod, params).then(function (res) {
-          if (res && res.ok) {
-            editor.setValue(res.result);
-            statusBar.textContent = "[OK] Decoded with " + s;
-          } else {
-            showError((res && res.error) || "Decoding failed");
-          }
+    var copyBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "encoding-text-copy",
+      "aria-label": "Copy output result to clipboard",
+      title: "Copy Output",
+      onClick: function () {
+        var outV = outputEditor.getValue();
+        navigator.clipboard.writeText(outV).then(function () {
+          showToast("Copied output to clipboard", "success");
         });
       }
+    }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy Output" })]);
+
+    var savePayloadBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "encoding-save-payload-btn",
+      "aria-label": "Save Payload to File",
+      title: "Save Payload",
+      onClick: function () {
+        var outV = outputEditor.getValue() || inputEditor.getValue() || "";
+        if (!outV) {
+          showError("No payload to save.");
+          return;
+        }
+        window.FOSS.api("select_save_path", {
+          title: "Save Encoded Payload",
+          default_name: "payload.txt",
+          filters: [{ name: "Text File", extensions: ["txt"] }, { name: "All Files", extensions: ["*"] }]
+        }).then(function (res) {
+          var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
+          if (!outPath) return;
+          window.FOSS.api("write_text_file", {
+            file_path: outPath,
+            content: outV
+          }).then(function () {
+            statusBar.textContent = "Saved payload to " + outPath;
+            showToast("Saved payload to " + outPath, "success");
+          }).catch(function (err) {
+            showError(err.message || String(err));
+          });
+        }).catch(function (err) {
+          showError(err.message || String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("download", 14), window.FOSS.dom.el("span", { text: "Save Payload" })]);
+
+    var clearBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "aria-label": "Clear input and output text",
+      title: "Clear",
+      onClick: function () {
+        inputEditor.clear();
+        outputEditor.clear();
+        clearError();
+        statusBar.textContent = "Ready";
+      }
+    }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear" })]);
+
+    var toolbar = window.FOSS.dom.el("div", {
+      className: "row items-center flex-wrap gap-2 p-2 rounded",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
     }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Decode" })
+      schemeSelect,
+      encodeBtn,
+      decodeBtn,
+      swapBtn,
+      copyBtn,
+      savePayloadBtn,
+      clearBtn,
+      window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [spacedCheck, spacedLabel])
     ]);
 
-    var actionsRow = window.FOSS.dom.el("div", {
-      className: "row",
-      gap: "sm"
-    }, [encodeBtn, decodeBtn]);
-
-    var controlsCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "md"
+    var editorsGrid = window.FOSS.dom.el("div", {
+      className: "row gap-2 items-stretch code-editor-fill",
+      style: { flex: "1 1 0%", minHeight: "22rem", width: "100%" }
     }, [
-      window.FOSS.dom.el("div", { className: "row", gap: "lg" }, [schemeField, optionSwitch.el]),
-      actionsRow
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [inputEditor.el]),
+      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [outputEditor.el])
     ]);
 
-    var editorCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "sm"
-    }, [
-      editor.el,
-      statusBar
-    ]);
-
-    panel.appendChild(window.FOSS.dom.el("div", { className: "page stack", gap: "md" }, [
-      desc,
-      errorBanner,
-      controlsCard,
-      editorCard
-    ]));
+    panel.appendChild(window.FOSS.dom.el("div", {
+      className: "flex-col gap-2",
+      style: { height: "100%", width: "100%", overflowY: "auto" }
+    }, [toolbar, errorBanner, editorsGrid, statusBar]));
   }
 
   function renderFileTab(panel, ctx) {
     panel.innerHTML = "";
 
+    var statusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "encoding-file-status",
+      text: "Ready"
+    });
+
     var errorBanner = window.FOSS.dom.el("div", {
       className: "banner danger hidden",
-      "data-testid": "encoding-file-error"
+      "data-testid": "encoding-file-error",
+      style: { marginBottom: "var(--space-2)" }
     }, [
-      window.FOSS.icons.el("alert", 18),
+      window.FOSS.icons.el("alert", 16),
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
     ]);
-
-    var schemeSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "encoding-file-scheme",
-      "aria-label": "File Encoding Scheme"
-    }, [
-      window.FOSS.dom.el("option", { value: "Base64", text: "Base64" }),
-      window.FOSS.dom.el("option", { value: "Hex", text: "Hex" }),
-      window.FOSS.dom.el("option", { value: "Binary", text: "Binary" })
-    ]);
-
-    var schemeField = window.FOSS.components.field("Scheme:", schemeSelect, null, false, "encoding-file-scheme-field");
-
-    var optionSwitch = window.FOSS.components.switch({
-      testid: "encoding-file-option",
-      label: "URL-safe alphabet",
-      checked: false
-    });
-
-    function updateOptionLabel() {
-      var s = schemeSelect.value;
-      if (s === "Base64") {
-        optionSwitch.setLabel("URL-safe alphabet");
-      } else {
-        optionSwitch.setLabel("Space-separated bytes");
-      }
-    }
-
-    schemeSelect.addEventListener("change", updateOptionLabel);
-
-    var picker = window.FOSS.components.filePicker({
-      testid: "encoding-file-picker",
-      title: "Select file to encode or decode",
-      fileTypes: [["All Files", "*.*"]]
-    });
-
-    var resultHost = window.FOSS.dom.el("div", {
-      className: "stack",
-      gap: "sm",
-      "data-testid": "encoding-file-results"
-    });
 
     function showError(msg) {
       var span = errorBanner.querySelector(".banner-msg");
       if (span) span.textContent = msg;
       errorBanner.classList.remove("hidden");
+      statusBar.textContent = "Error: " + msg;
     }
 
     function clearError() {
       errorBanner.classList.add("hidden");
     }
 
+    var schemeSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm",
+      "data-testid": "encoding-file-scheme",
+      "aria-label": "File Encoding Scheme",
+      style: { width: "150px" }
+    }, [
+      window.FOSS.dom.el("option", { value: "Base64", text: "Base64" }),
+      window.FOSS.dom.el("option", { value: "Hex", text: "Hexadecimal" }),
+      window.FOSS.dom.el("option", { value: "Binary", text: "Binary (8-bit)" })
+    ]);
+
+    var filePicker = window.FOSS.components.filePicker({
+      testid: "encoding-file-picker",
+      label: "Choose File"
+    });
+
+    var resultHost = window.FOSS.dom.el("div", {
+      className: "flex-col gap-2",
+      style: { width: "100%" }
+    });
+
     var encodeBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
+      className: "btn btn-primary btn-sm",
       "data-testid": "encoding-file-encode",
-      type: "button",
+      "aria-label": "Encode binary file to text",
+      title: "Encode File",
       onClick: function () {
         clearError();
-        var inPath = picker.getPath();
+        var inPath = filePicker.getPath();
         if (!inPath) {
           showError("Please select an input file first.");
           return;
         }
         var s = schemeSelect.value;
-        var opt = optionSwitch.isChecked();
         var apiMethod = "encoding_base64_encode_file";
         var params = { input_path: inPath };
 
         if (s === "Base64") {
           apiMethod = "encoding_base64_encode_file";
-          params.url_safe = opt;
+          params.url_safe = false;
         } else if (s === "Hex") {
           apiMethod = "encoding_hex_encode_file";
-          params.spaced = opt;
+          params.spaced = true;
         } else if (s === "Binary") {
           apiMethod = "encoding_binary_encode_file";
-          params.spaced = opt;
+          params.spaced = true;
         }
 
+        statusBar.textContent = "Encoding file with " + s + "...";
         window.FOSS.api(apiMethod, params).then(function (res) {
           if (res && res.ok) {
             resultHost.innerHTML = "";
@@ -285,110 +408,117 @@ window.FOSS = window.FOSS || {};
               outputPath: res.output_path || inPath,
               details: [
                 { label: "Scheme", value: s },
-                { label: "Output size", value: (res.result ? res.result.length + " chars" : "Written to file") }
+                { label: "Result Size", value: (res.result ? res.result.length + " characters" : "Output file written") }
               ]
             });
             resultHost.appendChild(card);
+            statusBar.textContent = "[OK] File encoded with " + s;
           } else {
             showError((res && res.error) || "File encoding failed");
           }
+        }).catch(function (err) {
+          showError(err.message || String(err));
         });
       }
-    }, [
-      window.FOSS.icons.el("upload", 16),
-      window.FOSS.dom.el("span", { text: "Encode File..." })
-    ]);
+    }, [window.FOSS.icons.el("upload", 14), window.FOSS.dom.el("span", { text: "Encode File" })]);
 
     var decodeBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
+      className: "btn btn-secondary btn-sm",
       "data-testid": "encoding-file-decode",
-      type: "button",
+      "aria-label": "Decode text file to binary",
+      title: "Decode File",
       onClick: function () {
         clearError();
-        var inPath = picker.getPath();
+        var inPath = filePicker.getPath();
         if (!inPath) {
-          showError("Please select an encoded input file first.");
+          showError("Please select an input file first.");
           return;
         }
         window.FOSS.api("select_save_path", {
-          default_name: "decoded.bin",
+          default_name: "decoded_output.bin",
           file_types: [["All Files", "*.*"]]
         }).then(function (saveRes) {
-          if (!saveRes || !saveRes.paths || saveRes.paths.length === 0) return;
-          var outPath = saveRes.paths[0];
+          var outPath = (saveRes && saveRes.paths && saveRes.paths.length > 0) ? saveRes.paths[0] : "";
+          if (!outPath) {
+            outPath = inPath + ".bin";
+          }
           var s = schemeSelect.value;
-          var opt = optionSwitch.isChecked();
           var apiMethod = "encoding_base64_decode_to_file";
           var params = { input_path: inPath, output_path: outPath };
 
           if (s === "Base64") {
             apiMethod = "encoding_base64_decode_to_file";
-            params.url_safe = opt;
+            params.url_safe = false;
           } else if (s === "Hex") {
             apiMethod = "encoding_hex_decode_to_file";
           } else if (s === "Binary") {
             apiMethod = "encoding_binary_decode_to_file";
           }
 
+          statusBar.textContent = "Decoding file to " + outPath + "...";
           window.FOSS.api(apiMethod, params).then(function (res) {
             if (res && res.ok) {
               resultHost.innerHTML = "";
               var card = window.FOSS.components.resultCard({
                 testid: "encoding-file-result",
                 title: "File Decoded Successfully",
-                outputPath: res.output_path,
+                outputPath: res.output_path || outPath,
                 details: [
                   { label: "Scheme", value: s },
-                  { label: "Destination", value: res.output_path }
+                  { label: "Output Path", value: res.output_path || outPath }
                 ]
               });
               resultHost.appendChild(card);
+              statusBar.textContent = "[OK] Decoded to: " + (res.output_path || outPath);
             } else {
               showError((res && res.error) || "File decoding failed");
             }
+          }).catch(function (err) {
+            showError(err.message || String(err));
           });
         });
       }
+    }, [window.FOSS.icons.el("download", 14), window.FOSS.dom.el("span", { text: "Decode File..." })]);
+
+    var toolbar = window.FOSS.dom.el("div", {
+      className: "row items-center flex-wrap gap-2 p-2 rounded",
+      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
+    }, [filePicker.el, schemeSelect, encodeBtn, decodeBtn]);
+
+    var fileCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 p-4",
+      style: { width: "100%" }
     }, [
-      window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "Decode to File..." })
-    ]);
-
-    var actionsRow = window.FOSS.dom.el("div", {
-      className: "row",
-      gap: "sm"
-    }, [encodeBtn, decodeBtn]);
-
-    var controlsCard = window.FOSS.dom.el("div", {
-      className: "card stack",
-      gap: "md"
-    }, [
-      window.FOSS.dom.el("div", { className: "row", gap: "lg" }, [schemeField, optionSwitch.el]),
-      picker.el,
-      actionsRow
-    ]);
-
-    panel.appendChild(window.FOSS.dom.el("div", { className: "page stack", gap: "md" }, [
-      errorBanner,
-      controlsCard,
+      window.FOSS.dom.el("div", { className: "text-sm font-semibold", text: "Binary File <-> Encoded Text Converter" }),
+      window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "Select any file to encode its binary bytes into Base64, Hex, or 8-bit Binary representation, or decode back to binary." }),
+      toolbar,
       resultHost
-    ]));
+    ]);
+
+    panel.appendChild(window.FOSS.dom.el("div", {
+      className: "flex-col gap-2",
+      style: { height: "100%", width: "100%", overflowY: "auto" }
+    }, [errorBanner, fileCard, statusBar]));
   }
 
   window.FOSS.router.register({
     id: "encoding",
-    title: "Encoding / Decoding",
+    title: "Encoding & Decoding",
     navName: "Encoding",
     category: "Data",
     icon: "code",
-    workbench: false,
+    workbench: true,
     tabs: [
-      { id: "text", label: "Text", render: renderTextTab },
-      { id: "file", label: "File", render: renderFileTab }
+      { id: "text", label: "Text Ciphers & Encodings", aliases: ["main", "base64"], render: renderTextTab },
+      { id: "file", label: "Binary File Encoding", aliases: ["binary"], render: renderFileTab }
     ],
     onFiles: function (paths, ctx) {
       if (paths && paths.length > 0) {
-        window.FOSS.router.open("encoding", "file");
+        var pickerInput = document.querySelector("[data-testid='encoding-file-picker-input']");
+        if (pickerInput) {
+          pickerInput.value = paths[0];
+          pickerInput.dispatchEvent(new Event("input"));
+        }
       }
     }
   });

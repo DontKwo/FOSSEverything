@@ -1,875 +1,1042 @@
-// Resume Studio: local-first master resume management, granular job tailoring, ATS analyzer, and multi-format exporters.
+// Resume Studio: local-first master resume management, SpaceX GNC format, live preview, and exporters.
 window.FOSS = window.FOSS || {};
 
 (function () {
   var masterResume = {
-    name: "Alex Morgan",
-    title: "Senior Full-Stack Software Engineer",
     contact: {
-      email: "alex.morgan@example.com",
-      phone: "+1 (555) 234-5678",
-      location: "San Francisco, CA",
-      linkedin: "linkedin.com/in/alexmorgan",
+      name: "Alex Morgan",
+      title: "Guidance, Navigation, and Control Engineer",
+      email: "alex.morgan@utexas.edu",
+      phone: "(512) 555-0199",
+      location: "Austin, TX",
+      linkedin: "linkedin.com/in/alexmorgan-aero",
       github: "github.com/alexmorgan",
-      website: "alexmorgan.dev"
+      website: "alexmorgan.space"
     },
-    summary: "Senior software engineer with 8+ years designing fault-tolerant distributed web systems and performant APIs.",
-    include_summary: true,
+    summary: "",
+    summary_enabled: false,
     sections: [
       {
-        id: "exp",
-        title: "Work Experience",
+        id: "sec_edu",
+        type: "education",
+        title: "EDUCATION",
+        enabled: true,
         entries: [
           {
-            id: "e1",
-            title: "Lead Backend Engineer",
-            organization: "Acme Cloud Platforms",
-            dates: "2021 - Present",
-            location: "San Francisco, CA",
+            id: "edu_1",
+            title: "Bachelor of Science, Aerospace Engineering Honors",
+            subtitle: "The University of Texas at Austin",
+            date_range: "December 2026",
+            gpa: "3.94 / 4.00",
+            coursework: "Orbital Mechanics, Spacecraft Dynamics & Control, Flight Mechanics, Numerical Methods",
+            enabled: true,
+            bullets: []
+          }
+        ]
+      },
+      {
+        id: "sec_exp",
+        type: "experience",
+        title: "WORK EXPERIENCE",
+        enabled: true,
+        entries: [
+          {
+            id: "exp_1",
+            title: "Guidance, Navigation, and Control Intern",
+            subtitle: "Space Exploration Technologies (SpaceX)",
+            date_range: "May 2025 - August 2025",
             enabled: true,
             bullets: [
-              { id: "b1", text: "Architected real-time streaming pipeline processing 40k events/sec with sub-50ms latency.", enabled: true },
-              { id: "b2", text: "Reduced cloud infrastructure compute costs by 32% through container rightsizing.", enabled: true }
+              { id: "b1", text: "Designed and validated 6-DOF entry guidance Monte Carlo simulations in C++ and Python.", enabled: true },
+              { id: "b2", text: "Implemented quaternion-based attitude estimation filters integrating IMU and star tracker telemetry.", enabled: true }
             ]
           }
         ]
       },
       {
-        id: "skills",
-        title: "Technical Skills",
+        id: "sec_skills",
+        type: "skills",
+        title: "ADDITIONAL SKILLS AND LANGUAGES",
+        enabled: true,
         entries: [
           {
-            id: "s1",
-            title: "Languages & Frameworks",
-            organization: "Core Competencies",
-            dates: "Current",
-            location: "",
+            id: "sk_1",
+            title: "Simulation & Analysis",
+            skills_text: "C++, Python, MATLAB, Simulink, ROS 2, PyMuPDF, Linux/POSIX",
             enabled: true,
-            bullets: [
-              { id: "sb1", text: "Python, TypeScript, Go, Rust, React, Node.js, PostgreSQL, Redis, Docker, Kubernetes", enabled: true }
-            ]
+            bullets: []
           }
         ]
       }
     ],
     profiles: {},
-    active_profile: "full master resume (default)"
+    active_profile: "Full Master Resume"
   };
 
-  var historySnapshots = [];
-  var currentLayout = "single";
-  var currentAccent = "#2563eb";
+  var activeSubView = "personal";
+  var previewDebounceTimer = null;
+  var previewStageEl = null;
+  var pageBadgeEl = null;
+  var currentFontPt = 11.0;
+  var resumeZoom = 1.0;
+  var idCounter = 100;
 
-  function calcStats() {
-    var secs = (masterResume.sections || []).length;
-    var entries = 0;
-    var bullets = 0;
-    (masterResume.sections || []).forEach(function (s) {
-      var ens = s.entries || [];
-      entries += ens.length;
-      ens.forEach(function (e) {
-        bullets += (e.bullets || []).length;
-      });
-    });
-    return "sections: " + secs + " | entries: " + entries + " | bullets: " + bullets;
+  function schedulePreviewUpdate() {
+    if (previewDebounceTimer) clearTimeout(previewDebounceTimer);
+    previewDebounceTimer = setTimeout(function () {
+      fetchLivePreview();
+    }, 180);
   }
 
-  function renderPersonal(panel, ctx) {
-    panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-resume");
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Resume Studio" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Build a comprehensive master resume, then check/uncheck bullets and reorder sections to tailor per job."
+  function fetchLivePreview() {
+    if (!previewStageEl) return;
+    var payload = {
+      resume: masterResume,
+      font_pt: currentFontPt,
+      dpi: 160
+    };
+    if (masterResume.active_profile && masterResume.active_profile !== "Full Master Resume") {
+      payload.profile = masterResume.active_profile;
+    }
+    window.FOSS.api("resume_render_preview", payload, { silent: true })
+      .then(function (res) {
+        if (!res) return;
+        renderPreviewPages(res.pages || [], res.page_count || 1);
       })
-    ]);
+      .catch(function () {});
+  }
 
-    var offlineBadge = window.FOSS.dom.el("div", {
-      className: "badge success text-xs mb-sm",
-      "data-testid": "resume-offline-badge",
-      text: "100% Offline & Private"
+  function renderPreviewPages(pages, pageCount) {
+    if (!previewStageEl) return;
+    previewStageEl.innerHTML = "";
+    if (pageBadgeEl) {
+      if (pageCount === 1) {
+        pageBadgeEl.className = "badge badge-success text-xs";
+        pageBadgeEl.textContent = "1 Page (Fits Cleanly)";
+      } else {
+        pageBadgeEl.className = "badge badge-warning text-xs";
+        pageBadgeEl.textContent = pageCount + " Pages (Overflow)";
+      }
+    }
+    pages.forEach(function (pageUrl, pIdx) {
+      var img = window.FOSS.dom.el("img", {
+        className: "resume-page-sheet",
+        "data-testid": "resume-preview-page-" + pIdx,
+        "data-overlay": "true",
+        src: pageUrl,
+        alt: "Resume Page " + (pIdx + 1)
+      });
+      if (resumeZoom !== 1.0) {
+        img.style.setProperty("transform", "scale(" + resumeZoom + ")");
+        img.style.setProperty("transform-origin", "top center");
+      }
+      previewStageEl.appendChild(img);
     });
+  }
 
-    var statsBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted mb-md",
-      "data-testid": "resume-personal-stats",
-      text: calcStats()
+  function applyResumeZoom() {
+    if (!previewStageEl) return;
+    var imgs = previewStageEl.querySelectorAll(".resume-page-sheet");
+    imgs.forEach(function (img) {
+      if (resumeZoom !== 1.0) {
+        img.style.setProperty("transform", "scale(" + resumeZoom + ")");
+        img.style.setProperty("transform-origin", "top center");
+      } else {
+        img.style.removeProperty("transform");
+        img.style.removeProperty("transform-origin");
+      }
     });
+    var label = document.getElementById("resume-zoom-label");
+    if (label) label.textContent = Math.round(resumeZoom * 100) + "%";
+  }
 
-    var nameInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      "data-testid": "resume-name-input",
-      "data-truncate-ok": "true",
-      "aria-label": "Your name",
-      title: "Your name",
-      placeholder: "your name",
-      value: masterResume.name || ""
-    });
-    nameInput.oninput = function () { masterResume.name = nameInput.value; };
+  function renderResumeWorkbench(panel, requestedView) {
+    panel.innerHTML = "";
+    if (requestedView) activeSubView = requestedView;
 
-    var titleInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      "data-testid": "resume-title-input",
-      "data-truncate-ok": "true",
-      "aria-label": "Professional title",
-      title: "Professional title",
-      placeholder: "professional title",
-      value: masterResume.title || ""
-    });
-    titleInput.oninput = function () { masterResume.title = titleInput.value; };
-
-    var emailInput = window.FOSS.dom.el("input", {
-      type: "email",
-      className: "input",
-      "data-testid": "resume-email-input",
-      "data-truncate-ok": "true",
-      "aria-label": "Email",
-      title: "Email",
-      placeholder: "email",
-      value: (masterResume.contact && masterResume.contact.email) || ""
-    });
-    emailInput.oninput = function () { masterResume.contact.email = emailInput.value; };
-
-    var phoneInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      "data-testid": "resume-phone-input",
-      "data-truncate-ok": "true",
-      "aria-label": "Phone",
-      title: "Phone",
-      placeholder: "phone",
-      value: (masterResume.contact && masterResume.contact.phone) || ""
-    });
-    phoneInput.oninput = function () { masterResume.contact.phone = phoneInput.value; };
-
-    var locInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      "data-testid": "resume-location-input",
-      "data-truncate-ok": "true",
-      "aria-label": "Location (e.g. San Francisco, CA)",
-      title: "Location (e.g. San Francisco, CA)",
-      placeholder: "location (e.g. san francisco, ca)",
-      value: (masterResume.contact && masterResume.contact.location) || ""
-    });
-    locInput.oninput = function () { masterResume.contact.location = locInput.value; };
-
-    var linkedinInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      "data-testid": "resume-linkedin-input",
-      "data-truncate-ok": "true",
-      "aria-label": "LinkedIn",
-      title: "LinkedIn",
-      placeholder: "linkedin",
-      value: (masterResume.contact && masterResume.contact.linkedin) || ""
-    });
-    linkedinInput.oninput = function () { masterResume.contact.linkedin = linkedinInput.value; };
-
-    var githubInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      "data-testid": "resume-github-input",
-      "data-truncate-ok": "true",
-      "aria-label": "GitHub",
-      title: "GitHub",
-      placeholder: "github",
-      value: (masterResume.contact && masterResume.contact.github) || ""
-    });
-    githubInput.oninput = function () { masterResume.contact.github = githubInput.value; };
-
-    var webInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      "data-testid": "resume-website-input",
-      "data-truncate-ok": "true",
-      "aria-label": "Portfolio / website",
-      title: "Portfolio / website",
-      placeholder: "portfolio / website",
-      value: (masterResume.contact && masterResume.contact.website) || ""
-    });
-    webInput.oninput = function () { masterResume.contact.website = webInput.value; };
-
-    var contactGroup = window.FOSS.dom.el("div", { className: "card mb-md", "data-testid": "resume-contact-card" }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "Personal & Contact Details" }),
-      window.FOSS.dom.el("div", { className: "grid grid-cols-2 gap-sm" }, [
-        nameInput,
-        titleInput,
-        emailInput,
-        phoneInput,
-        locInput,
-        linkedinInput,
-        githubInput,
-        webInput
+    // Top action bar
+    var topBar = window.FOSS.dom.el("div", {
+      className: "row-between",
+      style: "margin-bottom: var(--space-2); flex-wrap: wrap; gap: var(--space-2); flex-shrink: 0;"
+    }, [
+      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
+        window.FOSS.dom.el("span", {
+          className: "badge badge-neutral",
+          "data-testid": "resume-offline-badge",
+          text: "100% Offline"
+        }),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-secondary btn-sm",
+          "data-testid": "resume-load-btn",
+          onclick: function () {
+            window.FOSS.api("select_file", { title: "Load Master Resume", file_types: ["json"] })
+              .then(function (res) {
+                if (res && res.file_path) {
+                  return window.FOSS.api("resume_load_file", { file_path: res.file_path });
+                }
+              }).then(function (loadRes) {
+                if (loadRes && loadRes.resume) {
+                  masterResume = loadRes.resume;
+                  renderLeftPane();
+                  schedulePreviewUpdate();
+                  window.FOSS.dialogs.toast("Master resume loaded.");
+                }
+              }).catch(function (err) {
+                window.FOSS.dialogs.toast("Failed loading resume: " + (err.message || err));
+              });
+          }
+        }, [window.FOSS.icons.el("folder", 12), window.FOSS.dom.el("span", { text: "Load JSON" })]),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-secondary btn-sm",
+          "data-testid": "resume-save-btn",
+          onclick: function () {
+            window.FOSS.api("select_save_path", {
+              title: "Save Master Resume",
+              default_filename: "master_resume.json",
+              file_types: [["JSON Files", "*.json"]]
+            }).then(function (res) {
+              if (res && res.file_path) {
+                return window.FOSS.api("resume_save_file", { resume: masterResume, output_path: res.file_path });
+              }
+            }).then(function () {
+              window.FOSS.dialogs.toast("Master resume saved.");
+            }).catch(function (err) {
+              window.FOSS.dialogs.toast("Save failed: " + (err.message || err));
+            });
+          }
+        }, [window.FOSS.icons.el("save", 12), window.FOSS.dom.el("span", { text: "Save JSON" })]),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          "data-testid": "resume-sample-btn",
+          onclick: function () {
+            window.FOSS.api("resume_sample", {})
+              .then(function (res) {
+                if (res && res.resume) {
+                  masterResume = res.resume;
+                  renderLeftPane();
+                  schedulePreviewUpdate();
+                  window.FOSS.dialogs.toast("SpaceX GNC sample loaded.");
+                }
+              });
+          }
+        }, [window.FOSS.icons.el("refresh-cw", 12), window.FOSS.dom.el("span", { text: "Load Sample" })])
+      ]),
+      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+        pageBadgeEl = window.FOSS.dom.el("span", {
+          className: "badge badge-success text-xs",
+          "data-testid": "resume-page-badge",
+          text: "1 Page (Fits Cleanly)"
+        })
       ])
     ]);
 
-    var summaryCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      checked: masterResume.include_summary !== false,
-      "data-testid": "resume-summary-check",
-      "aria-label": "Include Summary in Tailored Resume",
-      title: "Include Summary in Tailored Resume"
+    // Resizable Split Workspace
+    var splitWrap = window.FOSS.dom.el("div", {
+      className: "split resizable even resume-workbench-split",
+      "data-testid": "resume-split"
     });
-    summaryCheck.onchange = function () { masterResume.include_summary = summaryCheck.checked; };
 
-    var summaryTextarea = window.FOSS.dom.el("textarea", {
-      className: "input text-sm",
-      rows: 4,
-      "data-testid": "resume-summary-textarea",
-      "aria-label": "Write a short profile summary for this resume",
-      title: "Write a short profile summary for this resume",
-      placeholder: "Write a short profile summary for this resume",
-      value: masterResume.summary || ""
+    var leftPane = window.FOSS.dom.el("div", { className: "resume-editor-pane" });
+    var rightPane = window.FOSS.dom.el("div", { className: "resume-preview-pane" });
+
+    // Sub-view selector on Left Pane
+    var subNav = window.FOSS.components.segmented({
+      testid: "resume-subnav",
+      options: [
+        { id: "personal", label: "Contact & Bio" },
+        { id: "sections", label: "Sections" },
+        { id: "profiles", label: "Tailor & ATS" },
+        { id: "preview", label: "Export" }
+      ],
+      value: activeSubView,
+      onChange: function (val) {
+        activeSubView = val;
+        renderLeftPane();
+      }
     });
-    summaryTextarea.oninput = function () { masterResume.summary = summaryTextarea.value; };
 
-    var summaryGroup = window.FOSS.dom.el("div", { className: "card mb-md", "data-testid": "resume-summary-card" }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "Executive Summary / Objective" }),
-      window.FOSS.dom.el("label", { className: "row items-center gap-xs text-sm mb-sm", style: "cursor: pointer;" }, [
-        summaryCheck,
-        window.FOSS.dom.el("span", { text: "Include summary in tailored resume" })
+    var editorContent = window.FOSS.dom.el("div", { style: "display: flex; flex-direction: column; gap: var(--space-3);" });
+    leftPane.appendChild(subNav.el);
+    leftPane.appendChild(editorContent);
+
+    function renderLeftPane() {
+      editorContent.innerHTML = "";
+      if (activeSubView === "personal") {
+        renderPersonalView(editorContent);
+      } else if (activeSubView === "sections") {
+        renderSectionsView(editorContent);
+      } else if (activeSubView === "profiles") {
+        renderProfilesView(editorContent);
+      } else if (activeSubView === "preview") {
+        renderExportView(editorContent);
+      }
+    }
+
+    // Right Pane Toolbar & Stage
+    var previewToolbar = window.FOSS.dom.el("div", { className: "row-between", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
+      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); align-items: center;" }, [
+        window.FOSS.dom.el("span", { className: "text-xs font-semibold text-muted", text: "Font:" }),
+        window.FOSS.dom.el("select", {
+          className: "select",
+          "data-testid": "resume-font-pt-select",
+          onchange: function (e) {
+            currentFontPt = parseFloat(e.target.value) || 11.0;
+            schedulePreviewUpdate();
+          }
+        }, [
+          window.FOSS.dom.el("option", { value: "11.0", text: "11.0 pt (Standard)", selected: true }),
+          window.FOSS.dom.el("option", { value: "10.5", text: "10.5 pt (Compact)" }),
+          window.FOSS.dom.el("option", { value: "10.0", text: "10.0 pt (Dense)" })
+        ]),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          "data-testid": "resume-zoom-out",
+          title: "Zoom Out",
+          onclick: function () {
+            resumeZoom = Math.max(0.5, Math.round((resumeZoom - 0.1) * 10) / 10);
+            applyResumeZoom();
+          }
+        }, [window.FOSS.icons.el("minus", 12)]),
+        window.FOSS.dom.el("span", {
+          className: "text-xs font-mono text-muted",
+          id: "resume-zoom-label",
+          text: Math.round(resumeZoom * 100) + "%"
+        }),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          "data-testid": "resume-zoom-in",
+          title: "Zoom In",
+          onclick: function () {
+            resumeZoom = Math.min(2.0, Math.round((resumeZoom + 0.1) * 10) / 10);
+            applyResumeZoom();
+          }
+        }, [window.FOSS.icons.el("plus", 12)]),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          "data-testid": "resume-zoom-reset",
+          title: "Reset Zoom",
+          onclick: function () {
+            resumeZoom = 1.0;
+            applyResumeZoom();
+          }
+        }, [window.FOSS.icons.el("refresh-cw", 12)])
       ]),
-      summaryTextarea
+      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+        window.FOSS.dom.el("button", {
+          className: "btn btn-secondary btn-sm",
+          "data-testid": "resume-export-md-btn",
+          onclick: function () {
+            exportMarkdown();
+          }
+        }, [window.FOSS.icons.el("file-text", 12), window.FOSS.dom.el("span", { text: "Markdown" })]),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-secondary btn-sm",
+          "data-testid": "resume-export-docx-btn",
+          onclick: function () {
+            exportDocx();
+          }
+        }, [window.FOSS.icons.el("file", 12), window.FOSS.dom.el("span", { text: "Word (.docx)" })]),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-primary btn-sm",
+          "data-testid": "resume-export-pdf-btn",
+          onclick: function () {
+            exportPdf();
+          }
+        }, [window.FOSS.icons.el("check", 12), window.FOSS.dom.el("span", { text: "Export PDF" })])
+      ])
     ]);
 
-    panel.appendChild(header);
-    panel.appendChild(offlineBadge);
-    panel.appendChild(statsBar);
-    panel.appendChild(contactGroup);
-    panel.appendChild(summaryGroup);
-  }
-
-  function renderSections(panel, ctx) {
-    panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-resume");
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Master Resume Sections & Experience" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "build a comprehensive master resume, then check/uncheck bullets and reorder sections to tailor per job."
-      })
-    ]);
-
-    var statsBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted mb-md",
-      "data-testid": "resume-sections-stats",
-      text: calcStats()
+    previewStageEl = window.FOSS.dom.el("div", {
+      className: "resume-preview-stage",
+      "data-testid": "resume-preview-stage"
     });
 
-    var sectionsHost = window.FOSS.dom.el("div", {
-      className: "stack gap-md mb-md",
-      "data-testid": "resume-master-mgmt"
-    });
+    var exportResultHost = window.FOSS.dom.el("div", { "data-testid": "resume-export-result", hidden: true });
 
-    function rebuildSections() {
-      sectionsHost.innerHTML = "";
-      statsBar.textContent = calcStats();
+    rightPane.appendChild(previewToolbar);
+    rightPane.appendChild(previewStageEl);
+    rightPane.appendChild(exportResultHost);
+
+    var divider = window.FOSS.components.splitDivider({ targetSplit: splitWrap, side: "left" });
+    splitWrap.appendChild(leftPane);
+    splitWrap.appendChild(divider);
+    splitWrap.appendChild(rightPane);
+
+    panel.appendChild(topBar);
+    panel.appendChild(splitWrap);
+
+    renderLeftPane();
+    fetchLivePreview();
+
+    // --- Sub-views Implementations ------------------------------------------
+
+    function renderPersonalView(container) {
+      var contactCard = window.FOSS.dom.el("div", { className: "card", "data-testid": "resume-contact-card" }, [
+        window.FOSS.dom.el("h3", { className: "card-title", text: "Contact Details", style: "margin-bottom: var(--space-2);" }),
+        window.FOSS.components.field({
+          label: "Full Name",
+          testid: "resume-name-field",
+          control: window.FOSS.dom.el("input", {
+            className: "input",
+            "data-testid": "resume-name-input",
+            "data-truncate-ok": "true",
+            "aria-label": "Full Name",
+            title: "Full Name",
+            value: masterResume.contact.name || "",
+            oninput: function (e) {
+              masterResume.contact.name = e.target.value;
+              schedulePreviewUpdate();
+            }
+          })
+        }),
+        window.FOSS.components.field({
+          label: "Professional Title",
+          testid: "resume-title-field",
+          control: window.FOSS.dom.el("input", {
+            className: "input",
+            "data-testid": "resume-title-input",
+            "data-truncate-ok": "true",
+            "aria-label": "Professional Title",
+            title: "Professional Title",
+            value: masterResume.contact.title || "",
+            oninput: function (e) {
+              masterResume.contact.title = e.target.value;
+              schedulePreviewUpdate();
+            }
+          })
+        }),
+        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+          window.FOSS.components.field({
+            label: "Email",
+            control: window.FOSS.dom.el("input", {
+              className: "input",
+              "data-testid": "resume-email-input",
+              "data-truncate-ok": "true",
+              "aria-label": "Email",
+              title: "Email",
+              value: masterResume.contact.email || "",
+              oninput: function (e) {
+                masterResume.contact.email = e.target.value;
+                schedulePreviewUpdate();
+              }
+            })
+          }),
+          window.FOSS.components.field({
+            label: "Phone",
+            control: window.FOSS.dom.el("input", {
+              className: "input",
+              "data-testid": "resume-phone-input",
+              "data-truncate-ok": "true",
+              "aria-label": "Phone",
+              title: "Phone",
+              value: masterResume.contact.phone || "",
+              oninput: function (e) {
+                masterResume.contact.phone = e.target.value;
+                schedulePreviewUpdate();
+              }
+            })
+          })
+        ]),
+        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+          window.FOSS.components.field({
+            label: "Location",
+            control: window.FOSS.dom.el("input", {
+              className: "input",
+              "data-testid": "resume-location-input",
+              "data-truncate-ok": "true",
+              "aria-label": "Location",
+              title: "Location",
+              value: masterResume.contact.location || "",
+              oninput: function (e) {
+                masterResume.contact.location = e.target.value;
+                schedulePreviewUpdate();
+              }
+            })
+          }),
+          window.FOSS.components.field({
+            label: "LinkedIn",
+            control: window.FOSS.dom.el("input", {
+              className: "input",
+              "data-testid": "resume-linkedin-input",
+              "data-truncate-ok": "true",
+              "aria-label": "LinkedIn",
+              title: "LinkedIn",
+              value: masterResume.contact.linkedin || "",
+              oninput: function (e) {
+                masterResume.contact.linkedin = e.target.value;
+                schedulePreviewUpdate();
+              }
+            })
+          })
+        ]),
+        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+          window.FOSS.components.field({
+            label: "GitHub",
+            control: window.FOSS.dom.el("input", {
+              className: "input",
+              "data-testid": "resume-github-input",
+              "data-truncate-ok": "true",
+              "aria-label": "GitHub",
+              title: "GitHub",
+              value: masterResume.contact.github || "",
+              oninput: function (e) {
+                masterResume.contact.github = e.target.value;
+                schedulePreviewUpdate();
+              }
+            })
+          }),
+          window.FOSS.components.field({
+            label: "Website",
+            control: window.FOSS.dom.el("input", {
+              className: "input",
+              "data-testid": "resume-website-input",
+              "data-truncate-ok": "true",
+              "aria-label": "Website",
+              title: "Website",
+              value: masterResume.contact.website || "",
+              oninput: function (e) {
+                masterResume.contact.website = e.target.value;
+                schedulePreviewUpdate();
+              }
+            })
+          })
+        ])
+      ]);
+
+      var sumToggle = window.FOSS.dom.el("input", {
+        type: "checkbox",
+        "data-testid": "resume-summary-toggle",
+        "aria-label": "Include Summary",
+        title: "Include Summary",
+        checked: Boolean(masterResume.summary_enabled),
+        onchange: function (e) {
+          masterResume.summary_enabled = e.target.checked;
+          sumText.disabled = !e.target.checked;
+          schedulePreviewUpdate();
+        }
+      });
+
+      var sumText = window.FOSS.dom.el("textarea", {
+        className: "input",
+        "data-testid": "resume-summary-input",
+        "aria-label": "Professional Summary",
+        title: "Professional Summary",
+        rows: 3,
+        disabled: !masterResume.summary_enabled,
+        placeholder: "Optional summary (disabled by default in SpaceX GNC standard)...",
+        value: masterResume.summary || "",
+        oninput: function (e) {
+          masterResume.summary = e.target.value;
+          schedulePreviewUpdate();
+        }
+      });
+
+      var summaryCard = window.FOSS.dom.el("div", { className: "card", "data-testid": "resume-summary-card" }, [
+        window.FOSS.dom.el("div", { className: "row-between", style: "margin-bottom: var(--space-2);" }, [
+          window.FOSS.dom.el("h3", { className: "card-title", text: "Professional Summary" }),
+          window.FOSS.dom.el("label", { className: "row", style: "gap: var(--space-1); cursor: pointer;" }, [
+            sumToggle,
+            window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Include Summary" })
+          ])
+        ]),
+        sumText
+      ]);
+
+      container.appendChild(contactCard);
+      container.appendChild(summaryCard);
+    }
+
+    function renderSectionsView(container) {
+      var topBarSec = window.FOSS.dom.el("div", {
+        className: "row-between card",
+        "data-testid": "resume-master-mgmt",
+        style: "padding: var(--space-2) var(--space-3);"
+      }, [
+        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: (masterResume.sections || []).length + " Section(s)" }),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-primary btn-sm",
+          "data-testid": "resume-add-sec-btn",
+          onclick: function () {
+            var newSec = {
+              id: "sec_" + (idCounter++),
+              type: "experience",
+              title: "WORK EXPERIENCE",
+              enabled: true,
+              entries: [
+                {
+                  id: "e_" + (idCounter++),
+                  title: "Role / Degree / Project",
+                  subtitle: "Company / Institution",
+                  date_range: "2024 - Present",
+                  enabled: true,
+                  bullets: [
+                    { id: "b_" + (idCounter++), text: "Key accomplishment with quantified impact.", enabled: true }
+                  ]
+                }
+              ]
+            };
+            masterResume.sections.push(newSec);
+            renderLeftPane();
+            schedulePreviewUpdate();
+          }
+        }, [window.FOSS.icons.el("plus", 12), window.FOSS.dom.el("span", { text: "Add Section" })])
+      ]);
+
+      container.appendChild(topBarSec);
 
       (masterResume.sections || []).forEach(function (sec, sIdx) {
+        var secCard = window.FOSS.dom.el("div", {
+          className: "card",
+          style: "display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3);"
+        });
+
+        var secHeader = window.FOSS.dom.el("div", { className: "row-between", style: "gap: var(--space-2);" });
         var secTitleInput = window.FOSS.dom.el("input", {
-          type: "text",
-          className: "input font-semibold text-sm",
-          "data-testid": "resume-sec-title-" + sIdx,
+          className: "input font-semibold",
           "data-truncate-ok": "true",
           "aria-label": "Section Title",
           title: "Section Title",
-          placeholder: "Section Title",
-          value: sec.title || ""
+          value: sec.title,
+          style: "flex: 1 1 auto;",
+          oninput: function (e) {
+            sec.title = e.target.value;
+            schedulePreviewUpdate();
+          }
         });
-        secTitleInput.oninput = function () { sec.title = secTitleInput.value; };
-
-        var moveUpSecBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-ghost btn-sm",
-          "data-testid": "resume-section-reorder",
-          "aria-label": "Move Up",
-          title: "Move Up",
-          style: "min-height: 36px;",
-          onclick: function () {
-            if (sIdx > 0) {
-              var tmp = masterResume.sections[sIdx - 1];
-              masterResume.sections[sIdx - 1] = masterResume.sections[sIdx];
-              masterResume.sections[sIdx] = tmp;
-              rebuildSections();
-            }
+        var secTypeSelect = window.FOSS.dom.el("select", {
+          className: "select",
+          "aria-label": "Section Type",
+          title: "Section Type",
+          style: "width: 10rem;",
+          onchange: function (e) {
+            sec.type = e.target.value;
+            renderLeftPane();
+            schedulePreviewUpdate();
           }
-        }, [window.FOSS.dom.el("span", { text: "Move Up" })]);
-
-        var moveDownSecBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-ghost btn-sm",
-          "aria-label": "Move Down",
-          title: "Move Down",
-          style: "min-height: 36px;",
-          onclick: function () {
-            if (sIdx < masterResume.sections.length - 1) {
-              var tmp = masterResume.sections[sIdx + 1];
-              masterResume.sections[sIdx + 1] = masterResume.sections[sIdx];
-              masterResume.sections[sIdx] = tmp;
-              rebuildSections();
-            }
-          }
-        }, [window.FOSS.dom.el("span", { text: "Move Down" })]);
-
-        var delSecBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-ghost btn-sm text-danger",
-          "aria-label": "Delete Section",
-          title: "Delete Section",
-          style: "min-height: 36px;",
-          onclick: function () {
-            masterResume.sections.splice(sIdx, 1);
-            rebuildSections();
-          }
-        }, [window.FOSS.dom.el("span", { text: "Delete Section" })]);
-
-        var secHeader = window.FOSS.dom.el("div", { className: "row items-center justify-between gap-sm mb-sm flex-wrap" }, [
-          secTitleInput,
-          window.FOSS.dom.el("div", { className: "row gap-xs" }, [moveUpSecBtn, moveDownSecBtn, delSecBtn])
+        }, [
+          window.FOSS.dom.el("option", { value: "education", text: "Education", selected: sec.type === "education" }),
+          window.FOSS.dom.el("option", { value: "experience", text: "Experience", selected: sec.type === "experience" }),
+          window.FOSS.dom.el("option", { value: "projects", text: "Projects", selected: sec.type === "projects" }),
+          window.FOSS.dom.el("option", { value: "organization", text: "Organization", selected: sec.type === "organization" }),
+          window.FOSS.dom.el("option", { value: "skills", text: "Skills", selected: sec.type === "skills" }),
+          window.FOSS.dom.el("option", { value: "accomplishments", text: "Accomplishments", selected: sec.type === "accomplishments" }),
+          window.FOSS.dom.el("option", { value: "custom", text: "Custom", selected: sec.type === "custom" })
         ]);
 
-        var entriesHost = window.FOSS.dom.el("div", { className: "stack gap-sm pl-sm" });
+        var secDelBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-icon text-danger btn-sm",
+          title: "Delete Section",
+          onclick: function () {
+            masterResume.sections.splice(sIdx, 1);
+            renderLeftPane();
+            schedulePreviewUpdate();
+          }
+        }, [window.FOSS.icons.el("trash", 14)]);
 
-        (sec.entries || []).forEach(function (ent, eIdx) {
-          var entCheck = window.FOSS.dom.el("input", {
-            type: "checkbox",
-            checked: ent.enabled !== false,
-            "aria-label": "Enable Entry",
-            title: "Enable Entry"
+        secHeader.appendChild(secTitleInput);
+        secHeader.appendChild(secTypeSelect);
+        secHeader.appendChild(secDelBtn);
+        secCard.appendChild(secHeader);
+
+        // Entries
+        (sec.entries || []).forEach(function (entry, eIdx) {
+          var entryBox = renderEntryEditor(sec, entry, function () {
+            sec.entries.splice(eIdx, 1);
+            renderLeftPane();
+            schedulePreviewUpdate();
           });
-          entCheck.onchange = function () { ent.enabled = entCheck.checked; };
+          secCard.appendChild(entryBox);
+        });
 
-          var entTitleInput = window.FOSS.dom.el("input", {
-            type: "text",
-            className: "input text-xs",
-            "data-truncate-ok": "true",
-            "aria-label": "Job title / degree / project name",
-            title: "Job title / degree / project name",
-            placeholder: "Job title / degree / project name",
-            value: ent.title || "",
-            style: "flex: 1;"
-          });
-          entTitleInput.oninput = function () { ent.title = entTitleInput.value; };
-
-          var orgInput = window.FOSS.dom.el("input", {
-            type: "text",
-            className: "input text-xs",
-            "data-truncate-ok": "true",
-            "aria-label": "Company / institution / tech",
-            title: "Company / institution / tech",
-            placeholder: "Company / institution / tech",
-            value: ent.organization || "",
-            style: "flex: 1;"
-          });
-          orgInput.oninput = function () { ent.organization = orgInput.value; };
-
-          var datesInput = window.FOSS.dom.el("input", {
-            type: "text",
-            className: "input text-xs",
-            "data-truncate-ok": "true",
-            "aria-label": "Dates (e.g. 2022 - present)",
-            title: "Dates (e.g. 2022 - present)",
-            placeholder: "Dates (e.g. 2022 - present)",
-            value: ent.dates || "",
-            style: "width: 140px;"
-          });
-          datesInput.oninput = function () { ent.dates = datesInput.value; };
-
-          var entLocInput = window.FOSS.dom.el("input", {
-            type: "text",
-            className: "input text-xs",
-            "data-truncate-ok": "true",
-            "aria-label": "Location",
-            title: "Location",
-            placeholder: "Location",
-            value: ent.location || "",
-            style: "width: 130px;"
-          });
-          entLocInput.oninput = function () { ent.location = entLocInput.value; };
-
-          var delEntBtn = window.FOSS.dom.el("button", {
-            className: "btn btn-ghost btn-sm",
-            "aria-label": "Delete Entry",
-            title: "Delete Entry",
-            style: "min-height: 36px;",
-            onclick: function () {
-              sec.entries.splice(eIdx, 1);
-              rebuildSections();
-            }
-          }, [window.FOSS.dom.el("span", { text: "Delete Entry" })]);
-
-          var entRow = window.FOSS.dom.el("div", { className: "row gap-xs items-center flex-wrap mb-xs" }, [
-            entCheck,
-            entTitleInput,
-            orgInput,
-            datesInput,
-            entLocInput,
-            delEntBtn
-          ]);
-
-          var bulletsHost = window.FOSS.dom.el("div", { className: "stack gap-xs pl-md mb-xs" }, [
-            window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Bullet points (check to include in tailored resume)" })
-          ]);
-
-          (ent.bullets || []).forEach(function (b, bIdx) {
-            var bCheck = window.FOSS.dom.el("input", {
-              type: "checkbox",
-              checked: b.enabled !== false,
-              "data-testid": "resume-bullet-toggle",
-              "aria-label": "Include bullet point",
-              title: "Include bullet point"
+        // Add entry button
+        var addEntryBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          onclick: function () {
+            sec.entries.push({
+              id: "e_" + (idCounter++),
+              title: "Title / Degree / Project",
+              subtitle: "",
+              date_range: "",
+              enabled: true,
+              bullets: [
+                { id: "b_" + (idCounter++), text: "Quantified bullet details here.", enabled: true }
+              ]
             });
-            bCheck.onchange = function () { b.enabled = bCheck.checked; };
+            renderLeftPane();
+            schedulePreviewUpdate();
+          }
+        }, [window.FOSS.icons.el("plus", 12), window.FOSS.dom.el("span", { text: "Add Entry" })]);
 
-            var bInput = window.FOSS.dom.el("input", {
-              type: "text",
-              className: "input text-xs",
+        secCard.appendChild(addEntryBtn);
+        container.appendChild(secCard);
+      });
+    }
+
+    function renderEntryEditor(sec, entry, onDeleteEntry) {
+      var box = window.FOSS.dom.el("div", {
+        style: "border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); background: var(--bg-sunken); display: flex; flex-direction: column; gap: var(--space-2);"
+      });
+
+      var topRow = window.FOSS.dom.el("div", { className: "row-between", style: "gap: var(--space-2);" });
+      var enableCheck = window.FOSS.dom.el("input", {
+        type: "checkbox",
+        "aria-label": "Enable entry",
+        title: "Enable entry",
+        checked: Boolean(entry.enabled),
+        onchange: function (e) {
+          entry.enabled = e.target.checked;
+          schedulePreviewUpdate();
+        }
+      });
+      var entryTitle = window.FOSS.dom.el("input", {
+        className: "input font-semibold",
+        style: "flex: 1 1 auto;",
+        "data-truncate-ok": "true",
+        "aria-label": "Entry Title",
+        title: "Entry Title",
+        value: entry.title || "",
+        placeholder: sec.type === "education" ? "Degree / Major" : (sec.type === "skills" ? "Category Name" : "Role / Title"),
+        oninput: function (e) {
+          entry.title = e.target.value;
+          schedulePreviewUpdate();
+        }
+      });
+      var delBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-icon text-danger btn-sm",
+        "aria-label": "Delete Entry",
+        title: "Delete Entry",
+        onclick: onDeleteEntry
+      }, [window.FOSS.icons.el("x", 12)]);
+
+      topRow.appendChild(enableCheck);
+      topRow.appendChild(entryTitle);
+      topRow.appendChild(delBtn);
+      box.appendChild(topRow);
+
+      if (sec.type === "education") {
+        var eduRow = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+          window.FOSS.dom.el("input", {
+            className: "input",
+            "data-truncate-ok": "true",
+            "aria-label": "Institution",
+            title: "Institution",
+            placeholder: "Institution (e.g. University of Texas at Austin)",
+            value: entry.subtitle || "",
+            oninput: function (e) { entry.subtitle = e.target.value; schedulePreviewUpdate(); }
+          }),
+          window.FOSS.dom.el("input", {
+            className: "input",
+            style: "width: 10rem;",
+            "data-truncate-ok": "true",
+            "aria-label": "Graduation Date",
+            title: "Graduation Date",
+            placeholder: "Graduation Date",
+            value: entry.date_range || "",
+            oninput: function (e) { entry.date_range = e.target.value; schedulePreviewUpdate(); }
+          })
+        ]);
+        var gpaRow = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+          window.FOSS.dom.el("input", {
+            className: "input",
+            style: "width: 10rem;",
+            "data-truncate-ok": "true",
+            "aria-label": "GPA",
+            title: "GPA",
+            placeholder: "GPA (e.g. 3.94 / 4.00)",
+            value: entry.gpa || "",
+            oninput: function (e) { entry.gpa = e.target.value; schedulePreviewUpdate(); }
+          }),
+          window.FOSS.dom.el("input", {
+            className: "input",
+            "data-truncate-ok": "true",
+            "aria-label": "Relevant Coursework",
+            title: "Relevant Coursework",
+            placeholder: "Relevant Coursework (comma separated)",
+            value: entry.coursework || "",
+            oninput: function (e) { entry.coursework = e.target.value; schedulePreviewUpdate(); }
+          })
+        ]);
+        box.appendChild(eduRow);
+        box.appendChild(gpaRow);
+      } else if (sec.type === "skills") {
+        var skInput = window.FOSS.dom.el("input", {
+          className: "input",
+          "data-truncate-ok": "true",
+          "aria-label": "Skills list",
+          title: "Skills list",
+          placeholder: "Skills (comma-separated list, e.g. C++, Python, MATLAB, ROS 2)",
+          value: entry.skills_text || "",
+          oninput: function (e) { entry.skills_text = e.target.value; schedulePreviewUpdate(); }
+        });
+        box.appendChild(skInput);
+      } else {
+        var metaRow = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+          window.FOSS.dom.el("input", {
+            className: "input",
+            "data-truncate-ok": "true",
+            "aria-label": "Subtitle",
+            title: "Subtitle",
+            placeholder: sec.type === "experience" ? "Company Name" : "Subtitle / Tech",
+            value: entry.subtitle || "",
+            oninput: function (e) { entry.subtitle = e.target.value; schedulePreviewUpdate(); }
+          }),
+          window.FOSS.dom.el("input", {
+            className: "input",
+            style: "width: 12rem;",
+            "data-truncate-ok": "true",
+            "aria-label": "Dates",
+            title: "Dates",
+            placeholder: "Dates (e.g. May 2025 - Aug 2025)",
+            value: entry.date_range || "",
+            oninput: function (e) { entry.date_range = e.target.value; schedulePreviewUpdate(); }
+          })
+        ]);
+        box.appendChild(metaRow);
+      }
+
+      // Bullets (for non-skills sections)
+      if (sec.type !== "skills") {
+        var bulletWrap = window.FOSS.dom.el("div", { style: "display: flex; flex-direction: column; gap: var(--space-1);" });
+        (entry.bullets || []).forEach(function (b, bIdx) {
+          var bRow = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-1);" }, [
+            window.FOSS.dom.el("input", {
+              type: "checkbox",
+              "data-testid": "resume-bullet-toggle",
+              "aria-label": "Toggle bullet point",
+              title: "Toggle bullet point",
+              checked: Boolean(b.enabled),
+              onchange: function (e) {
+                b.enabled = e.target.checked;
+                schedulePreviewUpdate();
+              }
+            }),
+            window.FOSS.dom.el("input", {
+              className: "input",
+              style: "flex: 1 1 auto;",
               "data-truncate-ok": "true",
               "aria-label": "Bullet text",
               title: "Bullet text",
-              placeholder: "Bullet text (e.g. achieved 40% performance gain by...)",
               value: b.text || "",
-              style: "flex: 1;"
-            });
-            bInput.oninput = function () { b.text = bInput.value; };
-
-            var delBulletBtn = window.FOSS.dom.el("button", {
-              className: "btn btn-ghost btn-sm",
-              "aria-label": "x",
-              title: "Remove bullet",
-              style: "min-width: 36px; min-height: 36px; padding: 2px 8px;",
-              onclick: function () {
-                ent.bullets.splice(bIdx, 1);
-                rebuildSections();
+              oninput: function (e) {
+                b.text = e.target.value;
+                schedulePreviewUpdate();
               }
-            }, [window.FOSS.icons.el("x", 12)]);
-
-            bulletsHost.appendChild(window.FOSS.dom.el("div", { className: "row gap-xs items-center" }, [
-              bCheck,
-              bInput,
-              delBulletBtn
-            ]));
-          });
-
-          var addBulletBtn = window.FOSS.dom.el("button", {
-            className: "btn btn-ghost btn-sm",
-            "data-testid": "resume-add-bullet-btn",
-            "aria-label": "Add Bullet",
-            title: "Add Bullet",
-            style: "min-height: 36px; align-self: flex-start;",
-            onclick: function () {
-              ent.bullets = ent.bullets || [];
-              ent.bullets.push({ id: "b" + Date.now(), text: "", enabled: true });
-              rebuildSections();
-            }
-          }, [window.FOSS.dom.el("span", { text: "Add Bullet" })]);
-
-          var entCard = window.FOSS.dom.el("div", { className: "border rounded p-sm mb-sm" }, [
-            entRow,
-            bulletsHost,
-            addBulletBtn
+            }),
+            window.FOSS.dom.el("button", {
+              className: "btn btn-ghost btn-icon text-danger btn-sm",
+              "aria-label": "Delete bullet",
+              title: "Delete bullet",
+              onclick: function () {
+                entry.bullets.splice(bIdx, 1);
+                renderLeftPane();
+                schedulePreviewUpdate();
+              }
+            }, [window.FOSS.icons.el("x", 10)])
           ]);
-          entriesHost.appendChild(entCard);
+          bulletWrap.appendChild(bRow);
         });
 
-        var addEntBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-secondary btn-sm",
-          "aria-label": "Add Role / Item to Section",
-          title: "Add Role / Item to Section",
-          style: "min-height: 36px; margin-top: 6px;",
+        var addBBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-xs",
+          style: "align-self: flex-start;",
           onclick: function () {
-            sec.entries = sec.entries || [];
-            sec.entries.push({ id: "e" + Date.now(), title: "", organization: "", dates: "", location: "", enabled: true, bullets: [] });
-            rebuildSections();
+            entry.bullets.push({ id: "b_" + (idCounter++), text: "", enabled: true });
+            renderLeftPane();
           }
-        }, [window.FOSS.dom.el("span", { text: "Add Role / Item to Section" })]);
+        }, [window.FOSS.icons.el("plus", 10), window.FOSS.dom.el("span", { text: "Add Bullet" })]);
 
-        var secCard = window.FOSS.dom.el("div", { className: "card mb-md", "data-testid": "resume-section-card" }, [
-          secHeader,
-          entriesHost,
-          addEntBtn
-        ]);
-        sectionsHost.appendChild(secCard);
-      });
+        box.appendChild(bulletWrap);
+        box.appendChild(addBBtn);
+      }
+
+      return box;
     }
 
-    var addSecBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "resume-add-sec-btn",
-      "aria-label": "Add New Section",
-      title: "Add New Section",
-      style: "min-height: 36px;",
-      onclick: function () {
-        masterResume.sections = masterResume.sections || [];
-        masterResume.sections.push({ id: "sec_" + Date.now(), title: "New Section", entries: [] });
-        rebuildSections();
-      }
-    }, [
-      window.FOSS.icons.el("plus", 16),
-      window.FOSS.dom.el("span", { text: "Add New Section (Experience, Projects, Skills, Education, Custom)" })
-    ]);
-
-    panel.appendChild(header);
-    panel.appendChild(statsBar);
-    panel.appendChild(window.FOSS.dom.el("div", { className: "row mb-md" }, [addSecBtn]));
-    panel.appendChild(sectionsHost);
-
-    rebuildSections();
-  }
-
-  function renderProfiles(panel, ctx) {
-    panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-resume");
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Job Tailoring Profiles & ATS Match" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Save tailored sub-configurations and calculate automated ATS keyword relevance scores."
-      })
-    ]);
-
-    var profileSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "resume-profile-select",
-      "aria-label": "Job tailoring profile",
-      title: "Job tailoring profile"
-    }, [
-      window.FOSS.dom.el("option", { value: "full master resume (default)", text: "Full Master Resume (default)" })
-    ]);
-
-    var profileCard = window.FOSS.dom.el("div", { className: "card mb-md" }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "Job Tailoring Profile" }),
-      window.FOSS.dom.el("div", { className: "row gap-sm items-center mb-sm" }, [profileSelect])
-    ]);
-
-    var jobDescTextarea = window.FOSS.dom.el("textarea", {
-      className: "input font-mono text-sm",
-      rows: 6,
-      "data-testid": "resume-job-desc-input",
-      "aria-label": "paste job posting requirements, skills, and qualifications here",
-      title: "paste job posting requirements, skills, and qualifications here",
-      placeholder: "paste job posting requirements, skills, and qualifications here"
-    });
-
-    var atsResultHost = window.FOSS.dom.el("div", {
-      className: "hidden p-md border rounded mt-sm",
-      "data-testid": "resume-ats-results"
-    });
-
-    var analyzeBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "resume-analyze-ats-btn",
-      "aria-label": "Analyze ATS Match Score & Missing Keywords",
-      title: "Analyze ATS Match Score & Missing Keywords",
-      style: "min-height: 36px;",
-      onclick: function () {
-        var desc = jobDescTextarea.value.trim();
-        if (!desc) {
-          window.FOSS.toast.show({ message: "Please paste a job description first.", type: "warning" });
-          return;
-        }
-        window.FOSS.api("resume_analyze_ats", { resume: masterResume, job_description: desc }).then(function (res) {
-          if (res && res.score !== undefined) {
-            atsResultHost.innerHTML = "";
-            var scoreBadge = window.FOSS.dom.el("div", { className: "text-xl font-bold mb-xs", text: "ATS Match Score: " + res.score + "%" });
-            var matchedText = window.FOSS.dom.el("div", { className: "text-xs mb-xs text-success", text: "Matched Keywords: " + ((res.matched_keywords || []).slice(0, 15).join(", ") || "None") });
-            var missingText = window.FOSS.dom.el("div", { className: "text-xs text-danger", text: "Missing Keywords: " + ((res.missing_keywords || []).slice(0, 15).join(", ") || "None") });
-            atsResultHost.appendChild(scoreBadge);
-            atsResultHost.appendChild(matchedText);
-            atsResultHost.appendChild(missingText);
-            atsResultHost.classList.remove("hidden");
+    function renderProfilesView(container) {
+      var profileCard = window.FOSS.dom.el("div", { className: "card", style: "display: flex; flex-direction: column; gap: var(--space-3);" }, [
+        window.FOSS.dom.el("h3", { className: "card-title", text: "Tailor for Job Posting" }),
+        window.FOSS.components.field({
+          label: "Active Profile",
+          testid: "resume-profile-field",
+          control: window.FOSS.dom.el("select", {
+            className: "select",
+            "data-testid": "resume-profile-select",
+            "aria-label": "Active Profile",
+            title: "Active Profile",
+            onchange: function (e) {
+              masterResume.active_profile = e.target.value;
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: "Full Master Resume", text: "Full Master Resume" })
+          ])
+        }),
+        window.FOSS.components.field({
+          label: "Target Job Description",
+          testid: "resume-jd-field",
+          control: window.FOSS.dom.el("textarea", {
+            className: "input",
+            "data-testid": "resume-job-desc-input",
+            "aria-label": "Target Job Description",
+            title: "Target Job Description",
+            rows: 6,
+            placeholder: "Paste target job posting requirements and keywords here..."
+          })
+        }),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-primary",
+          "data-testid": "resume-analyze-ats-btn",
+          onclick: function () {
+            var jd = container.querySelector("[data-testid='resume-job-desc-input']").value.trim();
+            if (!jd) {
+              window.FOSS.dialogs.toast("Paste job description text first.");
+              return;
+            }
+            window.FOSS.api("resume_analyze_ats", { resume: masterResume, job_description: jd })
+              .then(function (res) {
+                var atsBox = container.querySelector("[data-testid='resume-ats-results']");
+                atsBox.removeAttribute("hidden");
+                atsBox.innerHTML = "";
+                var scorePill = window.FOSS.dom.el("div", {
+                  className: "badge badge-primary text-sm",
+                  text: "Keyword Match Score: " + res.score + "%"
+                });
+                var matchedList = window.FOSS.dom.el("p", {
+                  className: "text-xs",
+                  text: "Matched (" + (res.matched_keywords || []).length + "): " + (res.matched_keywords || []).join(", ")
+                });
+                var missingList = window.FOSS.dom.el("p", {
+                  className: "text-xs text-muted",
+                  text: "Missing (" + (res.missing_keywords || []).length + "): " + (res.missing_keywords || []).join(", ")
+                });
+                atsBox.appendChild(scorePill);
+                atsBox.appendChild(matchedList);
+                atsBox.appendChild(missingList);
+              });
           }
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Analyze ATS Match Score & Missing Keywords" })]);
+        }, [window.FOSS.icons.el("activity", 14), window.FOSS.dom.el("span", { text: "Analyze ATS Match" })]),
+        window.FOSS.dom.el("div", {
+          className: "card card-compact",
+          "data-testid": "resume-ats-results",
+          style: "display: flex; flex-direction: column; gap: var(--space-2);",
+          hidden: true
+        })
+      ]);
 
-    var atsCard = window.FOSS.dom.el("div", { className: "card mb-md" }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "Paste Target Job Description" }),
-      window.FOSS.dom.el("div", { className: "field mb-sm" }, [jobDescTextarea]),
-      analyzeBtn,
-      atsResultHost
-    ]);
-
-    panel.appendChild(header);
-    panel.appendChild(profileCard);
-    panel.appendChild(atsCard);
-  }
-
-  function renderPreview(panel, ctx) {
-    panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-resume");
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Live Preview & Export" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Review HTML preview and export to PDF, Word DOCX, Markdown, or clipboard."
-      })
-    ]);
-
-    var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted mb-sm",
-      "data-testid": "resume-preview-status",
-      text: "Rendering preview..."
-    });
-
-    var resultHost = window.FOSS.dom.el("div", {
-      className: "hidden mb-sm",
-      "data-testid": "resume-export-result"
-    });
-
-    function showResult(path, titleText) {
-      resultHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({
-        testid: "resume-result-card",
-        title: titleText || "Resume Exported",
-        outputPath: path
-      });
-      resultHost.appendChild(card);
-      resultHost.classList.remove("hidden");
+      container.appendChild(profileCard);
     }
 
-    var previewFrame = window.FOSS.dom.el("iframe", {
-      className: "w-full border rounded mb-md",
-      style: "height: 480px; background: white;",
-      "data-testid": "resume-preview-iframe"
-    });
-
-    function updatePreview() {
-      statusBar.textContent = "Rendering preview...";
-      window.FOSS.api("resume_render_html", {
-        resume: masterResume,
-        layout: currentLayout,
-        accent_color: currentAccent
-      }).then(function (res) {
-        if (res && res.html) {
-          previewFrame.srcdoc = res.html;
-          statusBar.textContent = "Preview updated";
-        }
-      });
-    }
-
-    var layoutSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "resume-layout-select",
-      "aria-label": "Layout template",
-      title: "Layout template",
-      onchange: function () {
-        currentLayout = layoutSelect.value;
-        updatePreview();
-      }
-    }, [
-      window.FOSS.dom.el("option", { value: "single", text: "Standard Single-Column" }),
-      window.FOSS.dom.el("option", { value: "two_column", text: "Modern Dual-Column" })
-    ]);
-    layoutSelect.value = currentLayout;
-
-    var themeSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "resume-theme-select",
-      "aria-label": "Accent theme",
-      title: "Accent theme",
-      onchange: function () {
-        currentAccent = themeSelect.value;
-        updatePreview();
-      }
-    }, [
-      window.FOSS.dom.el("option", { value: "#2563eb", text: "Classic Navy Blue" }),
-      window.FOSS.dom.el("option", { value: "#059669", text: "Emerald Green" }),
-      window.FOSS.dom.el("option", { value: "#7c3aed", text: "Royal Violet" }),
-      window.FOSS.dom.el("option", { value: "#1f2937", text: "Slate Charcoal" })
-    ]);
-    themeSelect.value = currentAccent;
-
-    var exportPdfBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "resume-export-pdf-btn",
-      "aria-label": "Export PDF",
-      title: "Export PDF",
-      style: "min-height: 36px;",
-      onclick: function () {
-        window.FOSS.api("select_save_path", { title: "Save Resume PDF", default_name: "resume.pdf" }).then(function (saveRes) {
-          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
-          if (!outP) return;
-          window.FOSS.api("resume_export_pdf", {
-            resume: masterResume,
-            output_path: outP,
-            layout: currentLayout,
-            accent_color: currentAccent
-          }).then(function (res) {
-            if (res && res.output_path) {
-              showResult(res.output_path, "PDF Resume Exported");
-            }
-          });
-        });
-      }
-    }, [
-      window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "Export PDF" })
-    ]);
-
-    var exportDocxBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "resume-export-docx-btn",
-      "aria-label": "Export Word DOCX",
-      title: "Export Word DOCX",
-      style: "min-height: 36px;",
-      onclick: function () {
-        window.FOSS.api("select_save_path", { title: "Save Word DOCX Resume", default_name: "resume.docx" }).then(function (saveRes) {
-          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
-          if (!outP) return;
-          window.FOSS.api("resume_export_docx", {
-            resume: masterResume,
-            output_path: outP
-          }).then(function (res) {
-            if (res && res.output_path) {
-              showResult(res.output_path, "Word DOCX Resume Exported");
-            }
-          });
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Export Word (DOCX)" })]);
-
-    var exportMdBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "resume-export-md-btn",
-      "aria-label": "Export Markdown",
-      title: "Export Markdown",
-      style: "min-height: 36px;",
-      onclick: function () {
-        window.FOSS.api("select_save_path", { title: "Save Markdown Resume", default_name: "resume.md" }).then(function (saveRes) {
-          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
-          if (!outP) return;
-          window.FOSS.api("resume_export_markdown", {
-            resume: masterResume,
-            output_path: outP
-          }).then(function (res) {
-            if (res && res.output_path) {
-              showResult(res.output_path, "Markdown Resume Saved");
-            }
-          });
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Export Markdown" })]);
-
-    var copyTxtBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "resume-copy-txt-btn",
-      "aria-label": "Copy plain text",
-      title: "Copy plain text",
-      style: "min-height: 36px;",
-      onclick: function () {
-        window.FOSS.api("resume_export_markdown", { resume: masterResume }).then(function (res) {
-          if (res && res.markdown) {
-            navigator.clipboard.writeText(res.markdown).then(function () {
-              window.FOSS.toast.show({ message: "Tailored text copied to clipboard.", type: "success" });
-            });
-          }
-        });
-      }
-    }, [window.FOSS.dom.el("span", { text: "Copy Plain Text" })]);
-
-    var controlsRow = window.FOSS.dom.el("div", { className: "row gap-sm items-center mb-md flex-wrap" }, [
-      layoutSelect,
-      themeSelect,
-      exportPdfBtn,
-      exportDocxBtn,
-      exportMdBtn,
-      copyTxtBtn
-    ]);
-
-    panel.appendChild(header);
-    panel.appendChild(statusBar);
-    panel.appendChild(resultHost);
-    panel.appendChild(controlsRow);
-    panel.appendChild(previewFrame);
-
-    updatePreview();
-  }
-
-  function renderHistory(panel, ctx) {
-    panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-resume");
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Version History & Revision Diffing" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Save job tailoring snapshots and compare prior versions."
-      })
-    ]);
-
-    var snapshotBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary mb-md",
-      "data-testid": "resume-snapshot-btn",
-      "aria-label": "Save version snapshot",
-      title: "Save version snapshot",
-      style: "min-height: 36px;",
-      onclick: function () {
-        historySnapshots.push({
-          timestamp: new Date().toLocaleTimeString(),
-          title: "Snapshot #" + (historySnapshots.length + 1),
-          resume: JSON.parse(JSON.stringify(masterResume))
-        });
-        window.FOSS.toast.show({ message: "Snapshot saved. Total: " + historySnapshots.length, type: "success" });
-        loadHistoryList();
-      }
-    }, [
-      window.FOSS.icons.el("camera", 16),
-      window.FOSS.dom.el("span", { text: "Save Version Snapshot" })
-    ]);
-
-    var diffHost = window.FOSS.dom.el("div", {
-      className: "card mb-md",
-      "data-testid": "resume-history-diff"
-    });
-
-    function loadHistoryList() {
-      diffHost.innerHTML = "";
-      if (!historySnapshots.length) {
-        diffHost.appendChild(window.FOSS.dom.el("p", { className: "text-xs text-muted", text: "No snapshots saved yet. Click Save Version Snapshot above." }));
-        return;
-      }
-      historySnapshots.forEach(function (snap, idx) {
-        diffHost.appendChild(window.FOSS.dom.el("div", { className: "row justify-between items-center text-xs py-xs border-b" }, [
-          window.FOSS.dom.el("span", { className: "font-semibold", text: snap.title + " (" + snap.timestamp + ")" }),
+    function renderExportView(container) {
+      var expCard = window.FOSS.dom.el("div", { className: "card", style: "display: flex; flex-direction: column; gap: var(--space-3);" }, [
+        window.FOSS.dom.el("h3", { className: "card-title", text: "Export Resume" }),
+        window.FOSS.dom.el("p", { className: "text-xs text-muted", text: "Export formatted resume in PDF, Word (.docx), or structured Markdown." }),
+        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
           window.FOSS.dom.el("button", {
-            className: "btn btn-ghost btn-sm",
-            "aria-label": "Restore",
-            title: "Restore",
-            style: "min-height: 36px;",
-            onclick: function () {
-              masterResume = JSON.parse(JSON.stringify(snap.resume));
-              window.FOSS.toast.show({ message: "Restored " + snap.title, type: "info" });
-            }
-          }, [window.FOSS.dom.el("span", { text: "Restore" })])
-        ]));
+            className: "btn btn-primary",
+            "data-testid": "resume-export-pdf-btn-view",
+            onclick: exportPdf
+          }, [window.FOSS.icons.el("check", 14), window.FOSS.dom.el("span", { text: "Export PDF..." })]),
+          window.FOSS.dom.el("button", {
+            className: "btn btn-secondary",
+            "data-testid": "resume-export-docx-btn",
+            onclick: exportDocx
+          }, [window.FOSS.icons.el("file", 14), window.FOSS.dom.el("span", { text: "Export DOCX..." })]),
+          window.FOSS.dom.el("button", {
+            className: "btn btn-ghost",
+            onclick: exportMarkdown
+          }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "Export Markdown..." })])
+        ])
+      ]);
+      container.appendChild(expCard);
+    }
+
+    function exportPdf() {
+      window.FOSS.api("select_save_path", {
+        title: "Export Resume PDF",
+        default_name: "resume.pdf",
+        filter: "pdf",
+        file_types: [["PDF Documents", "*.pdf"]]
+      }).then(function (res) {
+        var savePath = res && (res.file_path || res.path || res.output_path);
+        if (!savePath) return;
+        if (!savePath.toLowerCase().endsWith(".pdf")) {
+          savePath = savePath + ".pdf";
+        }
+        return window.FOSS.api("resume_export_pdf", {
+          resume: masterResume,
+          output_path: savePath,
+          font_pt: currentFontPt
+        }).then(function () {
+          window.FOSS.dialogs.toast("PDF exported successfully.");
+        });
+      }).catch(function (err) {
+        window.FOSS.dialogs.toast("Export PDF failed: " + (err.message || err));
       });
     }
 
-    panel.appendChild(header);
-    panel.appendChild(snapshotBtn);
-    panel.appendChild(diffHost);
+    function exportDocx() {
+      window.FOSS.api("select_save_path", {
+        title: "Export Resume DOCX",
+        default_name: "resume.docx",
+        filter: "docx",
+        file_types: [["Word Documents", "*.docx"]]
+      }).then(function (res) {
+        var savePath = res && (res.file_path || res.path || res.output_path);
+        if (!savePath) return;
+        if (!savePath.toLowerCase().endsWith(".docx")) {
+          savePath = savePath + ".docx";
+        }
+        return window.FOSS.api("resume_export_docx", {
+          resume: masterResume,
+          output_path: savePath
+        }).then(function () {
+          window.FOSS.dialogs.toast("DOCX exported successfully.");
+        });
+      }).catch(function (err) {
+        window.FOSS.dialogs.toast("Export DOCX failed: " + (err.message || err));
+      });
+    }
 
-    loadHistoryList();
+    function exportMarkdown() {
+      window.FOSS.api("select_save_path", {
+        title: "Export Resume Markdown",
+        default_filename: (masterResume.contact.name || "resume").replace(/\s+/g, "_") + ".md",
+        file_types: [["Markdown Files", "*.md"]]
+      }).then(function (res) {
+        if (!res || !res.file_path) return;
+        return window.FOSS.api("resume_export_markdown", {
+          resume: masterResume,
+          output_path: res.file_path
+        }).then(function () {
+          exportResultHost.removeAttribute("hidden");
+          exportResultHost.innerHTML = "";
+          exportResultHost.appendChild(window.FOSS.components.resultCard({
+            testid: "resume-export-result-card",
+            title: "Markdown Exported",
+            outputPath: res.file_path
+          }));
+          window.FOSS.dialogs.toast("Markdown exported successfully.");
+        });
+      }).catch(function (err) {
+        window.FOSS.dialogs.toast("Export Markdown failed: " + (err.message || err));
+      });
+    }
   }
 
+  // Register router
   window.FOSS.router.register({
     id: "resume",
     title: "Resume Studio",
     navName: "Resume",
     category: "Documents",
-    icon: "file-text",
+    icon: "award",
+    workbench: true,
+    description: "SpaceX GNC format resume builder with live document preview and multi-format export.",
     tabs: [
-      { id: "personal", label: "Personal & Contact", render: renderPersonal },
-      { id: "sections", label: "Sections & Experience", render: renderSections },
-      { id: "profiles", label: "Job Tailoring Profiles", render: renderProfiles },
-      { id: "preview", label: "Live Preview & Export", render: renderPreview },
-      { id: "history", label: "Version History", render: renderHistory }
+      { id: "personal", label: "Contact & Bio", render: function (p) { renderResumeWorkbench(p, "personal"); } },
+      { id: "sections", label: "Sections", render: function (p) { renderResumeWorkbench(p, "sections"); } },
+      { id: "profiles", label: "Tailor & ATS", render: function (p) { renderResumeWorkbench(p, "profiles"); } },
+      { id: "preview", label: "Preview & Export", render: function (p) { renderResumeWorkbench(p, "preview"); } }
     ]
   });
 })();

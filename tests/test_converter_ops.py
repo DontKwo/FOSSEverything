@@ -33,7 +33,7 @@ class ConverterOperationsTests(unittest.TestCase):
 
     def test_converter_does_not_advertise_unknown_file_types(self) -> None:
         self.assertEqual(converter_ops.available_targets("notes.unknown_xyz"), [])
-        self.assertEqual(converter_ops.available_targets("notes.docx"), ["PDF", "TXT", "MD"])
+        self.assertEqual(set(converter_ops.available_targets("notes.docx")), {"PDF", "TXT", "MD", "HTML"})
 
     def test_model3d_source_and_targets(self) -> None:
         self.assertEqual(converter_ops.source_family("part.stl"), "Model3D")

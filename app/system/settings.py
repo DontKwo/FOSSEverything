@@ -74,9 +74,9 @@ def reset_all_settings() -> None:
 
 
 def reset_user_preferences() -> None:
-    # Reset user preferences in settings while preserving application defaults.
-    defaults: dict[str, Any] = {
-        "theme": "dark",
-        "ui_scale": 1.0,
-    }
-    calc_write_settings(defaults)
+    # Reset appearance settings while preserving custom layout and user history.
+    current = calc_read_settings()
+    current["theme"] = "dark"
+    current["ui_scale"] = 1.0
+    current["custom_colors"] = {}
+    calc_write_settings(current)

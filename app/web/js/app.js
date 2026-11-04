@@ -19,26 +19,7 @@ window.FOSS = window.FOSS || {};
       // Initial route: home
       window.FOSS.router.open("home");
 
-      // Check first run wizard
-      if (!window.FOSS.store.get("first_run_done", false)) {
-        showFirstRunWelcome();
-      }
-
       window.FOSS.ready = true;
-    });
-  }
-
-  function showFirstRunWelcome() {
-    window.FOSS.confirm({
-      title: "Welcome to FOSSEverything",
-      message: "FOSSEverything is ready for completely offline local document and media operations. Would you like to enable Windows Explorer context menu integration?",
-      confirmText: "Enable & Continue",
-      cancelText: "Skip"
-    }).then(function (enabled) {
-      if (enabled) {
-        window.FOSS.api("shell_register", {});
-      }
-      window.FOSS.store.set("first_run_done", true);
     });
   }
 

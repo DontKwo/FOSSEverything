@@ -75,9 +75,11 @@ def html_decode(text: str) -> str:
     return html.unescape(text)
 
 
-def html_encode_numeric(text: str) -> str:
+def html_encode_numeric(text: str, hex_format: bool = False) -> str:
     """Escape reserved HTML characters and every non-ASCII character as numeric character references."""
     escaped = html.escape(text)
+    if hex_format:
+        return "".join(c if ord(c) < 128 else f"&#x{ord(c):x};" for c in escaped)
     return "".join(c if ord(c) < 128 else f"&#{ord(c)};" for c in escaped)
 
 

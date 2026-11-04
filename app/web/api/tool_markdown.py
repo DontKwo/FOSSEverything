@@ -1,7 +1,10 @@
+# Markdown API mixin for rendering, snippets, and document export.
 from pathlib import Path
 from typing import Any
 
 from app.features.markdown.ops import (
+    SUPPORTED_MARKDOWN_FLAVORS,
+    build_styled_markdown_document,
     code_block,
     horizontal_rule,
     html_table_skeleton,
@@ -20,10 +23,11 @@ from app.web.api.result import api_method, ok, require
 class MarkdownApiMixin:
     @api_method
     def markdown_to_html(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Convert markdown text into HTML representation.
+        # Convert markdown text into HTML representation using chosen flavor.
         require(params, "markdown")
         md_text = str(params["markdown"])
-        html_out = render_markdown_to_html(md_text)
+        flavor = str(params.get("flavor", "github")).lower()
+        html_out = render_markdown_to_html(md_text, flavor=flavor)
         return ok(html=html_out)
 
     @api_method
@@ -32,32 +36,33 @@ class MarkdownApiMixin:
         return self.markdown_to_html(params)
 
     @api_method
+    def markdown_flavors(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Return list of supported markdown parsing flavors and default.
+        _ = params
+        return ok(flavors=SUPPORTED_MARKDOWN_FLAVORS, default="github")
+
+    @api_method
     def markdown_export_html(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Export markdown content to standalone HTML document.
+        # Export markdown content to standalone styled HTML document.
         require(params, "markdown", "output_path")
         md_text = str(params["markdown"])
+        flavor = str(params.get("flavor", "github")).lower()
         out_path = Path(params["output_path"]).resolve()
-        html_body = render_markdown_to_html(md_text)
-        full_html = (
-            "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"utf-8\">\n"
-            "<title>Markdown Document</title>\n"
-            "<style>body { font-family: sans-serif; line-height: 1.6; max-width: 800px; margin: 40px auto; padding: 0 20px; }</style>\n"
-            f"</head>\n<body>\n{html_body}\n</body>\n</html>"
-        )
+        full_html = build_styled_markdown_document(md_text, flavor=flavor, theme_mode="light", for_pdf=False)
         out_path.write_text(full_html, encoding="utf-8")
         return ok(output_path=str(out_path))
 
     @api_method
     def markdown_export_pdf(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Export markdown content to PDF via PyMuPDF story or document.
+        # Export markdown content to PDF via PyMuPDF story and document writer.
         require(params, "markdown", "output_path")
         import pymupdf
 
         md_text = str(params["markdown"])
+        flavor = str(params.get("flavor", "github")).lower()
         out_path = Path(params["output_path"]).resolve()
-        html_body = render_markdown_to_html(md_text)
+        html_body = build_styled_markdown_document(md_text, flavor=flavor, theme_mode="light", for_pdf=True)
 
-        doc = pymupdf.open()
         story = pymupdf.Story(html=html_body)
         writer = pymupdf.DocumentWriter(str(out_path))
         mediabox = pymupdf.paper_rect("letter")
@@ -69,7 +74,6 @@ class MarkdownApiMixin:
             story.draw(device)
             writer.end_page()
         writer.close()
-        doc.close()
         return ok(output_path=str(out_path))
 
     @api_method

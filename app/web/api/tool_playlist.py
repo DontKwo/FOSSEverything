@@ -1,9 +1,8 @@
+from pathlib import Path
 from typing import Any
 
-from app.features.playlist import youtube_ops
 from app.features.playlist.ops import (
     PlaylistTrack,
-    _clear_spotify_user_token_cache,
     build_track,
     detect_url_platform,
     export_csv_playlist,
@@ -12,6 +11,7 @@ from app.features.playlist.ops import (
     get_spotify_user_token,
     parse_tracklist_text,
     start_spotify_user_login,
+    _clear_spotify_user_token_cache,
 )
 from app.features.playlist.youtube_ops import (
     YouTubePlaylistResult,
@@ -22,56 +22,54 @@ from app.features.playlist.youtube_ops import (
     start_youtube_login,
 )
 from app.system.settings import get_setting, set_setting
-from app.web.api.result import api_method, ok, require
+from app.web.api.result import api_method, fail, ok, require
 
 
 class PlaylistApiMixin:
     @api_method
     def playlist_fetch(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Fetch playlist track metadata from Spotify or YouTube URL.
+        # Fetch tracks from a Spotify or YouTube playlist URL.
         require(params, "url")
         url = str(params["url"]).strip()
-        platform = detect_url_platform(url)
         tracks = fetch_playlist_from_url(url)
-        track_list = [
-            {
-                "title": t.title,
-                "artist": t.artist,
-                "album": t.album,
-                "duration": t.duration_str,
-                "spotify_url": t.spotify_url,
-                "youtube_url": t.youtube_url,
-                "youtube_music_url": t.youtube_music_url,
-            }
-            for t in tracks
-        ]
-        return ok(tracks=track_list, count=len(track_list), platform=platform)
+        track_dicts = [t.to_dict() for t in tracks]
+        return ok(tracks=track_dicts, count=len(tracks))
 
     @api_method
     def playlist_parse_text(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Parse freeform text or tracklist list into structured tracks.
+        # Parse plain-text lines formatted as Artist - Title into tracks.
         require(params, "text")
-        text = str(params["text"])
+        raw_text = str(params["text"])
+        tracks = parse_tracklist_text(raw_text)
+        track_dicts = [t.to_dict() for t in tracks]
+        return ok(tracks=track_dicts, count=len(tracks))
+
+    @api_method
+    def playlist_import_file(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Import tracks from local playlist file (m3u, m3u8, csv, txt).
+        target_path_str = params.get("file_path") or params.get("path")
+        if not target_path_str:
+            return fail("Missing required parameter: file_path")
+        p = Path(str(target_path_str))
+        if not p.exists():
+            return fail(f"File not found: {p}")
+        text = p.read_text(encoding="utf-8", errors="replace")
         tracks = parse_tracklist_text(text)
-        track_list = [
-            {
-                "title": t.title,
-                "artist": t.artist,
-                "album": t.album,
-                "duration": t.duration_str,
-                "spotify_url": t.spotify_url,
-                "youtube_url": t.youtube_url,
-                "youtube_music_url": t.youtube_music_url,
-            }
-            for t in tracks
-        ]
-        return ok(tracks=track_list, count=len(track_list))
+        track_dicts = [t.to_dict() for t in tracks]
+        return ok(tracks=track_dicts, count=len(tracks), file_path=str(p.resolve()))
 
     @api_method
     def playlist_export_csv(self, params: dict[str, Any]) -> dict[str, Any]:
         # Export track list to CSV spreadsheet file.
         require(params, "tracks", "output_path")
-        tracks = [build_track(artist=str(t.get("artist", "")), title=str(t.get("title", ""))) for t in params["tracks"]]
+        tracks = [
+            build_track(
+                artist=str(t.get("artist", "")),
+                title=str(t.get("title", "")),
+                album=str(t.get("album", "")),
+            )
+            for t in params["tracks"]
+        ]
         out_p = str(params["output_path"])
         export_csv_playlist(tracks, out_p)
         return ok(output_path=out_p)
@@ -80,7 +78,14 @@ class PlaylistApiMixin:
     def playlist_export_m3u8(self, params: dict[str, Any]) -> dict[str, Any]:
         # Export track list to M3U8 multimedia playlist file.
         require(params, "tracks", "output_path")
-        tracks = [build_track(artist=str(t.get("artist", "")), title=str(t.get("title", ""))) for t in params["tracks"]]
+        tracks = [
+            build_track(
+                artist=str(t.get("artist", "")),
+                title=str(t.get("title", "")),
+                album=str(t.get("album", "")),
+            )
+            for t in params["tracks"]
+        ]
         out_p = str(params["output_path"])
         export_m3u8_playlist(tracks, out_p)
         return ok(output_path=out_p)
@@ -128,7 +133,14 @@ class PlaylistApiMixin:
         # Recreate tracklist on YouTube account as new playlist.
         require(params, "playlist_title", "tracks")
         title = str(params["playlist_title"])
-        tracks = [build_track(artist=str(t.get("artist", "")), title=str(t.get("title", ""))) for t in params["tracks"]]
-        res: YouTubePlaylistResult = build_youtube_playlist_from_tracks(title, tracks)
+        tracks = [
+            build_track(
+                artist=str(t.get("artist", "")),
+                title=str(t.get("title", "")),
+                album=str(t.get("album", "")),
+            )
+            for t in params["tracks"]
+        ]
+        res: YouTubePlaylistResult = build_youtube_playlist_from_tracks(tracks, title)
         resumable = get_resumable_import(tracks, title)
         return ok(playlist_id=res.playlist_id, playlist_url=res.playlist_url, added_count=res.matched, resumable=bool(resumable))

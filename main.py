@@ -24,7 +24,9 @@ THEME_BG_MAP = {
     "light": "#f4f6fb",
     "solarized": "#00212b",
     "monokai": "#1c1d1a",
-    "cyberpunk": "#0d0221",
+    "cyberpunk": "#090117",
+    "ut_austin": "#ffffff",
+    "ut": "#ffffff",
 }
 
 

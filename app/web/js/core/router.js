@@ -7,6 +7,75 @@ window.FOSS = window.FOSS || {};
   var activeTab = null;
   var toolStates = {};
 
+  var DEFAULT_SECTIONS = [
+    {
+      id: "sec_favorites",
+      name: "Favorites",
+      collapsed: false,
+      items: [
+        { id: "pdf", visible: true },
+        { id: "converter", visible: true },
+        { id: "ocr", visible: true }
+      ]
+    },
+    {
+      id: "sec_documents",
+      name: "Documents",
+      collapsed: false,
+      items: [
+        { id: "pdf", visible: true },
+        { id: "ocr", visible: true },
+        { id: "markdown", visible: true },
+        { id: "resume", visible: true }
+      ]
+    },
+    {
+      id: "sec_visuals",
+      name: "Visuals",
+      collapsed: false,
+      items: [
+        { id: "images", visible: true },
+        { id: "collage", visible: true },
+        { id: "palette", visible: true },
+        { id: "model3d", visible: true }
+      ]
+    },
+    {
+      id: "sec_media",
+      name: "Media",
+      collapsed: false,
+      items: [
+        { id: "media", visible: true },
+        { id: "playlist", visible: true }
+      ]
+    },
+    {
+      id: "sec_files",
+      name: "Files & Storage",
+      collapsed: false,
+      items: [
+        { id: "converter", visible: true },
+        { id: "compressor", visible: true },
+        { id: "archive", visible: true },
+        { id: "renamer", visible: true },
+        { id: "metadata", visible: true },
+        { id: "qr", visible: true }
+      ]
+    },
+    {
+      id: "sec_system",
+      name: "System & Data",
+      collapsed: false,
+      items: [
+        { id: "network_monitor", visible: true },
+        { id: "unit_converter", visible: true },
+        { id: "data", visible: true },
+        { id: "text_tools", visible: true },
+        { id: "encoding", visible: true }
+      ]
+    }
+  ];
+
   function register(toolDef) {
     registry[toolDef.id] = toolDef;
     toolStates[toolDef.id] = toolStates[toolDef.id] || {};
@@ -16,15 +85,71 @@ window.FOSS = window.FOSS || {};
     return Object.values(registry);
   }
 
+  function cloneLayout(layout) {
+    return JSON.parse(JSON.stringify(layout));
+  }
+
+  function resolveSidebarLayout() {
+    var saved = window.FOSS.store ? window.FOSS.store.get("sidebar_layout", null) : null;
+    var sections;
+    if (saved && Array.isArray(saved.sections) && saved.sections.length > 0) {
+      sections = cloneLayout(saved.sections);
+    } else {
+      sections = cloneLayout(DEFAULT_SECTIONS);
+    }
+
+    // Keep only registered tools
+    var seen = {};
+    sections.forEach(function (sec) {
+      sec.items = (sec.items || []).filter(function (it) {
+        if (!registry[it.id]) return false;
+        return true;
+      });
+      sec.items.forEach(function (it) {
+        seen[it.id] = true;
+      });
+    });
+
+    // Append newly registered tools not in any section
+    var registered = getRegisteredTools();
+    registered.forEach(function (t) {
+      if (seen[t.id]) return;
+      var cat = (t.category || "Utilities").trim();
+      var catLower = cat.toLowerCase();
+      var targetSec = sections.find(function (s) {
+        var sName = (s.name || "").toLowerCase();
+        return sName === catLower || s.id === "sec_" + catLower ||
+          (catLower === "utilities" && (s.id === "sec_files" || s.id === "sec_utilities")) ||
+          (catLower === "data" && (s.id === "sec_system" || s.id === "sec_data"));
+      });
+      if (!targetSec) {
+        targetSec = {
+          id: "sec_" + catLower.replace(/[^a-z0-9]/g, "_"),
+          name: cat,
+          collapsed: false,
+          items: []
+        };
+        sections.push(targetSec);
+      }
+      targetSec.items.push({ id: t.id, visible: true });
+      seen[t.id] = true;
+    });
+
+    return { version: 1, sections: sections };
+  }
+
   function renderSidebar() {
     var sidebar = document.getElementById("sidebar");
     if (!sidebar) return;
+
+    var navEl = sidebar.querySelector(".sidebar-nav");
+    var prevScroll = navEl ? navEl.scrollTop : 0;
     sidebar.innerHTML = "";
 
-    // Brand
-    var brand = window.FOSS.dom.el("div", { className: "row", style: undefined }, [
+    // Brand header
+    var brand = window.FOSS.dom.el("div", { className: "row" }, [
       window.FOSS.icons.el("home", 20),
-      window.FOSS.dom.el("span", { className: "brand-name", text: "FOSSEverything", style: undefined })
+      window.FOSS.dom.el("span", { className: "brand-name", text: "FOSSEverything" })
     ]);
     var brandWrapper = window.FOSS.dom.el("div", {
       className: "sidebar-brand",
@@ -39,10 +164,10 @@ window.FOSS = window.FOSS || {};
     }, [brand]);
     sidebar.appendChild(brandWrapper);
 
-    // Nav items
+    // Scrollable navigation list
     var navList = window.FOSS.dom.el("nav", { className: "sidebar-nav scroll-y" });
 
-    // Home nav item
+    // Home item
     var homeActive = activeView === "home";
     var homeItem = window.FOSS.dom.el("button", {
       className: "nav-item " + (homeActive ? "active" : ""),
@@ -58,24 +183,19 @@ window.FOSS = window.FOSS || {};
     ]);
     navList.appendChild(homeItem);
 
-    // Categories
-    var categories = ["Documents", "Visuals", "Media", "Utilities", "Data"];
-    var registeredList = Object.values(registry);
-    var renderedIds = {};
-
-    categories.forEach(function (cat) {
-      var toolsInCat = registeredList.filter(function (t) {
-        var c = (t.category || "").toLowerCase();
-        if (c === "system") c = "utilities";
-        return c === cat.toLowerCase();
+    // Dynamic categorized sections
+    var layout = resolveSidebarLayout();
+    layout.sections.forEach(function (sec) {
+      var visibleItems = (sec.items || []).filter(function (it) {
+        return it.visible && registry[it.id];
       });
-      if (toolsInCat.length === 0) return;
+      if (visibleItems.length === 0) return;
 
-      var catHeading = window.FOSS.dom.el("div", { className: "nav-category", text: cat });
+      var catHeading = window.FOSS.dom.el("div", { className: "nav-category", text: sec.name });
       navList.appendChild(catHeading);
 
-      toolsInCat.forEach(function (t) {
-        renderedIds[t.id] = true;
+      visibleItems.forEach(function (it) {
+        var t = registry[it.id];
         var isAct = activeView === t.id;
         var btn = window.FOSS.dom.el("button", {
           className: "nav-item " + (isAct ? "active" : ""),
@@ -93,49 +213,18 @@ window.FOSS = window.FOSS || {};
       });
     });
 
-    var leftovers = registeredList.filter(function (t) {
-      return !renderedIds[t.id];
-    });
-    if (leftovers.length > 0) {
-      var otherHeading = window.FOSS.dom.el("div", { className: "nav-category", text: "Other" });
-      navList.appendChild(otherHeading);
-      leftovers.forEach(function (t) {
-        var isAct = activeView === t.id;
-        var btn = window.FOSS.dom.el("button", {
-          className: "nav-item " + (isAct ? "active" : ""),
-          "data-testid": "nav-" + t.id,
-          "aria-label": t.title,
-          title: t.title,
-          onClick: function () {
-            open(t.id);
-          }
-        }, [
-          window.FOSS.icons.el(t.icon || "file", 18),
-          window.FOSS.dom.el("span", { className: "nav-label", text: t.navName || t.title })
-        ]);
-        navList.appendChild(btn);
-      });
-    }
-
-    // Bottom settings item
-    var settingsActive = activeView === "settings";
-    var settingsItem = window.FOSS.dom.el("button", {
-      className: "nav-item sidebar-bottom " + (settingsActive ? "active" : ""),
-      "data-testid": "nav-settings",
-      "aria-label": "Settings",
-      title: "Settings",
-      onClick: function () {
-        open("settings");
-      }
-    }, [
-      window.FOSS.icons.el("settings", 18),
-      window.FOSS.dom.el("span", { className: "nav-label", text: "Settings" })
-    ]);
-    navList.appendChild(settingsItem);
     sidebar.appendChild(navList);
 
-    var resizeHandle = window.FOSS.dom.el("div", { className: "resize-handle-e" });
-    sidebar.appendChild(resizeHandle);
+    // Sidebar resizer handle
+    var resizer = window.FOSS.dom.el("div", {
+      className: "sidebar-resizer",
+      "data-decorative": "true"
+    });
+    sidebar.appendChild(resizer);
+
+    if (navList) {
+      navList.scrollTop = prevScroll;
+    }
   }
 
   function renderTopbar() {
@@ -169,7 +258,12 @@ window.FOSS = window.FOSS || {};
     var breadcrumb = window.FOSS.dom.el("div", { className: "breadcrumb row" }, [
       window.FOSS.dom.el("span", { text: "FOSSEverything", className: "breadcrumb-root" }),
       window.FOSS.dom.el("span", { text: "/", className: "breadcrumb-sep" }),
-      window.FOSS.dom.el("span", { text: viewTitle, className: "breadcrumb-current", title: viewTitle, "data-truncate-ok": "true" })
+      window.FOSS.dom.el("span", {
+        text: viewTitle,
+        className: "breadcrumb-current",
+        title: viewTitle,
+        "data-truncate-ok": "true"
+      })
     ]);
 
     var leftGroup = window.FOSS.dom.el("div", { className: "row" }, [toggleBtn, breadcrumb]);
@@ -220,10 +314,16 @@ window.FOSS = window.FOSS || {};
         var idx = themesList.indexOf(currentTheme);
         var nextTheme = themesList[(idx + 1) % themesList.length];
         window.FOSS.theme.setTheme(nextTheme);
-        currentTheme = nextTheme;
-        themeBtn.setAttribute("title", "Switch theme (" + currentTheme + ")");
       }
     }, [window.FOSS.icons.el(currentTheme === "light" ? "sun" : "moon", 16)]);
+
+    if (window.FOSS.store && window.FOSS.store.subscribe) {
+      window.FOSS.store.subscribe("theme", function (newTheme) {
+        currentTheme = newTheme;
+        themeBtn.setAttribute("title", "Switch theme (" + currentTheme + ")");
+        themeBtn.innerHTML = window.FOSS.icons.svg(currentTheme === "light" ? "sun" : "moon", 16);
+      });
+    }
 
     // Settings shortcut button
     var settingsBtn = window.FOSS.dom.el("button", {
@@ -241,6 +341,39 @@ window.FOSS = window.FOSS || {};
   }
 
   function open(viewId, tabId) {
+    if (window.FOSS.dialogs && window.FOSS.dialogs.closeAll) {
+      window.FOSS.dialogs.closeAll();
+    }
+    if (window.FOSS.palette && window.FOSS.palette.close) {
+      window.FOSS.palette.close();
+    }
+
+    var tool = registry[viewId];
+
+    // In-place tab switch optimization
+    if (activeView === viewId && viewId !== "home" && viewId !== "settings" && tool) {
+      var tabs = tool.tabs || [];
+      var targetTabId = tabId || (tabs.length > 0 ? tabs[0].id : null);
+      var tabDef = tabs.find(function (t) { return t.id === targetTabId || (t.aliases && t.aliases.indexOf(targetTabId) !== -1); }) || tabs[0];
+      if (tabDef && tabDef.id !== activeTab) {
+        activeTab = tabDef.id;
+        var tabButtons = document.querySelectorAll(".tabs [role='tab']");
+        tabButtons.forEach(function (btn) {
+          var isCurrent = btn.getAttribute("data-testid") === tool.id + "-tab-" + activeTab;
+          btn.className = isCurrent ? "active" : "";
+          btn.setAttribute("aria-selected", isCurrent ? "true" : "false");
+        });
+        var container = document.querySelector(".tool-panel-container");
+        if (container) {
+          container.innerHTML = "";
+          if (tabDef.render) {
+            tabDef.render(container, createContext(viewId));
+          }
+        }
+      }
+      return;
+    }
+
     if (activeView && registry[activeView] && registry[activeView].onHide) {
       try {
         registry[activeView].onHide(createContext(activeView));
@@ -250,7 +383,11 @@ window.FOSS = window.FOSS || {};
     }
 
     activeView = viewId;
-    activeTab = tabId || null;
+    if (tool && tool.tabs && tool.tabs.length > 0) {
+      activeTab = tabId || tool.tabs[0].id;
+    } else {
+      activeTab = tabId || null;
+    }
 
     renderSidebar();
     renderTopbar();
@@ -273,7 +410,6 @@ window.FOSS = window.FOSS || {};
       return;
     }
 
-    var tool = registry[viewId];
     if (!tool) {
       viewRoot.appendChild(window.FOSS.dom.el("div", {
         className: "empty",
@@ -284,7 +420,11 @@ window.FOSS = window.FOSS || {};
 
     var ctx = createContext(viewId);
     var pageClass = tool.workbench ? "workbench" : "page";
-    var pageEl = window.FOSS.dom.el("div", { className: pageClass, "data-testid": "tool-page-" + tool.id });
+    var pageEl = window.FOSS.dom.el("div", {
+      className: pageClass,
+      "data-testid": "tool-page-" + tool.id,
+      id: tool.id + "-page"
+    });
 
     // Page Header
     var isFav = window.FOSS.store.isFavorite(tool.id);
@@ -310,12 +450,14 @@ window.FOSS = window.FOSS || {};
     pageEl.appendChild(headEl);
 
     // Tabs
-    var tabs = tool.tabs || [];
-    var currentTabId = tabId || (tabs.length > 0 ? tabs[0].id : null);
+    var toolTabs = tool.tabs || [];
+    var initialTabMatch = toolTabs.find(function (t) { return t.id === activeTab || (t.aliases && t.aliases.indexOf(activeTab) !== -1); });
+    var currentTabId = initialTabMatch ? initialTabMatch.id : (toolTabs.length > 0 ? toolTabs[0].id : null);
+    activeTab = currentTabId;
     var panelContainer = window.FOSS.dom.el("div", { className: "tool-panel-container grow" });
 
-    if (tabs.length > 1) {
-      var tabButtons = tabs.map(function (tDef) {
+    if (toolTabs.length > 1) {
+      var tabButtonsList = toolTabs.map(function (tDef) {
         var isSelected = tDef.id === currentTabId;
         return window.FOSS.dom.el("button", {
           role: "tab",
@@ -329,14 +471,16 @@ window.FOSS = window.FOSS || {};
           }
         });
       });
-      var tabsHeader = window.FOSS.dom.el("div", { className: "tabs scroll-x", role: "tablist" }, tabButtons);
+      var tabsHeader = window.FOSS.dom.el("div", { className: "tabs scroll-x", role: "tablist" }, tabButtonsList);
       pageEl.appendChild(tabsHeader);
     }
 
     // Render active tab panel
-    var activeTabDef = tabs.find(function (t) { return t.id === currentTabId; }) || tabs[0];
+    var activeTabDef = toolTabs.find(function (t) { return t.id === currentTabId; }) || toolTabs[0];
     if (activeTabDef && activeTabDef.render) {
       activeTabDef.render(panelContainer, ctx);
+    } else if (tool.render) {
+      tool.render(panelContainer, ctx);
     }
     pageEl.appendChild(panelContainer);
 
@@ -377,6 +521,7 @@ window.FOSS = window.FOSS || {};
     register: register,
     open: open,
     getRegisteredTools: getRegisteredTools,
+    resolveSidebarLayout: resolveSidebarLayout,
     renderSidebar: renderSidebar,
     renderTopbar: renderTopbar,
     routeFiles: routeFiles,
@@ -384,4 +529,3 @@ window.FOSS = window.FOSS || {};
     getActiveTab: function () { return activeTab; }
   };
 })();
-

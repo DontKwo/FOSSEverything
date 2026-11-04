@@ -13,6 +13,11 @@ window.FOSS = window.FOSS || {};
   }
 
   function show(message, type, action) {
+    if (message && typeof message === "object") {
+      type = message.type || type;
+      action = message.action || action;
+      message = message.message || "";
+    }
     var h = getHost();
     if (!h) return;
 

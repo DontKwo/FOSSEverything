@@ -48,7 +48,8 @@ window.FOSS = window.FOSS || {};
       className: "modal palette-modal",
       role: "dialog",
       "aria-modal": "true",
-      "data-testid": "command-palette-modal"
+      "data-testid": "command-palette-modal",
+      onKeyDown: handleKeyDown
     }, [input, resultsList]);
 
     h.appendChild(scrim);
@@ -66,8 +67,40 @@ window.FOSS = window.FOSS || {};
   }
 
   function performSearch(query) {
+    selectedIndex = 0;
+    var q = (query || "").toLowerCase().trim();
+
     window.FOSS.api("search_tools", { query: query }).then(function (res) {
-      currentResults = (res && res.ok && res.results) || [];
+      var backendResults = (res && res.ok && res.results) || [];
+      var registered = (window.FOSS.router && window.FOSS.router.getRegisteredTools) ? window.FOSS.router.getRegisteredTools() : {};
+
+      var mergedMap = {};
+      backendResults.forEach(function (r) {
+        mergedMap[r.id] = Object.assign({}, r);
+      });
+
+      Object.keys(registered).forEach(function (toolId) {
+        var t = registered[toolId];
+        if (toolId === "home" || toolId === "settings") return;
+        if (!mergedMap[toolId]) {
+          var title = t.title || toolId;
+          var desc = t.description || "";
+          var cat = t.category || "Utilities";
+          if (!q || title.toLowerCase().indexOf(q) >= 0 || desc.toLowerCase().indexOf(q) >= 0 || cat.toLowerCase().indexOf(q) >= 0) {
+            mergedMap[toolId] = {
+              id: toolId,
+              title: title,
+              description: desc,
+              category: cat,
+              icon: t.icon || "file"
+            };
+          }
+        } else if (t.icon && !mergedMap[toolId].icon) {
+          mergedMap[toolId].icon = t.icon;
+        }
+      });
+
+      currentResults = Object.values(mergedMap);
       renderResults();
     });
   }
@@ -95,10 +128,12 @@ window.FOSS = window.FOSS || {};
       resultsList.appendChild(suggestedLabel);
     }
 
+    var activeEl = null;
     currentResults.forEach(function (r, idx) {
       var isSel = idx === selectedIndex;
+      var iconName = r.icon || "file";
       var itemEl = window.FOSS.dom.el("div", {
-        className: "palette-item " + (isSel ? "selected" : ""),
+        className: "palette-item " + (isSel ? "selected active" : ""),
         role: "button",
         tabindex: "0",
         "data-testid": "palette-result-" + r.id,
@@ -107,7 +142,7 @@ window.FOSS = window.FOSS || {};
         }
       }, [
         window.FOSS.dom.el("div", { className: "palette-item-left" }, [
-          window.FOSS.icons.el("file", 18),
+          window.FOSS.icons.el(iconName, 18),
           window.FOSS.dom.el("div", { className: "stack-sm" }, [
             window.FOSS.dom.el("span", { className: "palette-item-title", text: r.title }),
             window.FOSS.dom.el("span", { className: "palette-item-desc", text: r.description || "" })
@@ -115,8 +150,16 @@ window.FOSS = window.FOSS || {};
         ]),
         window.FOSS.dom.el("span", { className: "badge", text: r.category })
       ]);
+
+      if (isSel) {
+        activeEl = itemEl;
+      }
       resultsList.appendChild(itemEl);
     });
+
+    if (activeEl && typeof activeEl.scrollIntoView === "function") {
+      activeEl.scrollIntoView({ block: "nearest" });
+    }
   }
 
   function handleKeyDown(e) {
@@ -153,4 +196,3 @@ window.FOSS = window.FOSS || {};
     isOpen: function () { return isOpen; }
   };
 })();
-

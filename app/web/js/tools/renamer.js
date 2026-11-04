@@ -1,30 +1,37 @@
-// Batch File Renamer workspace: regex, numbering, casing, prefixes, templates, collision safety.
+// Batch File Renamer workspace: visual composable step engine, live preview, zero regex.
 window.FOSS = window.FOSS || {};
 
 (function () {
   function renderMain(panel, ctx) {
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-renamer");
+    panel.setAttribute("data-testid", "renamer-page");
 
     var currentFiles = [];
     var lastExecutionResults = [];
+    var currentSteps = [
+      {
+        id: "step_default_1",
+        type: "replace_text",
+        enabled: true,
+        find_text: "",
+        replace_with: "",
+        match_case: false,
+        scope: "all"
+      }
+    ];
+    var isExecuting = false;
+    var previewDebounceTimer = null;
+    var previewPlans = [];
 
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Batch File Renamer" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Rename groups of files with regex, sequential numbers, prefixes, or case transforms."
-      })
-    ]);
-
+    // Header & Status Elements
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted mb-sm",
       "data-testid": "renamer-status",
       text: "Ready"
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
+      className: "banner danger hidden mb-sm",
       "data-testid": "renamer-error-banner"
     }, [
       window.FOSS.icons.el("alert", 18),
@@ -43,7 +50,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var resultHost = window.FOSS.dom.el("div", {
-      className: "hidden",
+      className: "hidden mb-sm",
       "data-testid": "renamer-result"
     });
 
@@ -58,835 +65,1051 @@ window.FOSS = window.FOSS || {};
       resultHost.classList.remove("hidden");
     }
 
-    // Top Toolbar: file selection, clear, timeline
-    var toolbarCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
+    // Step Definition Helpers
+    var STEP_METAS = {
+      replace_text: { title: "Replace Text", icon: "edit" },
+      add_text: { title: "Add Prefix / Suffix", icon: "file-plus" },
+      number_sequence: { title: "Add Numbers (01, 02...)", icon: "hash" },
+      add_date: { title: "Add Photo / File Date", icon: "calendar" },
+      clean_name: { title: "Clean Up Characters", icon: "check" },
+      change_case: { title: "Change Capitalization", icon: "type" },
+      change_extension: { title: "Change Extension", icon: "file" }
+    };
 
-    var filesInfo = window.FOSS.dom.el("div", {
-      className: "text-sm text-muted grow",
-      "data-testid": "renamer-files-info",
-      "data-truncate-ok": "true",
-      title: "No files loaded. Click browse to add files.",
-      text: "No files loaded. Click browse to add files."
+    function createDefaultStep(type) {
+      var id = "step_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+      if (type === "add_text") {
+        return { id: id, type: type, enabled: true, prefix: "", suffix: "" };
+      }
+      if (type === "number_sequence") {
+        return { id: id, type: type, enabled: true, mode: "suffix", base_name: "Photo", start_at: 1, increment: 1, padding: 2, separator: " - " };
+      }
+      if (type === "add_date") {
+        return { id: id, type: type, enabled: true, date_source: "best_date", date_format: "YYYY-MM-DD", position: "prefix", separator: " - " };
+      }
+      if (type === "clean_name") {
+        return { id: id, type: type, enabled: true, spaces: "collapse", remove_brackets: true, remove_digits: false, remove_punctuation: false, trim_first_n: 0, trim_last_n: 0 };
+      }
+      if (type === "change_case") {
+        return { id: id, type: type, enabled: true, case_mode: "title" };
+      }
+      if (type === "change_extension") {
+        return { id: id, type: type, enabled: true, extension: "" };
+      }
+      return { id: id, type: "replace_text", enabled: true, find_text: "", replace_with: "", match_case: false, scope: "all" };
+    }
+
+    // Left Column: Step Stack Builder
+    var stepsHost = window.FOSS.dom.el("div", {
+      className: "flex-col gap-2 grow overflow-y-auto",
+      "data-testid": "renamer-steps-list",
+      style: "min-height: 0; min-width: 0;"
     });
 
-    var browseBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "renamer-choose-files",
-      "aria-label": "Browse",
-      title: "Browse",
-      type: "button",
-      onClick: function () {
-        chooseFilesAction();
+    var addStepSelect = window.FOSS.dom.el("select", {
+      className: "select select-sm grow text-xs font-semibold",
+      "data-testid": "renamer-add-step-select",
+      "aria-label": "Add Renaming Step",
+      title: "Add Renaming Step",
+      onChange: function () {
+        var val = addStepSelect.value;
+        if (!val) return;
+        currentSteps.push(createDefaultStep(val));
+        addStepSelect.value = "";
+        renderSteps();
+        schedulePreviewUpdate();
       }
     }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Browse" })
+      window.FOSS.dom.el("option", { value: "", text: "+ Add Renaming Step..." }),
+      window.FOSS.dom.el("option", { value: "replace_text", text: "Replace Text" }),
+      window.FOSS.dom.el("option", { value: "add_text", text: "Add Prefix / Suffix" }),
+      window.FOSS.dom.el("option", { value: "number_sequence", text: "Add Numbers (01, 02...)" }),
+      window.FOSS.dom.el("option", { value: "add_date", text: "Add Photo / File Date" }),
+      window.FOSS.dom.el("option", { value: "clean_name", text: "Clean Up Characters" }),
+      window.FOSS.dom.el("option", { value: "change_case", text: "Change Capitalization" }),
+      window.FOSS.dom.el("option", { value: "change_extension", text: "Change Extension" })
     ]);
 
-    var clearBtn = window.FOSS.dom.el("button", {
+    var recipeSelect = window.FOSS.dom.el("select", {
+      className: "select select-sm text-xs font-semibold",
+      "data-testid": "renamer-recipe-select",
+      "aria-label": "Load Recipe",
+      title: "Load Starter or Saved Recipe",
+      style: "width: 10rem;",
+      onChange: function () {
+        var val = recipeSelect.value;
+        if (!val) return;
+        applyRecipe(val);
+      }
+    }, [
+      window.FOSS.dom.el("option", { value: "", text: "Recipes..." })
+    ]);
+
+    var saveRecipeBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
+      "data-testid": "renamer-save-recipe-btn",
+      "aria-label": "Save Current Steps As Recipe",
+      title: "Save Current Steps As Recipe",
+      type: "button",
+      onClick: function () {
+        promptSaveRecipe();
+      }
+    }, [window.FOSS.icons.el("save", 14), window.FOSS.dom.el("span", { text: "Save Recipe" })]);
+
+    var availableRecipes = [];
+
+    function loadRecipes() {
+      window.FOSS.api("renamer_presets", { action: "list" }).then(function (res) {
+        if (!res) return;
+        var starter = res.starter_recipes || [];
+        var user = res.user_recipes || [];
+        availableRecipes = starter.concat(user);
+
+        recipeSelect.innerHTML = "";
+        recipeSelect.appendChild(window.FOSS.dom.el("option", { value: "", text: "Recipes..." }));
+
+        if (starter.length > 0) {
+          var starterGroup = window.FOSS.dom.el("optgroup", { label: "Starter Recipes" });
+          starter.forEach(function (r) {
+            starterGroup.appendChild(window.FOSS.dom.el("option", { value: r.name, text: r.name }));
+          });
+          recipeSelect.appendChild(starterGroup);
+        }
+
+        if (user.length > 0) {
+          var userGroup = window.FOSS.dom.el("optgroup", { label: "Saved Recipes" });
+          user.forEach(function (r) {
+            userGroup.appendChild(window.FOSS.dom.el("option", { value: r.name, text: r.name }));
+          });
+          recipeSelect.appendChild(userGroup);
+        }
+      });
+    }
+
+    function applyRecipe(name) {
+      var found = availableRecipes.find(function (r) { return r.name === name; });
+      if (!found || !found.steps) return;
+      currentSteps = found.steps.map(function (s) {
+        var copy = JSON.parse(JSON.stringify(s));
+        copy.id = "step_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+        return copy;
+      });
+      recipeSelect.value = "";
+      renderSteps();
+      schedulePreviewUpdate();
+    }
+
+    function promptSaveRecipe() {
+      var name = window.prompt("Enter name for this renaming recipe:");
+      if (!name || !name.trim()) return;
+      window.FOSS.api("renamer_presets", {
+        action: "save",
+        recipe: {
+          name: name.trim(),
+          steps: currentSteps
+        }
+      }).then(function () {
+        loadRecipes();
+      });
+    }
+
+    function renderSteps() {
+      stepsHost.innerHTML = "";
+      if (currentSteps.length === 0) {
+        stepsHost.appendChild(window.FOSS.dom.el("div", {
+          className: "text-muted text-sm p-4 text-center font-mono",
+          text: "No renaming steps added. Click Add Renaming Step above."
+        }));
+        return;
+      }
+
+      currentSteps.forEach(function (step, index) {
+        var meta = STEP_METAS[step.type] || { title: "Step " + (index + 1), icon: "edit" };
+        var card = window.FOSS.dom.el("div", {
+          className: "renamer-step-card" + (step.enabled ? "" : " disabled"),
+          "data-testid": "renamer-step-" + index
+        });
+
+        // Top bar: badge, up, down, enable switch, remove
+        var enableCheckbox = window.FOSS.dom.el("input", {
+          type: "checkbox",
+          checked: step.enabled,
+          "aria-label": "Enable " + meta.title,
+          title: "Enable or disable step",
+          onChange: function () {
+            step.enabled = enableCheckbox.checked;
+            if (step.enabled) {
+              card.classList.remove("disabled");
+            } else {
+              card.classList.add("disabled");
+            }
+            schedulePreviewUpdate();
+          }
+        });
+
+        var upBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-icon btn-ghost btn-sm",
+          style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
+          disabled: index === 0,
+          "aria-label": "Move Step Up",
+          title: "Move Step Up",
+          type: "button",
+          onClick: function () {
+            if (index > 0) {
+              var temp = currentSteps[index - 1];
+              currentSteps[index - 1] = currentSteps[index];
+              currentSteps[index] = temp;
+              renderSteps();
+              schedulePreviewUpdate();
+            }
+          }
+        }, [window.FOSS.icons.el("chevron-up", 14)]);
+
+        var downBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-icon btn-ghost btn-sm",
+          style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
+          disabled: index === currentSteps.length - 1,
+          "aria-label": "Move Step Down",
+          title: "Move Step Down",
+          type: "button",
+          onClick: function () {
+            if (index < currentSteps.length - 1) {
+              var temp = currentSteps[index + 1];
+              currentSteps[index + 1] = currentSteps[index];
+              currentSteps[index] = temp;
+              renderSteps();
+              schedulePreviewUpdate();
+            }
+          }
+        }, [window.FOSS.icons.el("chevron-down", 14)]);
+
+        var removeBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-icon btn-ghost btn-sm",
+          style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
+          "aria-label": "Remove Step",
+          title: "Remove Step",
+          type: "button",
+          onClick: function () {
+            currentSteps.splice(index, 1);
+            renderSteps();
+            schedulePreviewUpdate();
+          }
+        }, [window.FOSS.icons.el("x", 14)]);
+
+        var cardHeader = window.FOSS.dom.el("div", {
+          className: "row gap-2 items-center justify-between"
+        }, [
+          window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+            window.FOSS.icons.el(meta.icon, 14),
+            window.FOSS.dom.el("span", {
+              className: "font-semibold text-xs",
+              text: (index + 1) + ". " + meta.title
+            })
+          ]),
+          window.FOSS.dom.el("div", { className: "row gap-1 items-center" }, [
+            upBtn,
+            downBtn,
+            enableCheckbox,
+            removeBtn
+          ])
+        ]);
+
+        card.appendChild(cardHeader);
+
+        // Controls by Type
+        var bodyControls = window.FOSS.dom.el("div", { className: "flex-col gap-2" });
+
+        if (step.type === "replace_text") {
+          var findInp = window.FOSS.dom.el("input", {
+            type: "text",
+            className: "input input-sm font-mono text-xs",
+            "data-testid": "renamer-step-find-" + index,
+            placeholder: "Find exact text...",
+            value: step.find_text || "",
+            "aria-label": "Text to find",
+            title: "Text to find",
+            onInput: function () {
+              step.find_text = findInp.value;
+              schedulePreviewUpdate();
+            }
+          });
+
+          var repInp = window.FOSS.dom.el("input", {
+            type: "text",
+            className: "input input-sm font-mono text-xs",
+            "data-testid": "renamer-step-replace-" + index,
+            placeholder: "Replace with...",
+            value: step.replace_with || "",
+            "aria-label": "Replacement text",
+            title: "Replacement text",
+            onInput: function () {
+              step.replace_with = repInp.value;
+              schedulePreviewUpdate();
+            }
+          });
+
+          var scopeSel = window.FOSS.dom.el("select", {
+            className: "select select-sm text-xs",
+            "aria-label": "Match scope",
+            title: "Match scope",
+            onChange: function () {
+              step.scope = scopeSel.value;
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: "all", text: "All occurrences" }),
+            window.FOSS.dom.el("option", { value: "first", text: "First only" }),
+            window.FOSS.dom.el("option", { value: "last", text: "Last only" })
+          ]);
+          scopeSel.value = step.scope || "all";
+
+          var caseChk = window.FOSS.dom.el("input", {
+            type: "checkbox",
+            checked: !!step.match_case,
+            "aria-label": "Match case sensitive",
+            title: "Case sensitive matching",
+            onChange: function () {
+              step.match_case = caseChk.checked;
+              schedulePreviewUpdate();
+            }
+          });
+
+          bodyControls.appendChild(window.FOSS.components.field("Find Text", findInp));
+          bodyControls.appendChild(window.FOSS.components.field("Replace With", repInp));
+          bodyControls.appendChild(window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between" }, [
+            window.FOSS.dom.el("label", { className: "text-xs text-muted", text: "Scope" }),
+            scopeSel,
+            window.FOSS.dom.el("label", { className: "text-xs text-muted row gap-1 items-center" }, [
+              caseChk,
+              window.FOSS.dom.el("span", { text: "Match Case" })
+            ])
+          ]));
+        } else if (step.type === "add_text") {
+          var prefixInp = window.FOSS.dom.el("input", {
+            type: "text",
+            className: "input input-sm font-mono text-xs",
+            "data-testid": "renamer-step-prefix-" + index,
+            placeholder: "e.g. Wedding - ",
+            value: step.prefix || "",
+            "aria-label": "Prefix to prepend",
+            title: "Prefix to prepend",
+            onInput: function () {
+              step.prefix = prefixInp.value;
+              schedulePreviewUpdate();
+            }
+          });
+
+          var suffixInp = window.FOSS.dom.el("input", {
+            type: "text",
+            className: "input input-sm font-mono text-xs",
+            "data-testid": "renamer-step-suffix-" + index,
+            placeholder: "e.g. - reviewed",
+            value: step.suffix || "",
+            "aria-label": "Suffix to append",
+            title: "Suffix to append",
+            onInput: function () {
+              step.suffix = suffixInp.value;
+              schedulePreviewUpdate();
+            }
+          });
+
+          bodyControls.appendChild(window.FOSS.components.field("Add Prefix", prefixInp));
+          bodyControls.appendChild(window.FOSS.components.field("Add Suffix", suffixInp));
+        } else if (step.type === "number_sequence") {
+          var numModeSel = window.FOSS.dom.el("select", {
+            className: "select select-sm text-xs",
+            "aria-label": "Number position mode",
+            title: "Number position mode",
+            onChange: function () {
+              step.mode = numModeSel.value;
+              baseField.classList.toggle("hidden", step.mode !== "replace_name");
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: "suffix", text: "Suffix: name - 01" }),
+            window.FOSS.dom.el("option", { value: "prefix", text: "Prefix: 01 - name" }),
+            window.FOSS.dom.el("option", { value: "replace_name", text: "Replace Name: Photo - 01" })
+          ]);
+          numModeSel.value = step.mode || "suffix";
+
+          var baseInp = window.FOSS.dom.el("input", {
+            type: "text",
+            className: "input input-sm font-mono text-xs",
+            placeholder: "Base name (e.g. Vacation)",
+            value: step.base_name || "",
+            "aria-label": "Base Filename",
+            title: "Base Filename",
+            onInput: function () {
+              step.base_name = baseInp.value;
+              schedulePreviewUpdate();
+            }
+          });
+
+          var baseField = window.FOSS.components.field("Base Filename", baseInp);
+          if (step.mode !== "replace_name") {
+            baseField.classList.add("hidden");
+          }
+
+          var startInp = window.FOSS.dom.el("input", {
+            type: "number",
+            className: "input input-sm font-mono text-xs",
+            value: String(step.start_at || 1),
+            min: "0",
+            "aria-label": "Start Number",
+            title: "Start Number",
+            onChange: function () {
+              step.start_at = parseInt(startInp.value, 10) || 1;
+              schedulePreviewUpdate();
+            }
+          });
+
+          var padSel = window.FOSS.dom.el("select", {
+            className: "select select-sm text-xs",
+            "aria-label": "Number Digits Padding",
+            title: "Number Digits Padding",
+            onChange: function () {
+              step.padding = parseInt(padSel.value, 10) || 2;
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: "1", text: "1 (1, 2, 3)" }),
+            window.FOSS.dom.el("option", { value: "2", text: "2 (01, 02)" }),
+            window.FOSS.dom.el("option", { value: "3", text: "3 (001, 002)" }),
+            window.FOSS.dom.el("option", { value: "4", text: "4 (0001, 0002)" })
+          ]);
+          padSel.value = String(step.padding || 2);
+
+          var sepSel = window.FOSS.dom.el("select", {
+            className: "select select-sm text-xs",
+            "aria-label": "Number Separator",
+            title: "Number Separator",
+            onChange: function () {
+              step.separator = sepSel.value;
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: " - ", text: " - (hyphen space)" }),
+            window.FOSS.dom.el("option", { value: "_", text: "_ (underscore)" }),
+            window.FOSS.dom.el("option", { value: " ", text: "  (space)" }),
+            window.FOSS.dom.el("option", { value: ".", text: ". (dot)" }),
+            window.FOSS.dom.el("option", { value: "", text: "(none)" })
+          ]);
+          sepSel.value = step.separator !== undefined ? step.separator : " - ";
+
+          bodyControls.appendChild(window.FOSS.components.field("Numbering Placement", numModeSel));
+          bodyControls.appendChild(baseField);
+          bodyControls.appendChild(window.FOSS.dom.el("div", { className: "row gap-2" }, [
+            window.FOSS.dom.el("div", { className: "grow flex-col gap-1" }, [
+              window.FOSS.dom.el("label", { className: "text-xs text-muted", text: "Start At" }),
+              startInp
+            ]),
+            window.FOSS.dom.el("div", { className: "grow flex-col gap-1" }, [
+              window.FOSS.dom.el("label", { className: "text-xs text-muted", text: "Digits" }),
+              padSel
+            ]),
+            window.FOSS.dom.el("div", { className: "grow flex-col gap-1" }, [
+              window.FOSS.dom.el("label", { className: "text-xs text-muted", text: "Separator" }),
+              sepSel
+            ])
+          ]));
+        } else if (step.type === "add_date") {
+          var dateSrcSel = window.FOSS.dom.el("select", {
+            className: "select select-sm text-xs",
+            "aria-label": "Date Source",
+            title: "Date Source",
+            onChange: function () {
+              step.date_source = dateSrcSel.value;
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: "best_date", text: "Best (Photo EXIF or File Date)" }),
+            window.FOSS.dom.el("option", { value: "modified", text: "File Modified Date" }),
+            window.FOSS.dom.el("option", { value: "created", text: "File Created Date" })
+          ]);
+          dateSrcSel.value = step.date_source || "best_date";
+
+          var dateFmtSel = window.FOSS.dom.el("select", {
+            className: "select select-sm text-xs font-mono",
+            "aria-label": "Date Format",
+            title: "Date Format",
+            onChange: function () {
+              step.date_format = dateFmtSel.value;
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: "YYYY-MM-DD", text: "YYYY-MM-DD (2026-10-31)" }),
+            window.FOSS.dom.el("option", { value: "YYYYMMDD", text: "YYYYMMDD (20261031)" }),
+            window.FOSS.dom.el("option", { value: "YYYY-MM-DD HH-mm", text: "YYYY-MM-DD HH-mm" }),
+            window.FOSS.dom.el("option", { value: "MM-DD-YYYY", text: "MM-DD-YYYY" }),
+            window.FOSS.dom.el("option", { value: "YYYY-MM", text: "YYYY-MM" })
+          ]);
+          dateFmtSel.value = step.date_format || "YYYY-MM-DD";
+
+          var datePosSel = window.FOSS.dom.el("select", {
+            className: "select select-sm text-xs",
+            "aria-label": "Date Position",
+            title: "Date Position",
+            onChange: function () {
+              step.position = datePosSel.value;
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: "prefix", text: "Prefix (2026-10-31 - name)" }),
+            window.FOSS.dom.el("option", { value: "suffix", text: "Suffix (name - 2026-10-31)" })
+          ]);
+          datePosSel.value = step.position || "prefix";
+
+          bodyControls.appendChild(window.FOSS.components.field("Date Source", dateSrcSel));
+          bodyControls.appendChild(window.FOSS.components.field("Date Format", dateFmtSel));
+          bodyControls.appendChild(window.FOSS.components.field("Position", datePosSel));
+        } else if (step.type === "clean_name") {
+          var spaceSel = window.FOSS.dom.el("select", {
+            className: "select select-sm text-xs",
+            "aria-label": "Space handling",
+            title: "Space handling",
+            onChange: function () {
+              step.spaces = spaceSel.value;
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: "collapse", text: "Collapse Multiple Spaces" }),
+            window.FOSS.dom.el("option", { value: "to_underscores", text: "Convert Spaces to Underscores" }),
+            window.FOSS.dom.el("option", { value: "to_hyphens", text: "Convert Spaces to Hyphens" }),
+            window.FOSS.dom.el("option", { value: "remove", text: "Remove All Spaces" }),
+            window.FOSS.dom.el("option", { value: "keep", text: "Keep Spaces Unchanged" })
+          ]);
+          spaceSel.value = step.spaces || "collapse";
+
+          var bracketsChk = window.FOSS.dom.el("input", {
+            type: "checkbox",
+            checked: !!step.remove_brackets,
+            "aria-label": "Remove Brackets",
+            title: "Remove (...) and [...]",
+            onChange: function () {
+              step.remove_brackets = bracketsChk.checked;
+              schedulePreviewUpdate();
+            }
+          });
+
+          var punctChk = window.FOSS.dom.el("input", {
+            type: "checkbox",
+            checked: !!step.remove_punctuation,
+            "aria-label": "Remove Punctuation",
+            title: "Remove Punctuation symbols",
+            onChange: function () {
+              step.remove_punctuation = punctChk.checked;
+              schedulePreviewUpdate();
+            }
+          });
+
+          bodyControls.appendChild(window.FOSS.components.field("Whitespace Options", spaceSel));
+          bodyControls.appendChild(window.FOSS.dom.el("div", { className: "row gap-4 flex-wrap" }, [
+            window.FOSS.dom.el("label", { className: "text-xs row gap-1 items-center" }, [
+              bracketsChk,
+              window.FOSS.dom.el("span", { text: "Strip Brackets (..)" })
+            ]),
+            window.FOSS.dom.el("label", { className: "text-xs row gap-1 items-center" }, [
+              punctChk,
+              window.FOSS.dom.el("span", { text: "Remove Punctuation" })
+            ])
+          ]));
+        } else if (step.type === "change_case") {
+          var caseSel = window.FOSS.dom.el("select", {
+            className: "select select-sm text-xs",
+            "aria-label": "Case Mode",
+            title: "Case Mode",
+            onChange: function () {
+              step.case_mode = caseSel.value;
+              schedulePreviewUpdate();
+            }
+          }, [
+            window.FOSS.dom.el("option", { value: "title", text: "Title Case (Song Title)" }),
+            window.FOSS.dom.el("option", { value: "lower", text: "lowercase (web-safe)" }),
+            window.FOSS.dom.el("option", { value: "upper", text: "UPPERCASE" }),
+            window.FOSS.dom.el("option", { value: "sentence", text: "Sentence case" }),
+            window.FOSS.dom.el("option", { value: "snake", text: "snake_case" }),
+            window.FOSS.dom.el("option", { value: "kebab", text: "kebab-case" })
+          ]);
+          caseSel.value = step.case_mode || "title";
+          bodyControls.appendChild(window.FOSS.components.field("Capitalization Style", caseSel));
+        } else if (step.type === "change_extension") {
+          var extInp = window.FOSS.dom.el("input", {
+            type: "text",
+            className: "input input-sm font-mono text-xs",
+            placeholder: "e.g. jpg, png, md",
+            value: step.extension || "",
+            "aria-label": "New Extension",
+            title: "New Extension",
+            onInput: function () {
+              step.extension = extInp.value;
+              schedulePreviewUpdate();
+            }
+          });
+          bodyControls.appendChild(window.FOSS.components.field("New File Extension", extInp));
+        }
+
+        card.appendChild(bodyControls);
+        stepsHost.appendChild(card);
+      });
+    }
+
+    var sidebarCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow",
+      style: "min-height: 0; min-width: 0; max-width: 100%; box-sizing: border-box;"
+    }, [
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between" }, [
+        window.FOSS.dom.el("div", { className: "font-semibold text-sm", text: "Renaming Steps" }),
+        recipeSelect
+      ]),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+        addStepSelect,
+        saveRecipeBtn
+      ]),
+      stepsHost
+    ]);
+
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "renamer-sidebar-pane",
+      style: "width: 100%; min-width: 0;"
+    }, [sidebarCard]);
+
+    // Right Column: File List & Live Before -> After Preview
+    var handleAddFiles = function () {
+      clearError();
+      window.FOSS.api("select_files", { title: "Select Files to Rename" }).then(function (res) {
+        if (!res || res.cancelled || !res.paths || !res.paths.length) return;
+        addFiles(res.paths);
+      });
+    };
+
+    var addFilesBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "renamer-add-files-btn",
+      "aria-label": "Add Files",
+      title: "Add Files",
+      type: "button",
+      onClick: handleAddFiles
+    }, [window.FOSS.icons.el("file-plus", 14), window.FOSS.dom.el("span", { text: "Add Files..." })]);
+
+    var addFilesBtnAlias = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "renamer-choose-files",
+      "aria-label": "Choose Files",
+      title: "Choose Files",
+      type: "button",
+      onClick: handleAddFiles
+    }, [window.FOSS.icons.el("file-plus", 14), window.FOSS.dom.el("span", { text: "Choose Files..." })]);
+
+    var addFolderBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "renamer-add-folder-btn",
+      "aria-label": "Add Folder",
+      title: "Add Folder",
+      type: "button",
+      onClick: function () {
+        clearError();
+        window.FOSS.api("select_folder", { title: "Select Folder to Rename" }).then(function (res) {
+          if (!res || res.cancelled || !res.path) return;
+          window.FOSS.api("renamer_scan_inputs", {
+            paths: [res.path],
+            recursive: recursiveCheck.checked
+          }).then(function (scanRes) {
+            if (scanRes && scanRes.paths) {
+              addFiles(scanRes.paths);
+            }
+          });
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
+
+    var recursiveCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      "data-testid": "renamer-recursive",
+      "aria-label": "Include Subfolders",
+      title: "Include Subfolders"
+    });
+
+    var sortSelect = window.FOSS.dom.el("select", {
+      className: "select select-sm text-xs font-semibold",
+      "data-testid": "renamer-sort-select",
+      "aria-label": "Sort Order",
+      title: "Sort Order",
+      onChange: function () {
+        schedulePreviewUpdate();
+      }
+    }, [
+      window.FOSS.dom.el("option", { value: "name_asc", text: "Sort: Name (A to Z)" }),
+      window.FOSS.dom.el("option", { value: "name_desc", text: "Sort: Name (Z to A)" }),
+      window.FOSS.dom.el("option", { value: "date_asc", text: "Sort: Date (Oldest First)" }),
+      window.FOSS.dom.el("option", { value: "date_desc", text: "Sort: Date (Newest First)" }),
+      window.FOSS.dom.el("option", { value: "size_asc", text: "Sort: Size (Smallest)" }),
+      window.FOSS.dom.el("option", { value: "size_desc", text: "Sort: Size (Largest)" })
+    ]);
+
+    // Timeline checkbox alias for automated scenarios
+    var timelineCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      "data-testid": "renamer-timeline-check",
+      "aria-label": "Sort Timeline",
+      title: "Sort Timeline",
+      onChange: function () {
+        if (timelineCheck.checked) {
+          sortSelect.value = "date_asc";
+        } else {
+          sortSelect.value = "name_asc";
+        }
+        schedulePreviewUpdate();
+      }
+    });
+
+    var clearBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
       "data-testid": "renamer-clear-btn",
-      "aria-label": "Clear",
-      title: "Clear",
+      "aria-label": "Clear Files",
+      title: "Clear Files",
       type: "button",
       onClick: function () {
         currentFiles = [];
+        previewPlans = [];
         lastExecutionResults = [];
         undoBtn.disabled = true;
-        filesInfo.textContent = "No files loaded. Click browse to add files.";
-        filesInfo.title = "No files loaded. Click browse to add files.";
-        resultHost.classList.add("hidden");
         clearError();
-        updatePreview();
+        renderPreviewTable();
+        statusBar.textContent = "Ready";
       }
-    }, [
-      window.FOSS.icons.el("trash", 16),
-      window.FOSS.dom.el("span", { text: "Clear" })
-    ]);
+    }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear" })]);
 
-    var timelineCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      id: "renamer-timeline-checkbox",
-      className: "checkbox",
-      "data-testid": "renamer-timeline-check",
-      "aria-label": "Order files by capture date/time across all folders (timeline mode)",
-      title: "Order files by capture date/time across all folders (timeline mode)",
-      onChange: function () {
-        updatePreview();
-      }
-    });
-
-    var timelineLabel = window.FOSS.dom.el("label", {
-      htmlFor: "renamer-timeline-checkbox",
-      className: "flex items-center gap-2 text-sm cursor-pointer"
-    }, [
-      timelineCheck,
-      window.FOSS.dom.el("span", {
-        text: "Order files by capture date/time across all folders (timeline mode)"
-      })
-    ]);
-
-    var toolbarActions = window.FOSS.dom.el("div", {
-      className: "row"
-    }, [browseBtn, clearBtn]);
-
-    toolbarCard.appendChild(window.FOSS.dom.el("div", {
-      className: "flex items-center justify-between flex-wrap gap-3"
-    }, [filesInfo, toolbarActions]));
-    toolbarCard.appendChild(timelineLabel);
-
-    // Card 1: Renaming rules
-    var rulesCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    rulesCard.appendChild(window.FOSS.dom.el("h3", {
-      className: "card-title text-base",
-      text: "Renaming rules"
-    }));
-
-    var modeSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "renamer-mode-select",
-      "aria-label": "Action mode",
-      title: "Action mode",
-      onChange: function () {
-        renderModeOptions();
-        updatePreview();
-      }
-    }, [
-      window.FOSS.dom.el("option", { value: "find_replace", text: "Find and Replace" }),
-      window.FOSS.dom.el("option", { value: "numbering", text: "Numbering Sequence" }),
-      window.FOSS.dom.el("option", { value: "prefix_suffix", text: "Add Prefix / Suffix" }),
-      window.FOSS.dom.el("option", { value: "change_case", text: "Change Letter Case" }),
-      window.FOSS.dom.el("option", { value: "extension", text: "Change Extension" }),
-      window.FOSS.dom.el("option", { value: "template", text: "Template" })
-    ]);
-
-    var modeRow = window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Action mode" }),
-      modeSelect
-    ]);
-    rulesCard.appendChild(modeRow);
-
-    var modeOptionsContainer = window.FOSS.dom.el("div", { className: "flex-col gap-3" });
-    rulesCard.appendChild(modeOptionsContainer);
-
-    // Options elements
-    var findInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow",
-      "data-testid": "renamer-find-input",
-      "aria-label": "Text or regular expression to find",
-      title: "Text or regular expression to find",
-      placeholder: "text or regular expression to find",
-      onInput: updatePreview
-    });
-
-    var replaceInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow",
-      "data-testid": "renamer-replace-input",
-      "aria-label": "Replacement text (can use $1 or \\1 for regex groups)",
-      title: "Replacement text (can use $1 or \\1 for regex groups)",
-      placeholder: "replacement text (can use $1 or \\1 for regex groups)",
-      onInput: updatePreview
-    });
-
-    var regexCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      id: "renamer-regex-checkbox",
-      className: "checkbox",
-      "data-testid": "renamer-regex-check",
-      "aria-label": "Use Regular Expressions (Regex)",
-      title: "Use Regular Expressions (Regex)",
-      onChange: updatePreview
-    });
-
-    var caseCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      id: "renamer-case-checkbox",
-      className: "checkbox",
-      "data-testid": "renamer-case-check",
-      "aria-label": "Case Sensitive",
-      title: "Case Sensitive",
-      checked: true,
-      onChange: updatePreview
-    });
-
-    var extCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      id: "renamer-ext-checkbox",
-      className: "checkbox",
-      "data-testid": "renamer-ext-check",
-      "aria-label": "Include Extension in Match",
-      title: "Include Extension in Match",
-      onChange: updatePreview
-    });
-
-    var startNumInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input w-24",
-      "data-testid": "renamer-numbering-start",
-      "aria-label": "Start number",
-      title: "Start number",
-      value: 1,
-      min: 0,
-      onInput: updatePreview
-    });
-
-    var paddingInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input w-24",
-      "data-testid": "renamer-padding-input",
-      "aria-label": "Padding",
-      title: "Padding",
-      value: 3,
-      min: 1,
-      max: 10,
-      onInput: updatePreview
-    });
-
-    var stepInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input w-24",
-      "data-testid": "renamer-step-input",
-      "aria-label": "Step",
-      title: "Step",
-      value: 1,
-      min: 1,
-      onInput: updatePreview
-    });
-
-    var appendCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      id: "renamer-append-checkbox",
-      className: "checkbox",
-      "data-testid": "renamer-append-check",
-      "aria-label": "Append Number to Original Filename (instead of replacing it)",
-      title: "Append Number to Original Filename (instead of replacing it)",
-      onChange: updatePreview
-    });
-
-    var prefixInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow",
-      "data-testid": "renamer-prefix-input",
-      "aria-label": "Prefix text",
-      title: "Prefix text",
-      placeholder: "Prefix text",
-      onInput: updatePreview
-    });
-
-    var suffixInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow",
-      "data-testid": "renamer-suffix-input",
-      "aria-label": "Suffix text",
-      title: "Suffix text",
-      placeholder: "Suffix text",
-      onInput: updatePreview
-    });
-
-    var casingSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "renamer-casing-select",
-      "aria-label": "Change letter case",
-      title: "Change letter case",
-      onChange: updatePreview
-    }, [
-      window.FOSS.dom.el("option", { value: "lower", text: "Lowercase (e.g. myfile.png)" }),
-      window.FOSS.dom.el("option", { value: "upper", text: "Uppercase (e.g. myfile.png)" }),
-      window.FOSS.dom.el("option", { value: "title", text: "Title Case (e.g. My File.png)" }),
-      window.FOSS.dom.el("option", { value: "sentence", text: "Sentence Case (e.g. My file.png)" })
-    ]);
-
-    var extCaseCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      id: "renamer-ext-case-checkbox",
-      className: "checkbox",
-      "data-testid": "renamer-ext-case-check",
-      "aria-label": "Apply Case Change to File Extensions Too",
-      title: "Apply Case Change to File Extensions Too",
-      onChange: updatePreview
-    });
-
-    var extensionInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow",
-      "data-testid": "renamer-extension-input",
-      "aria-label": "Change extension",
-      title: "Change extension",
-      placeholder: "e.g. jpeg, webp, bak",
-      onInput: updatePreview
-    });
-
-    var templateInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow",
-      "data-testid": "renamer-template-input",
-      "aria-label": "Metadata rename template",
-      title: "Metadata rename template",
-      placeholder: "{date}_{camera}_{stem}",
-      value: "{stem}",
-      onInput: updatePreview
-    });
-
-    function renderModeOptions() {
-      modeOptionsContainer.innerHTML = "";
-      var mode = modeSelect.value;
-
-      if (mode === "find_replace") {
-        var rowInputs = window.FOSS.dom.el("div", { className: "flex flex-wrap gap-2" }, [
-          findInput,
-          replaceInput
-        ]);
-        var checksRow = window.FOSS.dom.el("div", { className: "flex items-center flex-wrap gap-4 text-sm" }, [
-          window.FOSS.dom.el("label", { htmlFor: "renamer-regex-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
-            regexCheck,
-            window.FOSS.dom.el("span", { text: "Use Regular Expressions (Regex)" })
-          ]),
-          window.FOSS.dom.el("label", { htmlFor: "renamer-case-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
-            caseCheck,
-            window.FOSS.dom.el("span", { text: "Case Sensitive" })
-          ]),
-          window.FOSS.dom.el("label", { htmlFor: "renamer-ext-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
-            extCheck,
-            window.FOSS.dom.el("span", { text: "Include Extension in Match" })
-          ])
-        ]);
-        modeOptionsContainer.appendChild(rowInputs);
-        modeOptionsContainer.appendChild(checksRow);
-      } else if (mode === "numbering") {
-        var numInputs = window.FOSS.dom.el("div", { className: "flex items-center flex-wrap gap-3 text-sm" }, [
-          window.FOSS.dom.el("label", { className: "flex items-center gap-2" }, [
-            window.FOSS.dom.el("span", { className: "text-muted", text: "Start number" }),
-            startNumInput
-          ]),
-          window.FOSS.dom.el("label", { className: "flex items-center gap-2" }, [
-            window.FOSS.dom.el("span", { className: "text-muted", text: "Padding" }),
-            paddingInput
-          ]),
-          window.FOSS.dom.el("label", { className: "flex items-center gap-2" }, [
-            window.FOSS.dom.el("span", { className: "text-muted", text: "Step" }),
-            stepInput
-          ])
-        ]);
-        var numFixes = window.FOSS.dom.el("div", { className: "flex flex-wrap gap-2" }, [
-          prefixInput,
-          suffixInput
-        ]);
-        var numCheckRow = window.FOSS.dom.el("div", { className: "flex items-center gap-2 text-sm" }, [
-          window.FOSS.dom.el("label", { htmlFor: "renamer-append-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
-            appendCheck,
-            window.FOSS.dom.el("span", { text: "Append Number to Original Filename" })
-          ])
-        ]);
-        modeOptionsContainer.appendChild(numInputs);
-        modeOptionsContainer.appendChild(numFixes);
-        modeOptionsContainer.appendChild(numCheckRow);
-      } else if (mode === "prefix_suffix") {
-        var fixRow = window.FOSS.dom.el("div", { className: "flex flex-wrap gap-2" }, [
-          prefixInput,
-          suffixInput
-        ]);
-        modeOptionsContainer.appendChild(fixRow);
-      } else if (mode === "change_case") {
-        var caseRow = window.FOSS.dom.el("div", { className: "flex items-center flex-wrap gap-3 text-sm" }, [
-          casingSelect,
-          window.FOSS.dom.el("label", { htmlFor: "renamer-ext-case-checkbox", className: "flex items-center gap-2 cursor-pointer" }, [
-            extCaseCheck,
-            window.FOSS.dom.el("span", { text: "Apply Case Change to File Extensions Too" })
-          ])
-        ]);
-        modeOptionsContainer.appendChild(caseRow);
-      } else if (mode === "extension") {
-        var extRow = window.FOSS.dom.el("div", { className: "flex items-center gap-2" }, [
-          extensionInput
-        ]);
-        modeOptionsContainer.appendChild(extRow);
-      } else if (mode === "template") {
-        var tempRow = window.FOSS.dom.el("div", { className: "flex items-center gap-2" }, [
-          templateInput
-        ]);
-        var tokensHint = window.FOSS.dom.el("div", {
-          className: "text-xs text-muted",
-          text: "Available tokens: {stem}, {original}, {ext}, {date}, {time}, {year}, {camera}, {artist}, {title}, {album}"
-        });
-        modeOptionsContainer.appendChild(tempRow);
-        modeOptionsContainer.appendChild(tokensHint);
-      }
+    function addFiles(paths) {
+      paths.forEach(function (p) {
+        if (currentFiles.indexOf(p) === -1) {
+          currentFiles.push(p);
+        }
+      });
+      statusBar.textContent = currentFiles.length + " file(s) loaded.";
+      schedulePreviewUpdate();
     }
 
-    renderModeOptions();
+    // Live Before -> After Table
+    var tableHost = window.FOSS.dom.el("div", {
+      className: "table-wrap grow flex-col gap-2",
+      "data-testid": "renamer-preview-table",
+      style: "min-width: 0; width: 100%; box-sizing: border-box;"
+    });
 
-    // Presets Row
-    var presetSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "renamer-preset-select",
-      "aria-label": "Choose preset",
-      title: "Choose preset",
+    var summaryText = window.FOSS.dom.el("div", {
+      className: "text-xs font-mono text-muted",
+      "data-testid": "renamer-summary",
+      text: "0 files ready"
+    });
+
+    var autoResolveCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      checked: true,
+      "data-testid": "renamer-auto-resolve-conflicts",
+      "aria-label": "Auto-resolve duplicate names with (2), (3)",
+      title: "Auto-resolve duplicate names with (2), (3)",
       onChange: function () {
-        if (!presetSelect.value) return;
-        var mode = presetSelect.value;
-        modeSelect.value = mode;
-        renderModeOptions();
-        updatePreview();
+        schedulePreviewUpdate();
       }
-    }, [
-      window.FOSS.dom.el("option", { value: "", text: "choose preset" }),
-      window.FOSS.dom.el("option", { value: "", text: "saved presets" }),
-      window.FOSS.dom.el("option", { value: "find_replace", text: "Find and Replace clean" }),
-      window.FOSS.dom.el("option", { value: "numbering", text: "Sequential 3-digit numbering" }),
-      window.FOSS.dom.el("option", { value: "change_case", text: "Lowercase normalization" })
-    ]);
-
-    var presetNameInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      "aria-label": "Preset name",
-      title: "Preset name",
-      placeholder: "Preset name"
     });
-
-    var savePresetBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm shrink-0",
-      "data-testid": "renamer-save-preset-btn",
-      "aria-label": "Save preset",
-      title: "Save preset",
-      type: "button",
-      onClick: function () {
-        var name = presetNameInput.value.trim() || "Preset 1";
-        window.FOSS.api("renamer_save_preset", {
-          preset_name: name,
-          mode: modeSelect.value,
-          options: calcGatherOptions()
-        }).then(function (res) {
-          if (res && res.saved) {
-            statusBar.textContent = "Saved preset: " + name;
-            var opt = window.FOSS.dom.el("option", { value: modeSelect.value, text: name });
-            presetSelect.appendChild(opt);
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("save", 16),
-      window.FOSS.dom.el("span", { text: "Save preset" })
-    ]);
-
-    var presetControls = window.FOSS.dom.el("div", {
-      className: "row pt-2 border-t border-border"
-    }, [presetSelect, presetNameInput, savePresetBtn]);
-    rulesCard.appendChild(presetControls);
-
-    // Card 2: Cross-folder rename planning
-    var crossCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    crossCard.appendChild(window.FOSS.dom.el("h3", {
-      className: "card-title text-base",
-      text: "Cross-folder rename planning"
-    }));
-
-    var consolidateInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input grow font-mono text-sm",
-      "data-testid": "renamer-consolidate-input",
-      "aria-label": "Consolidate destination folder",
-      "data-truncate-ok": "true",
-      title: "optional: consolidate renamed files from every source folder here",
-      placeholder: "optional: consolidate renamed files from every source folder here",
-      onInput: updatePreview
-    });
-
-    var chooseFolderBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm shrink-0",
-      "aria-label": "Browse",
-      title: "Browse destination folder",
-      type: "button",
-      onClick: function () {
-        window.FOSS.api("select_folder", {}).then(function (res) {
-          if (res && !res.cancelled && res.paths && res.paths.length) {
-            consolidateInput.value = res.paths[0];
-            consolidateInput.title = res.paths[0];
-            updatePreview();
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Browse" })
-    ]);
-
-    var consolidateRow = window.FOSS.dom.el("div", { className: "flex items-center gap-2" }, [
-      consolidateInput,
-      chooseFolderBtn
-    ]);
-    crossCard.appendChild(consolidateRow);
-
-    var planSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "renamer-plan-select",
-      "aria-label": "Choose cross-folder plan",
-      title: "Choose cross-folder plan"
-    }, [
-      window.FOSS.dom.el("option", { value: "", text: "choose cross-folder plan" }),
-      window.FOSS.dom.el("option", { value: "", text: "saved cross-folder plans" })
-    ]);
-
-    var planNameInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      "aria-label": "Plan name",
-      title: "Plan name",
-      placeholder: "Plan name"
-    });
-
-    var savePlanBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "renamer-save-plan-btn",
-      "aria-label": "Save as cross-folder plan",
-      title: "Save as cross-folder plan",
-      type: "button",
-      onClick: function () {
-        var name = planNameInput.value.trim() || "Batch Plan 1";
-        var dirs = calcSourceFolders();
-        if (!dirs.length) {
-          showError("No source folders loaded for cross-folder plan.");
-          return;
-        }
-        window.FOSS.api("renamer_save_plan", {
-          name: name,
-          source_folders: dirs,
-          mode: modeSelect.value,
-          options: calcGatherOptions(),
-          target_dir: consolidateInput.value.trim() || null,
-          processed_files: currentFiles
-        }).then(function (res) {
-          if (res && res.plan) {
-            statusBar.textContent = "Saved plan: " + name;
-            var opt = window.FOSS.dom.el("option", { value: name, text: name });
-            planSelect.appendChild(opt);
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("save", 16),
-      window.FOSS.dom.el("span", { text: "Save Cross-Folder Plan" })
-    ]);
-
-    var rerunPlanBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "renamer-rerun-plan-btn",
-      "aria-label": "Re-run plan (new files only)",
-      title: "Re-run plan (new files only)",
-      type: "button",
-      onClick: function () {
-        var dirs = calcSourceFolders();
-        if (!dirs.length) {
-          showError("No source folders available to rescan.");
-          return;
-        }
-        window.FOSS.api("renamer_find_new_files", {
-          source_folders: dirs,
-          processed_files: currentFiles
-        }).then(function (res) {
-          if (res && res.files) {
-            if (res.files.length) {
-              currentFiles = currentFiles.concat(res.files);
-              filesInfo.textContent = currentFiles.length + " files loaded.";
-              filesInfo.title = currentFiles.join(", ");
-              statusBar.textContent = "Found " + res.files.length + " new files.";
-              updatePreview();
-            } else {
-              statusBar.textContent = "No new files found in source folders.";
-            }
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("refresh", 16),
-      window.FOSS.dom.el("span", { text: "Re-run Plan (New Files Only)" })
-    ]);
-
-    var planControls = window.FOSS.dom.el("div", {
-      className: "row pt-2 border-t border-border"
-    }, [planSelect, planNameInput, savePlanBtn, rerunPlanBtn]);
-    crossCard.appendChild(planControls);
-
-    // Card 3: Live preview (collision-safe)
-    var previewCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    previewCard.appendChild(window.FOSS.dom.el("h3", {
-      className: "card-title text-base",
-      text: "Live Preview (Collision-Safe)"
-    }));
-
-    var applyBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "renamer-apply-btn",
-      "aria-label": "Apply renaming plan",
-      title: "Apply renaming plan",
-      type: "button",
-      onClick: function () {
-        applyRenamesAction();
-      }
-    }, [
-      window.FOSS.icons.el("check", 16),
-      window.FOSS.dom.el("span", { text: "Apply Renaming Plan" })
-    ]);
 
     var undoBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
+      className: "btn btn-secondary",
       "data-testid": "renamer-undo-btn",
-      "aria-label": "Undo last rename",
-      title: "Undo last rename",
-      type: "button",
       disabled: true,
+      type: "button",
       onClick: function () {
-        undoRenamesAction();
+        executeUndo();
       }
-    }, [
-      window.FOSS.icons.el("undo", 16),
-      window.FOSS.dom.el("span", { text: "Undo Last Rename" })
-    ]);
+    }, [window.FOSS.icons.el("rotate-ccw", 14), window.FOSS.dom.el("span", { text: "Undo Last Rename" })]);
 
-    var previewActions = window.FOSS.dom.el("div", {
-      className: "row"
-    }, [applyBtn, undoBtn]);
-
-    var tableContainer = window.FOSS.dom.el("div", {
-      className: "table-wrap scroll-x",
-      "data-testid": "renamer-preview-table"
-    });
-
-    previewCard.appendChild(previewActions);
-    previewCard.appendChild(tableContainer);
-
-    // Helpers
-    function calcGatherOptions() {
-      var mode = modeSelect.value;
-      if (mode === "find_replace") {
-        return {
-          find: findInput.value,
-          replace: replaceInput.value,
-          use_regex: regexCheck.checked,
-          case_sensitive: caseCheck.checked,
-          include_extension: extCheck.checked
-        };
-      } else if (mode === "numbering") {
-        return {
-          start: parseInt(startNumInput.value, 10) || 1,
-          padding: parseInt(paddingInput.value, 10) || 3,
-          step: parseInt(stepInput.value, 10) || 1,
-          prefix: prefixInput.value,
-          suffix: suffixInput.value,
-          keep_name: appendCheck.checked
-        };
-      } else if (mode === "prefix_suffix") {
-        return {
-          prefix: prefixInput.value,
-          suffix: suffixInput.value
-        };
-      } else if (mode === "change_case") {
-        return {
-          case_type: casingSelect.value,
-          affect_ext: extCaseCheck.checked
-        };
-      } else if (mode === "extension") {
-        return {
-          new_extension: extensionInput.value
-        };
-      } else if (mode === "template") {
-        return {
-          template: templateInput.value || "{stem}"
-        };
+    var applyBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      "data-testid": "renamer-apply-btn",
+      type: "button",
+      onClick: function () {
+        executeRename();
       }
-      return {};
-    }
+    }, [window.FOSS.icons.el("check", 14), window.FOSS.dom.el("span", { text: "Rename Files" })]);
 
-    function calcSourceFolders() {
-      var dirs = {};
-      for (var i = 0; i < currentFiles.length; i++) {
-        var p = currentFiles[i];
-        var idx = Math.max(p.lastIndexOf("/"), p.lastIndexOf("\\"));
-        if (idx > 0) {
-          dirs[p.substring(0, idx)] = true;
-        }
+    function schedulePreviewUpdate() {
+      if (previewDebounceTimer) {
+        clearTimeout(previewDebounceTimer);
       }
-      return Object.keys(dirs);
-    }
-
-    function chooseFilesAction() {
-      clearError();
-      window.FOSS.api("select_files", {}).then(function (res) {
-        if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-        currentFiles = res.paths;
-        filesInfo.textContent = currentFiles.length + " files loaded.";
-        filesInfo.title = currentFiles.join(", ");
+      previewDebounceTimer = setTimeout(function () {
         updatePreview();
-      });
+      }, 100);
     }
 
     function updatePreview() {
-      if (!currentFiles.length) {
-        tableContainer.innerHTML = '<div class="text-sm text-muted p-4 text-center">No files loaded. Click browse to add files.</div>';
-        statusBar.textContent = "Ready";
+      if (currentFiles.length === 0) {
+        previewPlans = [];
+        renderPreviewTable();
         return;
       }
 
-      var opts = calcGatherOptions();
       window.FOSS.api("renamer_preview", {
         file_paths: currentFiles,
-        mode: modeSelect.value,
-        timeline: timelineCheck.checked,
-        consolidate_to: consolidateInput.value.trim(),
-        options: opts
+        steps: currentSteps,
+        sort_by: sortSelect.value,
+        auto_resolve_conflicts: autoResolveCheck.checked
       }).then(function (res) {
-        if (!res || !res.entries) {
-          tableContainer.innerHTML = '<div class="text-sm text-muted p-4 text-center">Failed to generate preview.</div>';
-          return;
-        }
-
-        renderPreviewTable(res.entries);
-        if (res.has_conflicts) {
-          statusBar.textContent = "Warning: collisions or duplicate names detected.";
+        if (!res) return;
+        previewPlans = res.entries || [];
+        renderPreviewTable();
+        var conflictCount = previewPlans.filter(function (p) { return p.has_collision; }).length;
+        if (conflictCount > 0) {
+          summaryText.textContent = previewPlans.length + " files (" + conflictCount + " name collision detected)";
         } else {
-          statusBar.textContent = "Ready: " + res.entries.length + " files planned.";
+          summaryText.textContent = previewPlans.length + " file(s) ready to rename";
         }
+      }).catch(function (err) {
+        showError((err && err.message) || String(err));
       });
     }
 
-    function renderPreviewTable(entries) {
-      tableContainer.innerHTML = "";
-      var tbl = window.FOSS.dom.el("table", { className: "table w-full" });
-      var thead = window.FOSS.dom.el("thead", {}, [
-        window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("th", { className: "w-24 text-left", text: "Status" }),
-          window.FOSS.dom.el("th", { className: "text-left", text: "Original Name" }),
-          window.FOSS.dom.el("th", { className: "text-left", text: "Proposed Name" }),
-          window.FOSS.dom.el("th", { className: "text-left", text: "Path" })
-        ])
-      ]);
-      tbl.appendChild(thead);
+    function renderPreviewTable() {
+      tableHost.innerHTML = "";
+      if (currentFiles.length === 0) {
+        var emptyPrompt = window.FOSS.dom.el("div", {
+          className: "text-muted text-sm p-6 text-center font-mono flex-col gap-2",
+          text: "No files loaded. Click Add Files or Add Folder above."
+        }, [
+          window.FOSS.dom.el("div", {
+            className: "text-xs text-muted font-mono p-2 bg-neutral rounded",
+            text: "Rule Preview: IMG_2048 (Copy).JPG -> 2026-10-31 - Hawaii - 01.jpg"
+          })
+        ]);
+        tableHost.appendChild(emptyPrompt);
+        summaryText.textContent = "0 files loaded";
+        return;
+      }
 
-      var tbody = window.FOSS.dom.el("tbody", {});
-      for (var i = 0; i < entries.length; i++) {
-        var e = entries[i];
-        var badgeClass = "badge badge-success";
-        var badgeText = "OK";
-        if (e.has_collision) {
-          badgeClass = "badge badge-danger";
-          badgeText = e.error || "Collision";
-        } else if (e.old_name === e.new_name) {
-          badgeClass = "badge badge-neutral";
-          badgeText = "Unchanged";
+      var rows = previewPlans.map(function (p, idx) {
+        var statusBadge;
+        if (p.has_collision) {
+          statusBadge = window.FOSS.dom.el("span", {
+            className: "badge badge-danger text-xs",
+            style: "white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;",
+            "data-truncate-ok": "true",
+            title: p.error || "Conflict: name already exists",
+            text: "Conflict"
+          });
+        } else if (p.old_name === p.new_name) {
+          statusBadge = window.FOSS.dom.el("span", {
+            className: "badge badge-neutral text-xs",
+            style: "white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;",
+            "data-truncate-ok": "true",
+            title: "Filename unchanged",
+            text: "Unchanged"
+          });
+        } else {
+          statusBadge = window.FOSS.dom.el("span", {
+            className: "badge badge-success text-xs",
+            style: "white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;",
+            "data-truncate-ok": "true",
+            title: "Ready to rename",
+            text: "Ready"
+          });
         }
 
-        var badgeEl = window.FOSS.dom.el("span", { className: badgeClass, text: badgeText });
-        var origTd = window.FOSS.dom.el("td", {
-          className: "font-mono text-sm",
-          style: "word-break: break-all;",
-          text: e.old_name
-        });
-        var propTd = window.FOSS.dom.el("td", {
-          className: "font-mono text-sm",
-          style: "word-break: break-all;",
-          text: e.new_name
-        });
-        var pathTd = window.FOSS.dom.el("td", {
-          className: "font-mono text-xs text-muted",
-          "data-truncate-ok": "true",
-          title: e.original,
-          style: "word-break: break-all;",
-          text: e.original
-        });
+        var removeBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-icon btn-ghost btn-sm",
+          style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
+          "aria-label": "Remove file from batch",
+          title: "Remove file from batch",
+          onClick: function () {
+            var fileIdx = currentFiles.indexOf(p.original);
+            if (fileIdx !== -1) currentFiles.splice(fileIdx, 1);
+            schedulePreviewUpdate();
+          }
+        }, [window.FOSS.icons.el("x", 14)]);
 
-        var tr = window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("td", {}, [badgeEl]),
-          origTd,
-          propTd,
-          pathTd
+        return window.FOSS.dom.el("tr", {}, [
+          window.FOSS.dom.el("td", {
+            className: "text-xs font-mono text-muted text-center",
+            style: "width: 2.5rem;",
+            text: String(idx + 1)
+          }),
+          window.FOSS.dom.el("td", {
+            className: "font-semibold text-sm",
+            style: "width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: p.old_name,
+            "data-truncate-ok": "true",
+            title: p.original
+          }),
+          window.FOSS.dom.el("td", {
+            className: "text-muted text-center text-xs",
+            style: "width: 2rem;",
+            text: "->"
+          }),
+          window.FOSS.dom.el("td", {
+            className: "font-mono text-sm",
+            style: "width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: p.new_name,
+            "data-truncate-ok": "true",
+            title: p.proposed
+          }),
+          window.FOSS.dom.el("td", {
+            style: "width: 15%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            "data-truncate-ok": "true",
+            title: p.has_collision ? "Conflict" : (p.old_name === p.new_name ? "Unchanged" : "Ready")
+          }, [statusBadge]),
+          window.FOSS.dom.el("td", {
+            className: "text-right",
+            style: "width: 2.5rem; padding: 0.25rem 0;"
+          }, [removeBtn])
         ]);
-        tbody.appendChild(tr);
-      }
-      tbl.appendChild(tbody);
-      tableContainer.appendChild(tbl);
+      });
+
+      var table = window.FOSS.dom.el("table", {
+        className: "table w-full",
+        style: "table-layout: fixed; width: 100%; min-width: 0;"
+      }, [
+        window.FOSS.dom.el("thead", {}, [
+          window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("th", { style: "width: 2.5rem; text-align: center;", text: "#" }),
+            window.FOSS.dom.el("th", { style: "width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Current Filename", "data-truncate-ok": "true", title: "Current Filename" }),
+            window.FOSS.dom.el("th", { style: "width: 2rem; text-align: center;", text: "" }),
+            window.FOSS.dom.el("th", { style: "width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "New Filename", "data-truncate-ok": "true", title: "New Filename" }),
+            window.FOSS.dom.el("th", { style: "width: 15%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Status", "data-truncate-ok": "true", title: "Status" }),
+            window.FOSS.dom.el("th", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;", text: "", "data-truncate-ok": "true", title: "Actions" })
+          ])
+        ]),
+        window.FOSS.dom.el("tbody", {}, rows)
+      ]);
+
+      tableHost.appendChild(table);
     }
 
-    function applyRenamesAction() {
-      if (!currentFiles.length) {
+    function executeRename() {
+      if (currentFiles.length === 0 || isExecuting) {
         showError("No files loaded to rename.");
         return;
       }
+      isExecuting = true;
       clearError();
-      var opts = calcGatherOptions();
+      statusBar.textContent = "Renaming files...";
+
       window.FOSS.api("renamer_execute", {
         file_paths: currentFiles,
-        mode: modeSelect.value,
-        timeline: timelineCheck.checked,
-        consolidate_to: consolidateInput.value.trim(),
-        options: opts
+        steps: currentSteps,
+        sort_by: sortSelect.value,
+        auto_resolve_conflicts: autoResolveCheck.checked
       }).then(function (res) {
+        isExecuting = false;
         if (!res || !res.results) {
           showError("Rename execution failed.");
           return;
         }
         lastExecutionResults = res.results;
-        undoBtn.disabled = false;
-        var successCount = 0;
-        var updatedPaths = [];
-        for (var i = 0; i < res.results.length; i++) {
-          var r = res.results[i];
+        undoBtn.disabled = !res.undo_available;
+        var newFilesList = [];
+        res.results.forEach(function (r) {
           if (r.success) {
-            successCount++;
-            updatedPaths.push(r.target);
+            newFilesList.push(r.target);
           } else {
-            updatedPaths.push(r.original);
+            newFilesList.push(r.original);
           }
-        }
-        currentFiles = updatedPaths;
-        filesInfo.textContent = currentFiles.length + " files loaded.";
-        filesInfo.title = currentFiles.join(", ");
-        statusBar.textContent = "Renamed " + successCount + " files successfully.";
+        });
+        currentFiles = newFilesList;
+        statusBar.textContent = "Renamed " + (res.renamed_count || 0) + " file(s) successfully.";
         showResultCard("Batch Rename Complete", currentFiles[0] || "");
         updatePreview();
+      }).catch(function (err) {
+        isExecuting = false;
+        showError((err && err.message) || String(err));
       });
     }
 
-    function undoRenamesAction() {
-      if (!lastExecutionResults || !lastExecutionResults.length) {
+    function executeUndo() {
+      if (!lastExecutionResults || lastExecutionResults.length === 0) {
         showError("No rename operations to undo.");
         return;
       }
       clearError();
+      statusBar.textContent = "Undoing renames...";
+
       window.FOSS.api("renamer_undo", {
         results: lastExecutionResults
       }).then(function (res) {
         if (!res || !res.results) {
-          showError("Undo failed.");
+          showError("Undo operation failed.");
           return;
         }
         lastExecutionResults = [];
         undoBtn.disabled = true;
-        var undonePaths = [];
-        for (var i = 0; i < res.results.length; i++) {
-          undonePaths.push(res.results[i].target);
-        }
-        currentFiles = undonePaths;
-        filesInfo.textContent = currentFiles.length + " files loaded.";
-        filesInfo.title = currentFiles.join(", ");
-        statusBar.textContent = "Undone rename operations.";
+        var restoredPaths = [];
+        res.results.forEach(function (r) {
+          restoredPaths.push(r.target);
+        });
+        currentFiles = restoredPaths;
+        statusBar.textContent = "Restored " + (res.restored_count || 0) + " file(s).";
         showResultCard("Undo Completed", currentFiles[0] || "");
         updatePreview();
+      }).catch(function (err) {
+        showError((err && err.message) || String(err));
       });
     }
 
-    // Assemble page
-    panel.appendChild(header);
+    var stageCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow",
+      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
+    }, [
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
+        window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap items-center" }, [
+          addFilesBtn,
+          addFilesBtnAlias,
+          addFolderBtn,
+          window.FOSS.dom.el("label", { className: "text-xs row gap-1 items-center" }, [
+            recursiveCheck,
+            window.FOSS.dom.el("span", { text: "Subfolders" })
+          ]),
+          sortSelect,
+          window.FOSS.dom.el("label", { className: "text-xs row gap-1 items-center" }, [
+            timelineCheck,
+            window.FOSS.dom.el("span", { text: "Timeline" })
+          ])
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [clearBtn])
+      ]),
+      tableHost,
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap pt-sm" }, [
+        window.FOSS.dom.el("div", { className: "row gap-3 items-center" }, [
+          window.FOSS.dom.el("label", { className: "text-xs row gap-1 items-center font-semibold" }, [
+            autoResolveCheck,
+            window.FOSS.dom.el("span", { text: "Auto-number duplicate names" })
+          ]),
+          summaryText
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [
+          undoBtn,
+          applyBtn
+        ])
+      ])
+    ]);
+
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "renamer-stage-pane grow",
+      style: "width: 100%; min-width: 0;"
+    }, [stageCard]);
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable renamer-workbench"
+    }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stageWrapper
+    ]);
+
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
     panel.appendChild(resultHost);
-    panel.appendChild(toolbarCard);
-    panel.appendChild(rulesCard);
-    panel.appendChild(crossCard);
-    panel.appendChild(previewCard);
+    panel.appendChild(split);
 
-    updatePreview();
+    renderSteps();
+    renderPreviewTable();
+    loadRecipes();
   }
 
   window.FOSS.router.register({
@@ -895,8 +1118,13 @@ window.FOSS = window.FOSS || {};
     navName: "Renamer",
     category: "Utilities",
     icon: "folder",
+    workbench: true,
     tabs: [
-      { id: "main", label: "Renamer", render: renderMain }
-    ]
+      { id: "rules", label: "Rules & Preview", aliases: ["main"], render: renderMain }
+    ],
+    onFiles: function (paths, ctx) {
+      if (!paths || !paths.length) return;
+      window.FOSS.router.open("renamer", "rules");
+    }
   });
 })();

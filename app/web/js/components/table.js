@@ -27,6 +27,7 @@ window.FOSS.components = window.FOSS.components || {};
     var showMoreBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       text: "Show more",
+      "data-testid": testid + "-more",
       type: "button",
       onClick: function () {
         displayedLimit += maxInitial;
@@ -35,7 +36,8 @@ window.FOSS.components = window.FOSS.components || {};
     });
 
     var wrap = window.FOSS.dom.el("div", {
-      className: "table-wrap scroll-x"
+      className: "table-wrap scroll-x",
+      "data-testid": testid + "-wrap"
     }, [tableEl]);
 
     function renderRows() {

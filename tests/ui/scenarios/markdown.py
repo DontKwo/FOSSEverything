@@ -1,3 +1,4 @@
+# Playwright UI scenarios for Markdown Studio workspace.
 from pathlib import Path
 from typing import Any, Callable
 from playwright.sync_api import Page, expect
@@ -14,11 +15,18 @@ def calc_clear_overlays(page: Page) -> None:
 
 
 def scenario_loaded(page: Page, fixtures: dict[str, str], api: Any) -> None:
-    # Open Markdown Studio and populate editor with initial document.
+    # Open Markdown Studio, check side-by-side split, and test flavor selection.
     page.evaluate("window.FOSS.router.open('markdown', 'main')")
     in_box = page.locator("[data-testid='markdown-editor-input']")
-    in_box.fill("# Markdown Studio\n\nInteractive document with **live preview**.")
+    in_box.fill("# Markdown Studio\n\n- Root\n  - Sub\n- [ ] Task checkbox")
     page.wait_for_timeout(250)
+    expect(page.locator("[data-testid='markdown-split']")).to_be_visible()
+    flavor_sel = page.locator("[data-testid='markdown-flavor-select']")
+    expect(flavor_sel).to_be_visible()
+    flavor_sel.select_option("commonmark")
+    page.wait_for_timeout(150)
+    flavor_sel.select_option("github")
+    page.wait_for_timeout(150)
     calc_clear_overlays(page)
 
 
@@ -49,14 +57,17 @@ def scenario_error(page: Page, fixtures: dict[str, str], api: Any) -> None:
 
 
 def scenario_formatting(page: Page, fixtures: dict[str, str], api: Any) -> None:
-    # Apply heading and list formatting actions to editor content.
+    # Apply heading, list, and task actions to editor content.
     page.evaluate("window.FOSS.router.open('markdown', 'main')")
     in_box = page.locator("[data-testid='markdown-editor-input']")
     in_box.fill("Sample section")
     page.click("[data-testid='markdown-heading']")
     page.wait_for_timeout(100)
-    val = in_box.input_value()
-    assert "###" in val or "#" in val
+    heading_text = in_box.input_value()
+    assert "###" in heading_text or "#" in heading_text
+    page.click("[data-testid='markdown-tasklist']")
+    page.wait_for_timeout(100)
+    assert "- [ ]" in in_box.input_value()
     calc_clear_overlays(page)
 
 

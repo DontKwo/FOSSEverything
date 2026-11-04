@@ -51,6 +51,18 @@ if it already exists.
   Drawing a new freehand or shape annotation remains pointer-driven
   because freeform coordinate placement requires cursor positioning.
 
+- **23 Canonical Sidebar Tools & Custom Sections**: The workbench provides 23 tools grouped into customizable sections with drag-reordering, section creation, and visibility toggles.
+- **Expanded UI Zoom**: Supports fluid scaling from 50% to 250% via shortcut buttons, slider, and Ctrl+MouseWheel zooming.
+- **GitHub-Default Markdown Studio**: Live side-by-side editing, syntax highlighting, table generators, and HTML export using standard GitHub-flavored rendering.
+- **Folded Office Architecture**: Office document conversions and metadata inspection are folded directly into File Converter and Metadata Tools.
+- **Smart Non-Destructive OCR**: Automatically detects selectable text layers before running OCR and exports text with page boundaries.
+- **Grouped PDF Merger & Organizer**: Drag-and-drop file and page reordering with multi-page selection, rotations, and split tools.
+- **SpaceX GNC Calibri Resume Layout**: Real-time resume preview using the single-column Calibri layout with ATS keyword density scoring.
+- **Freeform Layered Collage**: Multi-layer canvas with rotation, border radius, shadow, and multi-format export (.psd, .ora, .tiff, .zip).
+- **Unified Background Removal**: Local rembg model manager supporting multiple models with download status tracking.
+- **Zero-Regex Batch Renamer**: Interactive visual step pipeline with live before/after previews and collision detection.
+- **Pint-Backed Unit Converter**: Dimensional analysis and unit conversions across extensive physical unit categories.
+
 ## PDF Studio
 
 ### Current functionality

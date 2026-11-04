@@ -135,6 +135,18 @@ class QrApiMixin:
         return ok(results=results, count=len(results), image_path=img_path)
 
     @api_method
+    def qr_decode_data_url(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Detect and decode QR codes and barcodes from base64 data URL.
+        require(params, "data_url")
+        raw_url = str(params["data_url"]).strip()
+        if "," in raw_url:
+            raw_url = raw_url.split(",", 1)[1]
+        img_bytes = base64.b64decode(raw_url)
+        img = Image.open(io.BytesIO(img_bytes))
+        results = decode_qr_and_barcodes(img)
+        return ok(results=results, count=len(results))
+
+    @api_method
     def decode_qr(self, params: dict[str, Any]) -> dict[str, Any]:
         # Alias for QR and barcode decoding.
         return self.qr_decode(params)
@@ -209,11 +221,25 @@ class QrApiMixin:
         return ok(payload=payload, schema=schema)
 
     @api_method
+    def qr_label_presets(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Return list of printable label sheet presets.
+        return ok(presets=list(LABEL_SHEET_PRESETS.keys()))
+
+    @api_method
     def qr_label_sheet(self, params: dict[str, Any]) -> dict[str, Any]:
         # Generate printable PDF grid sheet of labels or barcodes.
         require(params, "output_path")
         out_path = str(params["output_path"])
         preset_name = str(params.get("preset", "Avery 5160"))
+        matched_preset = None
+        preset_clean = preset_name.lower().replace("_", "").replace(" ", "")
+        for k in LABEL_SHEET_PRESETS:
+            k_clean = k.lower().replace("_", "").replace(" ", "")
+            if preset_clean in k_clean or k_clean in preset_clean:
+                matched_preset = k
+                break
+        final_preset = matched_preset or preset_name
+
         count = int(params.get("count", 30))
         payload = str(params.get("payload", "https://github.com/fosseverything"))
         bc_type = params.get("barcode_type")
@@ -221,7 +247,7 @@ class QrApiMixin:
             img = generate_barcode(payload, barcode_type=str(bc_type))
         else:
             img = generate_qr_code(payload)
-        res_p = generate_label_sheet([img] * count, preset_name, out_path)
+        res_p = generate_label_sheet([img] * count, final_preset, out_path)
         presets = list(LABEL_SHEET_PRESETS.keys())
         return ok(output_path=res_p, presets=presets)
 
@@ -232,6 +258,6 @@ class QrApiMixin:
         title = str(params["title"])
         start = str(params["start_time"])
         out_path = Path(str(params["output_path"])).resolve()
-        content = generate_ics(title, start)
+        content = generate_ics([{"title": title, "start": start, "description": str(params.get("description", "")) }])
         out_path.write_text(content, encoding="utf-8")
         return ok(output_path=str(out_path))

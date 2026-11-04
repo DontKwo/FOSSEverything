@@ -6,7 +6,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from PIL import Image
 from mutagen import File as MutagenFile
@@ -20,6 +20,17 @@ class RenamePlan:
     new_path: str
     error: str | None = None
     has_collision: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        # Convert plan into serializable dictionary.
+        return {
+            "original": self.old_path,
+            "proposed": self.new_path,
+            "old_name": self.old_name,
+            "new_name": self.new_name,
+            "error": self.error,
+            "has_collision": self.has_collision,
+        }
 
 
 @dataclass
@@ -418,3 +429,292 @@ def execute_renames(plans: list[RenamePlan]) -> list[RenameResult]:
             results.append(RenameResult(plan.old_path, plan.new_path, success=False, error=str(exc)))
 
     return results
+
+
+STARTER_RECIPES: list[dict[str, Any]] = [
+    {
+        "name": "Photos: Date + 001, 002...",
+        "steps": [
+            {
+                "type": "add_date",
+                "enabled": True,
+                "date_source": "best_date",
+                "date_format": "YYYY-MM-DD",
+                "position": "prefix",
+                "separator": " - ",
+            },
+            {
+                "type": "number_sequence",
+                "enabled": True,
+                "mode": "suffix",
+                "start_at": 1,
+                "increment": 1,
+                "padding": 3,
+                "separator": " - ",
+            },
+        ],
+    },
+    {
+        "name": "Clean Web Downloads",
+        "steps": [
+            {
+                "type": "clean_name",
+                "enabled": True,
+                "spaces": "collapse",
+                "remove_brackets": True,
+                "remove_digits": False,
+                "remove_punctuation": False,
+            },
+            {
+                "type": "change_case",
+                "enabled": True,
+                "case_mode": "title",
+            },
+        ],
+    },
+    {
+        "name": "Podcast / Music: 01 - Title",
+        "steps": [
+            {
+                "type": "number_sequence",
+                "enabled": True,
+                "mode": "prefix",
+                "start_at": 1,
+                "increment": 1,
+                "padding": 2,
+                "separator": " - ",
+            },
+            {
+                "type": "change_case",
+                "enabled": True,
+                "case_mode": "title",
+            },
+        ],
+    },
+    {
+        "name": "Documents: YYYY-MM-DD Prefix",
+        "steps": [
+            {
+                "type": "add_date",
+                "enabled": True,
+                "date_source": "best_date",
+                "date_format": "YYYY-MM-DD",
+                "position": "prefix",
+                "separator": " - ",
+            },
+        ],
+    },
+    {
+        "name": "Web-Safe lowercase-hyphens",
+        "steps": [
+            {
+                "type": "clean_name",
+                "enabled": True,
+                "spaces": "to_hyphens",
+                "remove_brackets": True,
+                "remove_punctuation": True,
+            },
+            {
+                "type": "change_case",
+                "enabled": True,
+                "case_mode": "lower",
+            },
+        ],
+    },
+]
+
+
+def natural_sort_key(path: str) -> list[int | str]:
+    # Compute natural sort key for human alphanumeric ordering.
+    name = os.path.basename(path).lower()
+    return [int(token) if token.isdigit() else token for token in re.split(r"(\d+)", name)]
+
+
+def sort_file_paths(file_paths: list[str], sort_by: str = "name_asc") -> list[str]:
+    # Sort file paths by name, modification time, or file size.
+    paths = list(file_paths)
+    if sort_by == "name_asc":
+        paths.sort(key=natural_sort_key)
+    elif sort_by == "name_desc":
+        paths.sort(key=natural_sort_key, reverse=True)
+    elif sort_by == "date_asc":
+        paths.sort(key=lambda p: capture_timestamp(p) if os.path.exists(p) else 0.0)
+    elif sort_by == "date_desc":
+        paths.sort(key=lambda p: capture_timestamp(p) if os.path.exists(p) else 0.0, reverse=True)
+    elif sort_by == "size_asc":
+        paths.sort(key=lambda p: os.path.getsize(p) if os.path.exists(p) else 0)
+    elif sort_by == "size_desc":
+        paths.sort(key=lambda p: os.path.getsize(p) if os.path.exists(p) else 0, reverse=True)
+    return paths
+
+
+def _format_date_token(file_path: str, date_source: str, date_format: str) -> str:
+    # Resolve and format file date token.
+    ts = 0.0
+    if os.path.exists(file_path):
+        if date_source == "created":
+            ts = os.path.getctime(file_path)
+        elif date_source == "modified":
+            ts = os.path.getmtime(file_path)
+        else:
+            ts = capture_timestamp(file_path)
+    if ts <= 0.0:
+        dt = datetime.now()
+    else:
+        dt = datetime.fromtimestamp(ts)
+
+    fmt_map = {
+        "YYYY-MM-DD": "%Y-%m-%d",
+        "YYYYMMDD": "%Y%m%d",
+        "YYYY-MM-DD HH-mm": "%Y-%m-%d %H-%M",
+        "MM-DD-YYYY": "%m-%d-%Y",
+        "YYYY-MM": "%Y-%m",
+    }
+    pattern = fmt_map.get(date_format, "%Y-%m-%d")
+    return dt.strftime(pattern)
+
+
+def preview_step_pipeline(
+    file_paths: list[str],
+    steps: list[dict[str, Any]],
+    sort_by: str = "name_asc",
+    auto_resolve_conflicts: bool = True,
+) -> list[RenamePlan]:
+    # Generate batch rename plans using an ordered stack of visual renaming steps.
+    sorted_paths = sort_file_paths(file_paths, sort_by=sort_by)
+    plans: list[RenamePlan] = []
+    seen_destinations: set[str] = set()
+
+    for idx, old_path in enumerate(sorted_paths):
+        dir_name = os.path.dirname(old_path)
+        base_name = os.path.basename(old_path)
+        stem, ext = os.path.splitext(base_name)
+
+        for step in steps:
+            if not step.get("enabled", True):
+                continue
+            step_type = str(step.get("type", ""))
+
+            if step_type == "replace_text":
+                find_txt = str(step.get("find_text", ""))
+                if find_txt:
+                    rep_txt = str(step.get("replace_with", ""))
+                    match_case = bool(step.get("match_case", False))
+                    scope = str(step.get("scope", "all"))
+                    if scope == "all":
+                        if match_case:
+                            stem = stem.replace(find_txt, rep_txt)
+                        else:
+                            stem = re.sub(re.escape(find_txt), lambda _: rep_txt, stem, flags=re.IGNORECASE)
+                    elif scope == "first":
+                        if match_case:
+                            stem = stem.replace(find_txt, rep_txt, 1)
+                        else:
+                            stem = re.sub(re.escape(find_txt), lambda _: rep_txt, stem, count=1, flags=re.IGNORECASE)
+                    elif scope == "last":
+                        if match_case:
+                            pos = stem.rfind(find_txt)
+                            if pos != -1:
+                                stem = stem[:pos] + rep_txt + stem[pos + len(find_txt):]
+                        else:
+                            matches = list(re.finditer(re.escape(find_txt), stem, flags=re.IGNORECASE))
+                            if matches:
+                                last_m = matches[-1]
+                                stem = stem[:last_m.start()] + rep_txt + stem[last_m.end():]
+
+            elif step_type == "add_text":
+                prefix = str(step.get("prefix", ""))
+                suffix = str(step.get("suffix", ""))
+                stem = f"{prefix}{stem}{suffix}"
+
+            elif step_type == "number_sequence":
+                mode = str(step.get("mode", "suffix"))
+                base_name_param = str(step.get("base_name", ""))
+                start_at = int(step.get("start_at", 1))
+                increment = int(step.get("increment", 1))
+                padding = int(step.get("padding", 2))
+                separator = str(step.get("separator", " - "))
+                sequence_number = start_at + idx * increment
+                num_str = str(sequence_number).zfill(padding)
+                if mode == "replace_name":
+                    stem = f"{base_name_param}{separator}{num_str}" if base_name_param else num_str
+                elif mode == "prefix":
+                    stem = f"{num_str}{separator}{stem}"
+                else:
+                    stem = f"{stem}{separator}{num_str}"
+
+            elif step_type == "add_date":
+                date_source = str(step.get("date_source", "best_date"))
+                date_format = str(step.get("date_format", "YYYY-MM-DD"))
+                pos = str(step.get("position", "prefix"))
+                sep = str(step.get("separator", " - "))
+                date_str = _format_date_token(old_path, date_source, date_format)
+                if pos == "prefix":
+                    stem = f"{date_str}{sep}{stem}"
+                else:
+                    stem = f"{stem}{sep}{date_str}"
+
+            elif step_type == "clean_name":
+                spaces = str(step.get("spaces", "collapse"))
+                if step.get("remove_brackets"):
+                    stem = re.sub(r"[\(\[\{].*?[\)\]\}]", "", stem)
+                if step.get("remove_digits"):
+                    stem = re.sub(r"\d+", "", stem)
+                if step.get("remove_punctuation"):
+                    stem = re.sub(r"[^\w\s\-_]", "", stem)
+                if spaces == "collapse":
+                    stem = re.sub(r"\s+", " ", stem).strip()
+                elif spaces == "to_underscores":
+                    stem = re.sub(r"\s+", "_", stem).strip("_")
+                elif spaces == "to_hyphens":
+                    stem = re.sub(r"\s+", "-", stem).strip("-")
+                elif spaces == "remove":
+                    stem = re.sub(r"\s+", "", stem)
+                trim_first = int(step.get("trim_first_n", 0))
+                trim_last = int(step.get("trim_last_n", 0))
+                if trim_first > 0:
+                    stem = stem[trim_first:]
+                if trim_last > 0:
+                    stem = stem[:-trim_last]
+
+            elif step_type == "change_case":
+                case_mode = str(step.get("case_mode", "title"))
+                stem = apply_case_transform(stem, case_mode)
+
+            elif step_type == "change_extension":
+                new_ext = str(step.get("extension", "")).strip()
+                if new_ext:
+                    ext = f".{new_ext.lstrip('.')}"
+
+        new_name = f"{stem}{ext}"
+        new_path = os.path.join(dir_name, new_name)
+        has_collision = False
+        error: str | None = None
+
+        if auto_resolve_conflicts:
+            count = 2
+            while new_path.lower() in seen_destinations or (
+                os.path.exists(new_path) and os.path.abspath(new_path) != os.path.abspath(old_path)
+            ):
+                new_name = f"{stem} ({count}){ext}"
+                new_path = os.path.join(dir_name, new_name)
+                count += 1
+        else:
+            if new_path.lower() in seen_destinations:
+                has_collision = True
+                error = "Duplicate output filename"
+            elif os.path.exists(new_path) and os.path.abspath(new_path) != os.path.abspath(old_path):
+                has_collision = True
+                error = "Destination already exists on disk"
+
+        seen_destinations.add(new_path.lower())
+        plans.append(RenamePlan(
+            old_path=old_path,
+            old_name=base_name,
+            new_name=new_name,
+            new_path=new_path,
+            error=error,
+            has_collision=has_collision,
+        ))
+
+    return plans

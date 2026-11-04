@@ -15,6 +15,7 @@ from app.features.network_monitor.db import (
     wipe_all,
 )
 from app.features.network_monitor.monitor import ConnectionMonitor, LiveConnection
+from app.features.network_monitor.resolver import classify_connection_trust
 from app.web.api.result import api_method, ok, require
 
 
@@ -42,22 +43,33 @@ class NetworkMonitorApiMixin:
             laddr = f":{c.local_port}" if c.local_port else ""
             raddr = f"{c.remote_ip}:{c.remote_port}" if c.remote_ip else ""
             if filter_str:
-                combined = f"{c.process_name} {laddr} {raddr} {c.remote_domain}".lower()
+                combined = f"{c.process_name} {laddr} {raddr} {c.remote_domain or ''} {c.status}".lower()
                 if filter_str not in combined:
                     continue
+            source_id, trust = classify_connection_trust(c.process_name, c.remote_ip or "", c.remote_domain)
             results.append({
                 "pid": c.pid,
                 "process_name": c.process_name,
+                "source_identity": source_id,
+                "trust_level": trust,
                 "protocol": c.protocol,
                 "local_address": laddr,
                 "remote_address": raddr,
-                "status": "ESTABLISHED",
+                "remote_ip": c.remote_ip,
+                "remote_port": c.remote_port,
+                "status": c.status,
                 "domain": c.remote_domain,
                 "is_new": c.is_new_destination,
+                "first_seen": c.first_seen,
                 "bytes_sent": c.bytes_sent,
                 "bytes_recv": c.bytes_recv,
             })
-        return ok(connections=results, count=len(results))
+        tp_raw = getattr(monitor, "_current_throughput", (0.0, 0.0))
+        throughput = {
+            "up_kb": tp_raw[0] if isinstance(tp_raw, (tuple, list)) else 0.0,
+            "down_kb": tp_raw[1] if isinstance(tp_raw, (tuple, list)) else 0.0,
+        }
+        return ok(connections=results, count=len(results), throughput=throughput)
 
     @api_method
     def get_network_connections(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -67,9 +79,9 @@ class NetworkMonitorApiMixin:
     @api_method
     def network_history(self, params: dict[str, Any]) -> dict[str, Any]:
         # Search persistent SQLite connection event logs with filters.
-        q = params.get("query")
-        proc = params.get("process")
-        dom = params.get("domain")
+        q = str(params.get("query") or "")
+        proc = str(params.get("process") or params.get("process_name") or "")
+        dom = str(params.get("domain") or "")
         limit = int(params.get("limit", 100))
         conn = connect()
         try:
@@ -77,17 +89,26 @@ class NetworkMonitorApiMixin:
         finally:
             conn.close()
         path_str = db_path()
-        return ok(events=[{
-            "id": e.id,
-            "timestamp": e.timestamp,
-            "pid": e.pid,
-            "process": e.process,
-            "protocol": e.protocol,
-            "local_address": e.local_address,
-            "remote_address": e.remote_address,
-            "domain": e.domain,
-            "status": e.status,
-        } for e in events], count=len(events), db_path=path_str)
+        hist_events: list[dict[str, Any]] = []
+        for e in events:
+            source_id, trust = classify_connection_trust(e["process_name"], e["remote_ip"] or "", e["remote_domain"])
+            hist_events.append({
+                "id": e["id"],
+                "timestamp": e["timestamp"],
+                "pid": e["pid"],
+                "process": e["process_name"],
+                "process_name": e["process_name"],
+                "source_identity": source_id,
+                "trust_level": trust,
+                "protocol": e["protocol"],
+                "local_address": f":{e['local_port']}" if e["local_port"] else "",
+                "remote_address": f"{e['remote_ip']}:{e['remote_port']}" if e["remote_port"] else (e["remote_ip"] or ""),
+                "domain": e["remote_domain"],
+                "remote_ip": e["remote_ip"],
+                "remote_port": e["remote_port"],
+                "status": "CLOSED",
+            })
+        return ok(events=hist_events, count=len(hist_events), db_path=path_str)
 
     @api_method
     def network_stats(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -116,15 +137,16 @@ class NetworkMonitorApiMixin:
     def network_manage_destinations(self, params: dict[str, Any]) -> dict[str, Any]:
         # Mark remote IP or domain as approved known destination.
         require(params, "destination")
-        dest = str(params["destination"])
+        dest = str(params["destination"]).strip()
+        cleaned_dest = dest.split(":")[0] if ":" in dest and not dest.startswith("[") else dest
         known = bool(params.get("known", True))
         conn = connect()
         try:
-            mark_destination_known(conn, dest, known=known)
+            mark_destination_known(conn, cleaned_dest, known=known)
             unknowns = [dict(r) for r in unknown_destinations(conn)]
         finally:
             conn.close()
-        return ok(destination=dest, known=known, remaining_unknowns=len(unknowns))
+        return ok(destination=cleaned_dest, known=known, remaining_unknowns=len(unknowns))
 
     @api_method
     def network_database_ops(self, params: dict[str, Any]) -> dict[str, Any]:

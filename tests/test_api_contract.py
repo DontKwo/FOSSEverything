@@ -10,10 +10,10 @@ from app.web.api import (
     BaseApi,
     ArchiveApiMixin,
     CollageApiMixin,
+    CompressorApiMixin,
     ConverterApiMixin,
     DataApiMixin,
     EncodingApiMixin,
-    HashApiMixin,
     ImagesApiMixin,
     MarkdownApiMixin,
     MediaApiMixin,
@@ -21,15 +21,14 @@ from app.web.api import (
     Model3dApiMixin,
     NetworkMonitorApiMixin,
     OcrApiMixin,
-    OfficeApiMixin,
     PaletteApiMixin,
     PdfApiMixin,
     PlaylistApiMixin,
     QrApiMixin,
     RenamerApiMixin,
     ResumeApiMixin,
-    ScreenshotApiMixin,
     TextToolsApiMixin,
+    UnitConverterApiMixin,
     WebApi,
     WordCounterApiMixin,
 )
@@ -40,10 +39,10 @@ ALL_MIXINS = [
     BaseApi,
     ArchiveApiMixin,
     CollageApiMixin,
+    CompressorApiMixin,
     ConverterApiMixin,
     DataApiMixin,
     EncodingApiMixin,
-    HashApiMixin,
     ImagesApiMixin,
     MarkdownApiMixin,
     MediaApiMixin,
@@ -51,15 +50,14 @@ ALL_MIXINS = [
     Model3dApiMixin,
     NetworkMonitorApiMixin,
     OcrApiMixin,
-    OfficeApiMixin,
     PaletteApiMixin,
     PdfApiMixin,
     PlaylistApiMixin,
     QrApiMixin,
     RenamerApiMixin,
     ResumeApiMixin,
-    ScreenshotApiMixin,
     TextToolsApiMixin,
+    UnitConverterApiMixin,
     WordCounterApiMixin,
 ]
 
@@ -72,10 +70,10 @@ def test_public_method_signatures() -> None:
     for name in dir(api):
         if name.startswith("_"):
             continue
-        val = getattr(api, name)
-        if not callable(val):
+        method_obj = getattr(api, name)
+        if not callable(method_obj):
             continue
-        sig = inspect.signature(val)
+        sig = inspect.signature(method_obj)
         params = list(sig.parameters.keys())
         if params != ["params"]:
             mismatches.append(f"{name}: params={params} != ['params']")
@@ -96,8 +94,8 @@ def test_no_duplicate_mixin_methods() -> None:
     duplicates: list[str] = []
 
     for cls in ALL_MIXINS:
-        for attr, val in cls.__dict__.items():
-            if attr.startswith("_") or not callable(val):
+        for attr, method_func in cls.__dict__.items():
+            if attr.startswith("_") or not callable(method_func):
                 continue
             if attr in method_sources:
                 duplicates.append(f"{attr} defined in both {method_sources[attr]} and {cls.__name__}")
@@ -115,11 +113,11 @@ def test_empty_params_never_raises() -> None:
     for name in dir(api):
         if name.startswith("_"):
             continue
-        val = getattr(api, name)
-        if not callable(val):
+        method_obj = getattr(api, name)
+        if not callable(method_obj):
             continue
         try:
-            res = val({})
+            res = method_obj({})
             if not isinstance(res, dict):
                 failures.append(f"{name}: did not return dict: {type(res)}")
         except Exception as exc:
@@ -140,11 +138,11 @@ def test_read_only_tool_methods(tmp_path: Path) -> None:
         ("word_counter_analyze", {"text": "one two three four"}),
         ("markdown_to_html", {"markdown": "# Heading\ntext"}),
         ("data_validate_syntax", {"content": '{"key": "value"}', "format": "json"}),
-        ("hash_text", {"text": "sample"}),
         ("metadata_inspect", {"file_path": fixtures["sample.png"]}),
         ("renamer_preview", {"file_paths": [fixtures["sample.txt"]], "template": "doc_{n}"}),
         ("archive_list", {"archive_path": fixtures["sample.zip"]}),
-        ("office_extract", {"file_path": fixtures["sample.docx"]}),
+        ("converter_available_targets", {"file_path": fixtures["sample.docx"]}),
+        ("metadata_inspect", {"file_path": fixtures["sample.docx"]}),
         ("converter_available_targets", {"file_path": fixtures["sample.txt"]}),
         ("collage_presets", {}),
         ("palette_contrast", {"color1": "#000000", "color2": "#ffffff"}),
@@ -152,12 +150,18 @@ def test_read_only_tool_methods(tmp_path: Path) -> None:
         ("images_load_data", {"file_path": fixtures["sample.png"]}),
         ("pdf_open_doc", {"file_path": fixtures["sample.pdf"]}),
         ("ocr_languages", {}),
-        ("screenshot_capture_region", {"x1": 0, "y1": 0, "x2": 10, "y2": 10}),
         ("media_get_info", {"file_path": fixtures["tone.wav"]}),
         ("playlist_parse_text", {"text": "Artist - Title"}),
         ("network_stats", {}),
         ("model3d_info", {"file_path": fixtures["cube.stl"]}),
         ("resume_sample", {}),
+        ("units_catalog", {}),
+        ("images_models_status", {}),
+        ("ocr_inspect_file", {"file_path": fixtures["sample.pdf"]}),
+        ("qr_label_presets", {}),
+        ("converter_scan_inputs", {"paths": [fixtures["sample.txt"]]}),
+        ("compressor_scan_inputs", {"paths": [fixtures["sample.txt"]]}),
+        ("renamer_scan_inputs", {"paths": [fixtures["sample.txt"]]}),
     ]
 
     for method_name, params in read_calls:

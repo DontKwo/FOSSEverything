@@ -1,4 +1,4 @@
-// Color Palette Extractor and Eyedropper workspace.
+// Color Palette Studio: Dominant extraction, live 9x9 loupe eyedropper, and WCAG contrast.
 window.FOSS = window.FOSS || {};
 
 (function () {
@@ -33,16 +33,48 @@ window.FOSS = window.FOSS || {};
     return bestName;
   }
 
-  function calcContrastRatio(r, g, b, r2, g2, b2) {
+  function rgbToHsl(r, g, b) {
+    var rn = r / 255, gn = g / 255, bn = b / 255;
+    var max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+    var d = max - min;
+    var l = (max + min) / 2;
+    var h = 0, s = 0;
+    if (d !== 0) {
+      s = l < 0.5 ? d / (max + min) : d / (2 - max - min);
+      if (max === rn) h = ((gn - bn) / d) % 6;
+      else if (max === gn) h = (bn - rn) / d + 2;
+      else h = (rn - gn) / d + 4;
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
+    }
+    return [h, Math.round(s * 100), Math.round(l * 100)];
+  }
+
+  function parseHex(hex) {
+    var clean = (hex || "").replace("#", "").trim();
+    if (clean.length === 3) {
+      clean = clean[0] + clean[0] + clean[1] + clean[1] + clean[2] + clean[2];
+    }
+    if (clean.length === 6) {
+      return [parseInt(clean.slice(0, 2), 16), parseInt(clean.slice(2, 4), 16), parseInt(clean.slice(4, 6), 16)];
+    }
+    return [0, 0, 0];
+  }
+
+  function calcLuminance(r, g, b) {
     function lum(ch) {
       var v = ch / 255;
       return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
     }
-    var l1 = 0.2126 * lum(r) + 0.7152 * lum(g) + 0.0722 * lum(b);
-    var l2 = 0.2126 * lum(r2) + 0.7152 * lum(g2) + 0.0722 * lum(b2);
+    return 0.2126 * lum(r) + 0.7152 * lum(g) + 0.0722 * lum(b);
+  }
+
+  function calcContrastRatio(r1, g1, b1, r2, g2, b2) {
+    var l1 = calcLuminance(r1, g1, b1);
+    var l2 = calcLuminance(r2, g2, b2);
     var lighter = Math.max(l1, l2);
     var darker = Math.min(l1, l2);
-    return ((lighter + 0.05) / (darker + 0.05)).toFixed(2);
+    return (lighter + 0.05) / (darker + 0.05);
   }
 
   function copyToClipboard(text) {
@@ -66,22 +98,13 @@ window.FOSS = window.FOSS || {};
 
     var activeTab = "dominant";
     var currentImagePath = "";
-    var currentImageDataUrl = "";
+    var currentImageObj = null;
     var extractedSwatches = [];
     var sampledSwatches = [];
+    var fgColor = "#000000";
+    var bgColor = "#FFFFFF";
 
-    // Header
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", {
-        className: "card-title",
-        text: "Color Palette Extractor & Eyedropper"
-      }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Extract dominant colors automatically or click anywhere on the image with the eyedropper cursor."
-      })
-    ]);
-
+    // Status bar & Error banner
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted",
       "data-testid": "palette-status",
@@ -89,9 +112,8 @@ window.FOSS = window.FOSS || {};
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger",
-      "data-testid": "palette-error-banner",
-      hidden: true
+      className: "banner danger hidden",
+      "data-testid": "palette-error-banner"
     }, [
       window.FOSS.icons.el("alert", 18),
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
@@ -100,17 +122,17 @@ window.FOSS = window.FOSS || {};
     function showError(msg) {
       var span = errorBanner.querySelector(".banner-msg");
       if (span) span.textContent = msg;
-      errorBanner.removeAttribute("hidden");
+      errorBanner.classList.remove("hidden");
       statusBar.textContent = "Error: " + msg;
     }
 
     function clearError() {
-      errorBanner.setAttribute("hidden", "true");
+      errorBanner.classList.add("hidden");
     }
 
     var resultHost = window.FOSS.dom.el("div", {
       "data-testid": "palette-result",
-      hidden: true
+      className: "hidden"
     });
 
     function showResult(path, titleText) {
@@ -121,87 +143,42 @@ window.FOSS = window.FOSS || {};
         outputPath: path
       });
       resultHost.appendChild(card);
-      resultHost.removeAttribute("hidden");
+      resultHost.classList.remove("hidden");
     }
 
-    // Top Card: File selection and Extraction controls
-    var controlCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
+    // --- LEFT COLUMN CONTROLS ---
 
-    var pickerField = window.FOSS.components.filePicker({
-      testid: "palette-file-picker",
-      title: "Select image file to extract colors...",
-      fileTypes: ["png", "jpg", "jpeg", "webp", "bmp", "gif"],
-      onSelect: function (val) {
-        currentImagePath = val;
-        clearError();
-        if (val) {
-          loadImageAndExtract();
-        }
-      },
-      onClear: function () {
-        currentImagePath = "";
-        extractedSwatches = [];
-        sampledSwatches = [];
-        renderDominantSwatches();
-        updateSamplesUI();
-      }
+    // Source Bar
+    var fileNameBadge = window.FOSS.dom.el("span", {
+      className: "font-mono text-xs text-muted truncate",
+      "data-truncate-ok": "true",
+      title: "No image loaded",
+      text: "No image loaded"
     });
 
-    var numColorsInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input",
-      "data-testid": "palette-num-colors",
-      "aria-label": "Colors to extract",
-      title: "Colors to extract",
-      min: "2",
-      max: "32",
-      value: "8",
-      style: { width: "80px" }
-    });
-
-    var numColorsField = window.FOSS.components.field(
-      "Colors to Extract",
-      numColorsInput
-    );
-
-    var methodSelect = window.FOSS.dom.el("select", {
-      className: "input",
-      "data-testid": "palette-method-select",
-      "aria-label": "Extraction Method",
-      title: "Extraction Method",
-      style: { minWidth: "140px" }
-    }, [
-      window.FOSS.dom.el("option", { value: "median-cut", text: "Median-Cut" }),
-      window.FOSS.dom.el("option", { value: "kmeans", text: "K-Means Clustering" })
-    ]);
-
-    var methodField = window.FOSS.components.field(
-      "Extraction Method",
-      methodSelect
-    );
-
-    var extractBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "palette-extract-btn",
-      "aria-label": "Extract dominant colors",
-      title: "Extract dominant colors",
+    var openBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "palette-open-btn",
+      type: "button",
       onClick: function () {
-        if (!currentImagePath) {
-          showError("Select an image file first.");
-          return;
-        }
-        loadImageAndExtract();
+        window.FOSS.api("select_file", {
+          title: "Select Image File",
+          file_types: ["png", "jpg", "jpeg", "webp", "bmp", "gif", "tiff"]
+        }).then(function (res) {
+          if (res && res.paths && res.paths.length > 0) {
+            currentImagePath = res.paths[0];
+            clearError();
+            loadImageAndExtract();
+          }
+        });
       }
-    }, [
-      window.FOSS.icons.el("palette", 16),
-      window.FOSS.dom.el("span", { text: "Extract Dominant Colors" })
-    ]);
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Open Image" })]);
+    openBtn.setAttribute("data-testid", "palette-file-picker-browse");
 
-    var multiAggregateBtn = window.FOSS.dom.el("button", {
-      className: "btn",
-      "data-testid": "palette-multi-aggregate-btn",
-      "aria-label": "Multi-image aggregation",
-      title: "Multi-image aggregation",
+    var multiBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "palette-multi-btn",
+      type: "button",
       onClick: function () {
         window.FOSS.api("select_files", {
           title: "Select Multiple Images for Aggregation",
@@ -214,74 +191,304 @@ window.FOSS = window.FOSS || {};
           showError(err && err.message ? err.message : String(err));
         });
       }
+    }, [window.FOSS.icons.el("layers", 14), window.FOSS.dom.el("span", { text: "Multi-Image Palette" })]);
+
+    var sourceCard = window.FOSS.dom.el("div", {
+      className: "card card-compact",
+      "data-testid": "palette-source-card"
     }, [
-      window.FOSS.icons.el("layers", 16),
-      window.FOSS.dom.el("span", { text: "Multi-image aggregation" })
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Image Source" }),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+        openBtn,
+        multiBtn
+      ]),
+      fileNameBadge
     ]);
 
-    var controlsRow = window.FOSS.dom.el("div", {
-      className: "row items-end",
-      style: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "var(--space-3)",
-        width: "100%"
-      }
+    // Extraction Controls
+    var countInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input",
+      "data-testid": "palette-count-input",
+      "aria-label": "Swatches count",
+      title: "Swatches count (2 to 24)",
+      min: "2",
+      max: "24",
+      value: "8"
+    });
+    countInput.setAttribute("data-testid", "palette-num-colors");
+
+    var methodSelect = window.FOSS.dom.el("select", {
+      className: "input",
+      "data-testid": "palette-method-select",
+      "aria-label": "Extraction Method",
+      title: "Extraction Method"
     }, [
-      numColorsField,
-      methodField,
-      extractBtn,
-      multiAggregateBtn
+      window.FOSS.dom.el("option", { value: "median-cut", text: "Median-Cut" }),
+      window.FOSS.dom.el("option", { value: "kmeans", text: "K-Means Clustering" })
     ]);
 
-    controlCard.appendChild(pickerField.el);
-    controlCard.appendChild(controlsRow);
-
-    // Main workspace: Left side Eyedropper Canvas & HUD, Right side Swatch Tabs
-    var workspaceCard = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-3",
-      style: { width: "100%", maxWidth: "100%", minWidth: "0" }
-    });
-
-    // Group: eyedropper tool (hover / click to sample)
-    var eyedropperGroup = window.FOSS.dom.el("div", {
-      className: "flex-col gap-3",
-      style: { flex: "1 1 260px", minWidth: "0", maxWidth: "100%", width: "100%" }
-    });
-
-    var eyedropperHeader = window.FOSS.dom.el("h3", {
-      className: "card-title text-base",
-      text: "Eyedropper Tool (Hover / Click to sample)"
-    });
-
-    var canvasContainer = window.FOSS.dom.el("div", {
-      style: {
-        position: "relative",
-        background: "var(--color-bg-base)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-md)",
-        minHeight: "220px",
-        width: "100%",
-        maxWidth: "100%",
-        minWidth: "0",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden"
+    var extractBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      "data-testid": "palette-extract-btn",
+      type: "button",
+      onClick: function () {
+        if (!currentImagePath) {
+          showError("Select an image file first.");
+          return;
+        }
+        loadImageAndExtract();
       }
+    }, [window.FOSS.icons.el("palette", 16), window.FOSS.dom.el("span", { text: "Extract Palette" })]);
+
+    var extractionCard = window.FOSS.dom.el("div", {
+      className: "card card-compact",
+      "data-testid": "palette-extraction-card"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Image Extraction" }),
+      window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap" }, [
+        window.FOSS.components.field("Swatches", countInput),
+        window.FOSS.components.field("Algorithm", methodSelect)
+      ]),
+      extractBtn
+    ]);
+
+    // Live Eyedropper Magnifier & HUD
+    var loupeCanvas = window.FOSS.dom.el("canvas", {
+      width: 80,
+      height: 80,
+      "data-testid": "palette-loupe-canvas",
+      style: "width: 5rem; height: 5rem; border-radius: var(--radius-sm); border: 1px solid var(--border); image-rendering: pixelated; flex-shrink: 0;"
     });
 
+    var hudColorSwatch = window.FOSS.dom.el("div", {
+      style: "width: 2.25rem; height: 2.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-surface-sunken); flex-shrink: 0;"
+    });
+
+    var hudHexLabel = window.FOSS.dom.el("span", {
+      className: "font-mono font-bold text-sm",
+      "data-testid": "palette-hud-hex",
+      text: "#------"
+    });
+
+    var hudRgbLabel = window.FOSS.dom.el("span", {
+      className: "font-mono text-xs text-muted",
+      "data-testid": "palette-hud-rgb",
+      text: "RGB(---, ---, ---)"
+    });
+
+    var hudHslLabel = window.FOSS.dom.el("span", {
+      className: "font-mono text-xs text-muted",
+      "data-testid": "palette-hud-hsl",
+      text: "HSL(---, --%, --%)"
+    });
+
+    var hudNameBadge = window.FOSS.dom.el("span", {
+      className: "badge neutral text-xs",
+      text: "--"
+    });
+
+    var hudPosLabel = window.FOSS.dom.el("span", {
+      className: "font-mono text-xs text-muted",
+      "data-testid": "palette-hud-pos",
+      text: "Position: (-, -)"
+    });
+
+    var hudContrastLabel = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted",
+      "data-testid": "palette-contrast-info",
+      text: "Contrast: -- vs white, -- vs black"
+    });
+
+    var eyedropperHud = window.FOSS.dom.el("div", {
+      className: "card card-compact",
+      "data-testid": "palette-eyedropper-hud"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Eyedropper Loupe (Hover to Inspect)" }),
+      window.FOSS.dom.el("div", { className: "row gap-3 items-center" }, [
+        loupeCanvas,
+        window.FOSS.dom.el("div", { className: "flex-col gap-1", style: "flex: 1 1 0%; min-width: 0;" }, [
+          window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+            hudColorSwatch,
+            hudHexLabel,
+            hudNameBadge
+          ]),
+          hudRgbLabel,
+          hudHslLabel,
+          hudPosLabel
+        ])
+      ]),
+      hudContrastLabel
+    ]);
+
+    // WCAG Contrast Checker Card
+    var fgInput = window.FOSS.dom.el("input", {
+      type: "color",
+      value: fgColor,
+      className: "input",
+      "aria-label": "Foreground Color",
+      title: "Foreground Color",
+      style: "width: 3rem; height: 2rem; padding: 0; cursor: pointer;"
+    });
+
+    var bgInput = window.FOSS.dom.el("input", {
+      type: "color",
+      value: bgColor,
+      className: "input",
+      "aria-label": "Background Color",
+      title: "Background Color",
+      style: "width: 3rem; height: 2rem; padding: 0; cursor: pointer;"
+    });
+
+    var contrastRatioDisplay = window.FOSS.dom.el("div", {
+      className: "font-mono font-bold text-lg",
+      "data-testid": "palette-contrast-ratio",
+      text: "21.00 : 1"
+    });
+
+    var contrastBadgesRow = window.FOSS.dom.el("div", {
+      className: "row gap-1 items-center flex-wrap",
+      "data-testid": "palette-contrast-badges"
+    });
+
+    function updateContrastCard() {
+      var rgb1 = parseHex(fgInput.value);
+      var rgb2 = parseHex(bgInput.value);
+      var ratio = calcContrastRatio(rgb1[0], rgb1[1], rgb1[2], rgb2[0], rgb2[1], rgb2[2]);
+      contrastRatioDisplay.textContent = ratio.toFixed(2) + " : 1";
+
+      contrastBadgesRow.innerHTML = "";
+      var normalAA = ratio >= 4.5;
+      var normalAAA = ratio >= 7.0;
+      var largeAA = ratio >= 3.0;
+      var largeAAA = ratio >= 4.5;
+
+      contrastBadgesRow.appendChild(window.FOSS.dom.el("span", {
+        className: "badge " + (normalAA ? "success" : "neutral") + " text-xs",
+        text: "Normal AA: " + (normalAA ? "Pass" : "Fail")
+      }));
+      contrastBadgesRow.appendChild(window.FOSS.dom.el("span", {
+        className: "badge " + (normalAAA ? "success" : "neutral") + " text-xs",
+        text: "Normal AAA: " + (normalAAA ? "Pass" : "Fail")
+      }));
+      contrastBadgesRow.appendChild(window.FOSS.dom.el("span", {
+        className: "badge " + (largeAA ? "success" : "neutral") + " text-xs",
+        text: "Large AA: " + (largeAA ? "Pass" : "Fail")
+      }));
+      contrastBadgesRow.appendChild(window.FOSS.dom.el("span", {
+        className: "badge " + (largeAAA ? "success" : "neutral") + " text-xs",
+        text: "Large AAA: " + (largeAAA ? "Pass" : "Fail")
+      }));
+    }
+
+    fgInput.addEventListener("input", updateContrastCard);
+    bgInput.addEventListener("input", updateContrastCard);
+    updateContrastCard();
+
+    var contrastCard = window.FOSS.dom.el("div", {
+      className: "card card-compact",
+      "data-testid": "palette-contrast-card"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "WCAG Contrast Checker" }),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between" }, [
+        window.FOSS.dom.el("label", { className: "row gap-1 items-center text-xs font-semibold" }, [
+          window.FOSS.dom.el("span", { text: "FG" }),
+          fgInput
+        ]),
+        window.FOSS.dom.el("label", { className: "row gap-1 items-center text-xs font-semibold" }, [
+          window.FOSS.dom.el("span", { text: "BG" }),
+          bgInput
+        ]),
+        contrastRatioDisplay
+      ]),
+      contrastBadgesRow
+    ]);
+
+    function generateHarmonies(hex) {
+      var rgb = parseHex(hex);
+      var hsl = rgbToHsl(rgb[0], rgb[1], rgb[2]);
+      var h = hsl[0], s = hsl[1], l = hsl[2];
+      function hslToHex(hDeg, sPct, lPct) {
+        var sNorm = sPct / 100, lNorm = lPct / 100;
+        var c = (1 - Math.abs(2 * lNorm - 1)) * sNorm;
+        var x = c * (1 - Math.abs(((hDeg / 60) % 2) - 1));
+        var m = lNorm - c / 2;
+        var rNorm = 0, gNorm = 0, bNorm = 0;
+        if (hDeg < 60) { rNorm = c; gNorm = x; }
+        else if (hDeg < 120) { rNorm = x; gNorm = c; }
+        else if (hDeg < 180) { gNorm = c; bNorm = x; }
+        else if (hDeg < 240) { gNorm = x; bNorm = c; }
+        else if (hDeg < 300) { rNorm = x; bNorm = c; }
+        else { rNorm = c; bNorm = x; }
+        var rInt = Math.round((rNorm + m) * 255);
+        var gInt = Math.round((gNorm + m) * 255);
+        var bInt = Math.round((bNorm + m) * 255);
+        var toHexPart = function (n) { var sVal = Math.max(0, Math.min(255, n)).toString(16); return sVal.length === 1 ? "0" + sVal : sVal; };
+        return "#" + toHexPart(rInt) + toHexPart(gInt) + toHexPart(bInt);
+      }
+      return [
+        { label: "Base", hex: hex },
+        { label: "Complementary", hex: hslToHex((h + 180) % 360, s, l) },
+        { label: "Analogous +", hex: hslToHex((h + 30) % 360, s, l) },
+        { label: "Analogous -", hex: hslToHex((h + 330) % 360, s, l) },
+        { label: "Triadic 1", hex: hslToHex((h + 120) % 360, s, l) },
+        { label: "Triadic 2", hex: hslToHex((h + 240) % 360, s, l) }
+      ];
+    }
+
+    var harmonizerSwatchesRow = window.FOSS.dom.el("div", {
+      className: "row gap-1 items-center flex-wrap",
+      "data-testid": "palette-harmonizer-swatches"
+    });
+
+    function updateHarmonizerCard(baseHex) {
+      harmonizerSwatchesRow.innerHTML = "";
+      var list = generateHarmonies(baseHex || fgColor || "#3b82f6");
+      list.forEach(function (item) {
+        var chip = window.FOSS.dom.el("div", {
+          className: "row items-center gap-1 p-1 rounded border border-border cursor-pointer",
+          title: item.label + ": " + item.hex + " (Click to copy)",
+          style: "font-size: 0.7rem;",
+          onClick: function () {
+            copyToClipboard(item.hex);
+            statusBar.textContent = "Copied " + item.label + " (" + item.hex + ") to clipboard.";
+          }
+        }, [
+          window.FOSS.dom.el("div", {
+            style: "width: 1rem; height: 1rem; border-radius: 2px; background-color: " + item.hex + "; border: 1px solid var(--border);"
+          }),
+          window.FOSS.dom.el("span", { className: "font-mono font-semibold", text: item.hex })
+        ]);
+        harmonizerSwatchesRow.appendChild(chip);
+      });
+    }
+
+    var harmonizerCard = window.FOSS.dom.el("div", {
+      className: "card card-compact",
+      "data-testid": "palette-harmonizer-card"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Color Harmonizer" }),
+      harmonizerSwatchesRow
+    ]);
+    updateHarmonizerCard("#3b82f6");
+
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "palette-sidebar",
+      "data-testid": "palette-sidebar"
+    }, [
+      sourceCard,
+      extractionCard,
+      eyedropperHud,
+      harmonizerCard,
+      contrastCard
+    ]);
+
+    // --- RIGHT COLUMN WORKSPACE ---
+
+    // Interactive Stage Canvas
     var previewCanvas = window.FOSS.dom.el("canvas", {
       "data-testid": "palette-preview-canvas",
-      style: {
-        display: "none",
-        cursor: "crosshair",
-        width: "100%",
-        maxWidth: "100%",
-        height: "auto",
-        maxHeight: "360px",
-        objectFit: "contain"
-      }
+      style: "max-width: 100%; max-height: 20rem; width: auto; height: auto; display: none; cursor: crosshair; border-radius: var(--radius-md); border: 1px solid var(--border);"
     });
 
     var emptyPlaceholder = window.FOSS.dom.el("div", {
@@ -289,447 +496,433 @@ window.FOSS = window.FOSS || {};
       text: "Open an image to preview and sample colors."
     });
 
-    canvasContainer.appendChild(previewCanvas);
-    canvasContainer.appendChild(emptyPlaceholder);
-
-    // Live HUD Box
-    var hudBox = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-2",
-      "data-testid": "palette-hud-box",
-      style: {
-        background: "var(--color-bg-muted)",
-        border: "1px solid var(--color-border)",
-        padding: "var(--space-3)"
-      }
-    });
-
-    var hudColorSwatch = window.FOSS.dom.el("div", {
-      style: {
-        width: "36px",
-        height: "36px",
-        borderRadius: "var(--radius-sm)",
-        border: "2px solid var(--color-border)",
-        background: "var(--color-bg-muted)",
-        flexShrink: "0"
-      }
-    });
-
-    var hudHexLabel = window.FOSS.dom.el("div", {
-      className: "font-mono font-bold text-sm",
-      "data-testid": "palette-hud-hex",
-      text: "#------"
-    });
-
-    var hudRgbLabel = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted font-mono",
-      "data-testid": "palette-hud-rgb",
-      text: "rgb(---, ---, ---)"
-    });
-
-    var hudPosLabel = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted font-mono",
-      "data-testid": "palette-hud-pos",
-      text: "position: (-, -)"
-    });
-
-    var hudContrastLabel = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
-      "data-testid": "palette-contrast-info",
-      text: "contrast: - vs white, - vs black"
-    });
-
-    var hudInfoCol = window.FOSS.dom.el("div", { className: "flex-col gap-1 flex-1" }, [
-      hudHexLabel,
-      hudRgbLabel,
-      hudPosLabel,
-      hudContrastLabel
-    ]);
-
-    var hudRow = window.FOSS.dom.el("div", {
-      className: "row items-center",
-      style: { gap: "var(--space-3)" }
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "card card-compact items-center justify-center",
+      style: "min-height: 14rem; overflow: hidden; display: flex; background: var(--bg-surface-sunken);"
     }, [
-      hudColorSwatch,
-      hudInfoCol
+      previewCanvas,
+      emptyPlaceholder
     ]);
 
-    hudBox.appendChild(hudRow);
-    eyedropperGroup.appendChild(eyedropperHeader);
-    eyedropperGroup.appendChild(canvasContainer);
-    eyedropperGroup.appendChild(hudBox);
-
-    // Right Column: Palette Tabs (Dominant Colors & Eyedropper Samples)
-    var tabsGroup = window.FOSS.dom.el("div", {
-      className: "flex-col gap-3",
-      style: { flex: "1 1 260px", minWidth: "0", maxWidth: "100%", width: "100%" }
+    // Segmented Tabs & Clear Button
+    var sourceTabs = window.FOSS.components.segmented({
+      testid: "palette-source-tabs",
+      items: [
+        { id: "dominant", label: "Dominant Colors (0)" },
+        { id: "samples", label: "Eyedropper Samples (0)" }
+      ],
+      value: "dominant",
+      onChange: function (val) {
+        switchTab(val);
+      }
     });
 
-    var tabDominantBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "palette-tab-dominant",
-      "aria-label": "Dominant Colors",
-      title: "Dominant Colors",
+    var domTabBtn = sourceTabs.el.querySelector('[data-testid="palette-source-tabs-dominant"]');
+    if (domTabBtn) domTabBtn.setAttribute("data-testid", "palette-tab-dominant");
+
+    var samTabBtn = sourceTabs.el.querySelector('[data-testid="palette-source-tabs-samples"]');
+    if (samTabBtn) samTabBtn.setAttribute("data-testid", "palette-tab-samples");
+
+    var clearSamplesBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm hidden",
+      "data-testid": "palette-clear-samples-btn",
+      type: "button",
       onClick: function () {
-        switchTab("dominant");
+        sampledSwatches = [];
+        updateTabsLabels();
+        renderActiveSwatches();
+        redrawImagePins();
+        statusBar.textContent = "Cleared sampled colors.";
       }
-    }, [
-      window.FOSS.icons.el("palette", 16),
-      window.FOSS.dom.el("span", { text: "Dominant Colors" })
-    ]);
+    }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear Samples" })]);
 
-    var tabSamplesBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "palette-tab-samples",
-      "aria-label": "Eyedropper Samples (0)",
-      title: "Eyedropper Samples (0)",
-      onClick: function () {
-        switchTab("samples");
-      }
-    }, [
-      window.FOSS.icons.el("eyedropper", 16),
-      window.FOSS.dom.el("span", { text: "Eyedropper Samples (0)" })
-    ]);
+    // Proportional Color Strip Bar
+    var stripBar = window.FOSS.dom.el("div", {
+      className: "palette-strip-bar",
+      "data-testid": "palette-strip-bar"
+    });
 
-    var tabNav = window.FOSS.dom.el("div", {
-      className: "row items-center",
-      style: { gap: "var(--space-2)", borderBottom: "1px solid var(--color-border)", paddingBottom: "var(--space-2)" }
-    }, [
-      tabDominantBtn,
-      tabSamplesBtn
-    ]);
-
-    // Dominant Pane
-    var dominantPane = window.FOSS.dom.el("div", { className: "flex-col gap-3" });
-
-    // Toolbar actions for Dominant
+    // Unified Export Toolbar
     var copyAllBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-sm",
-      "data-testid": "palette-copy-all-btn",
-      "aria-label": "copy hex",
-      title: "copy hex",
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "palette-copy-hex-btn",
+      type: "button",
       onClick: function () {
-        if (extractedSwatches.length === 0) {
+        var swatches = getActiveSwatches();
+        if (swatches.length === 0) {
           showError("No swatches to copy.");
           return;
         }
-        var hexList = extractedSwatches.map(function (s) { return s.hex; }).join(", ");
+        var hexList = swatches.map(function (s) { return s.hex; }).join(", ");
         copyToClipboard(hexList);
-        statusBar.textContent = "Copied " + extractedSwatches.length + " hex codes to clipboard.";
+        statusBar.textContent = "Copied " + swatches.length + " hex codes to clipboard.";
       }
+    }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy All Hex" })]);
+    copyAllBtn.setAttribute("data-testid", "palette-copy-all-btn");
+
+    var formatSelect = window.FOSS.dom.el("select", {
+      className: "input btn-sm",
+      "data-testid": "palette-export-format-select",
+      "aria-label": "Export Format",
+      title: "Export Format",
+      style: "min-width: 10rem;"
     }, [
-      window.FOSS.icons.el("copy", 14),
-      window.FOSS.dom.el("span", { text: "Copy Hex" })
+      window.FOSS.dom.el("option", { value: "strip", text: "PNG Swatch Strip" }),
+      window.FOSS.dom.el("option", { value: "css", text: "CSS Variables (.css)" }),
+      window.FOSS.dom.el("option", { value: "json", text: "JSON (.json)" }),
+      window.FOSS.dom.el("option", { value: "gpl", text: "GIMP Palette (.gpl)" }),
+      window.FOSS.dom.el("option", { value: "aco", text: "Adobe Swatch (.aco)" })
     ]);
 
-    var exportStripBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-sm",
-      "data-testid": "palette-export-strip-btn",
-      "aria-label": "Export visual strip image",
-      title: "Export visual strip image",
+    var exportBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "palette-export-btn",
+      type: "button",
       onClick: function () {
-        exportPalette("strip");
+        exportPalette(formatSelect.value);
       }
+    }, [window.FOSS.icons.el("download", 14), window.FOSS.dom.el("span", { text: "Export Palette..." })]);
+    exportBtn.setAttribute("data-testid", "palette-export-strip-btn");
+
+    var exportToolbar = window.FOSS.dom.el("div", {
+      className: "row gap-2 items-center justify-between flex-wrap",
+      style: "width: 100%;"
     }, [
-      window.FOSS.icons.el("image", 14),
-      window.FOSS.dom.el("span", { text: "Export Strip" })
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+        sourceTabs.el,
+        clearSamplesBtn
+      ]),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+        copyAllBtn,
+        formatSelect,
+        exportBtn
+      ])
     ]);
 
-    var exportGplBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-sm",
-      "data-testid": "palette-export-gpl-btn",
-      "aria-label": "Export GIMP Palette (.gpl)",
-      title: "Export GIMP Palette (.gpl)",
-      onClick: function () {
-        exportPalette("gpl");
-      }
-    }, [
-      window.FOSS.icons.el("file", 14),
-      window.FOSS.dom.el("span", { text: "Export GPL" })
-    ]);
-
-    var exportCssBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-sm",
-      "data-testid": "palette-export-css-btn",
-      "aria-label": "Export CSS custom properties",
-      title: "Export CSS custom properties",
-      onClick: function () {
-        exportPalette("css");
-      }
-    }, [
-      window.FOSS.icons.el("code", 14),
-      window.FOSS.dom.el("span", { text: "Export CSS" })
-    ]);
-
-    var exportJsonBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-sm",
-      "data-testid": "palette-export-json-btn",
-      "aria-label": "Export JSON palette",
-      title: "Export JSON palette",
-      onClick: function () {
-        exportPalette("json");
-      }
-    }, [
-      window.FOSS.icons.el("file-text", 14),
-      window.FOSS.dom.el("span", { text: "Export JSON" })
-    ]);
-
-    var exportAcoBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-sm",
-      "data-testid": "palette-export-aco-btn",
-      "aria-label": "Export Adobe Color Swatch (.aco)",
-      title: "Export Adobe Color Swatch (.aco)",
-      onClick: function () {
-        exportPalette("aco");
-      }
-    }, [
-      window.FOSS.icons.el("palette", 14),
-      window.FOSS.dom.el("span", { text: "Export ACO" })
-    ]);
-
-    var dominantActionsRow = window.FOSS.dom.el("div", {
-      className: "row items-center",
-      style: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "var(--space-2)",
-        width: "100%"
-      }
-    }, [
-      copyAllBtn,
-      exportStripBtn,
-      exportGplBtn,
-      exportCssBtn,
-      exportJsonBtn,
-      exportAcoBtn
-    ]);
-
-    var swatchList = window.FOSS.dom.el("div", {
-      className: "flex-col gap-2 scroll-y",
-      "data-testid": "palette-swatch-list",
-      style: { maxHeight: "420px", paddingRight: "var(--space-1)" }
+    // Swatch Cards Grid
+    var swatchGrid = window.FOSS.dom.el("div", {
+      className: "palette-swatch-grid",
+      "data-testid": "palette-swatch-list"
     });
-    swatchList.innerHTML = '<div class="text-sm text-muted p-4 text-center">No palette extracted yet. Open an image above.</div>';
+    swatchGrid.setAttribute("data-testalias", "palette-dominant-list");
 
-    dominantPane.appendChild(dominantActionsRow);
-    dominantPane.appendChild(swatchList);
+    var swatchContainer = window.FOSS.dom.el("div", {
+      className: "palette-swatch-container",
+      "data-testid": "palette-swatch-grid",
+      style: "width: 100%;"
+    }, [swatchGrid]);
 
-    // Samples Pane
-    var samplesPane = window.FOSS.dom.el("div", {
-      className: "flex-col gap-3",
-      hidden: true
-    });
-
-    var clearSamplesBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-sm",
-      "data-testid": "palette-clear-samples-btn",
-      "aria-label": "clear sampled colors",
-      title: "clear sampled colors",
-      onClick: function () {
-        sampledSwatches = [];
-        updateSamplesUI();
-        statusBar.textContent = "Cleared sampled colors.";
-      }
+    var stagePane = window.FOSS.dom.el("div", {
+      className: "palette-stage-pane",
+      "data-testid": "palette-stage-pane"
     }, [
-      window.FOSS.icons.el("trash-2", 14),
-      window.FOSS.dom.el("span", { text: "Clear Sampled Colors" })
+      stageWrapper,
+      stripBar,
+      exportToolbar,
+      swatchContainer
     ]);
 
-    var samplesActionsRow = window.FOSS.dom.el("div", {
-      className: "row items-center",
-      style: { gap: "var(--space-2)" }
+    // Split Assembly
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable palette-workbench",
+      "data-testid": "palette-workbench"
     }, [
-      clearSamplesBtn
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true, testid: "palette-split-divider" }),
+      stagePane
     ]);
 
-    var samplesList = window.FOSS.dom.el("div", {
-      className: "flex-col gap-2 scroll-y",
-      "data-testid": "palette-samples-list",
-      style: { maxHeight: "420px", paddingRight: "var(--space-1)" }
-    });
-    samplesList.innerHTML = '<div class="text-sm text-muted p-4 text-center">Click on pixels in the image preview to sample colors.</div>';
-
-    samplesPane.appendChild(samplesActionsRow);
-    samplesPane.appendChild(samplesList);
-
-    tabsGroup.appendChild(tabNav);
-    tabsGroup.appendChild(dominantPane);
-    tabsGroup.appendChild(samplesPane);
-
-    var columnsRow = window.FOSS.dom.el("div", {
-      className: "row items-start",
-      style: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "var(--space-4)",
-        width: "100%"
-      }
-    }, [
-      eyedropperGroup,
-      tabsGroup
+    var header = window.FOSS.dom.el("div", { className: "card-header pb-2" }, [
+      window.FOSS.dom.el("h2", { className: "card-title text-lg font-bold", text: "Dominant Color Palette" }),
+      window.FOSS.dom.el("p", { className: "text-muted text-xs", text: "Extract dominant color swatches, sample live pixel colors, and verify WCAG contrast compliance." })
     ]);
 
-    workspaceCard.appendChild(columnsRow);
-
-    // Assembly
     panel.appendChild(header);
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
     panel.appendChild(resultHost);
-    panel.appendChild(controlCard);
-    panel.appendChild(workspaceCard);
+    panel.appendChild(split);
 
-    // Logic Functions
+    renderActiveSwatches();
+    renderStripBar();
+
+    // --- LOGIC FUNCTIONS ---
+
+    function getActiveSwatches() {
+      return activeTab === "dominant" ? extractedSwatches : sampledSwatches;
+    }
+
     function switchTab(tabId) {
+      if (activeTab === tabId && sourceTabs.getValue() === tabId) return;
       activeTab = tabId;
+      if (sourceTabs.getValue() !== tabId) {
+        sourceTabs.setValue(tabId);
+      }
       if (tabId === "dominant") {
-        dominantPane.removeAttribute("hidden");
-        samplesPane.setAttribute("hidden", "true");
-        tabDominantBtn.className = "btn btn-primary";
-        tabSamplesBtn.className = "btn";
+        clearSamplesBtn.classList.add("hidden");
+        swatchGrid.setAttribute("data-testid", "palette-swatch-list");
       } else {
-        dominantPane.setAttribute("hidden", "true");
-        samplesPane.removeAttribute("hidden");
-        tabDominantBtn.className = "btn";
-        tabSamplesBtn.className = "btn btn-primary";
+        clearSamplesBtn.classList.remove("hidden");
+        swatchGrid.setAttribute("data-testid", "palette-samples-list");
+      }
+      renderActiveSwatches();
+      renderStripBar();
+    }
+
+    function updateTabsLabels() {
+      var domCount = extractedSwatches.length;
+      var samCount = sampledSwatches.length;
+      var domBtn = sourceTabs.el.querySelector('[data-testid="palette-tab-dominant"]') || sourceTabs.el.querySelector('[data-testid="palette-source-tabs-dominant"]');
+      if (domBtn) {
+        var sp1 = domBtn.querySelector("span");
+        if (sp1) sp1.textContent = "Dominant Colors (" + domCount + ")";
+      }
+      var samBtn = sourceTabs.el.querySelector('[data-testid="palette-tab-samples"]') || sourceTabs.el.querySelector('[data-testid="palette-source-tabs-samples"]');
+      if (samBtn) {
+        var sp2 = samBtn.querySelector("span");
+        if (sp2) sp2.textContent = "Eyedropper Samples (" + samCount + ")";
       }
     }
 
-    function createSwatchRow(swatch, showPercentage) {
+    function renderStripBar() {
+      stripBar.innerHTML = "";
+      var swatches = getActiveSwatches();
+      if (!swatches || swatches.length === 0) {
+        stripBar.style.setProperty("display", "none");
+        return;
+      }
+      stripBar.style.setProperty("display", "flex");
+
+      var hasPercentages = swatches.some(function (s) { return s.percentage && s.percentage > 0; });
+      var totalPct = swatches.reduce(function (acc, s) { return acc + (s.percentage || 0); }, 0) || 100;
+
+      swatches.forEach(function (s) {
+        var pct = hasPercentages ? (s.percentage / totalPct) * 100 : (100 / swatches.length);
+        var seg = window.FOSS.dom.el("div", {
+          className: "palette-strip-segment",
+          style: "width: " + pct + "%; background-color: " + s.hex + ";",
+          title: s.hex + " (" + (s.percentage ? s.percentage + "%" : Math.round(pct) + "%") + ")"
+        });
+        stripBar.appendChild(seg);
+      });
+    }
+
+    function createSwatchCard(swatch) {
       var hexCode = swatch.hex || "#000000";
       var rgbArr = swatch.rgb || [0, 0, 0];
-      var name = swatch.name || findNearestCssColor(rgbArr[0], rgbArr[1], rgbArr[2]);
+      var hslArr = swatch.hsl || rgbToHsl(rgbArr[0], rgbArr[1], rgbArr[2]);
+      var colorName = swatch.name || findNearestCssColor(rgbArr[0], rgbArr[1], rgbArr[2]);
       var rgbStr = "rgb(" + rgbArr[0] + ", " + rgbArr[1] + ", " + rgbArr[2] + ")";
+      var hslStr = "hsl(" + hslArr[0] + ", " + hslArr[1] + "%, " + hslArr[2] + "%)";
 
-      var swatchBtn = window.FOSS.dom.el("button", {
-        className: "btn",
-        "aria-label": "Color " + hexCode,
+      var colorBlock = window.FOSS.dom.el("div", {
+        className: "palette-swatch-color",
+        style: "background-color: " + hexCode + ";",
         title: "Click to copy " + hexCode,
-        style: {
-          width: "40px",
-          height: "40px",
-          minWidth: "40px",
-          borderRadius: "var(--radius-sm)",
-          border: "2px solid var(--color-border)",
-          background: hexCode,
-          padding: "0",
-          flexShrink: "0"
-        },
         onClick: function () {
           copyToClipboard(hexCode);
           statusBar.textContent = "Copied " + hexCode + " to clipboard.";
         }
       });
 
-      var infoCol = window.FOSS.dom.el("div", {
-        className: "flex-col flex-1",
-        style: { gap: "2px", minWidth: "120px" }
-      }, [
-        window.FOSS.dom.el("span", {
-          className: "font-mono font-bold text-sm",
-          text: hexCode + " - " + name
-        }),
-        window.FOSS.dom.el("span", {
-          className: "font-mono text-xs text-muted",
-          text: rgbStr + (showPercentage && swatch.percentage != null ? " (" + swatch.percentage + "% of pixels)" : "")
-        })
+      var row1 = window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
+        window.FOSS.dom.el("span", { className: "font-mono font-bold text-sm", text: hexCode }),
+        window.FOSS.dom.el("span", { className: "badge neutral text-xs", text: colorName }),
+        swatch.percentage != null && swatch.percentage > 0
+          ? window.FOSS.dom.el("span", { className: "badge success text-xs", text: swatch.percentage + "%" })
+          : window.FOSS.dom.el("span")
+      ]);
+
+      var row2 = window.FOSS.dom.el("div", { className: "flex-col gap-0 text-xs text-muted font-mono" }, [
+        window.FOSS.dom.el("span", { text: rgbStr }),
+        window.FOSS.dom.el("span", { text: hslStr })
       ]);
 
       var copyHexBtn = window.FOSS.dom.el("button", {
-        className: "btn btn-sm",
-        "aria-label": "copy hex " + hexCode,
-        title: "Copy Hex",
+        className: "btn btn-ghost btn-sm",
+        "data-dense": "true",
+        text: "HEX",
+        title: "Copy HEX",
         onClick: function () {
           copyToClipboard(hexCode);
           statusBar.textContent = "Copied " + hexCode + " to clipboard.";
         }
-      }, [
-        window.FOSS.dom.el("span", { text: "HEX" })
-      ]);
+      });
 
       var copyRgbBtn = window.FOSS.dom.el("button", {
-        className: "btn btn-sm",
-        "aria-label": "Copy RGB " + rgbStr,
+        className: "btn btn-ghost btn-sm",
+        "data-dense": "true",
+        text: "RGB",
         title: "Copy RGB",
         onClick: function () {
           copyToClipboard(rgbStr);
           statusBar.textContent = "Copied " + rgbStr + " to clipboard.";
         }
-      }, [
-        window.FOSS.dom.el("span", { text: "RGB" })
+      });
+
+      var copyHslBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-dense": "true",
+        "data-testid": "palette-copy-hsl-btn",
+        text: "HSL",
+        title: "Copy HSL",
+        onClick: function () {
+          copyToClipboard(hslStr);
+          statusBar.textContent = "Copied " + hslStr + " to clipboard.";
+        }
+      });
+
+      var setFgBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-dense": "true",
+        text: "Set FG",
+        title: "Set Contrast Checker Foreground",
+        onClick: function () {
+          fgInput.value = hexCode;
+          updateContrastCard();
+          updateHarmonizerCard(hexCode);
+          statusBar.textContent = "Foreground set to " + hexCode;
+        }
+      });
+
+      var setBgBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm",
+        "data-dense": "true",
+        text: "Set BG",
+        title: "Set Contrast Checker Background",
+        onClick: function () {
+          bgInput.value = hexCode;
+          updateContrastCard();
+          statusBar.textContent = "Background set to " + hexCode;
+        }
+      });
+
+      var row3 = window.FOSS.dom.el("div", { className: "row gap-1 items-center flex-wrap" }, [
+        copyHexBtn,
+        copyRgbBtn,
+        copyHslBtn,
+        setFgBtn,
+        setBgBtn
       ]);
 
-      var btnRow = window.FOSS.dom.el("div", {
-        className: "row items-center",
-        style: { gap: "var(--space-2)" }
+      var lumVal = calcLuminance(rgbArr[0], rgbArr[1], rgbArr[2]);
+      var contrastWhite = calcContrastRatio(rgbArr[0], rgbArr[1], rgbArr[2], 255, 255, 255);
+      var contrastBlack = calcContrastRatio(rgbArr[0], rgbArr[1], rgbArr[2], 0, 0, 0);
+
+      var accessibilityRow = window.FOSS.dom.el("div", {
+        className: "palette-swatch-accessibility row gap-1 items-center flex-wrap text-muted",
+        style: "font-size: 0.7rem; border-top: 1px solid var(--border); padding-top: var(--space-1); width: 100%;",
+        "data-testid": "palette-swatch-accessibility"
       }, [
-        copyHexBtn,
-        copyRgbBtn
+        window.FOSS.dom.el("span", { text: "Lum: " + lumVal.toFixed(3) }),
+        window.FOSS.dom.el("span", {
+          className: "badge " + (contrastWhite >= 4.5 ? "success" : "neutral") + " text-xs",
+          style: "padding: 0 4px; font-size: 0.65rem;",
+          text: "W: " + contrastWhite.toFixed(1) + ":1"
+        }),
+        window.FOSS.dom.el("span", {
+          className: "badge " + (contrastBlack >= 4.5 ? "success" : "neutral") + " text-xs",
+          style: "padding: 0 4px; font-size: 0.65rem;",
+          text: "B: " + contrastBlack.toFixed(1) + ":1"
+        })
       ]);
 
       return window.FOSS.dom.el("div", {
-        className: "row items-center justify-between p-2 rounded",
-        style: {
-          display: "flex",
-          flexWrap: "wrap",
-          background: "var(--color-bg-muted)",
-          border: "1px solid var(--color-border)",
-          gap: "var(--space-2)",
-          width: "100%"
-        }
+        className: "palette-swatch-card",
+        "data-testid": "palette-swatch-card"
       }, [
-        swatchBtn,
-        infoCol,
-        btnRow
+        colorBlock,
+        row1,
+        row2,
+        row3,
+        accessibilityRow
       ]);
     }
 
-    function renderDominantSwatches() {
-      swatchList.innerHTML = "";
-      if (extractedSwatches.length === 0) {
-        swatchList.innerHTML = '<div class="text-sm text-muted p-4 text-center">No dominant colors extracted yet.</div>';
+    function renderActiveSwatches() {
+      swatchGrid.innerHTML = "";
+      var swatches = getActiveSwatches();
+      if (swatches.length === 0) {
+        swatchGrid.innerHTML = '<div class="text-sm text-muted p-4 text-center font-mono">No palette extracted yet. Open an image above.</div>';
         return;
       }
-      for (var i = 0; i < extractedSwatches.length; i++) {
-        var row = createSwatchRow(extractedSwatches[i], true);
-        swatchList.appendChild(row);
-      }
-      statusBar.textContent = "Extracted " + extractedSwatches.length + " dominant colors.";
+      swatches.forEach(function (s) {
+        swatchGrid.appendChild(createSwatchCard(s));
+      });
     }
 
-    function updateSamplesUI() {
-      var count = sampledSwatches.length;
-      var labelSpan = tabSamplesBtn.querySelector("span");
-      if (labelSpan) {
-        labelSpan.textContent = "eyedropper samples (" + count + ")";
-      }
-      tabSamplesBtn.setAttribute("aria-label", "eyedropper samples (" + count + ")");
-      tabSamplesBtn.setAttribute("title", "eyedropper samples (" + count + ")");
+    function redrawImagePins() {
+      if (!currentImageObj) return;
+      var ctx2d = previewCanvas.getContext("2d");
+      ctx2d.drawImage(currentImageObj, 0, 0);
 
-      samplesList.innerHTML = "";
-      if (count === 0) {
-        samplesList.innerHTML = '<div class="text-sm text-muted p-4 text-center">Click on pixels in the image preview to sample colors.</div>';
-        return;
-      }
-      for (var i = 0; i < count; i++) {
-        var row = createSwatchRow(sampledSwatches[i], false);
-        samplesList.appendChild(row);
-      }
+      // Draw numbered pin markers on sampled coordinates
+      sampledSwatches.forEach(function (sw, idx) {
+        if (sw.pin) {
+          var px = sw.pin[0], py = sw.pin[1];
+          ctx2d.beginPath();
+          ctx2d.arc(px, py, 6, 0, Math.PI * 2);
+          ctx2d.fillStyle = sw.hex;
+          ctx2d.fill();
+          ctx2d.lineWidth = 2;
+          ctx2d.strokeStyle = "#FFFFFF";
+          ctx2d.stroke();
+          ctx2d.fillStyle = "#000000";
+          ctx2d.font = "bold 9px sans-serif";
+          ctx2d.textAlign = "center";
+          ctx2d.textBaseline = "middle";
+          ctx2d.fillText(String(idx + 1), px, py - 10);
+        }
+      });
     }
 
     function drawImageToCanvas(dataUrl) {
       var img = new Image();
       img.onload = function () {
+        currentImageObj = img;
         previewCanvas.width = img.width;
         previewCanvas.height = img.height;
-        var ctx2d = previewCanvas.getContext("2d");
-        ctx2d.drawImage(img, 0, 0);
+        redrawImagePins();
         previewCanvas.style.setProperty("display", "block");
         emptyPlaceholder.style.setProperty("display", "none");
+        stageWrapper.classList.add("checkerboard-bg");
+        fileNameBadge.textContent = currentImagePath.split(/[/\\]/).pop() + " (" + img.width + "x" + img.height + ")";
+        fileNameBadge.title = fileNameBadge.textContent;
       };
       img.src = dataUrl;
     }
 
-    // Canvas Mouse Events
+    // 9x9 Pixel Loupe Renderer
+    function updateLoupe(cx, cy) {
+      if (!currentImageObj || !previewCanvas.width) return;
+      var ctx2d = previewCanvas.getContext("2d");
+      var lCtx = loupeCanvas.getContext("2d");
+      lCtx.clearRect(0, 0, loupeCanvas.width, loupeCanvas.height);
+
+      var half = 4; // 9x9 grid: -4 to +4
+      var pixelSize = loupeCanvas.width / 9;
+
+      for (var dy = -half; dy <= half; dy++) {
+        for (var dx = -half; dx <= half; dx++) {
+          var sx = cx + dx;
+          var sy = cy + dy;
+          if (sx >= 0 && sx < previewCanvas.width && sy >= 0 && sy < previewCanvas.height) {
+            var pData = ctx2d.getImageData(sx, sy, 1, 1).data;
+            lCtx.fillStyle = "rgb(" + pData[0] + "," + pData[1] + "," + pData[2] + ")";
+          } else {
+            lCtx.fillStyle = "#222222";
+          }
+          lCtx.fillRect((dx + half) * pixelSize, (dy + half) * pixelSize, pixelSize, pixelSize);
+        }
+      }
+
+      // Draw center crosshair over (4, 4)
+      lCtx.strokeStyle = "#FFFFFF";
+      lCtx.lineWidth = 1.5;
+      lCtx.strokeRect(half * pixelSize, half * pixelSize, pixelSize, pixelSize);
+    }
+
+    // Canvas Mouse Interactions
     previewCanvas.addEventListener("mousemove", function (e) {
       if (!previewCanvas.width || !previewCanvas.height) return;
       var rect = previewCanvas.getBoundingClientRect();
@@ -742,19 +935,23 @@ window.FOSS = window.FOSS || {};
 
       var ctx2d = previewCanvas.getContext("2d");
       var px = ctx2d.getImageData(x, y, 1, 1).data;
-      var r = px[0];
-      var g = px[1];
-      var b = px[2];
+      var r = px[0], g = px[1], b = px[2];
       var hexCode = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
-      var cssName = findNearestCssColor(r, g, b);
-      var cWhite = calcContrastRatio(r, g, b, 255, 255, 255);
-      var cBlack = calcContrastRatio(r, g, b, 0, 0, 0);
+      var colorName = findNearestCssColor(r, g, b);
+      var hsl = rgbToHsl(r, g, b);
+
+      var cWhite = calcContrastRatio(r, g, b, 255, 255, 255).toFixed(2);
+      var cBlack = calcContrastRatio(r, g, b, 0, 0, 0).toFixed(2);
 
       hudColorSwatch.style.setProperty("background", hexCode);
-      hudHexLabel.textContent = hexCode + " - " + cssName;
-      hudRgbLabel.textContent = "rgb(" + r + ", " + g + ", " + b + ")";
-      hudPosLabel.textContent = "position: (" + x + ", " + y + ")";
-      hudContrastLabel.textContent = "contrast: " + cWhite + ":1 vs white, " + cBlack + ":1 vs black";
+      hudHexLabel.textContent = hexCode;
+      hudNameBadge.textContent = colorName;
+      hudRgbLabel.textContent = "RGB(" + r + ", " + g + ", " + b + ")";
+      hudHslLabel.textContent = "HSL(" + hsl[0] + ", " + hsl[1] + "%, " + hsl[2] + "%)";
+      hudPosLabel.textContent = "Position: (" + x + ", " + y + ")";
+      hudContrastLabel.textContent = "Contrast: " + cWhite + ":1 vs white, " + cBlack + ":1 vs black";
+
+      updateLoupe(x, y);
     });
 
     previewCanvas.addEventListener("click", function (e) {
@@ -769,27 +966,35 @@ window.FOSS = window.FOSS || {};
 
       var ctx2d = previewCanvas.getContext("2d");
       var px = ctx2d.getImageData(x, y, 1, 1).data;
-      var r = px[0];
-      var g = px[1];
-      var b = px[2];
+      var r = px[0], g = px[1], b = px[2];
       var hexCode = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
-      var cssName = findNearestCssColor(r, g, b);
+      var colorName = findNearestCssColor(r, g, b);
+      var hsl = rgbToHsl(r, g, b);
 
       var newSwatch = {
         hex: hexCode,
         rgb: [r, g, b],
-        name: cssName
+        hsl: hsl,
+        name: colorName,
+        percentage: 0.0,
+        pin: [x, y]
       };
+
       sampledSwatches.unshift(newSwatch);
-      updateSamplesUI();
+      updateTabsLabels();
+      redrawImagePins();
+      if (activeTab === "samples") {
+        renderActiveSwatches();
+        renderStripBar();
+      }
       copyToClipboard(hexCode);
-      statusBar.textContent = "Sampled pixel (" + x + ", " + y + "): " + hexCode + " (" + cssName + ") (Copied to clipboard)";
+      statusBar.textContent = "Sampled pixel (" + x + ", " + y + "): " + hexCode + " (" + colorName + ") copied to clipboard.";
     });
 
     function loadImageAndExtract() {
       clearError();
       statusBar.textContent = "Extracting color palette...";
-      var nColors = parseInt(numColorsInput.value, 10) || 8;
+      var nColors = parseInt(countInput.value, 10) || 8;
       var method = methodSelect.value || "median-cut";
 
       window.FOSS.api("palette_extract", {
@@ -802,11 +1007,13 @@ window.FOSS = window.FOSS || {};
           return;
         }
         extractedSwatches = res.palette;
-        renderDominantSwatches();
+        updateTabsLabels();
+        renderActiveSwatches();
+        renderStripBar();
         if (res.data_url) {
-          currentImageDataUrl = res.data_url;
           drawImageToCanvas(res.data_url);
         }
+        statusBar.textContent = "Extracted " + extractedSwatches.length + " dominant colors.";
       }).catch(function (err) {
         showError(err && err.message ? err.message : String(err));
       });
@@ -815,7 +1022,7 @@ window.FOSS = window.FOSS || {};
     function aggregateMultipleImages(paths) {
       clearError();
       statusBar.textContent = "Aggregating palettes across " + paths.length + " images...";
-      var nColors = parseInt(numColorsInput.value, 10) || 8;
+      var nColors = parseInt(countInput.value, 10) || 8;
       var method = methodSelect.value || "median-cut";
 
       window.FOSS.api("palette_aggregate", {
@@ -828,7 +1035,9 @@ window.FOSS = window.FOSS || {};
           return;
         }
         extractedSwatches = res.palette;
-        renderDominantSwatches();
+        updateTabsLabels();
+        renderActiveSwatches();
+        renderStripBar();
         statusBar.textContent = "Aggregated " + extractedSwatches.length + " colors from " + paths.length + " images.";
       }).catch(function (err) {
         showError(err && err.message ? err.message : String(err));
@@ -837,7 +1046,7 @@ window.FOSS = window.FOSS || {};
 
     function exportPalette(format) {
       clearError();
-      var swatchesToExport = activeTab === "samples" && sampledSwatches.length > 0 ? sampledSwatches : extractedSwatches;
+      var swatchesToExport = getActiveSwatches();
       if (swatchesToExport.length === 0) {
         showError("No colors to export. Extract or sample colors first.");
         return;
@@ -885,12 +1094,18 @@ window.FOSS = window.FOSS || {};
 
   window.FOSS.router.register({
     id: "palette",
-    title: "Color Palette Extractor",
+    title: "Color Palette Studio",
     navName: "Palette",
     category: "Visuals",
     icon: "palette",
+    workbench: true,
+    onFiles: function (files) {
+      if (files && files.length > 0) {
+        window.FOSS.router.open("palette", "main");
+      }
+    },
     tabs: [
-      { id: "main", label: "Dominant Colors", render: renderPalette }
+      { id: "main", label: "Dominant Color Palette", render: renderPalette }
     ]
   });
 })();

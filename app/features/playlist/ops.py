@@ -1,10 +1,3 @@
-"""Playlist Porter: convert playlists and tracklists between Spotify and YouTube / YouTube Music.
-
-Supports:
-- Direct Spotify playlist URLs using authenticated Spotify user OAuth
-- Direct YouTube / YouTube Music playlist URLs (uses yt-dlp subprocess)
-- Pasted tracklist text, CSV rows, M3U8 files
-"""
 from __future__ import annotations
 
 import os
@@ -17,6 +10,9 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from typing import Callable, Sequence
+
+from app.system.settings import calc_settings_dir
 from dataclasses import dataclass, asdict
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -95,7 +91,7 @@ def clean_music_title(raw_title: str) -> tuple[str, str]:
     t = _strip_junk(t)
 
     # Split by standard delimiters (Artist - Title)
-    delimiters = [" - ", " - ", " - ", " : ", " | "]
+    delimiters = [" - ", " \u2013 ", " \u2014 ", " : ", " | "]
     for delim in delimiters:
         if delim in t:
             parts = t.split(delim, 1)
@@ -150,9 +146,21 @@ def parse_tracklist_text(text: str) -> list[PlaylistTrack]:
     tracks = []
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
+    last_was_extinf = False
     for line in lines:
+        if line.startswith("#EXTINF:"):
+            parts = line.split(",", 1)
+            if len(parts) > 1 and parts[1].strip():
+                artist, title = clean_music_title(parts[1].strip())
+                tracks.append(build_track(artist, title))
+                last_was_extinf = True
+            continue
         if line.startswith("#"):
             continue
+        if last_was_extinf and any(line.lower().endswith(ext) for ext in (".mp3", ".wav", ".flac", ".ogg", ".m4a", ".aac")):
+            last_was_extinf = False
+            continue
+        last_was_extinf = False
 
         # Strip numbering: '1. Song' or '01 - Song' or '1) Song'
         line_clean = re.sub(r"^\d+[\.\)\-\s]+\s*", "", line).strip()
@@ -321,7 +329,7 @@ def _load_spotify_client_id() -> str:
 
 def _clear_spotify_user_token_cache() -> None:
     """Delete the cached OAuth user token so stale app/account tokens are not reused."""
-    cache_dir = os.path.join(os.path.expanduser("~"), ".fosseverything")
+    cache_dir = calc_settings_dir()
     cache_path = os.path.join(cache_dir, "spotify_user_token.cache")
     if os.path.exists(cache_path):
         try:
@@ -342,7 +350,7 @@ def _get_spotify_oauth_manager() -> SpotifyPKCE | None:
     if not client_id:
         return None
 
-    cache_dir = os.path.join(os.path.expanduser("~"), ".fosseverything")
+    cache_dir = calc_settings_dir()
     os.makedirs(cache_dir, exist_ok=True)
     cache_path = os.path.join(cache_dir, "spotify_user_token.cache")
     redirect_uri = (
@@ -557,13 +565,8 @@ def fetch_youtube_playlist(url: str, progress_cb: Callable[[int, int, str], None
         ytdlp = None
 
     cmd_base = [ytdlp or "yt-dlp"] if ytdlp else ["python", "-m", "yt_dlp"]
-    cmd = cmd_base + [
-        "--flat-playlist",
-        "--dump-json",
-        "--no-warnings",
-        "--quiet",
-        url,
-    ]
+    cmd_args = ["--flat-playlist", "--dump-json", "--no-warnings", "--quiet", url]
+    cmd = cmd_base + cmd_args
 
     try:
         result = subprocess.run(
@@ -634,7 +637,7 @@ def fetch_playlist_from_url(url: str, progress_cb: Callable[[int, int, str], Non
             "URL not recognized as a Spotify or YouTube playlist.\n"
             "Supported formats:\n"
             "  - https://open.spotify.com/playlist/...\n"
-            "  - https://www.youtube.com/playlistlist=...\n"
+            "  - https://www.youtube.com/playlist?list=...\n"
             "  - https://music.youtube.com/browse/..."
         )
 

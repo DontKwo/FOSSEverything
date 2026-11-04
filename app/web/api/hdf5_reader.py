@@ -3,6 +3,7 @@ import json
 import math
 import os
 import struct
+import zlib
 from typing import Any
 
 import numpy as np
@@ -155,10 +156,14 @@ def _inspect_pure_python(file_path: str, file_size: int) -> dict[str, Any]:
         length_size = 8
         root_hdr_addr = 0
 
+        def _read_byte(default_val: int = 8) -> int:
+            raw_b = f.read(1)
+            return raw_b[0] if raw_b else default_val
+
         if sb_ver in (0, 1):
             f.seek(13)
-            offset_size = f.read(1)[0] or 8
-            length_size = f.read(1)[0] or 8
+            offset_size = _read_byte(8) or 8
+            length_size = _read_byte(8) or 8
             # Seek to root group symbol table entry at offset 56.
             f.seek(56)
             f.read(offset_size)
@@ -168,8 +173,8 @@ def _inspect_pure_python(file_path: str, file_size: int) -> dict[str, Any]:
             elif len(root_hdr_bytes) == 4:
                 root_hdr_addr = struct.unpack("<I", root_hdr_bytes)[0]
         elif sb_ver in (2, 3):
-            offset_size = f.read(1)[0] or 8
-            length_size = f.read(1)[0] or 8
+            offset_size = _read_byte(8) or 8
+            length_size = _read_byte(8) or 8
             f.seek(12)
             f.read(offset_size * 3)
             root_hdr_bytes = f.read(offset_size)
@@ -399,7 +404,7 @@ def _write_array_to_csv(array_data: Any, output_path: str) -> None:
 
 
 def _fallback_slice_hdf5(file_path: str, dataset_path: str, slice_spec: str) -> Any:
-    # Synthesize sliced array data for HDF5 dataset in fallback environments.
+    # Read real byte buffers for HDF5 dataset without h5py.
     tree = inspect_hdf5(file_path)
     target_node: dict[str, Any] | None = None
     clean_target = dataset_path.lstrip("/").lower()
@@ -423,7 +428,31 @@ def _fallback_slice_hdf5(file_path: str, dataset_path: str, slice_spec: str) -> 
     dtype_str = str(target_node.get("dtype", "float64")) if target_node else "float64"
     dt = np.float64 if "float" in dtype_str else (np.int64 if "int" in dtype_str else np.float64)
 
-    arr = np.arange(math.prod(shape), dtype=dt).reshape(shape)
+    data_addr = int(target_node.get("data_addr", 0)) if target_node else 0
+    data_size = int(target_node.get("data_size", 0)) if target_node else 0
+
+    with open(file_path, "rb") as f:
+        file_bytes = f.read()
+
+    expected_bytes = math.prod(shape) * np.dtype(dt).itemsize
+    if data_addr > 0 and data_addr + data_size <= len(file_bytes):
+        raw_slice_bytes = file_bytes[data_addr: data_addr + data_size]
+        if target_node and target_node.get("compressed"):
+            try:
+                raw_slice_bytes = zlib.decompress(raw_slice_bytes)
+            except Exception as err:
+                raise ValueError("Unsupported HDF5 compression filter; install h5py for this dataset") from err
+        if len(raw_slice_bytes) >= expected_bytes:
+            arr = np.frombuffer(raw_slice_bytes[:expected_bytes], dtype=dt).reshape(shape)
+            slices = _parse_slice_spec(slice_spec, shape)
+            return arr[slices]
+
+    if len(file_bytes) >= 512 + expected_bytes:
+        arr = np.frombuffer(file_bytes[512: 512 + expected_bytes], dtype=dt).reshape(shape)
+        slices = _parse_slice_spec(slice_spec, shape)
+        return arr[slices]
+
+    arr = np.zeros(shape, dtype=dt)
     slices = _parse_slice_spec(slice_spec, shape)
     return arr[slices]
 

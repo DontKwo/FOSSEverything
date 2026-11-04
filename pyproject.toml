@@ -39,6 +39,9 @@ dependencies = [
     "psutil>=7.2.2",
     "matplotlib>=3.11.1",
     "pywebview>=6.2.1",
+    "pint>=0.24",
+    "markdown-it-py>=3.0",
+    "rich>=13.0",
 ]
 
 [project.optional-dependencies]

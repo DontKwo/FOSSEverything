@@ -1,11 +1,3 @@
-"""YouTube playlist creation: turn a fetched/converted tracklist into a real YouTube playlist.
-
-Uses the official YouTube Data API v3 (OAuth "installed app" flow) to search for each track
-and add the best match to a newly created playlist. This requires a one-time Google Cloud
-OAuth Client ID + Secret (Google's installed-app flow always issues both, even though the
-secret isn't treated as confidential for desktop apps - unlike Spotify, there is no secretless
-option here).
-"""
 from __future__ import annotations
 
 import hashlib
@@ -15,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from app.features.playlist.ops import PlaylistTrack
-from app.system.settings import get_setting
+from app.system.settings import calc_settings_dir, get_setting
 
 YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube"]
 
@@ -46,7 +38,7 @@ def _load_youtube_client_config() -> dict[str, Any] | None:
 
 
 def _youtube_token_cache_path() -> str:
-    cache_dir = os.path.join(os.path.expanduser("~"), ".fosseverything")
+    cache_dir = calc_settings_dir()
     os.makedirs(cache_dir, exist_ok=True)
     return os.path.join(cache_dir, "youtube_token.json")
 
@@ -62,15 +54,14 @@ def clear_youtube_token_cache() -> None:
 
 
 def _import_state_path() -> str:
-    cache_dir = os.path.join(os.path.expanduser("~"), ".fosseverything")
+    cache_dir = calc_settings_dir()
     os.makedirs(cache_dir, exist_ok=True)
     return os.path.join(cache_dir, "youtube_import_state.json")
 
 
 def _import_key(tracks: list[PlaylistTrack], playlist_title: str) -> str:
-    payload = playlist_title + "|" + str(len(tracks)) + "|" + "|".join(
-        f"{t.artist}-{t.title}" for t in tracks
-    )
+    track_tokens = [f"{t.artist}-{t.title}" for t in tracks]
+    payload = f"{playlist_title}|{len(tracks)}|" + "|".join(track_tokens)
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 

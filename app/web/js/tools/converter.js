@@ -1,33 +1,32 @@
-// File Format Converter: single file, batch queue, all-in-one compressor, and format interoperability.
+// File Format Converter: single file, recursive batch queue, and format interoperability.
 window.FOSS = window.FOSS || {};
 
 (function () {
+  function formatBytes(bytes) {
+    if (!bytes || bytes <= 0) return "0 B";
+    var k = 1024;
+    var sizes = ["B", "KB", "MB", "GB"];
+    var i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  }
+
+  // TAB 1: Single File Converter
   function renderSingle(panel, ctx) {
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-converter");
+    panel.setAttribute("data-testid", "converter-page");
 
     var currentFile = "";
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "File Format Converter" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Convert documents, images, and data formats locally with explicit engine checks."
-      }),
-      window.FOSS.dom.el("p", {
-        className: "text-xs text-muted",
-        text: "Image, PDF, JSON, YAML, and CSV conversions run 100% locally on your machine."
-      })
-    ]);
+    var currentFamily = "Generic";
+    var availableTargetsList = [];
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted mb-sm",
       "data-testid": "converter-status",
       text: "Ready"
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden",
+      className: "banner danger hidden mb-sm",
       "data-testid": "converter-error-banner"
     }, [
       window.FOSS.icons.el("alert", 18),
@@ -46,7 +45,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var resultHost = window.FOSS.dom.el("div", {
-      className: "hidden",
+      className: "hidden mb-sm",
       "data-testid": "converter-result"
     });
 
@@ -61,15 +60,24 @@ window.FOSS = window.FOSS || {};
       resultHost.classList.remove("hidden");
     }
 
-    // Card 1: Source File Selection
-    var fileCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-
+    // Left Column: Source Selection and Summary Card
     var fileDisplay = window.FOSS.dom.el("div", {
       className: "font-mono text-sm text-muted grow",
       "data-testid": "converter-source-display",
       "data-truncate-ok": "true",
       title: "No file selected",
       text: "No file selected"
+    });
+
+    var familyBadge = window.FOSS.dom.el("span", {
+      className: "badge badge-neutral",
+      "data-testid": "converter-family-badge",
+      text: "Auto-detect"
+    });
+
+    var sizeDisplay = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted font-mono",
+      text: ""
     });
 
     var chooseBtn = window.FOSS.dom.el("button", {
@@ -80,96 +88,105 @@ window.FOSS = window.FOSS || {};
       type: "button",
       onClick: function () {
         clearError();
-        window.FOSS.api("select_file", {}).then(function (res) {
+        window.FOSS.api("select_files", { title: "Select File to Convert" }).then(function (res) {
           if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          currentFile = res.paths[0];
-          fileDisplay.textContent = currentFile;
-          fileDisplay.title = currentFile;
-          loadTargets(currentFile);
+          loadFile(res.paths[0]);
         });
       }
+    }, [window.FOSS.icons.el("file-plus", 14), window.FOSS.dom.el("span", { text: "Choose File..." })]);
+
+    var sourceCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3"
     }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Choose File" })
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Source File" }),
+      window.FOSS.dom.el("div", { className: "flex-col gap-2" }, [
+        chooseBtn,
+        fileDisplay,
+        window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [familyBadge, sizeDisplay])
+      ])
     ]);
 
-    fileCard.appendChild(window.FOSS.dom.el("div", { className: "flex items-center justify-between flex-wrap gap-2" }, [
-      fileDisplay,
-      window.FOSS.dom.el("div", { className: "row" }, [chooseBtn])
-    ]));
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "converter-sidebar-pane",
+      style: "width: 100%; min-width: 0;"
+    }, [sourceCard]);
 
-    var selectHint = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
-      text: "Select a file to see its detected type and current size."
-    });
-    fileCard.appendChild(selectHint);
-
-    // Badges & Capability notices
-    var badgesRow = window.FOSS.dom.el("div", { className: "row text-xs text-muted flex-wrap gap-2" }, [
-      window.FOSS.dom.el("span", { className: "badge badge-neutral", "data-testid": "converter-raw-badge", text: "RAW, HEIC/AVIF, SVG, and PSD recognition" }),
-      window.FOSS.dom.el("span", { className: "badge badge-neutral", "data-testid": "converter-media-info", text: "FFmpeg-backed audio/video conversion and extraction" }),
-      window.FOSS.dom.el("span", { className: "badge badge-neutral", "data-testid": "converter-font-notice", text: "Font outline preservation (TTF/OTF/WOFF/WOFF2)" }),
-      window.FOSS.dom.el("span", { className: "badge badge-neutral", "data-testid": "converter-ebook-notice", text: "E-book conversion (EPUB, MOBI, AZW3, FB2)" }),
-      window.FOSS.dom.el("span", { className: "badge badge-neutral", "data-testid": "converter-ics-notice", text: "Calendar .ics import and parsing" }),
-      window.FOSS.dom.el("span", { className: "badge badge-neutral", "data-testid": "converter-formats-badge", text: "50+ formats: 3D, Data, Docs, Fonts, E-books, Calendar" })
-    ]);
-    fileCard.appendChild(badgesRow);
-
-    // Card 2: Conversion Target & Execution
-    var targetCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-
+    // Right Column: Target Options and Conversion
     var targetSelect = window.FOSS.dom.el("select", {
-      className: "select",
+      className: "input",
       "data-testid": "converter-target-select",
-      "aria-label": "Target format",
-      title: "Target format",
+      "aria-label": "Target Format",
+      title: "Target Format",
       onChange: function () {
-        updateSummary();
+        updateContextualOptions();
       }
-    }, [
-      window.FOSS.dom.el("option", { value: "png", text: "PNG" }),
-      window.FOSS.dom.el("option", { value: "jpeg", text: "JPEG" }),
-      window.FOSS.dom.el("option", { value: "webp", text: "WebP" }),
-      window.FOSS.dom.el("option", { value: "pdf", text: "PDF" }),
-      window.FOSS.dom.el("option", { value: "json", text: "JSON" }),
-      window.FOSS.dom.el("option", { value: "yaml", text: "YAML" }),
-      window.FOSS.dom.el("option", { value: "csv", text: "CSV" })
-    ]);
-
-    var targetRow = window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Target format" }),
-      targetSelect
-    ]);
-    targetCard.appendChild(targetRow);
-
-    var summaryText = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted p-2 rounded bg-neutral-surface",
-      "data-testid": "converter-summary-text",
-      text: "Select a source file and target format to preview conversion shape."
     });
-    targetCard.appendChild(summaryText);
 
-    var filenameInput = window.FOSS.dom.el("input", {
+    var outputStemInput = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input grow font-mono text-sm",
-      "data-testid": "converter-output-filename",
-      "aria-label": "Output filename (without extension)",
-      "data-truncate-ok": "true",
-      title: "Output filename (without extension)",
-      placeholder: "output filename (without extension)"
+      className: "input font-mono",
+      "data-testid": "converter-output-stem",
+      placeholder: "Default (source filename)",
+      "aria-label": "Output Filename Stem",
+      title: "Output Filename Stem"
     });
 
-    var filenameRow = window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Output Name" }),
-      filenameInput
-    ]);
-    targetCard.appendChild(filenameRow);
+    var outputDirInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input font-mono grow",
+      "data-testid": "converter-output-dir",
+      placeholder: "Same as source directory",
+      "aria-label": "Output Folder",
+      title: "Output Folder"
+    });
+
+    var browseDirBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "converter-browse-dir-btn",
+      type: "button",
+      onClick: function () {
+        window.FOSS.api("select_folder", { title: "Select Output Folder" }).then(function (res) {
+          if (res && res.path) outputDirInput.value = res.path;
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Browse..." })]);
+
+    var qualitySlider = window.FOSS.components.slider({
+      label: "Image Quality",
+      min: 10,
+      max: 100,
+      value: 85,
+      step: 5,
+      unit: "%"
+    });
+
+    var dpiInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input",
+      "data-testid": "converter-pdf-dpi",
+      value: "150",
+      min: "72",
+      max: "600",
+      "aria-label": "Render DPI",
+      title: "Render DPI"
+    });
+
+    var contextualOptionsContainer = window.FOSS.dom.el("div", { className: "flex-col gap-2" });
+
+    function updateContextualOptions() {
+      contextualOptionsContainer.innerHTML = "";
+      var fmt = (targetSelect.value || "").toUpperCase();
+      if (["JPEG", "JPG", "WEBP"].indexOf(fmt) >= 0) {
+        contextualOptionsContainer.appendChild(qualitySlider.el || qualitySlider);
+      }
+      if (fmt.indexOf("PDF") >= 0 || fmt === "DOCX") {
+        contextualOptionsContainer.appendChild(window.FOSS.components.field("Rendering DPI", dpiInput));
+      }
+    }
 
     var convertBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
+      className: "btn btn-primary",
       "data-testid": "converter-convert-btn",
-      "aria-label": "Convert locally",
-      title: "Convert locally",
       type: "button",
       onClick: function () {
         if (!currentFile) {
@@ -177,256 +194,545 @@ window.FOSS = window.FOSS || {};
           return;
         }
         clearError();
-        statusBar.textContent = "Converting file locally...";
-        var outStem = filenameInput.value.trim() || undefined;
-        window.FOSS.api("converter_convert_file", {
-          file_path: currentFile,
-          target_format: targetSelect.value,
-          output_stem: outStem
-        }).then(function (res) {
-          if (res && res.output_path) {
-            statusBar.textContent = "Converted successfully: " + res.output_path;
-            showResult(res.output_path, "File Converted Locally");
-          } else {
-            showError("Conversion failed.");
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("check", 16),
-      window.FOSS.dom.el("span", { text: "Convert Locally" })
-    ]);
+        statusBar.textContent = "Converting file...";
+        var tgt = targetSelect.value;
+        var stem = outputStemInput.value.trim();
+        var outDir = outputDirInput.value.trim();
+        var dpi = parseInt(dpiInput.value, 10) || 150;
+        var q = qualitySlider.getValue ? qualitySlider.getValue() : 85;
 
-    var exportEnexBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "converter-export-enex-btn",
-      "aria-label": "Export notes folder to enex",
-      title: "Export notes folder to enex",
-      type: "button",
-      onClick: function () {
-        clearError();
-        window.FOSS.api("select_folder", {}).then(function (res) {
-          if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          var folder = res.paths[0];
-          var outEnex = folder + "/notes_export.enex";
-          statusBar.textContent = "Exporting notes to ENEX...";
-          window.FOSS.api("converter_export_enex", {
-            notes: [{ title: "Exported Notes", content: "Notes from " + folder }],
-            output_path: outEnex
-          }).then(function (eRes) {
-            if (eRes && eRes.output_path) {
-              statusBar.textContent = "Notes exported: " + eRes.output_path;
-              showResult(eRes.output_path, "Notes Exported to ENEX");
+        var baseName = currentFile.split(/[/\\]/).pop().replace(/\.[^/.]+$/, "");
+        var defName = (stem || baseName) + "." + tgt.toLowerCase();
+        window.FOSS.api("select_save_path", {
+          title: "Save Converted File",
+          default_name: defName
+        }).then(function (res) {
+          var outPath = (res && res.path) || (res && res.paths && res.paths[0]) || "";
+          window.FOSS.api("converter_convert_file", {
+            file_path: currentFile,
+            output_path: outPath || undefined,
+            target_format: tgt,
+            output_stem: stem || undefined,
+            output_dir: outDir || undefined,
+            dpi: dpi,
+            quality: q
+          }).then(function (convRes) {
+            if (convRes && convRes.output_path) {
+              statusBar.textContent = "Conversion complete: " + convRes.output_path;
+              showResult(convRes.output_path, "Conversion Complete");
             } else {
-              showError("Failed to export notes to ENEX.");
+              showError("Conversion produced no output file.");
+            }
+          }).catch(function (err) {
+            showError((err && err.message) || String(err));
+          });
+        }).catch(function () {
+          window.FOSS.api("converter_convert_file", {
+            file_path: currentFile,
+            target_format: tgt,
+            output_stem: stem || undefined,
+            output_dir: outDir || undefined,
+            dpi: dpi,
+            quality: q
+          }).then(function (convRes) {
+            if (convRes && convRes.output_path) {
+              statusBar.textContent = "Conversion complete: " + convRes.output_path;
+              showResult(convRes.output_path, "Conversion Complete");
             }
           });
         });
       }
+    }, [window.FOSS.icons.el("refresh", 16), window.FOSS.dom.el("span", { text: "Convert File" })]);
+
+    var stageCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow",
+      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
     }, [
-      window.FOSS.icons.el("file-text", 16),
-      window.FOSS.dom.el("span", { text: "Export Notes Folder to ENEX" })
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Conversion Options" }),
+      window.FOSS.components.field("Target Format", targetSelect),
+      contextualOptionsContainer,
+      window.FOSS.components.field("Custom Output Filename (Optional)", outputStemInput),
+      window.FOSS.dom.el("div", { className: "flex-col gap-1" }, [
+        window.FOSS.dom.el("label", { className: "text-xs font-semibold text-muted", text: "Output Folder" }),
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [outputDirInput, browseDirBtn])
+      ]),
+      convertBtn
     ]);
 
-    var actionsRow = window.FOSS.dom.el("div", { className: "row" }, [convertBtn, exportEnexBtn]);
-    targetCard.appendChild(actionsRow);
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "converter-stage-pane grow",
+      style: "width: 100%; min-width: 0;"
+    }, [stageCard]);
 
-    function loadTargets(filePath) {
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable converter-workbench"
+    }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stageWrapper
+    ]);
+
+    function loadFile(filePath) {
+      currentFile = filePath;
+      var fileName = filePath.split(/[/\\]/).pop();
+      fileDisplay.textContent = fileName;
+      fileDisplay.setAttribute("title", filePath);
+      statusBar.textContent = "Analyzing " + fileName + "...";
+
       window.FOSS.api("converter_available_targets", { file_path: filePath }).then(function (res) {
-        if (!res || !res.targets) return;
+        if (!res) return;
+        currentFamily = res.family || "File";
+        familyBadge.textContent = currentFamily;
+        availableTargetsList = res.targets || [];
         targetSelect.innerHTML = "";
-        for (var i = 0; i < res.targets.length; i++) {
-          var t = res.targets[i];
-          var opt = window.FOSS.dom.el("option", { value: t.toLowerCase(), text: t.toLowerCase() });
-          targetSelect.appendChild(opt);
-        }
-        updateSummary();
+        availableTargetsList.forEach(function (t) {
+          targetSelect.appendChild(window.FOSS.dom.el("option", { value: t, text: t }));
+        });
+        updateContextualOptions();
+        statusBar.textContent = "Ready (" + availableTargetsList.length + " compatible target formats)";
+      }).catch(function (err) {
+        showError((err && err.message) || String(err));
       });
     }
 
-    function updateSummary() {
-      if (!currentFile) {
-        summaryText.textContent = "Select a file to see its detected type and current size.";
-        return;
-      }
-      window.FOSS.api("converter_summary", {
-        file_path: currentFile,
-        target_format: targetSelect.value
-      }).then(function (res) {
-        if (res && res.summary) {
-          summaryText.textContent = res.summary;
-        }
-      });
-    }
-
-    panel.appendChild(header);
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
     panel.appendChild(resultHost);
-    panel.appendChild(fileCard);
-    panel.appendChild(targetCard);
+    panel.appendChild(split);
   }
 
-  function renderQueue(panel, ctx) {
+  // TAB 2: Batch & Folder Queue
+  function renderBatch(panel, ctx) {
     panel.innerHTML = "";
+    panel.setAttribute("data-testid", "converter-page");
 
     var queueItems = [];
-
-    var header = window.FOSS.dom.el("div", { className: "card-header" }, [
-      window.FOSS.dom.el("h2", { className: "card-title", text: "Batch Conversion Queue" }),
-      window.FOSS.dom.el("p", {
-        className: "text-muted text-sm",
-        text: "Add multiple files to a queue, assign a target format globally or per-file, and process sequentially."
-      })
-    ]);
+    var isProcessing = false;
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted mb-sm",
       "data-testid": "converter-queue-status",
       text: "Queue idle: 0 items"
     });
 
-    var card = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
+    var errorBanner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden mb-sm",
+      "data-testid": "converter-batch-error"
+    }, [
+      window.FOSS.icons.el("alert", 18),
+      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
+    ]);
+
+    function showError(msg) {
+      var span = errorBanner.querySelector(".banner-msg");
+      if (span) span.textContent = msg;
+      errorBanner.classList.remove("hidden");
+    }
+
+    function clearError() {
+      errorBanner.classList.add("hidden");
+    }
+
+    // Top Controls Bar
+    var recursiveCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      className: "checkbox checkbox-sm",
+      "data-testid": "converter-batch-recursive",
+      "aria-label": "Include Subfolders",
+      title: "Include Subfolders",
+      checked: true
+    });
+
+    var preserveTreeCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      className: "checkbox checkbox-sm",
+      "data-testid": "converter-batch-preserve-tree",
+      "aria-label": "Preserve Folder Structure",
+      title: "Preserve Folder Structure",
+      checked: true
+    });
+
+    var familyFilterSelect = window.FOSS.dom.el("select", {
+      className: "select select-sm",
+      "data-testid": "converter-batch-family-filter",
+      "aria-label": "Filter Family",
+      title: "Filter Family",
+      onChange: function () {
+        renderQueueTable();
+      }
+    }, [
+      window.FOSS.dom.el("option", { value: "all", text: "All Supported Families" }),
+      window.FOSS.dom.el("option", { value: "image", text: "Images" }),
+      window.FOSS.dom.el("option", { value: "document", text: "Documents & Office" }),
+      window.FOSS.dom.el("option", { value: "media", text: "Audio & Video" }),
+      window.FOSS.dom.el("option", { value: "data", text: "Structured Data" }),
+      window.FOSS.dom.el("option", { value: "model3d", text: "3D Models" })
+    ]);
 
     var targetAllSelect = window.FOSS.dom.el("select", {
-      className: "select",
+      className: "select select-sm",
       "data-testid": "converter-batch-target-all",
       "aria-label": "Target format for all",
       title: "Target format for all",
       onChange: function () {
         var fmt = targetAllSelect.value;
-        for (var i = 0; i < queueItems.length; i++) {
-          queueItems[i].target_format = fmt;
-        }
+        if (!fmt) return;
+        queueItems.forEach(function (it) {
+          if (it.targets && it.targets.indexOf(fmt) !== -1) {
+            it.target_format = fmt;
+          }
+        });
         renderQueueTable();
       }
-    }, [
-      window.FOSS.dom.el("option", { value: "png", text: "PNG" }),
-      window.FOSS.dom.el("option", { value: "jpeg", text: "JPEG" }),
-      window.FOSS.dom.el("option", { value: "webp", text: "WebP" }),
-      window.FOSS.dom.el("option", { value: "pdf", text: "PDF" }),
-      window.FOSS.dom.el("option", { value: "json", text: "JSON" }),
-      window.FOSS.dom.el("option", { value: "yaml", text: "YAML" }),
-      window.FOSS.dom.el("option", { value: "csv", text: "CSV" })
-    ]);
+    }, [window.FOSS.dom.el("option", { value: "", text: "Apply Target to All..." })]);
 
-    var globalRow = window.FOSS.dom.el("div", { className: "flex items-center gap-3" }, [
-      window.FOSS.dom.el("label", { className: "text-sm text-muted shrink-0", text: "Target format for all" }),
-      targetAllSelect
-    ]);
-    card.appendChild(globalRow);
+    function updateTargetAllOptions() {
+      var union = [];
+      queueItems.forEach(function (it) {
+        (it.targets || []).forEach(function (t) {
+          if (union.indexOf(t) === -1) union.push(t);
+        });
+      });
+      targetAllSelect.innerHTML = "";
+      targetAllSelect.appendChild(window.FOSS.dom.el("option", { value: "", text: "Apply Target to All..." }));
+      union.sort().forEach(function (t) {
+        targetAllSelect.appendChild(window.FOSS.dom.el("option", { value: t, text: t }));
+      });
+    }
 
     var addFilesBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "converter-queue-add-btn",
-      "aria-label": "Choose file",
-      title: "Add files to batch queue",
       type: "button",
       onClick: function () {
-        window.FOSS.api("select_files", {}).then(function (res) {
+        clearError();
+        window.FOSS.api("select_files", { title: "Select Files to Convert" }).then(function (res) {
           if (!res || res.cancelled || !res.paths || !res.paths.length) return;
-          var fmt = targetAllSelect.value;
-          for (var i = 0; i < res.paths.length; i++) {
-            queueItems.push({
-              input_path: res.paths[i],
-              target_format: fmt,
-              status: "Pending"
-            });
-          }
-          statusBar.textContent = "Queue: " + queueItems.length + " files ready.";
-          renderQueueTable();
+          addPathsToQueue(res.paths);
         });
       }
-    }, [
-      window.FOSS.icons.el("folder", 16),
-      window.FOSS.dom.el("span", { text: "Choose File" })
-    ]);
+    }, [window.FOSS.icons.el("file-plus", 14), window.FOSS.dom.el("span", { text: "Add Files..." })]);
 
-    var startBatchBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
-      "data-testid": "converter-batch-start-btn",
-      "aria-label": "Start batch conversion",
-      title: "Start batch conversion",
-      type: "button",
-      onClick: function () {
-        if (!queueItems.length) return;
-        statusBar.textContent = "Processing batch queue...";
-        window.FOSS.api("converter_batch_convert", { items: queueItems }).then(function (res) {
-          if (res && res.results) {
-            statusBar.textContent = "Batch complete: " + res.results.length + " files processed.";
-            for (var i = 0; i < queueItems.length; i++) {
-              queueItems[i].status = "Done";
-            }
-            renderQueueTable();
-          }
-        });
-      }
-    }, [
-      window.FOSS.icons.el("play", 16),
-      window.FOSS.dom.el("span", { text: "Start Batch Conversion" })
-    ]);
-
-    var clearQueueBtn = window.FOSS.dom.el("button", {
+    var addFolderBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "converter-queue-clear-btn",
-      "aria-label": "Clear queue",
-      title: "Clear queue",
+      "data-testid": "converter-batch-add-folder-btn",
       type: "button",
       onClick: function () {
-        queueItems = [];
-        statusBar.textContent = "Queue idle: 0 items";
+        clearError();
+        window.FOSS.api("select_folder", { title: "Select Folder to Convert" }).then(function (res) {
+          if (!res || res.cancelled || !res.path) return;
+          addPathsToQueue([res.path]);
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
+
+    var addFolderBtnAlias = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm hidden",
+      "data-testid": "converter-queue-add-folder-btn",
+      type: "button",
+      onClick: function () {
+        clearError();
+        window.FOSS.api("select_folder", { title: "Select Folder to Convert" }).then(function (res) {
+          if (!res || res.cancelled || !res.path) return;
+          addPathsToQueue([res.path]);
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
+
+    var clearCompletedBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      "data-testid": "converter-batch-clear-btn",
+      type: "button",
+      onClick: function () {
+        queueItems = queueItems.filter(function (it) { return it.status !== "Done"; });
         renderQueueTable();
       }
-    }, [
-      window.FOSS.icons.el("trash", 16),
-      window.FOSS.dom.el("span", { text: "Clear" })
-    ]);
+    }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear Completed" })]);
 
-    var toolbar = window.FOSS.dom.el("div", { className: "row" }, [addFilesBtn, startBatchBtn, clearQueueBtn]);
-    card.appendChild(toolbar);
-
-    var tableWrap = window.FOSS.dom.el("div", {
-      className: "table-wrap scroll-x",
-      "data-testid": "converter-queue-table"
-    });
-    tableWrap.innerHTML = '<div class="text-sm text-muted p-4 text-center">No files in queue. Click Choose File to add files.</div>';
-    card.appendChild(tableWrap);
-
-    function renderQueueTable() {
-      if (!queueItems.length) {
-        tableWrap.innerHTML = '<div class="text-sm text-muted p-4 text-center">No files in queue. Click Choose File to add files.</div>';
-        return;
-      }
-      tableWrap.innerHTML = "";
-      var tbl = window.FOSS.dom.el("table", { className: "table w-full" });
-      var thead = window.FOSS.dom.el("thead", {}, [
-        window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("th", { className: "w-12 text-left", text: "#" }),
-          window.FOSS.dom.el("th", { className: "text-left", text: "Source File" }),
-          window.FOSS.dom.el("th", { className: "w-28 text-left", text: "Target" }),
-          window.FOSS.dom.el("th", { className: "w-24 text-left", text: "Status" })
-        ])
-      ]);
-      tbl.appendChild(thead);
-
-      var tbody = window.FOSS.dom.el("tbody", {});
-      for (var i = 0; i < queueItems.length; i++) {
-        var it = queueItems[i];
-        var tr = window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("td", { className: "text-xs text-muted", text: String(i + 1) }),
-          window.FOSS.dom.el("td", { className: "font-mono text-sm", style: "word-break: break-all;", text: it.input_path }),
-          window.FOSS.dom.el("td", { className: "font-mono text-xs uppercase", text: it.target_format }),
-          window.FOSS.dom.el("td", { className: "text-xs", text: it.status })
-        ]);
-        tbody.appendChild(tr);
-      }
-      tbl.appendChild(tbody);
-      tableWrap.appendChild(tbl);
+    function addPathsToQueue(paths) {
+      statusBar.textContent = "Scanning input files...";
+      window.FOSS.api("converter_scan_inputs", {
+        paths: paths,
+        recursive: recursiveCheck.checked
+      }).then(function (res) {
+        if (!res || !res.items) return;
+        res.items.forEach(function (it) {
+          var exists = queueItems.some(function (q) { return q.path === it.path; });
+          if (!exists) {
+            queueItems.push({
+              path: it.path,
+              name: it.name,
+              rel_dir: it.rel_dir || "",
+              size_bytes: it.size_bytes || 0,
+              family: it.family || "File",
+              targets: it.targets || [],
+              target_format: it.default_target || (it.targets && it.targets[0]) || "",
+              status: "Queued",
+              error: null,
+              output_path: ""
+            });
+          }
+        });
+        updateTargetAllOptions();
+        renderQueueTable();
+        statusBar.textContent = "Queue: " + queueItems.length + " item(s) ready";
+      }).catch(function (err) {
+        showError((err && err.message) || String(err));
+      });
     }
 
-    panel.appendChild(header);
+    // Center Queue Table
+    var tableHost = window.FOSS.dom.el("div", {
+      className: "grow flex-col gap-2 overflow-x-auto",
+      "data-testid": "converter-queue-table",
+      style: "min-width: 0; width: 100%; box-sizing: border-box;"
+    });
+
+    function renderQueueTable() {
+      tableHost.innerHTML = "";
+      var famFilter = familyFilterSelect.value;
+      var visibleItems = queueItems.filter(function (it) {
+        if (famFilter === "all") return true;
+        var fam = (it.family || "").toLowerCase();
+        if (famFilter === "image") return fam === "image";
+        if (famFilter === "document") return ["document", "office", "pdf"].indexOf(fam) >= 0;
+        if (famFilter === "media") return ["audio", "video"].indexOf(fam) >= 0;
+        if (famFilter === "data") return fam === "data";
+        if (famFilter === "model3d") return fam === "model3d";
+        return true;
+      });
+
+      if (visibleItems.length === 0) {
+        tableHost.appendChild(window.FOSS.dom.el("div", {
+          className: "text-muted text-sm p-8 text-center font-mono",
+          text: queueItems.length === 0 ? "Batch queue is empty. Click Add Files or Add Folder above." : "No queue items match the active family filter."
+        }));
+        runBtn.textContent = "Convert 0 Files";
+        runBtn.disabled = true;
+        return;
+      }
+
+      runBtn.textContent = "Convert " + visibleItems.length + " Files";
+      runBtn.disabled = false;
+
+      var rows = visibleItems.map(function (it, idx) {
+        var relHint = it.rel_dir ? it.rel_dir + "/" : "";
+        var nameText = relHint + it.name;
+
+        var targetSelectEl = window.FOSS.dom.el("select", {
+          className: "select select-sm w-full font-mono text-xs",
+          "data-testid": "converter-row-target-" + idx,
+          "aria-label": "Row Target Format",
+          title: "Select target format for " + it.name,
+          onChange: function () {
+            it.target_format = targetSelectEl.value;
+          }
+        }, (it.targets || []).map(function (t) {
+          var opt = window.FOSS.dom.el("option", { value: t, text: t });
+          if (t === it.target_format) opt.selected = true;
+          return opt;
+        }));
+
+        var statusEl;
+        if (it.status === "Done") {
+          statusEl = window.FOSS.dom.el("span", {
+            className: "badge badge-success text-xs",
+            text: "Done"
+          });
+        } else if (it.status === "Failed") {
+          statusEl = window.FOSS.dom.el("span", {
+            className: "badge badge-danger text-xs",
+            text: "Failed",
+            title: it.error || "Conversion failed"
+          });
+        } else if (it.status === "Converting...") {
+          statusEl = window.FOSS.dom.el("span", {
+            className: "badge badge-warning text-xs",
+            text: "Converting..."
+          });
+        } else {
+          statusEl = window.FOSS.dom.el("span", {
+            className: "badge badge-neutral text-xs",
+            text: "Queued"
+          });
+        }
+
+        var removeBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-icon btn-ghost btn-sm",
+          style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
+          "aria-label": "Remove from queue",
+          title: "Remove from queue",
+          onClick: function () {
+            var origIdx = queueItems.indexOf(it);
+            if (origIdx !== -1) queueItems.splice(origIdx, 1);
+            updateTargetAllOptions();
+            renderQueueTable();
+          }
+        }, [window.FOSS.icons.el("x", 14)]);
+
+        return window.FOSS.dom.el("tr", {}, [
+          window.FOSS.dom.el("td", {
+            className: "font-semibold text-sm",
+            style: "width: 35%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: nameText,
+            "data-truncate-ok": "true",
+            title: it.path
+          }),
+          window.FOSS.dom.el("td", {
+            className: "text-xs text-muted",
+            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: it.family,
+            "data-truncate-ok": "true",
+            title: it.family
+          }),
+          window.FOSS.dom.el("td", {
+            className: "text-xs font-mono text-muted",
+            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            text: formatBytes(it.size_bytes),
+            "data-truncate-ok": "true",
+            title: formatBytes(it.size_bytes)
+          }),
+          window.FOSS.dom.el("td", { style: "width: 20%;" }, [targetSelectEl]),
+          window.FOSS.dom.el("td", { style: "width: 15%; text-align: center;" }, [statusEl]),
+          window.FOSS.dom.el("td", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;" }, [removeBtn])
+        ]);
+      });
+
+      var table = window.FOSS.dom.el("table", {
+        className: "table w-full",
+        style: "table-layout: fixed; width: 100%; min-width: 0;"
+      }, [
+        window.FOSS.dom.el("thead", {}, [
+          window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("th", { style: "width: 35%;", text: "Source File", "data-truncate-ok": "true", title: "Source File" }),
+            window.FOSS.dom.el("th", { style: "width: 15%;", text: "Family", "data-truncate-ok": "true", title: "Family" }),
+            window.FOSS.dom.el("th", { style: "width: 15%;", text: "Size", "data-truncate-ok": "true", title: "Size" }),
+            window.FOSS.dom.el("th", { style: "width: 20%;", text: "Target Format", "data-truncate-ok": "true", title: "Target Format" }),
+            window.FOSS.dom.el("th", { style: "width: 15%; text-align: center;", text: "Status", "data-truncate-ok": "true", title: "Status" }),
+            window.FOSS.dom.el("th", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;", text: "", "data-truncate-ok": "true", title: "Actions" })
+          ])
+        ]),
+        window.FOSS.dom.el("tbody", {}, rows)
+      ]);
+
+      tableHost.appendChild(table);
+    }
+
+    // Bottom Bar: Output Folder and Primary Run Button
+    var outputDirInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input font-mono grow text-xs",
+      "data-testid": "converter-batch-out-dir",
+      placeholder: "Default: <common_folder>/converted",
+      "aria-label": "Batch Output Folder",
+      title: "Batch Output Folder"
+    });
+
+    var browseBatchDirBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "converter-batch-browse-btn",
+      type: "button",
+      onClick: function () {
+        window.FOSS.api("select_folder", { title: "Select Output Folder" }).then(function (res) {
+          if (res && res.path) outputDirInput.value = res.path;
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Browse..." })]);
+
+    var runBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      "data-testid": "converter-batch-start-btn",
+      type: "button",
+      onClick: function () {
+        executeBatch();
+      }
+    }, [window.FOSS.icons.el("refresh", 16), window.FOSS.dom.el("span", { text: "Convert Files" })]);
+
+    function executeBatch() {
+      if (queueItems.length === 0 || isProcessing) return;
+      isProcessing = true;
+      clearError();
+      statusBar.textContent = "Processing batch conversions...";
+
+      queueItems.forEach(function (it) { it.status = "Converting..."; });
+      renderQueueTable();
+
+      var outDir = outputDirInput.value.trim();
+      var preserve = preserveTreeCheck.checked;
+
+      window.FOSS.api("converter_batch_convert", {
+        items: queueItems.map(function (it) {
+          return {
+            path: it.path,
+            target_format: it.target_format,
+            rel_dir: it.rel_dir
+          };
+        }),
+        output_dir: outDir || undefined,
+        preserve_tree: preserve
+      }).then(function (res) {
+        isProcessing = false;
+        if (res && res.results) {
+          res.results.forEach(function (r, i) {
+            if (queueItems[i]) {
+              queueItems[i].status = r.ok ? "Done" : "Failed";
+              queueItems[i].error = r.error;
+              queueItems[i].output_path = r.output_path;
+            }
+          });
+          statusBar.textContent = "Batch complete (" + (res.succeeded || 0) + " succeeded, " + (res.failed || 0) + " failed)";
+        } else {
+          statusBar.textContent = "Batch complete";
+        }
+        renderQueueTable();
+      }).catch(function (err) {
+        isProcessing = false;
+        showError((err && err.message) || String(err));
+        statusBar.textContent = "Batch stopped with error";
+      });
+    }
+
+    var card = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3 grow",
+      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
+    }, [
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
+        window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap" }, [
+          addFilesBtn,
+          addFolderBtn
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-3 items-center flex-wrap" }, [
+          window.FOSS.dom.el("label", { className: "row gap-1 items-center text-xs text-muted cursor-pointer" }, [
+            recursiveCheck,
+            window.FOSS.dom.el("span", { text: "Include Subfolders" })
+          ]),
+          window.FOSS.dom.el("label", { className: "row gap-1 items-center text-xs text-muted cursor-pointer" }, [
+            preserveTreeCheck,
+            window.FOSS.dom.el("span", { text: "Preserve Structure" })
+          ]),
+          familyFilterSelect,
+          targetAllSelect,
+          clearCompletedBtn
+        ])
+      ]),
+      tableHost,
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap pt-2 border-t" }, [
+        window.FOSS.dom.el("div", { className: "row gap-2 items-center grow", style: "min-width: 16rem;" }, [
+          window.FOSS.dom.el("span", { className: "text-xs font-semibold text-muted shrink-0", text: "Output Folder:" }),
+          outputDirInput,
+          browseBatchDirBtn
+        ]),
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [
+          runBtn
+        ])
+      ])
+    ]);
+
     panel.appendChild(statusBar);
+    panel.appendChild(errorBanner);
     panel.appendChild(card);
+
+    renderQueueTable();
   }
 
   window.FOSS.router.register({
@@ -435,9 +741,18 @@ window.FOSS = window.FOSS || {};
     navName: "Converter",
     category: "Utilities",
     icon: "refresh",
+    workbench: true,
     tabs: [
-      { id: "single", label: "Single File Converter", render: renderSingle },
-      { id: "queue", label: "Batch Conversion Queue", render: renderQueue }
-    ]
+      { id: "single", label: "Single File", render: renderSingle },
+      { id: "batch", label: "Batch & Folder Queue", aliases: ["queue"], render: renderBatch }
+    ],
+    onFiles: function (paths, ctx) {
+      if (!paths || !paths.length) return;
+      if (paths.length === 1) {
+        window.FOSS.router.open("converter", "single");
+      } else {
+        window.FOSS.router.open("converter", "batch");
+      }
+    }
   });
 })();

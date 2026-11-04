@@ -16,6 +16,11 @@ window.FOSS = window.FOSS || {};
 
     document.addEventListener("mouseover", onMouseOver);
     document.addEventListener("mouseout", onMouseOut);
+    document.addEventListener("mousedown", hideTooltip);
+    document.addEventListener("click", hideTooltip);
+    document.addEventListener("keydown", hideTooltip);
+    window.addEventListener("scroll", hideTooltip, true);
+    window.addEventListener("wheel", hideTooltip, { passive: true });
   }
 
   function getTooltipHost() {
@@ -76,11 +81,6 @@ window.FOSS = window.FOSS || {};
     var tipText = (tipKey && tooltipsMap[tipKey]) || target.getAttribute("title");
     if (!tipText) return;
 
-    if (target.hasAttribute("title")) {
-      target.dataset.originalTitle = target.getAttribute("title");
-      target.removeAttribute("title");
-    }
-
     hoverTimer = setTimeout(function () {
       if (activeTarget === target) {
         showTooltip(target, tipText);
@@ -90,9 +90,6 @@ window.FOSS = window.FOSS || {};
 
   function onMouseOut(e) {
     if (activeTarget && (!e.relatedTarget || !activeTarget.contains(e.relatedTarget))) {
-      if (activeTarget.dataset.originalTitle) {
-        activeTarget.setAttribute("title", activeTarget.dataset.originalTitle);
-      }
       hideTooltip();
     }
   }
@@ -102,4 +99,3 @@ window.FOSS = window.FOSS || {};
     hide: hideTooltip
   };
 })();
-

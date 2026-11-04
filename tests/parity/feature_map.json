@@ -148,14 +148,14 @@
     "testid": "pdf-use-ocr"
   },
   "pdf_studio-18": {
-    "view": "office",
+    "view": "converter",
     "tab": "convert",
-    "testid": "office-convert-btn"
+    "testid": "converter-convert-btn"
   },
   "pdf_studio-19": {
-    "view": "office",
+    "view": "converter",
     "tab": "convert",
-    "testid": "office-ocr-check"
+    "testid": "converter-card"
   },
   "image_studio-01": {
     "view": "images",
@@ -333,9 +333,9 @@
     "testid": "archive-create-btn"
   },
   "file_converter-10": {
-    "view": "office",
+    "view": "converter",
     "tab": "main",
-    "testid": "office-convert-btn"
+    "testid": "converter-convert-btn"
   },
   "file_converter-11": {
     "view": "converter",
@@ -801,86 +801,6 @@
     "view": "qr",
     "tab": "generate",
     "testid": "qr-export-labels-btn"
-  },
-  "hash_verify-01": {
-    "view": "hash",
-    "tab": "file",
-    "testid": "tool-page-hash"
-  },
-  "hash_verify-02": {
-    "view": "hash",
-    "tab": "file",
-    "testid": "hash-file-compute"
-  },
-  "hash_verify-03": {
-    "view": "hash",
-    "tab": "text",
-    "testid": "hash-text-input"
-  },
-  "hash_verify-04": {
-    "view": "hash",
-    "tab": "compare",
-    "testid": "hash-compare-btn"
-  },
-  "hash_verify-05": {
-    "view": "hash",
-    "tab": "file",
-    "testid": "hash-file-multihash"
-  },
-  "hash_verify-06": {
-    "view": "hash",
-    "tab": "verify",
-    "testid": "hash-verify-btn"
-  },
-  "hash_verify-07": {
-    "view": "hash",
-    "tab": "directory",
-    "testid": "hash-directory-hash-btn"
-  },
-  "hash_verify-08": {
-    "view": "hash",
-    "tab": "directory",
-    "testid": "hash-directory-progress"
-  },
-  "hash_verify-09": {
-    "view": "hash",
-    "tab": "directory",
-    "testid": "hash-directory-export-manifest"
-  },
-  "hash_verify-10": {
-    "view": "hash",
-    "tab": "verify",
-    "testid": "hash-verify-manifest-btn"
-  },
-  "hash_verify-11": {
-    "view": "hash",
-    "tab": "verify",
-    "testid": "hash-verify-manifest-open"
-  },
-  "hash_verify-12": {
-    "view": "hash",
-    "tab": "verify",
-    "testid": "hash-manifest-results-table"
-  },
-  "hash_verify-13": {
-    "view": "hash",
-    "tab": "manifest_diff",
-    "testid": "hash-diff-compare-btn"
-  },
-  "hash_verify-14": {
-    "view": "hash",
-    "tab": "sign",
-    "testid": "hash-sign-generate-keypair"
-  },
-  "hash_verify-15": {
-    "view": "hash",
-    "tab": "sign",
-    "testid": "hash-policy-verify-btn"
-  },
-  "hash_verify-16": {
-    "view": "hash",
-    "tab": "sign",
-    "testid": "hash-sign-timestamp-check"
   },
   "palette_extractor_eyedropper-01": {
     "view": "palette",

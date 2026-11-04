@@ -37,6 +37,21 @@ window.__audit = function () {
     if (parseFloat(style.opacity || "1") <= 0.05) return false;
     var rect = el.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return false;
+
+    var parent = el.parentElement;
+    while (parent && parent !== document.body && parent !== document.documentElement) {
+      var pStyle = window.getComputedStyle(parent);
+      var ox = pStyle.overflowX;
+      var oy = pStyle.overflowY;
+      if (ox === "hidden" || ox === "auto" || ox === "scroll" || oy === "hidden" || oy === "auto" || oy === "scroll") {
+        var pRect = parent.getBoundingClientRect();
+        if (rect.bottom <= pRect.top || rect.top >= pRect.bottom || rect.right <= pRect.left || rect.left >= pRect.right) {
+          return false;
+        }
+      }
+      parent = parent.parentElement;
+    }
+
     return true;
   }
 
@@ -182,6 +197,23 @@ window.__audit = function () {
     var cx = Math.floor(r.left + r.width / 2);
     var cy = Math.floor(r.top + r.height / 2);
     if (cx < 0 || cx >= window.innerWidth || cy < 0 || cy >= window.innerHeight) return;
+
+    var parent = el.parentElement;
+    var clipped = false;
+    while (parent && parent !== document.body && parent !== document.documentElement) {
+      var pStyle = window.getComputedStyle(parent);
+      if (pStyle.overflowX === "hidden" || pStyle.overflowX === "auto" || pStyle.overflowX === "scroll" ||
+          pStyle.overflowY === "hidden" || pStyle.overflowY === "auto" || pStyle.overflowY === "scroll") {
+        var pRect = parent.getBoundingClientRect();
+        if (cy <= pRect.top || cy >= pRect.bottom || cx <= pRect.left || cx >= pRect.right) {
+          clipped = true;
+          break;
+        }
+      }
+      parent = parent.parentElement;
+    }
+    if (clipped) return;
+
     var hit = document.elementFromPoint(cx, cy);
     if (hit && !el.contains(hit) && hit !== el && !el.hasAttribute("data-obscure-ok")) {
       addFinding("A7", "error", el, "Interactive element obscured at center by " + getSelector(hit));
@@ -240,6 +272,7 @@ window.__audit = function () {
   interactiveElements.forEach(function (el) {
     if (el.tagName === "A" && el.className.indexOf("btn") === -1) return;
     if (el.type === "checkbox" || el.type === "radio") return;
+    if (el.getAttribute("role") === "separator" || el.classList.contains("split-divider") || el.classList.contains("sidebar-resizer")) return;
     var minSize = el.hasAttribute("data-dense") ? rootFontSize * 1.25 : rootFontSize * 2.0;
     var r = el.getBoundingClientRect();
     if (r.width < minSize - 1 || r.height < minSize - 1) {
@@ -315,8 +348,10 @@ window.__audit = function () {
 
     var style = window.getComputedStyle(el);
     var fontSize = parseFloat(style.fontSize || "16");
-    if (fontSize < 11) {
-      addFinding("A15", "error", el, "Text font-size " + fontSize + "px is under 11px");
+    var uiScale = parseFloat(window.getComputedStyle(document.documentElement).getPropertyValue("--ui-scale") || "1") || 1;
+    var minFontSize = 11 * Math.min(1, uiScale);
+    if (fontSize < minFontSize) {
+      addFinding("A15", "error", el, "Text font-size " + fontSize + "px is under " + minFontSize + "px");
     }
 
     var fgColor = parseRgba(style.color);

@@ -3,10 +3,36 @@ window.FOSS = window.FOSS || {};
 window.FOSS.components = window.FOSS.components || {};
 
 (function () {
+  var fieldCounter = 0;
+
   function field(labelStr, controlEl, hintStr, isInvalid, testid) {
+    if (labelStr && typeof labelStr === "object" && !labelStr.tagName) {
+      var opts = labelStr;
+      labelStr = opts.label || "";
+      controlEl = opts.control || null;
+      hintStr = opts.hint || "";
+      isInvalid = opts.isInvalid || false;
+      testid = opts.testid || "";
+    }
     var children = [];
+    var controlId = "";
+
+    if (controlEl) {
+      if (controlEl.id) {
+        controlId = controlEl.id;
+      } else {
+        fieldCounter++;
+        controlId = (testid || "field") + "-ctrl-" + fieldCounter;
+        controlEl.id = controlId;
+      }
+    }
+
     if (labelStr) {
-      children.push(window.FOSS.dom.el("label", { text: labelStr }));
+      var labelAttrs = { text: labelStr };
+      if (controlId) {
+        labelAttrs.htmlFor = controlId;
+      }
+      children.push(window.FOSS.dom.el("label", labelAttrs));
     }
     if (controlEl) {
       children.push(controlEl);

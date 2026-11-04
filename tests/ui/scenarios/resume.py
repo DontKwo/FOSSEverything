@@ -8,12 +8,13 @@ def calc_clear_overlays(page: Page) -> None:
     try:
         page.mouse.move(0, 0)
     except Exception:
-        pass
+        page.wait_for_timeout(0)
     page.evaluate(
         "if (window.FOSS && window.FOSS.tooltips) window.FOSS.tooltips.hide(); "
         "var t = document.getElementById('tooltip-host'); if (t) t.innerHTML = ''; "
         "var h = document.getElementById('toast-host'); if (h) h.innerHTML = ''; "
-        "var el = document.getElementById('view-root'); if (el) el.scrollTop = 0;"
+        "document.querySelectorAll('*').forEach(function (el) { if (el.scrollTop) el.scrollTop = 0; if (el.scrollLeft) el.scrollLeft = 0; }); "
+        "window.scrollTo(0, 0);"
     )
 
 
@@ -70,7 +71,7 @@ def scenario_preview(page: Page, fixtures: dict[str, str], api: Any) -> None:
     page.evaluate("window.FOSS.router.open('resume', 'preview')")
     page.wait_for_timeout(300)
 
-    expect(page.locator("[data-testid='resume-preview-iframe']")).to_be_visible()
+    expect(page.locator("[data-testid='resume-preview-stage']")).to_be_visible()
     page.click("[data-testid='resume-export-md-btn']")
     page.wait_for_timeout(300)
 
@@ -84,4 +85,3 @@ SCENARIOS: list[tuple[str, Callable[[Page, dict[str, str], Any], None]]] = [
     ("profiles", scenario_profiles),
     ("preview", scenario_preview),
 ]
-
