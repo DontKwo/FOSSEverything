@@ -1,9 +1,7 @@
 """Unit tests for Playlist Porter (Spotify <-> YouTube)."""
-import json
 import os
 import tempfile
 import unittest
-import urllib.error
 from unittest.mock import patch
 from app.features.playlist import ops as playlist_ops
 

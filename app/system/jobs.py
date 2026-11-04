@@ -1,7 +1,7 @@
 import threading
 import time
 import uuid
-from typing import Any, Callable
+from typing import Any
 
 _local = threading.local()
 

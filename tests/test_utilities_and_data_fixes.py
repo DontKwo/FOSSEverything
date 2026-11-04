@@ -2,17 +2,13 @@
 import os
 import tempfile
 import unittest
-from pathlib import Path
-from typing import Any
-from unittest.mock import MagicMock, patch
 
 from PIL import Image
 
 from app.features.encoding.ops import html_encode_numeric
-from app.features.metadata.ops import extract_gps_info, gps_preview_for_metadata, strip_any_metadata
-from app.features.network_monitor.monitor import ConnectionMonitor
+from app.features.metadata.ops import gps_preview_for_metadata, strip_any_metadata
 from app.features.network_monitor.resolver import DomainResolver
-from app.features.qr.ops import decode_qr_and_barcodes, make_calendar_payload
+from app.features.qr.ops import make_calendar_payload
 from app.web.api import WebApi
 from app.web.api.hdf5_reader import inspect_hdf5, is_hdf5_file
 

@@ -5,16 +5,13 @@ Consolidated engine for DOCX, PPTX, XLSX, ODT, ODS, ODP, DOCM, PPTM, XLSM.
 from __future__ import annotations
 
 import csv
-import io
 import json
 import os
 import re
 import xml.etree.ElementTree as ET
 import zipfile
-from typing import Any
 
 from app.features.markdown.ops import build_styled_markdown_document
-from app.features.metadata.ops import get_office_metadata, strip_office_metadata
 
 OFFICE_EXTENSIONS: set[str] = {
     ".docx", ".pptx", ".xlsx", ".odt", ".ods", ".odp", ".docm", ".pptm", ".xlsm"

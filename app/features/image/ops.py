@@ -4,7 +4,6 @@ Kept free of Qt imports so it can be reused headlessly (CLI, batch script,
 tests) without needing a GUI event loop.
 """
 import io
-import math
 import os
 import shutil
 import subprocess

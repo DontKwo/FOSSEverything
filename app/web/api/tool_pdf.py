@@ -7,9 +7,6 @@ import pymupdf
 
 from app.features.ocr.ops import (
     create_searchable_pdf,
-    get_supported_languages,
-    ocr_pdf,
-    save_ocr_text,
 )
 from app.features.pdf.ops import (
     BatchPdfItem,
@@ -33,7 +30,6 @@ from app.features.pdf.ops import (
     parse_split_ranges,
     pdf_needs_ocr,
     protect_pdf,
-    render_page,
     render_pdf_thumbnails,
     reorganize_pdf_pages,
     save_annotated_pdf,

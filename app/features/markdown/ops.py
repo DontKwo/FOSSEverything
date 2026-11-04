@@ -3,11 +3,10 @@ from __future__ import annotations
 
 import html
 import re
-from typing import Any
 from markdown_it import MarkdownIt
 import pygments
 from pygments.formatters.html import HtmlFormatter
-from pygments.lexers import get_lexer_by_name, guess_lexer
+from pygments.lexers import get_lexer_by_name
 
 SUPPORTED_MARKDOWN_FLAVORS: dict[str, str] = {
     "github": "GitHub Flavored Markdown (GFM)",

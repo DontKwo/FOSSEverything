@@ -1,6 +1,5 @@
 from typing import Any
 
-from app.features.network_monitor import db
 from app.features.network_monitor.db import (
     connect,
     connections_over_time,

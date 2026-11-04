@@ -11,7 +11,6 @@ from app.features.text_tools.ops import (
     join_lines,
     normalize_line_endings,
     number_lines,
-    regex_replace,
     remove_blank_lines,
     reverse_characters,
     reverse_lines,

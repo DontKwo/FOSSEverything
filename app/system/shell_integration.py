@@ -9,7 +9,7 @@ import sys
 import shutil
 import subprocess
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import socket
 import threading

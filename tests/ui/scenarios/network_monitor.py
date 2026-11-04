@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any, Callable
 from playwright.sync_api import Page, expect
 
