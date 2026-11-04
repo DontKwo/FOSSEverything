@@ -45,26 +45,18 @@
       "text",
       "query"
     ],
-    "ToolDefinition.search_text": [
-      "self"
-    ],
+    "ToolDefinition.search_text": [],
     "ToolRegistry.register": [
-      "self",
       "tool"
     ],
-    "ToolRegistry.all": [
-      "self"
-    ],
+    "ToolRegistry.all": [],
     "ToolRegistry.search": [
-      "self",
       "query",
       "limit"
     ]
   },
   "app/core/tooltips.py": {
-    "TooltipEntry.search_text": [
-      "self"
-    ],
+    "TooltipEntry.search_text": [],
     "get_tooltip_for": [
       "label"
     ],
@@ -81,18 +73,13 @@
   },
   "app/core/workspace_registry.py": {
     "WorkspaceDefinition.matches": [
-      "self",
       "file_path"
     ],
     "WorkspaceRegistry.register": [
-      "self",
       "workspace"
     ],
-    "WorkspaceRegistry.all": [
-      "self"
-    ],
+    "WorkspaceRegistry.all": [],
     "WorkspaceRegistry.find_for_path": [
-      "self",
       "file_path"
     ]
   },
@@ -323,7 +310,8 @@
     ],
     "languagetool_backend_available": [],
     "grammar_check_text_advanced": [
-      "text"
+      "text",
+      "language"
     ],
     "generate_citation": [
       "entry",
@@ -421,7 +409,8 @@
       "text"
     ],
     "html_encode_numeric": [
-      "text"
+      "text",
+      "hex_format"
     ],
     "hex_encode_text": [
       "text",
@@ -465,7 +454,11 @@
     ],
     "batch_remove_background": [
       "file_paths",
-      "options"
+      "output_dir",
+      "model_name",
+      "filename_template",
+      "overwrite",
+      "progress_cb"
     ],
     "load_image": [
       "path"
@@ -490,24 +483,6 @@
     ],
     "circle_crop_image": [
       "img"
-    ],
-    "build_rectangle_mask": [
-      "size",
-      "box",
-      "feather",
-      "invert"
-    ],
-    "build_ellipse_mask": [
-      "size",
-      "box",
-      "feather",
-      "invert"
-    ],
-    "build_circle_mask": [
-      "size",
-      "radius",
-      "feather",
-      "invert"
     ],
     "apply_non_destructive_mask": [
       "img",
@@ -538,7 +513,13 @@
     ],
     "adjust_image": [
       "img",
-      "adjustments"
+      "brightness",
+      "contrast",
+      "saturation",
+      "sharpness",
+      "blur_radius",
+      "grayscale",
+      "warmth"
     ],
     "auto_enhance": [
       "img"
@@ -583,12 +564,18 @@
       "img",
       "color",
       "blur_backdrop",
-      "blur_radius"
+      "blur_radius",
+      "original_img"
     ],
     "batch_process": [
       "paths",
       "output_dir",
-      "options",
+      "target_format",
+      "quality",
+      "resize_to",
+      "keep_aspect",
+      "remove_background_enabled",
+      "bg_model",
       "progress_cb"
     ],
     "image_to_ascii": [
@@ -621,13 +608,15 @@
   },
   "app/features/markdown/ops.py": {
     "render_markdown_to_html": [
-      "text"
+      "text",
+      "flavor"
     ],
     "wrap_or_placeholder": [
       "selected",
       "marker_open",
       "marker_close",
-      "placeholder"
+      "placeholder",
+      "marker"
     ],
     "toggle_heading": [
       "line",
@@ -642,14 +631,17 @@
       "line"
     ],
     "make_link": [
-      "selected"
+      "selected",
+      "url"
     ],
     "make_image": [
-      "selected"
+      "selected",
+      "url"
     ],
     "horizontal_rule": [],
     "code_block": [
-      "selected"
+      "selected",
+      "language"
     ],
     "markdown_table_skeleton": [
       "rows",
@@ -833,7 +825,8 @@
       "path"
     ],
     "gps_preview_for_metadata": [
-      "metadata"
+      "metadata",
+      "file_path"
     ],
     "camera_field_presets": [],
     "batch_metadata_cleanup": [
@@ -946,7 +939,8 @@
     ],
     "mark_destination_known": [
       "conn",
-      "ip"
+      "ip",
+      "known"
     ],
     "cached_domains": [
       "conn"
@@ -960,7 +954,13 @@
     ],
     "search_history": [
       "conn",
-      "filters"
+      "process_name",
+      "domain",
+      "start_date",
+      "end_date",
+      "limit",
+      "query",
+      "process"
     ],
     "top_processes": [
       "conn",
@@ -986,20 +986,14 @@
     ]
   },
   "app/features/network_monitor/monitor.py": {
-    "ConnectionMonitor.poll": [
-      "self"
-    ],
-    "ConnectionMonitor.has_admin_visibility": [
-      "self"
-    ]
+    "ConnectionMonitor.poll": [],
+    "ConnectionMonitor.has_admin_visibility": []
   },
   "app/features/network_monitor/resolver.py": {
     "DomainResolver.preload": [
-      "self",
       "ip_to_domain"
     ],
     "DomainResolver.resolve": [
-      "self",
       "ip"
     ]
   },
@@ -1021,14 +1015,16 @@
       "pages",
       "language",
       "dpi",
-      "progress_callback"
+      "progress_callback",
+      "force_overwrite"
     ],
     "ocr_file": [
       "file_path",
       "pages",
       "language",
       "dpi",
-      "progress_callback"
+      "progress_callback",
+      "force_overwrite"
     ],
     "create_searchable_pdf": [
       "input_path",
@@ -1036,7 +1032,9 @@
       "pages",
       "language",
       "dpi",
-      "progress_callback"
+      "progress_callback",
+      "force_overwrite",
+      "force_reocr"
     ],
     "save_ocr_text": [
       "ocr_result",
@@ -1053,12 +1051,8 @@
     ]
   },
   "app/features/palette/ops.py": {
-    "ColorSwatch.rgb_str": [
-      "self"
-    ],
-    "ColorSwatch.css_name": [
-      "self"
-    ],
+    "ColorSwatch.rgb_str": [],
+    "ColorSwatch.css_name": [],
     "nearest_named_color": [
       "rgb"
     ],
@@ -1310,9 +1304,7 @@
     ]
   },
   "app/features/playlist/ops.py": {
-    "PlaylistTrack.to_dict": [
-      "self"
-    ],
+    "PlaylistTrack.to_dict": [],
     "clean_music_title": [
       "raw_title"
     ],
@@ -1533,7 +1525,12 @@
       "file_paths"
     ],
     "save_cross_folder_plan": [
-      "config"
+      "name",
+      "source_folders",
+      "mode",
+      "params",
+      "target_dir",
+      "processed_files"
     ],
     "find_new_files_for_plan": [
       "source_folders",
