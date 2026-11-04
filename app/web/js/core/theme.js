@@ -6,8 +6,6 @@ window.FOSS = window.FOSS || {};
   var MAX_UI_SCALE = 2.50;
   var STEP_UI_SCALE = 0.05;
   var saveScaleTimer = null;
-  var hudTimer = null;
-  var hudEl = null;
 
   function init() {
     var theme = window.FOSS.store.get("theme", "dark");
@@ -59,7 +57,6 @@ window.FOSS = window.FOSS || {};
     }, 180);
 
     updateSettingsUi(clamped);
-    showZoomHud(clamped);
     return clamped;
   }
 
@@ -68,23 +65,6 @@ window.FOSS = window.FOSS || {};
     if (slider) slider.value = String(val);
     var label = document.getElementById("settings-scale-value");
     if (label) label.textContent = Math.round(val * 100) + "%";
-  }
-
-  function showZoomHud(val) {
-    if (!hudEl) {
-      hudEl = document.createElement("div");
-      hudEl.id = "zoom-hud";
-      hudEl.setAttribute("data-decorative", "true");
-      hudEl.className = "zoom-hud";
-      document.body.appendChild(hudEl);
-    }
-    hudEl.textContent = "Zoom: " + Math.round(val * 100) + "%";
-    hudEl.classList.add("visible");
-
-    if (hudTimer) clearTimeout(hudTimer);
-    hudTimer = setTimeout(function () {
-      if (hudEl) hudEl.classList.remove("visible");
-    }, 900);
   }
 
   function applyCustomColors(colorsMap, persist) {

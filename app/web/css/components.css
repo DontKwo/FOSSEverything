@@ -1235,3 +1235,27 @@ table.table tbody tr:hover {
 .data-tree-children.collapsed {
   display: none;
 }
+
+/* Zoom HUD */
+.zoom-hud {
+  position: fixed;
+  bottom: var(--space-6);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--bg-surface);
+  color: var(--text);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.zoom-hud.visible {
+  opacity: 1;
+}

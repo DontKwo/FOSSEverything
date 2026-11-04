@@ -16,6 +16,24 @@ window.FOSS = window.FOSS || {};
     return window.FOSS.store.get("custom_keybindings", DEFAULT_KEYMAP);
   }
 
+  var hudTimer = null;
+  var hudEl = null;
+
+  function showZoomHud(scale) {
+    if (!hudEl) {
+      hudEl = document.createElement("div");
+      hudEl.className = "zoom-hud";
+      hudEl.setAttribute("data-decorative", "true");
+      document.body.appendChild(hudEl);
+    }
+    hudEl.textContent = "Zoom: " + Math.round(scale * 100) + "%";
+    hudEl.classList.add("visible");
+    if (hudTimer) clearTimeout(hudTimer);
+    hudTimer = setTimeout(function () {
+      if (hudEl) hudEl.classList.remove("visible");
+    }, 1200);
+  }
+
   function dispatchShortcutAction(action) {
     if (action === "open_palette") {
       if (window.FOSS.palette) window.FOSS.palette.open();
@@ -27,15 +45,18 @@ window.FOSS = window.FOSS || {};
       if (window.FOSS.api) window.FOSS.api("toggle_fullscreen", {});
     } else if (action === "zoom_in") {
       if (window.FOSS.theme && window.FOSS.theme.stepScale) {
-        window.FOSS.theme.stepScale(1);
+        var sIn = window.FOSS.theme.stepScale(1);
+        showZoomHud(sIn);
       }
     } else if (action === "zoom_out") {
       if (window.FOSS.theme && window.FOSS.theme.stepScale) {
-        window.FOSS.theme.stepScale(-1);
+        var sOut = window.FOSS.theme.stepScale(-1);
+        showZoomHud(sOut);
       }
     } else if (action === "zoom_reset") {
       if (window.FOSS.theme && window.FOSS.theme.setScale) {
-        window.FOSS.theme.setScale(1.0);
+        var sReset = window.FOSS.theme.setScale(1.0);
+        showZoomHud(sReset);
       }
     }
   }
@@ -64,7 +85,8 @@ window.FOSS = window.FOSS || {};
         e.preventDefault();
         e.stopPropagation();
         if (e.deltaY !== 0 && window.FOSS.theme && window.FOSS.theme.stepScale) {
-          window.FOSS.theme.stepScale(e.deltaY < 0 ? 1 : -1);
+          var sWheel = window.FOSS.theme.stepScale(e.deltaY < 0 ? 1 : -1);
+          showZoomHud(sWheel);
         }
       }
     }, { passive: false });
