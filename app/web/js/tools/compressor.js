@@ -67,25 +67,25 @@ window.FOSS = window.FOSS || {};
         updateRatioEstimate();
       }
     }, [
-      window.FOSS.dom.el("option", { value: "light", text: "Low (Fast)" }),
-      window.FOSS.dom.el("option", { value: "balanced", text: "Medium (Balanced)", selected: "selected" }),
-      window.FOSS.dom.el("option", { value: "aggressive", text: "High (Maximum Compression)" })
+      window.FOSS.dom.el("option", { value: "light", text: "Low (~15-30%)" }),
+      window.FOSS.dom.el("option", { value: "balanced", text: "Medium (~30-50%)", selected: "selected" }),
+      window.FOSS.dom.el("option", { value: "aggressive", text: "High (~50-75%)" })
     ]);
 
     var ratioEstimateReadout = window.FOSS.dom.el("div", {
       className: "text-xs font-mono text-muted p-2 rounded bg-neutral",
       "data-testid": "compressor-ratio-estimate",
-      text: "Estimated ratio: ~30-50% reduction (Medium / Balanced)"
+      text: "Estimated ratio: ~30-50% reduction (Medium)"
     });
 
     function updateRatioEstimate() {
       var val = presetSelect.value;
       if (val === "light") {
-        ratioEstimateReadout.textContent = "Estimated ratio: ~15-30% reduction (Low / Fast)";
+        ratioEstimateReadout.textContent = "Estimated ratio: ~15-30% reduction (Low)";
       } else if (val === "aggressive") {
-        ratioEstimateReadout.textContent = "Estimated ratio: ~50-75% reduction (High / Maximum Compression)";
+        ratioEstimateReadout.textContent = "Estimated ratio: ~50-75% reduction (High)";
       } else {
-        ratioEstimateReadout.textContent = "Estimated ratio: ~30-50% reduction (Medium / Balanced)";
+        ratioEstimateReadout.textContent = "Estimated ratio: ~30-50% reduction (Medium)";
       }
     }
 
