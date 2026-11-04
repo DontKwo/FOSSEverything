@@ -99,21 +99,16 @@ window.FOSS = window.FOSS || {};
     }
 
     // Keep only registered tools
-    var seen = {};
     sections.forEach(function (sec) {
       sec.items = (sec.items || []).filter(function (it) {
         if (!registry[it.id]) return false;
         return true;
       });
-      sec.items.forEach(function (it) {
-        seen[it.id] = true;
-      });
     });
 
-    // Append newly registered tools not in any section
+    // Append newly registered tools to their default section if not present
     var registered = getRegisteredTools();
     registered.forEach(function (t) {
-      if (seen[t.id]) return;
       var cat = (t.category || "Utilities").trim();
       var catLower = cat.toLowerCase();
       var targetSec = sections.find(function (s) {
@@ -131,8 +126,13 @@ window.FOSS = window.FOSS || {};
         };
         sections.push(targetSec);
       }
-      targetSec.items.push({ id: t.id, visible: true });
-      seen[t.id] = true;
+      var isAlreadyInTarget = false;
+      targetSec.items.forEach(function (it) {
+        if (it.id === t.id) isAlreadyInTarget = true;
+      });
+      if (!isAlreadyInTarget) {
+        targetSec.items.push({ id: t.id, visible: true });
+      }
     });
 
     return { version: 1, sections: sections };

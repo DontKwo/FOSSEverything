@@ -4,7 +4,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-import pytest
 
 from app.web.api import (
     BaseApi,
@@ -85,7 +84,7 @@ def test_public_method_signatures() -> None:
         if "dict" not in r_ann:
             mismatches.append(f"{name}: return annotation '{r_ann}' does not contain dict")
 
-    assert not mismatches, f"Non-conforming API methods:\n" + "\n".join(mismatches[:30])
+    assert not mismatches, "Non-conforming API methods:\n" + "\n".join(mismatches[:30])
 
 
 def test_no_duplicate_mixin_methods() -> None:
@@ -102,7 +101,7 @@ def test_no_duplicate_mixin_methods() -> None:
             else:
                 method_sources[attr] = cls.__name__
 
-    assert not duplicates, f"Duplicate method definitions found:\n" + "\n".join(duplicates)
+    assert not duplicates, "Duplicate method definitions found:\n" + "\n".join(duplicates)
 
 
 def test_empty_params_never_raises() -> None:
@@ -123,7 +122,7 @@ def test_empty_params_never_raises() -> None:
         except Exception as exc:
             failures.append(f"{name}: raised unhandled {type(exc).__name__}: {exc}")
 
-    assert not failures, f"Methods failed on empty params:\n" + "\n".join(failures[:20])
+    assert not failures, "Methods failed on empty params:\n" + "\n".join(failures[:20])
 
 
 def test_read_only_tool_methods(tmp_path: Path) -> None:
