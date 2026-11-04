@@ -1302,6 +1302,42 @@ Replace lines 1370-1397:
         }
 
         statusBar.textContent = "Exporting collage...";
+        if (activeMode === "freeform") {
+          window.FOSS.api("collage_export_freeform", {
+            canvas_width: canvasWidth,
+            canvas_height: canvasHeight,
+            mode: "flattened",
+            output_path: chosenPath,
+            transparent_bg: isTransparent,
+            bg_color: bgColor,
+            layers: layers.map(function (l) {
+              return {
+                layer_id: l.id,
+                name: l.name,
+                source_path: l.source_path,
+                x: l.x,
+                y: l.y,
+                width: l.width,
+                height: l.height,
+                rotation_deg: l.rotation_deg,
+                opacity: l.opacity,
+                visible: l.visible,
+                locked: l.locked
+              };
+            })
+          }).then(function (createRes) {
+            if (createRes && createRes.output_path) {
+              statusBar.textContent = "Collage saved: " + createRes.output_path;
+              showResult(createRes.output_path, "Collage Saved Successfully");
+            } else {
+              showError("Failed to save collage.");
+            }
+          }).catch(function (err) {
+            showError(err && err.message ? err.message : String(err));
+          });
+          return;
+        }
+
         var params = {
           image_paths: layers.map(function (l) { return l.source_path; }),
           output_path: chosenPath,
