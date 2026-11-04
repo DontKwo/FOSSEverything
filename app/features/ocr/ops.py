@@ -467,10 +467,8 @@ def create_searchable_pdf(
         total_pages = len(doc)
         if isinstance(pages, str):
             selected_pages = set(parse_page_selection(pages, total_pages))
-        elif pages is not None:
-            selected_pages = set(pages)
         else:
-            selected_pages = set(range(1, total_pages + 1))
+            selected_pages = set(pages) if pages else set(range(1, total_pages + 1))
 
         target_indices = [idx for idx in range(total_pages) if (idx + 1) in selected_pages]
 
