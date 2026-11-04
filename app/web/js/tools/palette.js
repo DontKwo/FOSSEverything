@@ -448,7 +448,7 @@ window.FOSS = window.FOSS || {};
         var chip = window.FOSS.dom.el("div", {
           className: "row items-center gap-1 p-1 rounded border border-border cursor-pointer",
           title: item.label + ": " + item.hex + " (Click to copy)",
-          style: "font-size: 0.7rem;",
+          style: "font-size: 0.75rem;",
           onClick: function () {
             copyToClipboard(item.hex);
             statusBar.textContent = "Copied " + item.label + " (" + item.hex + ") to clipboard.";
@@ -739,38 +739,44 @@ window.FOSS = window.FOSS || {};
       ]);
 
       var copyHexBtn = window.FOSS.dom.el("button", {
-        className: "btn btn-ghost btn-sm",
+        className: "btn btn-ghost btn-sm row gap-1 items-center",
         "data-dense": "true",
-        text: "HEX",
         title: "Copy HEX",
         onClick: function () {
           copyToClipboard(hexCode);
           statusBar.textContent = "Copied " + hexCode + " to clipboard.";
         }
-      });
+      }, [
+        window.FOSS.icons.el("copy", 14),
+        window.FOSS.dom.el("span", { text: "HEX" })
+      ]);
 
       var copyRgbBtn = window.FOSS.dom.el("button", {
-        className: "btn btn-ghost btn-sm",
+        className: "btn btn-ghost btn-sm row gap-1 items-center",
         "data-dense": "true",
-        text: "RGB",
         title: "Copy RGB",
         onClick: function () {
           copyToClipboard(rgbStr);
           statusBar.textContent = "Copied " + rgbStr + " to clipboard.";
         }
-      });
+      }, [
+        window.FOSS.icons.el("copy", 14),
+        window.FOSS.dom.el("span", { text: "RGB" })
+      ]);
 
       var copyHslBtn = window.FOSS.dom.el("button", {
-        className: "btn btn-ghost btn-sm",
+        className: "btn btn-ghost btn-sm row gap-1 items-center",
         "data-dense": "true",
         "data-testid": "palette-copy-hsl-btn",
-        text: "HSL",
         title: "Copy HSL",
         onClick: function () {
           copyToClipboard(hslStr);
           statusBar.textContent = "Copied " + hslStr + " to clipboard.";
         }
-      });
+      }, [
+        window.FOSS.icons.el("copy", 14),
+        window.FOSS.dom.el("span", { text: "HSL" })
+      ]);
 
       var setFgBtn = window.FOSS.dom.el("button", {
         className: "btn btn-ghost btn-sm",
@@ -811,18 +817,18 @@ window.FOSS = window.FOSS || {};
 
       var accessibilityRow = window.FOSS.dom.el("div", {
         className: "palette-swatch-accessibility row gap-1 items-center flex-wrap text-muted",
-        style: "font-size: 0.7rem; border-top: 1px solid var(--border); padding-top: var(--space-1); width: 100%;",
+        style: "font-size: 0.75rem; border-top: 1px solid var(--border); padding-top: var(--space-1); width: 100%;",
         "data-testid": "palette-swatch-accessibility"
       }, [
         window.FOSS.dom.el("span", { text: "Lum: " + lumVal.toFixed(3) }),
         window.FOSS.dom.el("span", {
           className: "badge " + (contrastWhite >= 4.5 ? "success" : "neutral") + " text-xs",
-          style: "padding: 0 4px; font-size: 0.65rem;",
+          style: "padding: 0 4px; font-size: 0.75rem;",
           text: "W: " + contrastWhite.toFixed(1) + ":1"
         }),
         window.FOSS.dom.el("span", {
           className: "badge " + (contrastBlack >= 4.5 ? "success" : "neutral") + " text-xs",
-          style: "padding: 0 4px; font-size: 0.65rem;",
+          style: "padding: 0 4px; font-size: 0.75rem;",
           text: "B: " + contrastBlack.toFixed(1) + ":1"
         })
       ]);
