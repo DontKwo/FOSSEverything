@@ -208,7 +208,7 @@ window.FOSS = window.FOSS || {};
       className: "card card-compact flex-col gap-2",
       "data-testid": "unit_converter-options-card"
     }, [
-      window.FOSS.dom.el("div", { className: "font-semibold text-xs text-muted", text: "Measurement Registry Options" }),
+      window.FOSS.dom.el("div", { className: "font-semibold text-xs text-muted", text: "Measurement Unit Options" }),
       optionsRow
     ]);
 
@@ -309,8 +309,8 @@ window.FOSS = window.FOSS || {};
     var includeAllCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
       "data-testid": "unit_converter-include-all",
-      "aria-label": "Include All Registered Units",
-      title: "Include All Registered Units",
+      "aria-label": "Include All Units",
+      title: "Include All Units",
       onChange: function () {
         loadCompatibleTable();
       }
