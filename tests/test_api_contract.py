@@ -149,6 +149,7 @@ def test_read_only_tool_methods(tmp_path: Path) -> None:
         ("images_load_data", {"file_path": fixtures["sample.png"]}),
         ("pdf_open_doc", {"file_path": fixtures["sample.pdf"]}),
         ("ocr_languages", {}),
+        ("ocr_scan_inputs", {"paths": []}),
         ("media_get_info", {"file_path": fixtures["tone.wav"]}),
         ("playlist_parse_text", {"text": "Artist - Title"}),
         ("network_stats", {}),

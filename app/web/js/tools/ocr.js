@@ -629,19 +629,6 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("file", 16), window.FOSS.dom.el("span", { text: "Add Files" })]);
 
-    var addFolderBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "ocr-batch-add-folder-btn",
-      onclick: function () {
-        window.FOSS.api("select_folder", { title: "Select Folder for Batch OCR" }).then(function (res) {
-          var folderP = (res && (res.path || res.folder_path || res.output_dir)) || "";
-          if (folderP) {
-            addPathsToQueue([folderP]);
-          }
-        });
-      }
-    }, [window.FOSS.icons.el("folder", 16), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
-
     var recursiveCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
       checked: true,
@@ -652,6 +639,25 @@ window.FOSS = window.FOSS || {};
       recursiveCheck,
       window.FOSS.dom.el("span", { text: "Include Subfolders" })
     ]);
+
+    var addFolderBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "ocr-batch-add-folder-btn",
+      onclick: function () {
+        window.FOSS.api("select_folder", { title: "Select Folder for Batch OCR" }).then(function (res) {
+          var folderP = (res && (res.path || res.folder_path || res.output_dir)) || "";
+          if (folderP) {
+            window.FOSS.api("ocr_scan_inputs", { paths: [folderP], recursive: recursiveCheck.checked }).then(function (scanRes) {
+              if (scanRes && scanRes.paths && scanRes.paths.length > 0) {
+                addPathsToQueue(scanRes.paths);
+              } else {
+                window.FOSS.toast.show("No supported OCR documents found.", "info");
+              }
+            });
+          }
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 16), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
 
     var clearBtn = window.FOSS.dom.el("button", {
       className: "btn btn-ghost btn-sm",
