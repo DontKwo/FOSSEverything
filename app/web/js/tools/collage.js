@@ -447,7 +447,24 @@ window.FOSS = window.FOSS || {};
       "aria-label": "Layer opacity slider",
       title: "Layer opacity slider",
       style: "min-height: 2rem;",
-      onInput: updateSelectedFromInspector
+      onInput: function() {
+        inspOpacityNumber.value = inspOpacityInput.value;
+        updateSelectedFromInspector();
+      }
+    });
+    var inspOpacityNumber = window.FOSS.dom.el("input", {
+      type: "number",
+      min: 0,
+      max: 100,
+      value: 100,
+      className: "input text-xs w-16",
+      "aria-label": "Layer opacity percentage",
+      title: "Layer opacity percentage",
+      onInput: function() {
+        var val = Math.min(100, Math.max(0, parseInt(inspOpacityNumber.value, 10) || 0));
+        inspOpacityInput.value = val;
+        updateSelectedFromInspector();
+      }
     });
 
     var centerLayerBtn = window.FOSS.dom.el("button", {
@@ -502,9 +519,11 @@ window.FOSS = window.FOSS || {};
       inspRotInput,
       window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "deg" })
     ]));
-    inspectorHost.appendChild(window.FOSS.dom.el("div", { className: "row items-center" }, [
+    inspectorHost.appendChild(window.FOSS.dom.el("div", { className: "row items-center gap-2" }, [
       window.FOSS.dom.el("label", { className: "text-xs text-muted w-14", text: "Opacity:" }),
-      inspOpacityInput
+      inspOpacityInput,
+      inspOpacityNumber,
+      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "%" })
     ]));
     inspectorHost.appendChild(window.FOSS.dom.el("div", { className: "row mt-1" }, [centerLayerBtn, fitLayerBtn]));
 
@@ -972,9 +991,14 @@ window.FOSS = window.FOSS || {};
 
           // Opacity slider per layer
           var opacityPct = Math.round((layer.opacity !== undefined ? layer.opacity : 1.0) * 100);
-          var opacityValSpan = window.FOSS.dom.el("span", {
-            className: "text-muted text-xs font-mono",
-            text: opacityPct + "%"
+          var opacityNumInput = window.FOSS.dom.el("input", {
+            type: "number",
+            min: "0",
+            max: "100",
+            value: String(opacityPct),
+            className: "input input-sm w-16 text-xs",
+            "aria-label": "Layer Opacity Percentage",
+            title: "Opacity Percentage"
           });
           var opacitySlider = window.FOSS.dom.el("input", {
             type: "range",
@@ -987,22 +1011,36 @@ window.FOSS = window.FOSS || {};
             title: "Opacity",
             style: "flex: 1 1 0%; min-width: 0;"
           });
+
           opacitySlider.addEventListener("input", function () {
             var val = parseInt(opacitySlider.value, 10);
             layer.opacity = val / 100.0;
-            opacityValSpan.textContent = val + "%";
+            opacityNumInput.value = val;
             if (selectedLayerId === layer.id && inspOpacityInput) {
               inspOpacityInput.value = val;
+              inspOpacityNumber.value = val;
             }
             renderCanvas();
           });
+          opacityNumInput.addEventListener("input", function () {
+            var val = Math.min(100, Math.max(0, parseInt(opacityNumInput.value, 10) || 0));
+            opacitySlider.value = val;
+            layer.opacity = val / 100.0;
+            if (selectedLayerId === layer.id && inspOpacityInput) {
+              inspOpacityInput.value = val;
+              inspOpacityNumber.value = val;
+            }
+            renderCanvas();
+          });
+
           var opacityRow = window.FOSS.dom.el("div", {
             className: "row items-center gap-2",
             style: "width: 100%;"
           }, [
             window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Opacity:" }),
             opacitySlider,
-            opacityValSpan
+            opacityNumInput,
+            window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "%" })
           ]);
 
           item.appendChild(topRow);
@@ -1029,6 +1067,7 @@ window.FOSS = window.FOSS || {};
         inspHInput.value = 0;
         inspRotInput.value = 0;
         inspOpacityInput.value = 100;
+        inspOpacityNumber.value = 100;
         return;
       }
       inspXInput.value = l.x;
@@ -1037,6 +1076,7 @@ window.FOSS = window.FOSS || {};
       inspHInput.value = l.height;
       inspRotInput.value = l.rotation_deg;
       inspOpacityInput.value = Math.round(l.opacity * 100);
+      inspOpacityNumber.value = Math.round(l.opacity * 100);
     }
 
     function updateSelectedFromInspector() {
