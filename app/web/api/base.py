@@ -1,6 +1,4 @@
-import json
 import os
-import shutil
 import subprocess
 import sys
 import time
@@ -16,11 +14,9 @@ from app.system.settings import (
     get_all_settings,
     get_setting,
     reset_all_settings,
-    reset_user_preferences,
     set_setting,
 )
 from app.system.shell_integration import (
-    FILE_FAMILIES,
     is_default_for_extension,
     manual_association_instructions,
     register_shell_context_menu,

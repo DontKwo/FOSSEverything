@@ -5,8 +5,6 @@ import unittest
 from unittest.mock import patch
 from app.core.home_apps import HOME_APPS, HOME_CATEGORIES
 from app.system.settings import (
-    calc_read_settings,
-    calc_write_settings,
     reset_user_preferences,
 )
 from main import THEME_BG_MAP

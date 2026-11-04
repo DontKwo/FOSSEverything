@@ -12,9 +12,7 @@ import trimesh
 import yaml
 
 from app.features.converter.ops import (
-    BatchConversionItem,
     available_targets,
-    batch_convert_files,
     conversion_summary,
     convert_file,
     export_enex,

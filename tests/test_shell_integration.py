@@ -1,6 +1,4 @@
 """Unit tests for shell integration and file routing."""
-import os
-import tempfile
 import unittest
 from app.system import shell_integration
 

@@ -10,11 +10,11 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from typing import Callable, Sequence
+from typing import Callable
 
 from app.system.settings import calc_settings_dir
 from dataclasses import dataclass, asdict
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any
 
 from app.system.settings import get_setting
 

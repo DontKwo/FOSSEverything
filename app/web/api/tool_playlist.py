@@ -2,9 +2,7 @@ from pathlib import Path
 from typing import Any
 
 from app.features.playlist.ops import (
-    PlaylistTrack,
     build_track,
-    detect_url_platform,
     export_csv_playlist,
     export_m3u8_playlist,
     fetch_playlist_from_url,

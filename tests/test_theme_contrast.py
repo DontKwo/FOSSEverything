@@ -1,7 +1,6 @@
 import re
 from pathlib import Path
 
-import pytest
 
 
 def calc_hex_to_rgb(hex_str: str) -> tuple[float, float, float]:

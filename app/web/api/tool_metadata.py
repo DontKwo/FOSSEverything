@@ -7,13 +7,11 @@ from app.features.metadata.ops import (
     compare_metadata,
     editable_keys,
     export_metadata,
-    extract_gps_info,
     gps_preview_for_metadata,
     inspect_metadata,
     metadata_support_report,
     save_edited_metadata,
     strip_any_metadata,
-    strip_metadata,
 )
 from app.web.api.result import api_method, ok, require
 

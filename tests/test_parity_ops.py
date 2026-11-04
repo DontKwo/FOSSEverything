@@ -5,7 +5,6 @@ import re
 from pathlib import Path
 from typing import Any
 
-import pytest
 
 
 def calc_load_json(filename: str) -> Any:

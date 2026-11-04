@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import io
 import urllib.parse
-from typing import Any, Literal
+from typing import Any
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 import qrcode
 from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H

@@ -542,7 +542,6 @@ def add_pdf_watermark(
     pages: list[int] | None = None,
 ) -> str:
     """Add a diagonal text watermark with custom opacity, font size, color, and angle."""
-    import math
     with pymupdf.open(input_path) as doc:
         for page_idx, page in enumerate(doc):
             if pages is not None and (page_idx + 1) not in pages:

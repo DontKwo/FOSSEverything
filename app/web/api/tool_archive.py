@@ -14,7 +14,6 @@ from app.features.archive.ops import (
     extract_password_protected_bundle,
     extract_selected_members,
     inspect_archive_members,
-    list_archive_contents,
     rotate_bundle_key,
     snapshot_directory,
     test_archive,

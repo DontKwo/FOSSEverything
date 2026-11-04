@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import json
 import math
-import re
 from typing import Any, Callable
 
 from app.system.settings import get_setting

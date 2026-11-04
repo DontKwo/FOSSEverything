@@ -133,7 +133,6 @@ def editable_keys(path: str) -> set[str]:
 
 def save_edited_metadata(input_path: str, output_path: str, edits: dict[str, str]) -> str:
     """Write a new file with supported metadata fields changed locally."""
-    import shutil
     kind = file_kind(input_path)
     norm_edits = {str(k).lower(): v for k, v in edits.items()}
     if kind == "PDF":
@@ -620,7 +619,6 @@ def strip_office_metadata(input_path: str, output_path: str) -> str:
             pass
 
     import zipfile
-    import xml.etree.ElementTree as ET
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     with zipfile.ZipFile(input_path, "r") as zin:
