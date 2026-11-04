@@ -183,10 +183,7 @@ _SESSION_CACHE: dict[str, Any] = {}
 
 def get_rembg_models_dir() -> str:
     # Resolve unified directory for rembg models in user home.
-    if os.environ.get("FOSS_SETTINGS_DIR"):
-        unified_dir = os.path.join(os.environ["FOSS_SETTINGS_DIR"], "models", "rembg")
-    else:
-        unified_dir = os.path.expanduser("~/.u2net")
+    unified_dir = os.path.expanduser("~/.u2net")
     os.makedirs(unified_dir, exist_ok=True)
     os.environ["REMBG_HOME"] = unified_dir
     os.environ["U2NET_HOME"] = unified_dir
