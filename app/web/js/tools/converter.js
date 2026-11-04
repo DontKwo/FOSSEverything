@@ -177,7 +177,7 @@ window.FOSS = window.FOSS || {};
       contextualOptionsContainer.innerHTML = "";
       var fmt = (targetSelect.value || "").toUpperCase();
       if (["JPEG", "JPG", "WEBP"].indexOf(fmt) >= 0) {
-        contextualOptionsContainer.appendChild(qualitySlider.el || qualitySlider);
+        contextualOptionsContainer.appendChild(qualitySlider.el);
       }
       if (fmt.indexOf("PDF") >= 0 || fmt === "DOCX") {
         contextualOptionsContainer.appendChild(window.FOSS.components.field("Rendering DPI", dpiInput));
