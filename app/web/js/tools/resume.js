@@ -348,7 +348,8 @@ window.FOSS = window.FOSS || {};
 
     previewStageEl = window.FOSS.dom.el("div", {
       className: "resume-preview-stage",
-      "data-testid": "resume-preview-stage"
+      "data-testid": "resume-preview-stage",
+      style: "max-width: 58rem; margin: 0 auto; padding: clamp(1rem, 3vw, 3rem);"
     });
 
     var exportResultHost = window.FOSS.dom.el("div", { "data-testid": "resume-export-result", hidden: true });
