@@ -504,6 +504,102 @@ window.FOSS = window.FOSS || {};
       return card;
     }
 
+    function openPageViewer(page, globalIdx, parentGroup, indexInGroup) {
+      var h = document.getElementById("modal-host");
+      if (!h) return;
+
+      var scrim = window.FOSS.dom.el("div", { className: "scrim", "data-overlay": "true" });
+      var titleEl = window.FOSS.dom.el("h3", { className: "card-title", text: "Page Viewer - " + page.sourceName + " p." + page.pageNum });
+
+      var img = window.FOSS.dom.el("img", {
+        src: page.thumbUrl || "",
+        style: "max-width: 100%; max-height: 60vh; object-fit: contain; transition: transform 0.2s;"
+      });
+      img.style.transform = "rotate(" + (page.rotation || 0) + "deg)";
+
+      var rotateBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-secondary",
+        "data-testid": "viewer-rotate-btn",
+        onclick: function () {
+          pushUndo();
+          page.rotation = ((page.rotation || 0) + 90 + 360) % 360;
+          img.style.transform = "rotate(" + page.rotation + "deg)";
+          renderWorkspace();
+        }
+      }, [window.FOSS.icons.el("rotate-cw", 14), window.FOSS.dom.el("span", { text: "Rotate 90 deg" })]);
+
+      var duplicateBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-secondary",
+        "data-testid": "viewer-duplicate-btn",
+        onclick: function () {
+          pushUndo();
+          var clone = Object.assign({}, page, { id: "pg_" + (idCounter++) });
+          if (parentGroup) {
+            parentGroup.pages.splice(indexInGroup + 1, 0, clone);
+          } else {
+            var idx = workspaceItems.indexOf(page);
+            workspaceItems.splice(idx + 1, 0, clone);
+          }
+          renderWorkspace();
+          window.FOSS.dialogs.toast("Page duplicated.");
+        }
+      }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Duplicate Page" })]);
+
+      var deleteBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-danger",
+        "data-testid": "viewer-delete-btn",
+        onclick: function () {
+          pushUndo();
+          selectedPageIds.delete(page.id);
+          if (parentGroup) {
+            parentGroup.pages = parentGroup.pages.filter(function (p) { return p.id !== page.id; });
+          } else {
+            workspaceItems = workspaceItems.filter(function (it) { return it.id !== page.id; });
+          }
+          renderWorkspace();
+          cleanup();
+          window.FOSS.dialogs.toast("Page deleted.");
+        }
+      }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Delete Page" })]);
+
+      var closeBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-ghost",
+        onclick: cleanup
+      }, [window.FOSS.dom.el("span", { text: "Close" })]);
+
+      var actionsEl = window.FOSS.dom.el("div", { className: "row end", style: "gap: var(--space-2); margin-top: var(--space-3);" }, [
+        rotateBtn, duplicateBtn, deleteBtn, closeBtn
+      ]);
+
+      var contentEl = window.FOSS.dom.el("div", { style: "display: flex; justify-content: center; align-items: center; padding: var(--space-3); background: var(--bg-muted); border-radius: var(--radius);" }, [img]);
+
+      var modalEl = window.FOSS.dom.el("div", {
+        className: "modal",
+        style: "width: 80vw; max-width: 800px;",
+        role: "dialog",
+        "aria-modal": "true"
+      }, [titleEl, contentEl, actionsEl]);
+
+      function cleanup() {
+        if (scrim.parentElement) scrim.parentElement.removeChild(scrim);
+        if (modalEl.parentElement) modalEl.parentElement.removeChild(modalEl);
+        h.classList.remove("active");
+        document.removeEventListener("keydown", onKeyDown);
+      }
+
+      function onKeyDown(e) {
+        if (e.key === "Escape") {
+          cleanup();
+        }
+      }
+
+      scrim.onclick = cleanup;
+      document.addEventListener("keydown", onKeyDown);
+      h.appendChild(scrim);
+      h.appendChild(modalEl);
+      h.classList.add("active");
+    }
+
     function renderPageCard(page, globalIdx, parentGroup, indexInGroup) {
       var isSelected = selectedPageIds.has(page.id);
       var card = window.FOSS.dom.el("div", {
@@ -642,6 +738,11 @@ window.FOSS = window.FOSS || {};
         if (selectedPageIds.has(page.id)) selectedPageIds.delete(page.id);
         else selectedPageIds.add(page.id);
         renderWorkspace();
+      };
+
+      card.ondblclick = function (e) {
+        e.stopPropagation();
+        openPageViewer(page, globalIdx, parentGroup, indexInGroup);
       };
 
       return card;
