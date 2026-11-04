@@ -131,7 +131,7 @@ window.FOSS = window.FOSS || {};
           var mLabel = m.label || (m.name + (m.description ? " (" + m.description + ")" : ""));
           var mSize = m.download_size || (m.size_mb ? m.size_mb + " MB" : "");
           var isDownloaded = !!(m.downloaded || m.cached || m.local_cache);
-          var statusTag = isDownloaded ? "[Downloaded" + (mSize ? " - " + mSize : "") + "]" : "[Not Downloaded" + (mSize ? " - " + mSize : "") + "]";
+          var statusTag = isDownloaded ? "[Downloaded" + (mSize ? " - " + mSize : "") + "]" : "[Needs Download" + (mSize ? " - " + mSize : "") + "]";
           var opt = window.FOSS.dom.el("option", {
             value: mId,
             text: statusTag + " " + mLabel
@@ -188,7 +188,7 @@ window.FOSS = window.FOSS || {};
             actionCol.appendChild(badge);
             actionCol.appendChild(delBtn);
           } else {
-            var badge = window.FOSS.dom.el("span", { className: "badge warning text-xs", text: "Not Downloaded" });
+            var badge = window.FOSS.dom.el("span", { className: "badge warning text-xs", text: "Needs Download" });
             var dlBtn = window.FOSS.dom.el("button", {
               className: "btn btn-sm btn-secondary",
               "data-testid": "images-model-dl-" + mId,
