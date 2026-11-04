@@ -233,5 +233,6 @@
   "\u25bc": "resume-move-down-btn",
   "\u25bc move down": "pdf-move-down-btn",
   "\u25c0": "pdf-page-prev",
-  "\u25c0 prev": "ocr-prev-btn"
+  "\u25c0 prev": "ocr-prev-btn",
+  "welcome to fosseverything": "app/ui/setup_wizard.py"
 }

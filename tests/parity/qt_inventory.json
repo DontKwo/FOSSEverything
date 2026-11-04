@@ -126,79 +126,6 @@
     ],
     "shortcuts": []
   },
-  "app/features/hash/tab.py": {
-    "buttons": [
-      "add trusted key",
-      "browse",
-      "browse folder",
-      "compare files",
-      "compare manifests",
-      "compute hashes",
-      "copy",
-      "generate keypair",
-      "hash directory",
-      "remove selected",
-      "sign file",
-      "verify against policy",
-      "verify integrity",
-      "verify manifest",
-      "verify signature"
-    ],
-    "checks": [
-      "include local timestamp (multi-party bundle)",
-      "this is a timestamped bundle (.sigjson)"
-    ],
-    "radios": [],
-    "groups": [
-      "algorithms to compute",
-      "checksum results",
-      "digest",
-      "policy-based manifest verification",
-      "select file",
-      "sign a file",
-      "signing keypair (ed25519)",
-      "trusted keys (local keyring)",
-      "verify a signature"
-    ],
-    "tabs": [
-      "compare files",
-      "directory manifest",
-      "file hash",
-      "manifest diff",
-      "sign & policy",
-      "text hash",
-      "verify hash"
-    ],
-    "combo_items": [
-      "(none selected)"
-    ],
-    "placeholders": [
-      "choose first file",
-      "choose newer/updated manifest",
-      "choose older/original manifest",
-      "choose second file",
-      "optional key for keyed hashing",
-      "paste the expected hash here",
-      "select a folder to hash recursively",
-      "select file to verify",
-      "select or drop a file",
-      "type or paste text here to hash in real-time"
-    ],
-    "tooltips": [],
-    "labels": [
-      "algorithm",
-      "choose two manifests to compare.",
-      "compute sha-256, md5, file hashes, and directory manifests locally. zero cloud involvement.",
-      "hash checksum",
-      "hmac key",
-      "leave the public key path blank to use the trusted key selected above instead.",
-      "no directory hashed yet.",
-      "no keypair generated yet.",
-      "select a trusted key above to use it for verification below instead of browsing a .pem file.",
-      "waiting for two files to compare."
-    ],
-    "shortcuts": []
-  },
   "app/features/image/tab.py": {
     "buttons": [
       "add files",
@@ -1011,27 +938,6 @@
     "placeholders": [],
     "tooltips": [],
     "labels": [],
-    "shortcuts": []
-  },
-  "app/ui/screenshot_dialog.py": {
-    "buttons": [
-      "cancel",
-      "capture"
-    ],
-    "checks": [],
-    "radios": [
-      "full screen",
-      "select region / snip (interactive)"
-    ],
-    "groups": [],
-    "tabs": [],
-    "combo_items": [],
-    "placeholders": [],
-    "tooltips": [],
-    "labels": [
-      "capture desktop screen or select a custom area.",
-      "delay countdown"
-    ],
     "shortcuts": []
   },
   "app/ui/settings_hub.py": {
