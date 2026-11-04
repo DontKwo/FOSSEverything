@@ -7,7 +7,7 @@ window.FOSS = window.FOSS || {};
     panel.setAttribute("data-testid", "renamer-page");
 
     var currentFiles = [];
-    var lastExecutionResults = [];
+    var lastExecutionResults = window.FOSS.store.get("renamer_history_log", []);
     var currentSteps = [
       {
         id: "step_default_1",
@@ -807,8 +807,6 @@ window.FOSS = window.FOSS || {};
       onClick: function () {
         currentFiles = [];
         previewPlans = [];
-        lastExecutionResults = [];
-        undoBtn.disabled = true;
         clearError();
         renderPreviewTable();
         statusBar.textContent = "Ready";
@@ -850,14 +848,14 @@ window.FOSS = window.FOSS || {};
     });
 
     var undoBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
+      className: "btn btn-danger font-semibold",
       "data-testid": "renamer-undo-btn",
-      disabled: true,
+      disabled: !(lastExecutionResults && lastExecutionResults.length > 0),
       type: "button",
       onClick: function () {
         executeUndo();
       }
-    }, [window.FOSS.icons.el("rotate-ccw", 14), window.FOSS.dom.el("span", { text: "Undo Last Rename" })]);
+    }, [window.FOSS.icons.el("rotate-ccw", 14), window.FOSS.dom.el("span", { text: "Undo Last Batch" })]);
 
     var applyBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
@@ -1039,6 +1037,7 @@ window.FOSS = window.FOSS || {};
           return;
         }
         lastExecutionResults = res.results;
+        window.FOSS.store.set("renamer_history_log", lastExecutionResults);
         undoBtn.disabled = !res.undo_available;
         var newFilesList = [];
         res.results.forEach(function (r) {
@@ -1074,6 +1073,7 @@ window.FOSS = window.FOSS || {};
           return;
         }
         lastExecutionResults = [];
+        window.FOSS.store.set("renamer_history_log", []);
         undoBtn.disabled = true;
         var restoredPaths = [];
         res.results.forEach(function (r) {
