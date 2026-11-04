@@ -65,8 +65,9 @@ window.FOSS.components = window.FOSS.components || {};
       toolbar
     ]);
 
+    var baseClassName = opts.fillHeight ? "stack code-editor-fill flex-1 grow" : "stack";
     var wrap = window.FOSS.dom.el("div", {
-      className: opts.fillHeight ? "stack code-editor-fill flex-1 grow" : "stack",
+      className: opts.containerClass ? baseClassName + " " + opts.containerClass : baseClassName,
       gap: "xs",
       "data-testid": testid
     }, [

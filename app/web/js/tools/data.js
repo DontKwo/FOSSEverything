@@ -289,7 +289,8 @@ window.FOSS = window.FOSS || {};
       title: "Input Source Code",
       placeholder: '{\n  "name": "FOSSEverything",\n  "tools": ["pdf", "image", "data"],\n  "active": true\n}',
       ariaLabel: "Input source data code",
-      fillHeight: true
+      fillHeight: true,
+      containerClass: "code-editor-fill"
     });
 
     var outputEditor = window.FOSS.components.codeEditor({
@@ -297,7 +298,8 @@ window.FOSS = window.FOSS || {};
       title: "Formatted / Converted Result",
       placeholder: "Result will appear here...",
       ariaLabel: "Output result code",
-      fillHeight: true
+      fillHeight: true,
+      containerClass: "code-editor-fill"
     });
 
     var editorGrid = window.FOSS.dom.el("div", {
@@ -785,7 +787,8 @@ window.FOSS = window.FOSS || {};
       title: "Input JSON Document",
       placeholder: '{\n  "store": {\n    "book": [\n      {"category": "reference", "author": "Nigel Rees", "title": "Sayings of the Century", "price": 8.95},\n      {"category": "fiction", "author": "Evelyn Waugh", "title": "Sword of Honour", "price": 12.99}\n    ]\n  }\n}',
       ariaLabel: "Input JSON document",
-      fillHeight: true
+      fillHeight: true,
+      containerClass: "code-editor-fill"
     });
 
     var resultEditor = window.FOSS.components.codeEditor({
@@ -793,7 +796,8 @@ window.FOSS = window.FOSS || {};
       title: "Query / Schema Result",
       placeholder: "Results will appear here...",
       ariaLabel: "Query results",
-      fillHeight: true
+      fillHeight: true,
+      containerClass: "code-editor-fill"
     });
 
     var grid = window.FOSS.dom.el("div", {
