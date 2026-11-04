@@ -202,7 +202,8 @@
 
 .scroll-main {
   grid-column: 2;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: auto;
   scrollbar-gutter: stable;
   min-height: 0;
   min-width: 0;
@@ -429,4 +430,9 @@
 .is-resizing * {
   user-select: none !important;
   transition: none !important;
+}
+
+.main {
+  min-height: 0;
+  overflow-y: auto;
 }
