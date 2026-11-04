@@ -170,6 +170,7 @@
   padding-inline: var(--space-4);
   gap: var(--space-3);
   z-index: var(--z-topbar);
+  contain: layout paint;
   flex-shrink: 0;
   min-width: 0;
   overflow: hidden;
