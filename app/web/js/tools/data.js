@@ -953,7 +953,7 @@ window.FOSS = window.FOSS || {};
     cronCard.appendChild(cronRunsList);
 
     // Calendar .ICS Builder Card
-    var icsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
+    var icsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3 code-editor-fill" });
     var icsTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "iCalendar (.ICS) Event Builder" });
 
     var calTitleInput = window.FOSS.dom.el("input", {
