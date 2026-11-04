@@ -4,6 +4,7 @@ The module exposes only conversions backed by FOSSEverything's installed engines
 Additional engines (for example FFmpeg or LibreOffice) can extend the same
 functions later without making the UI promise unsupported conversions.
 """
+
 from __future__ import annotations
 
 import csv
@@ -27,13 +28,43 @@ from app.core.file_formats import extension_for_format, normalized_format
 
 
 IMAGE_EXTENSIONS = {
-    ".bmp", ".gif", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp",
-    ".heic", ".heif", ".avif", ".svg", ".psd",
-    ".cr2", ".cr3", ".nef", ".arw", ".dng", ".raf", ".orf", ".rw2", ".pef", ".srw",
+    ".bmp",
+    ".gif",
+    ".jpeg",
+    ".jpg",
+    ".png",
+    ".tif",
+    ".tiff",
+    ".webp",
+    ".heic",
+    ".heif",
+    ".avif",
+    ".svg",
+    ".psd",
+    ".cr2",
+    ".cr3",
+    ".nef",
+    ".arw",
+    ".dng",
+    ".raf",
+    ".orf",
+    ".rw2",
+    ".pef",
+    ".srw",
 }
 AUDIO_EXTENSIONS = {".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg", ".wma", ".opus"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".flv", ".wmv", ".m4v"}
-OFFICE_EXTENSIONS = {".docx", ".pptx", ".xlsx", ".odt", ".ods", ".odp", ".docm", ".pptm", ".xlsm"}
+OFFICE_EXTENSIONS = {
+    ".docx",
+    ".pptx",
+    ".xlsx",
+    ".odt",
+    ".ods",
+    ".odp",
+    ".docm",
+    ".pptm",
+    ".xlsm",
+}
 PDF_EXTENSION = ".pdf"
 MODEL3D_EXTENSIONS = {".stl", ".obj", ".ply", ".step", ".stp", ".iges", ".igs"}
 FONT_EXTENSIONS = {".ttf", ".otf", ".woff", ".woff2"}
@@ -86,13 +117,15 @@ def parse_enex(input_path: str) -> list[dict]:
         title = (note_el.findtext("title") or "Untitled Note").strip()
         content_raw = note_el.findtext("content") or ""
         tags = [tag_el.text.strip() for tag_el in note_el.findall("tag") if tag_el.text]
-        notes.append({
-            "title": title,
-            "content": _strip_enml_to_text(content_raw),
-            "created": (note_el.findtext("created") or "").strip(),
-            "updated": (note_el.findtext("updated") or "").strip(),
-            "tags": tags,
-        })
+        notes.append(
+            {
+                "title": title,
+                "content": _strip_enml_to_text(content_raw),
+                "created": (note_el.findtext("created") or "").strip(),
+                "updated": (note_el.findtext("updated") or "").strip(),
+                "tags": tags,
+            }
+        )
     return notes
 
 
@@ -108,7 +141,7 @@ def export_enex(notes: list[dict], output_path: str) -> str:
         content_el.text = (
             '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
             '<!DOCTYPE en-note SYSTEM "http://xml.evernote.com/pub/enml2.dtd">'
-            f'<en-note>{body}</en-note>'
+            f"<en-note>{body}</en-note>"
         )
         ET.SubElement(note_el, "created").text = str(note.get("created") or now)
         ET.SubElement(note_el, "updated").text = str(note.get("updated") or now)
@@ -164,7 +197,12 @@ def convert_subtitle(input_path: str, output_path: str, target_format: str) -> s
         lines: list[str] = []
         for line in content.splitlines():
             line_str = line.strip()
-            if not line_str or line_str.isdigit() or re.match(r"^\d{1,2}:\d{2}:\d{2}", line_str) or line_str == "WEBVTT":
+            if (
+                not line_str
+                or line_str.isdigit()
+                or re.match(r"^\d{1,2}:\d{2}:\d{2}", line_str)
+                or line_str == "WEBVTT"
+            ):
                 continue
             clean = re.sub(r"<[^>]+>", "", line_str).strip()
             if clean:
@@ -180,7 +218,9 @@ def convert_subtitle(input_path: str, output_path: str, target_format: str) -> s
     elif fmt == "SRT":
         converted = re.sub(r"^WEBVTT[^\n]*\n+", "", content, flags=re.MULTILINE)
         converted = re.sub(r"(\d{2}:\d{2}:\d{2})\.(\d{3})", r"\1,\2", converted)
-        blocks = [b.strip() for b in re.split(r"\n\s*\n", converted.strip()) if b.strip()]
+        blocks = [
+            b.strip() for b in re.split(r"\n\s*\n", converted.strip()) if b.strip()
+        ]
         out_blocks: list[str] = []
         for idx, blk in enumerate(blocks, start=1):
             blines = blk.splitlines()
@@ -198,7 +238,12 @@ def convert_subtitle(input_path: str, output_path: str, target_format: str) -> s
 
 def convert_playlist(input_path: str, output_path: str, target_format: str) -> str:
     # Convert audio/video playlists between M3U8, CSV, JSON, and TXT tracklists.
-    from app.features.playlist.ops import PlaylistTrack, export_csv_playlist, export_m3u8_playlist
+    from app.features.playlist.ops import (
+        PlaylistTrack,
+        export_csv_playlist,
+        export_m3u8_playlist,
+    )
+
     tracks: list[PlaylistTrack] = []
     ext = os.path.splitext(input_path)[1].lower()
     if ext in (".m3u", ".m3u8", ".txt"):
@@ -219,32 +264,44 @@ def convert_playlist(input_path: str, output_path: str, target_format: str) -> s
                 p_url = line
                 if not cur_title:
                     cur_title = os.path.splitext(os.path.basename(p_url))[0]
-                tracks.append(PlaylistTrack(title=cur_title.strip(), artist=cur_artist.strip(), album="", duration="", url=p_url))
+                tracks.append(
+                    PlaylistTrack(
+                        title=cur_title.strip(),
+                        artist=cur_artist.strip(),
+                        album="",
+                        duration="",
+                        url=p_url,
+                    )
+                )
                 cur_title = ""
                 cur_artist = ""
     elif ext == ".csv":
         with open(input_path, "r", encoding="utf-8", errors="replace") as f_in:
             reader = csv.DictReader(f_in)
             for row in reader:
-                tracks.append(PlaylistTrack(
-                    title=row.get("title", row.get("Title", "")),
-                    artist=row.get("artist", row.get("Artist", "")),
-                    album=row.get("album", row.get("Album", "")),
-                    duration=row.get("duration", row.get("Duration", "")),
-                    url=row.get("url", row.get("URL", row.get("path", "")))
-                ))
+                tracks.append(
+                    PlaylistTrack(
+                        title=row.get("title", row.get("Title", "")),
+                        artist=row.get("artist", row.get("Artist", "")),
+                        album=row.get("album", row.get("Album", "")),
+                        duration=row.get("duration", row.get("Duration", "")),
+                        url=row.get("url", row.get("URL", row.get("path", ""))),
+                    )
+                )
     elif ext == ".json":
         with open(input_path, "r", encoding="utf-8", errors="replace") as f_in:
             data = json.load(f_in)
             if isinstance(data, list):
                 for row in data:
-                    tracks.append(PlaylistTrack(
-                        title=str(row.get("title", "")),
-                        artist=str(row.get("artist", "")),
-                        album=str(row.get("album", "")),
-                        duration=str(row.get("duration", "")),
-                        url=str(row.get("url", row.get("path", "")))
-                    ))
+                    tracks.append(
+                        PlaylistTrack(
+                            title=str(row.get("title", "")),
+                            artist=str(row.get("artist", "")),
+                            album=str(row.get("album", "")),
+                            duration=str(row.get("duration", "")),
+                            url=str(row.get("url", row.get("path", ""))),
+                        )
+                    )
 
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     fmt = normalized_format(target_format)
@@ -254,7 +311,20 @@ def convert_playlist(input_path: str, output_path: str, target_format: str) -> s
         export_csv_playlist(tracks, output_path)
     elif fmt == "JSON":
         with open(output_path, "w", encoding="utf-8") as f_out:
-            json.dump([{"title": t.title, "artist": t.artist, "album": t.album, "duration": t.duration, "url": t.url} for t in tracks], f_out, indent=2)
+            json.dump(
+                [
+                    {
+                        "title": t.title,
+                        "artist": t.artist,
+                        "album": t.album,
+                        "duration": t.duration,
+                        "url": t.url,
+                    }
+                    for t in tracks
+                ],
+                f_out,
+                indent=2,
+            )
     elif fmt in ("TXT", "TEXT"):
         with open(output_path, "w", encoding="utf-8") as f_out:
             for t in tracks:
@@ -371,6 +441,7 @@ def available_targets(path: str) -> list[str]:
         return ["JSON", "CSV", "TXT"]
     if family == "Model3D":
         from app.features.model3d import ops as model3d_ops
+
         targets = ["STL", "OBJ", "PLY"]
         if model3d_ops.brep_backend_available():
             targets += ["STEP", "IGES"]
@@ -387,7 +458,11 @@ def available_targets(path: str) -> list[str]:
         if not calibre_backend_available():
             return []
         current_ext = os.path.splitext(path)[1].lower()
-        return [normalized_format(e) for e in ("epub", "mobi", "azw3", "fb2") if e != current_ext.lstrip(".")]
+        return [
+            normalized_format(e)
+            for e in ("epub", "mobi", "azw3", "fb2")
+            if e != current_ext.lstrip(".")
+        ]
     if family == "Note":
         return ["MD", "TXT", "HTML"]
     if ext in (".md", ".txt"):
@@ -441,7 +516,9 @@ def conversion_summary(path: str, target_format: str) -> str:
     if family == "Model3D":
         if target in ("STEP", "IGES"):
             return f"The 3D model will be converted to a faceted (triangle-based) {target} solid or shell."
-        return f"The 3D model will be tessellated (if needed) and converted to {target}."
+        return (
+            f"The 3D model will be tessellated (if needed) and converted to {target}."
+        )
     if family == "Font":
         if target in ("WOFF", "WOFF2"):
             return f"The font will be repackaged as a compressed {target} web font, keeping its existing outlines."
@@ -451,7 +528,14 @@ def conversion_summary(path: str, target_format: str) -> str:
     return "This file type is not supported by the installed local converters."
 
 
-def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int = 144, output_stem: str | None = None, progress_cb: Callable[[int, int, str], None] | None = None) -> list[str]:
+def convert_file(
+    input_path: str,
+    output_dir: str,
+    target_format: str,
+    dpi: int = 144,
+    output_stem: str | None = None,
+    progress_cb: Callable[[int, int, str], None] | None = None,
+) -> list[str]:
     """Convert one file locally and return every output path written."""
     fmt_norm = target_format.strip().lower()
     if fmt_norm in ("pdf (searchable)", "pdf_searchable"):
@@ -460,13 +544,17 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
     if target_format not in available_targets(input_path):
         target = normalized_format(target_format)
         if target not in [normalized_format(t) for t in available_targets(input_path)]:
-            raise ValueError(f"Cannot convert this {family or 'unknown'} file to {target_format} with installed local engines.")
+            raise ValueError(
+                f"Cannot convert this {family or 'unknown'} file to {target_format} with installed local engines."
+            )
     os.makedirs(output_dir, exist_ok=True)
     base = output_stem or os.path.splitext(os.path.basename(input_path))[0]
 
     # Handle Subtitle conversion
     if family == "Subtitle":
-        ext = ".txt" if target_format in ("TXT", "TEXT") else f".{target_format.lower()}"
+        ext = (
+            ".txt" if target_format in ("TXT", "TEXT") else f".{target_format.lower()}"
+        )
         output_path = os.path.join(output_dir, f"{base}{ext}")
         convert_subtitle(input_path, output_path, target_format)
         if progress_cb:
@@ -475,7 +563,15 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
 
     # Handle Playlist conversion
     if family == "Playlist":
-        ext = ".txt" if target_format in ("TXT", "TEXT") else (".m3u8" if target_format in ("M3U8", "M3U") else f".{target_format.lower()}")
+        ext = (
+            ".txt"
+            if target_format in ("TXT", "TEXT")
+            else (
+                ".m3u8"
+                if target_format in ("M3U8", "M3U")
+                else f".{target_format.lower()}"
+            )
+        )
         output_path = os.path.join(output_dir, f"{base}{ext}")
         convert_playlist(input_path, output_path, target_format)
         if progress_cb:
@@ -484,7 +580,9 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
 
     # Handle Calendar conversion
     if family == "Calendar":
-        ext = ".txt" if target_format in ("TXT", "TEXT") else f".{target_format.lower()}"
+        ext = (
+            ".txt" if target_format in ("TXT", "TEXT") else f".{target_format.lower()}"
+        )
         output_path = os.path.join(output_dir, f"{base}{ext}")
         convert_calendar(input_path, output_path, target_format)
         if progress_cb:
@@ -494,6 +592,7 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
     # Handle Video & Audio conversion
     if family in ("Video", "Audio"):
         from app.features.media import ops as media_ops
+
         ext = f".{target_format.lower().lstrip('.')}"
         output_path = os.path.join(output_dir, f"{base}{ext}")
         media_ops.convert_media(input_path, output_path, target_format=target_format)
@@ -501,10 +600,10 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
             progress_cb(1, 1, os.path.basename(output_path))
         return [output_path]
 
-
     # Handle Searchable PDF target
     if target_format == "PDF (Searchable)":
         from app.features.ocr import ops as ocr_ops
+
         stem_str = base if output_stem else f"{base}_searchable"
         output_path = os.path.join(output_dir, f"{stem_str}.pdf")
         ocr_ops.create_searchable_pdf(input_path, output_path, dpi=dpi)
@@ -537,11 +636,18 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
             elif ext == ".odp":
                 md = office_ops.odp_to_markdown(input_path)
             elif ext in (".xlsx", ".xlsm", ".ods"):
-                rows = office_ops.ods_to_rows(input_path) if ext == ".ods" else office_ops.xlsx_to_rows(input_path)
+                rows = (
+                    office_ops.ods_to_rows(input_path)
+                    if ext == ".ods"
+                    else office_ops.xlsx_to_rows(input_path)
+                )
                 if rows:
                     max_c = max(len(r) for r in rows)
                     norm = [r + [""] * (max_c - len(r)) for r in rows]
-                    tbl = ["| " + " | ".join(norm[0]) + " |", "| " + " | ".join(["---"] * max_c) + " |"]
+                    tbl = [
+                        "| " + " | ".join(norm[0]) + " |",
+                        "| " + " | ".join(["---"] * max_c) + " |",
+                    ]
                     for r in norm[1:]:
                         tbl.append("| " + " | ".join(r) + " |")
                     md = "\n".join(tbl)
@@ -566,7 +672,9 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
                 md = office_ops.odp_to_markdown(input_path)
             else:
                 md = office_ops.extract_text_from_office(input_path)
-            doc_html = build_styled_markdown_document(md, flavor="github", theme_mode="light", for_pdf=False)
+            doc_html = build_styled_markdown_document(
+                md, flavor="github", theme_mode="light", for_pdf=False
+            )
             with open(output_path, "w", encoding="utf-8") as f:
                 f.write(doc_html)
             if progress_cb:
@@ -599,9 +707,16 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
         if norm_t == "HTML":
             output_path = os.path.join(output_dir, f"{base}.html")
             notes = parse_enex(input_path)
-            parts = [f"<article><h2>{html.escape(n['title'])}</h2><p>{html.escape(n['content'])}</p></article>" for n in notes]
+            parts = [
+                f"<article><h2>{html.escape(n['title'])}</h2><p>{html.escape(n['content'])}</p></article>"
+                for n in notes
+            ]
             with open(output_path, "w", encoding="utf-8") as f:
-                f.write("<!DOCTYPE html><html><head><meta charset='utf-8'></head><body>" + "<hr/>".join(parts) + "</body></html>\n")
+                f.write(
+                    "<!DOCTYPE html><html><head><meta charset='utf-8'></head><body>"
+                    + "<hr/>".join(parts)
+                    + "</body></html>\n"
+                )
             if progress_cb:
                 progress_cb(1, 1, os.path.basename(output_path))
             return [output_path]
@@ -612,8 +727,14 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
         parts = []
         for note in notes:
             heading = f"## {note['title']}" if is_md else note["title"]
-            meta = " / ".join(v for v in (note.get("created"), *note.get("tags", [])) if v)
-            body = f"{heading}\n\n{meta}\n\n{note['content']}" if meta else f"{heading}\n\n{note['content']}"
+            meta = " / ".join(
+                v for v in (note.get("created"), *note.get("tags", [])) if v
+            )
+            body = (
+                f"{heading}\n\n{meta}\n\n{note['content']}"
+                if meta
+                else f"{heading}\n\n{note['content']}"
+            )
             parts.append(body)
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n\n---\n\n".join(parts) + "\n")
@@ -639,6 +760,7 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
     norm_t = normalized_format(target_format)
     if norm_t in ("TXT", "TEXT", "MD", "MARKDOWN"):
         from app.features.ocr import ops as ocr_ops
+
         is_md = norm_t in ("MD", "MARKDOWN")
         ext = ".md" if is_md else ".txt"
         output_path = os.path.join(output_dir, f"{base}{ext}")
@@ -651,6 +773,7 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
     target = norm_t
     if family == "Model3D":
         from app.features.model3d import ops as model3d_ops
+
         model = model3d_ops.load(input_path)
         output_path = os.path.join(output_dir, f"{base}{extension_for_format(target)}")
         model3d_ops.export(model, output_path, fmt=target)
@@ -671,12 +794,16 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
         return [output_path]
     if family == "PDF" and target == "DOCX":
         output_path = os.path.join(output_dir, f"{base}.docx")
-        pdf_ops.convert_scanned_pdf_to_docx(input_path, output_path, progress_cb=progress_cb)
+        pdf_ops.convert_scanned_pdf_to_docx(
+            input_path, output_path, progress_cb=progress_cb
+        )
         if progress_cb:
             progress_cb(1, 1, os.path.basename(output_path))
         return [output_path]
     if family == "PDF":
-        return pdf_ops.export_pdf_pages(input_path, output_dir, target, dpi, output_stem, progress_cb)
+        return pdf_ops.export_pdf_pages(
+            input_path, output_dir, target, dpi, output_stem, progress_cb
+        )
     if family == "Data":
         output_path = os.path.join(output_dir, f"{base}{extension_for_format(target)}")
         data_ops.save_data(data_ops.load_data(input_path), output_path, target)
@@ -690,7 +817,6 @@ def convert_file(input_path: str, output_dir: str, target_format: str, dpi: int 
     if progress_cb:
         progress_cb(1, 1, os.path.basename(output_path))
     return [output_path]
-
 
 
 @dataclass
@@ -746,22 +872,69 @@ def batch_convert_files(
 def convert_office_doc(input_path: str, output_path: str, target_format: str) -> str:
     # Convert Microsoft Office formats to PDF or structured data.
     import os
+    import subprocess
+    import shutil
+
     ext = os.path.splitext(input_path)[1].lower()
     tgt = target_format.lower().strip(".")
+
+    if ext in (".docx", ".xlsx", ".pptx", ".odt", ".ods", ".odp") and tgt == "pdf":
+        soffice = shutil.which("soffice") or shutil.which("libreoffice")
+        if soffice:
+            out_dir = os.path.dirname(os.path.abspath(output_path))
+            try:
+                subprocess.run(
+                    [
+                        soffice,
+                        "--headless",
+                        "--convert-to",
+                        "pdf",
+                        "--outdir",
+                        out_dir,
+                        input_path,
+                    ],
+                    check=True,
+                    capture_output=True,
+                )
+                base = os.path.splitext(os.path.basename(input_path))[0]
+                generated_pdf = os.path.join(out_dir, f"{base}.pdf")
+                if generated_pdf != output_path and os.path.exists(generated_pdf):
+                    os.rename(generated_pdf, output_path)
+                if os.path.exists(output_path):
+                    return output_path
+            except Exception:
+                pass
+
+    if ext == ".docx" and tgt in ("md", "markdown", "html", "pdf"):
+        pandoc = shutil.which("pandoc")
+        if pandoc:
+            try:
+                subprocess.run(
+                    [pandoc, input_path, "-o", output_path],
+                    check=True,
+                    capture_output=True,
+                )
+                if os.path.exists(output_path):
+                    return output_path
+            except Exception:
+                pass
 
     if ext == ".docx" and tgt == "pdf":
         try:
             import docx2pdf  # noqa: 22
+
             docx2pdf.convert(input_path, output_path)
             return output_path
         except Exception:
             from app.features.converter import office_ops  # noqa: 22
+
             return office_ops.office_to_pdf(input_path, output_path)
 
     if ext == ".xlsx" and tgt == "csv":
         try:
             import openpyxl  # noqa: 22
             import csv  # noqa: 22
+
             wb = openpyxl.load_workbook(input_path, data_only=True)
             sheet = wb.active
             with open(output_path, "w", newline="", encoding="utf-8") as f:
@@ -771,12 +944,12 @@ def convert_office_doc(input_path: str, output_path: str, target_format: str) ->
             return output_path
         except Exception:
             from app.features.converter import office_ops  # noqa: 22
+
             return office_ops.spreadsheet_to_csv(input_path, output_path)
 
     if ext in (".xlsx", ".pptx", ".docx") and tgt == "pdf":
         from app.features.converter import office_ops
+
         return office_ops.office_to_pdf(input_path, output_path)
 
     raise ValueError(f"Unsupported office conversion from {ext} to {tgt}")
-
-
