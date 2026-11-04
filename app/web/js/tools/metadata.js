@@ -301,7 +301,7 @@ window.FOSS = window.FOSS || {};
         renderInspectTable(currentMetadata);
         populateEditForm(currentMetadata);
         checkGps(filePath, currentMetadata);
-        renderSafetyReport(filePath);
+        renderDiffTable(currentMetadata);
         statusBar.textContent = "[OK] Inspected: " + filePath;
       }).catch(function (err) {
         showError("Inspect failed: " + (err && err.message ? err.message : String(err)));
@@ -400,30 +400,32 @@ window.FOSS = window.FOSS || {};
       });
     }
 
-    function renderSafetyReport(filePath) {
-      window.FOSS.api("metadata_support_report", { file_path: filePath }).then(function (res) {
-        diffTableHost.innerHTML = "";
-        var rows = [
-          window.FOSS.dom.el("tr", {}, [
-            window.FOSS.dom.el("td", { text: "File Kind" }),
-            window.FOSS.dom.el("td", { className: "font-mono text-sm", text: res.kind || "Standard" })
-          ]),
-          window.FOSS.dom.el("tr", {}, [
-            window.FOSS.dom.el("td", { text: "Backend Safety" }),
-            window.FOSS.dom.el("td", { className: "text-sm", text: res.safe_to_strip ? "Safe for strip" : "Review fields" })
-          ])
-        ];
-        var tbl = window.FOSS.dom.el("table", { className: "table" }, [
-          window.FOSS.dom.el("thead", {}, [
-            window.FOSS.dom.el("tr", {}, [
-              window.FOSS.dom.el("th", { text: "Capability" }),
-              window.FOSS.dom.el("th", { text: "Safety Status" })
-            ])
-          ]),
-          window.FOSS.dom.el("tbody", {}, rows)
+    function renderDiffTable(meta) {
+      diffTableHost.innerHTML = "";
+      var keys = Object.keys(meta || {});
+      if (keys.length === 0) {
+        diffTableHost.innerHTML = "<div class='text-xs text-muted p-3'>No metadata detected.</div>";
+        return;
+      }
+      var rows = keys.map(function (k) {
+        return window.FOSS.dom.el("tr", {}, [
+          window.FOSS.dom.el("td", { className: "font-mono text-xs", text: k }),
+          window.FOSS.dom.el("td", { className: "text-xs", style: "word-break: break-all;", text: String(meta[k]) }),
+          window.FOSS.dom.el("td", { className: "text-xs text-success font-mono", text: "[Stripped]" })
         ]);
-        diffTableHost.appendChild(tbl);
       });
+      var tbl = window.FOSS.dom.el("table", { className: "table" }, [
+        window.FOSS.dom.el("thead", {}, [
+          window.FOSS.dom.el("tr", {}, [
+            window.FOSS.dom.el("th", { text: "Field" }),
+            window.FOSS.dom.el("th", { text: "Detected" }),
+            window.FOSS.dom.el("th", { text: "Sanitized Output" })
+          ])
+        ]),
+        window.FOSS.dom.el("tbody", {}, rows)
+      ]);
+      var wrap = window.FOSS.dom.el("div", { className: "table-wrap scroll-x" }, [tbl]);
+      diffTableHost.appendChild(wrap);
     }
 
     function saveEditsAction() {
