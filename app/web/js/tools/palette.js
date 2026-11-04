@@ -601,7 +601,7 @@ window.FOSS = window.FOSS || {};
 
     // Swatch Cards Grid
     var swatchGrid = window.FOSS.dom.el("div", {
-      className: "palette-swatch-grid",
+      className: "row gap-2 flex-wrap",
       "data-testid": "palette-swatch-list"
     });
     swatchGrid.setAttribute("data-testalias", "palette-dominant-list");
