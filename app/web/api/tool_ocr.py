@@ -30,7 +30,9 @@ class OcrApiMixin:
         text_out = str(res_dict.get("text", ""))
         out_p = params.get("output_path")
         if out_p:
-            as_md = str(params.get("format", "")).lower() == "md" or str(out_p).endswith(".md")
+            as_md = str(params.get("format", "")).lower() == "md" or str(
+                out_p
+            ).endswith(".md")
             save_ocr_text(res_dict, str(out_p), as_markdown=as_md)
         return ok(text=text_out, output_path=out_p, language=lang, page_count=1)
 
@@ -54,11 +56,19 @@ class OcrApiMixin:
             status = inspect_pdf_searchable_status(file_path)
             parsed_pages = parse_page_selection(str(page_spec), status["page_count"])
 
-        res_dict = ocr_pdf(file_path, pages=parsed_pages, language=lang, dpi=dpi, force_overwrite=force_ow)
+        res_dict = ocr_pdf(
+            file_path,
+            pages=parsed_pages,
+            language=lang,
+            dpi=dpi,
+            force_overwrite=force_ow,
+        )
         text_out = str(res_dict.get("text", ""))
         out_p = params.get("output_path")
         if out_p:
-            as_md = str(params.get("format", "")).lower() == "md" or str(out_p).endswith(".md")
+            as_md = str(params.get("format", "")).lower() == "md" or str(
+                out_p
+            ).endswith(".md")
             save_ocr_text(res_dict, str(out_p), as_markdown=as_md)
 
         return ok(
@@ -108,6 +118,14 @@ class OcrApiMixin:
         return ok(installed=installed, supported=supported, catalog=raw_dict)
 
     @api_method
+    def ocr_scan_inputs(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Expand directory path into list of individual supported OCR files.
+        raw_paths = list(params.get("paths") or [])
+        recursive = bool(params.get("recursive", True))
+        expanded = expand_ocr_inputs([str(p) for p in raw_paths], recursive=recursive)
+        return ok(paths=expanded, count=len(expanded))
+
+    @api_method
     def ocr_create_searchable_pdf(self, params: dict[str, Any]) -> dict[str, Any]:
         # Synthesize searchable PDF document preserving existing searchable text.
         require(params, "input_path", "output_path")
@@ -124,7 +142,9 @@ class OcrApiMixin:
                 parsed_pages = page_spec
             else:
                 status = inspect_pdf_searchable_status(in_p)
-                parsed_pages = parse_page_selection(str(page_spec), status["page_count"])
+                parsed_pages = parse_page_selection(
+                    str(page_spec), status["page_count"]
+                )
 
         res_p = create_searchable_pdf(
             in_p,
@@ -145,7 +165,9 @@ class OcrApiMixin:
             return ok(results=[], count=0)
 
         recursive = bool(params.get("recursive", True))
-        expanded_files = expand_ocr_inputs([str(p) for p in raw_paths], recursive=recursive)
+        expanded_files = expand_ocr_inputs(
+            [str(p) for p in raw_paths], recursive=recursive
+        )
 
         lang = str(params.get("language", "eng"))
         dpi = int(params.get("dpi", 150))
@@ -163,14 +185,25 @@ class OcrApiMixin:
 
                 if make_pdf:
                     dest = str(dest_dir / f"{p_obj.stem}_searchable.pdf")
-                    res_p = create_searchable_pdf(p, dest, language=lang, dpi=dpi, force_overwrite=force_ow)
+                    res_p = create_searchable_pdf(
+                        p, dest, language=lang, dpi=dpi, force_overwrite=force_ow
+                    )
                     results.append({"path": p, "ok": True, "output_path": res_p})
                 else:
                     ext = ".md" if out_format == "md" else ".txt"
                     txt_dest = str(dest_dir / f"{p_obj.stem}_ocr{ext}")
-                    res_dict = ocr_file(p, language=lang, dpi=dpi, force_overwrite=force_ow)
+                    res_dict = ocr_file(
+                        p, language=lang, dpi=dpi, force_overwrite=force_ow
+                    )
                     save_ocr_text(res_dict, txt_dest, as_markdown=(out_format == "md"))
-                    results.append({"path": p, "ok": True, "output_path": txt_dest, "length": len(res_dict.get("text", ""))})
+                    results.append(
+                        {
+                            "path": p,
+                            "ok": True,
+                            "output_path": txt_dest,
+                            "length": len(res_dict.get("text", "")),
+                        }
+                    )
             except Exception as e:
                 results.append({"path": p, "ok": False, "error": str(e)})
 
