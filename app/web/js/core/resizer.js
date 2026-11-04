@@ -74,16 +74,28 @@ window.FOSS.components = window.FOSS.components || {};
     var sidebarResizer = target.closest(".sidebar-resizer, .resize-handle-e");
     var splitDivider = target.closest(".split-divider");
 
+    var disabledElements = [];
+    var targets = document.querySelectorAll("canvas, iframe");
+    for (var ti = 0; ti < targets.length; ti++) {
+      var tel = targets[ti];
+      disabledElements.push({ el: tel, prev: tel.style.getPropertyValue("pointer-events") });
+      tel.style.setProperty("pointer-events", "none");
+    }
+
     if (sidebarResizer) {
       e.preventDefault();
       e.stopPropagation();
       var sidebar = sidebarResizer.closest(".sidebar") || document.querySelector(".sidebar");
-      if (!sidebar) return;
+      if (!sidebar) {
+        restorePointers(disabledElements);
+        return;
+      }
       var rect = sidebar.getBoundingClientRect();
       activeDrag = {
         kind: "sidebar",
         startX: e.clientX,
-        startWidth: rect.width
+        startWidth: rect.width,
+        disabledElements: disabledElements
       };
       document.body.style.setProperty("cursor", "col-resize");
       document.body.style.setProperty("user-select", "none");
@@ -95,17 +107,12 @@ window.FOSS.components = window.FOSS.components || {};
       e.preventDefault();
       e.stopPropagation();
       var split = splitDivider.closest(".split");
-      if (!split) return;
+      if (!split) {
+        restorePointers(disabledElements);
+        return;
+      }
       var splitRect = split.getBoundingClientRect();
       var side = splitDivider.dataset.side || (split.classList.contains("split-main-first") ? "right" : "left");
-
-      var disabledElements = [];
-      var targets = document.querySelectorAll("canvas, iframe");
-      for (var ti = 0; ti < targets.length; ti++) {
-        var tel = targets[ti];
-        disabledElements.push({ el: tel, prev: tel.style.getPropertyValue("pointer-events") });
-        tel.style.setProperty("pointer-events", "none");
-      }
 
       activeDrag = {
         kind: "split",
@@ -119,7 +126,10 @@ window.FOSS.components = window.FOSS.components || {};
       document.body.style.setProperty("cursor", "col-resize");
       document.body.style.setProperty("user-select", "none");
       document.documentElement.classList.add("is-resizing");
+      return;
     }
+
+    restorePointers(disabledElements);
   }
 
   function handleMouseMove(e) {
@@ -148,6 +158,18 @@ window.FOSS.components = window.FOSS.components || {};
     }
   }
 
+  function restorePointers(elements) {
+    if (!elements) return;
+    for (var i = 0; i < elements.length; i++) {
+      var item = elements[i];
+      if (item.prev) {
+        item.el.style.setProperty("pointer-events", item.prev);
+      } else {
+        item.el.style.removeProperty("pointer-events");
+      }
+    }
+  }
+
   function handleMouseUp() {
     if (!activeDrag) return;
 
@@ -160,14 +182,7 @@ window.FOSS.components = window.FOSS.components || {};
     }
 
     if (activeDrag.disabledElements) {
-      for (var di = 0; di < activeDrag.disabledElements.length; di++) {
-        var item = activeDrag.disabledElements[di];
-        if (item.prev) {
-          item.el.style.setProperty("pointer-events", item.prev);
-        } else {
-          item.el.style.removeProperty("pointer-events");
-        }
-      }
+      restorePointers(activeDrag.disabledElements);
     }
 
     activeDrag = null;
