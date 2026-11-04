@@ -1,4 +1,60 @@
 {
+  "shared_app_shell_home_and_search-01": {
+    "section": "Shared app shell, Home, and search",
+    "text": "Home is the default workspace, with visible global search and a smart-TV-like grid of app tiles."
+  },
+  "shared_app_shell_home_and_search-02": {
+    "section": "Shared app shell, Home, and search",
+    "text": "`Ctrl+K` opens a compact command palette using the same local search engine."
+  },
+  "shared_app_shell_home_and_search-03": {
+    "section": "Shared app shell, Home, and search",
+    "text": "Search ranks tool names, categories, button keywords, and descriptions. It understands common intent aliases such as combine/merge, shrink/compress, and trim/crop, supports small typos, and accepts ca"
+  },
+  "shared_app_shell_home_and_search-04": {
+    "section": "Shared app shell, Home, and search",
+    "text": "Search results open the matching workspace and invoke the selected action."
+  },
+  "shared_app_shell_home_and_search-05": {
+    "section": "Shared app shell, Home, and search",
+    "text": "Home tiles use bundled local artwork for each workspace, with favorites and pins persisted locally in application settings."
+  },
+  "shared_app_shell_home_and_search-06": {
+    "section": "Shared app shell, Home, and search",
+    "text": "Home keeps a local recent-files and recent-outputs list, plus a favorites-only filter so frequent files and tools are easy to revisit."
+  },
+  "shared_app_shell_home_and_search-07": {
+    "section": "Shared app shell, Home, and search",
+    "text": "Home accepts dropped files and routes them to the correct workspace using the same file-routing rules as shell/file-association launches, including PDF, image, media, data, office, and playlist files."
+  },
+  "shared_app_shell_home_and_search-08": {
+    "section": "Shared app shell, Home, and search",
+    "text": "The app now uses a lightweight workspace registry to declare supported file types and route inputs, replacing one-off hard-coded case checks in the shell."
+  },
+  "shared_app_shell_home_and_search-09": {
+    "section": "Shared app shell, Home, and search",
+    "text": "The shell now includes local theme controls, accessibility text scaling, and keyboard navigation shortcuts for Home, search focus, and tab cycling."
+  },
+  "shared_app_shell_home_and_search-10": {
+    "section": "Shared app shell, Home, and search",
+    "text": "Every major action and button exposes a centralized, searchable tooltip dictionary so users can discover controls by label, description, and keyword from the main Home search."
+  },
+  "shared_app_shell_home_and_search-11": {
+    "section": "Shared app shell, Home, and search",
+    "text": "The app has reusable core modules for feature discovery, search, output format names, workers, and format-agnostic navigation."
+  },
+  "shared_app_shell_home_and_search-12": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Custom keyboard shortcuts**: Rebind every global shortcut (Home, Settings, Find a tool, fullscreen, text-size controls) from Settings > Keybindings, with per-shortcut reset-to-default and persistenc"
+  },
+  "shared_app_shell_home_and_search-13": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Keyboard-only Home tile navigation**: Home's app-tile grid is fully focusable and keyboard-operable: Tab onto a tile, use the arrow keys to move between tiles in any direction, and press Enter/Space"
+  },
+  "shared_app_shell_home_and_search-14": {
+    "section": "Shared app shell, Home, and search",
+    "text": "**Keyboard-only annotation editing**: PDF Studio and Image Studio annotation canvases support Tab/Shift+Tab to cycle selection between annotations, arrow keys to nudge the selected annotation (Shift f"
+  },
   "pdf_studio-01": {
     "section": "PDF Studio",
     "text": "Open and view PDFs with page navigation, fit, zoom, mouse-wheel zoom, trackpad pinch zoom, and canvas panning."

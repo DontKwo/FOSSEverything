@@ -11,7 +11,15 @@
       "default"
     ]
   },
+  "app/core/home_apps.py": {
+    "HomeApp.search_text": [
+      "self"
+    ]
+  },
   "app/core/theme.py": {
+    "add_theme_listener": [
+      "cb"
+    ],
     "notify_theme_changed": [],
     "default_palette": [
       "theme_name"
@@ -25,6 +33,9 @@
     "resolved_palette": [
       "settings"
     ],
+    "get_font_scale": [
+      "settings"
+    ],
     "parse_color_value": [
       "value",
       "fallback"
@@ -35,9 +46,6 @@
     ],
     "profile_key": [
       "slot"
-    ],
-    "get_font_scale": [
-      "settings"
     ]
   },
   "app/core/tool_registry.py": {
@@ -63,6 +71,9 @@
   },
   "app/core/tooltips.py": {
     "TooltipEntry.search_text": [
+      "self"
+    ],
+    "TooltipEntry.tooltip": [
       "self"
     ],
     "get_tooltip_for": [
@@ -97,6 +108,9 @@
     ]
   },
   "app/features/archive/ops.py": {
+    "compute_file_sha256": [
+      "path"
+    ],
     "archive_format_for_path": [
       "path"
     ],
@@ -105,12 +119,26 @@
       "output_path",
       "archive_format"
     ],
+    "create_multi_source_archive": [
+      "sources",
+      "output_path",
+      "fmt",
+      "compression_level"
+    ],
     "list_archive_contents": [
+      "archive_path"
+    ],
+    "inspect_archive_members": [
       "archive_path"
     ],
     "extract_archive": [
       "archive_path",
       "destination_dir"
+    ],
+    "extract_selected_members": [
+      "archive_path",
+      "members",
+      "output_dir"
     ],
     "convert_archive_format": [
       "input_path",
@@ -153,6 +181,9 @@
       "old_password",
       "new_password",
       "output_path"
+    ],
+    "test_archive": [
+      "archive_path"
     ]
   },
   "app/features/collage/ops.py": {
@@ -177,6 +208,82 @@
       "watermark_text",
       "watermark_color",
       "watermark_opacity"
+    ],
+    "transform_layer_bitmap": [
+      "layer"
+    ],
+    "render_freeform_composite": [
+      "canvas_width",
+      "canvas_height",
+      "layers",
+      "bg_rgba"
+    ],
+    "export_collage_layers": [
+      "canvas_width",
+      "canvas_height",
+      "layers",
+      "output_path",
+      "export_format",
+      "bg_rgba"
+    ]
+  },
+  "app/features/converter/office_ops.py": {
+    "extract_text_from_office": [
+      "path"
+    ],
+    "extract_text_docx": [
+      "path"
+    ],
+    "extract_text_pptx": [
+      "path"
+    ],
+    "xlsx_to_rows": [
+      "path",
+      "sheet_index"
+    ],
+    "ods_to_rows": [
+      "path",
+      "sheet_index"
+    ],
+    "extract_text_xlsx": [
+      "path"
+    ],
+    "extract_text_opendocument": [
+      "path"
+    ],
+    "docx_to_markdown": [
+      "path"
+    ],
+    "odt_to_markdown": [
+      "path"
+    ],
+    "pptx_to_markdown": [
+      "input_path"
+    ],
+    "odp_to_markdown": [
+      "path"
+    ],
+    "spreadsheet_to_csv": [
+      "input_path",
+      "output_path",
+      "sheet_index"
+    ],
+    "spreadsheet_to_json": [
+      "input_path",
+      "output_path"
+    ],
+    "office_to_pdf": [
+      "input_path",
+      "output_path"
+    ],
+    "docx_to_pdf": [
+      "input_path",
+      "output_path"
+    ],
+    "xlsx_to_csv": [
+      "input_path",
+      "output_path",
+      "sheet_index"
     ]
   },
   "app/features/converter/ops.py": {
@@ -196,6 +303,21 @@
       "input_path",
       "output_path"
     ],
+    "convert_subtitle": [
+      "input_path",
+      "output_path",
+      "target_format"
+    ],
+    "convert_playlist": [
+      "input_path",
+      "output_path",
+      "target_format"
+    ],
+    "convert_calendar": [
+      "input_path",
+      "output_path",
+      "target_format"
+    ],
     "source_family": [
       "path"
     ],
@@ -214,11 +336,19 @@
       "output_stem",
       "progress_cb"
     ],
+    "BatchConversionItem.to_dict": [
+      "self"
+    ],
     "batch_convert_files": [
       "items",
       "output_dir",
       "dpi",
       "progress_cb"
+    ],
+    "convert_office_doc": [
+      "input_path",
+      "output_path",
+      "target_format"
     ]
   },
   "app/features/data/ops.py": {
@@ -323,7 +453,8 @@
     ],
     "languagetool_backend_available": [],
     "grammar_check_text_advanced": [
-      "text"
+      "text",
+      "language"
     ],
     "generate_citation": [
       "entry",
@@ -421,7 +552,8 @@
       "text"
     ],
     "html_encode_numeric": [
-      "text"
+      "text",
+      "hex_format"
     ],
     "hex_encode_text": [
       "text",
@@ -455,6 +587,16 @@
     ]
   },
   "app/features/image/ops.py": {
+    "get_rembg_models_dir": [],
+    "image_get_rembg_models": [],
+    "migrate_existing_rembg_models": [],
+    "list_rembg_models_status": [],
+    "download_rembg_model": [
+      "model_name"
+    ],
+    "delete_rembg_model": [
+      "model_name"
+    ],
     "remove_background": [
       "img",
       "model_name"
@@ -465,7 +607,11 @@
     ],
     "batch_remove_background": [
       "file_paths",
-      "options"
+      "output_dir",
+      "model_name",
+      "filename_template",
+      "overwrite",
+      "progress_cb"
     ],
     "load_image": [
       "path"
@@ -491,20 +637,10 @@
     "circle_crop_image": [
       "img"
     ],
-    "build_rectangle_mask": [
+    "build_layer_mask": [
       "size",
+      "shape",
       "box",
-      "feather",
-      "invert"
-    ],
-    "build_ellipse_mask": [
-      "size",
-      "box",
-      "feather",
-      "invert"
-    ],
-    "build_circle_mask": [
-      "size",
       "radius",
       "feather",
       "invert"
@@ -538,7 +674,13 @@
     ],
     "adjust_image": [
       "img",
-      "adjustments"
+      "brightness",
+      "contrast",
+      "saturation",
+      "sharpness",
+      "blur_radius",
+      "grayscale",
+      "warmth"
     ],
     "auto_enhance": [
       "img"
@@ -583,12 +725,18 @@
       "img",
       "color",
       "blur_backdrop",
-      "blur_radius"
+      "blur_radius",
+      "original_img"
     ],
     "batch_process": [
       "paths",
       "output_dir",
-      "options",
+      "target_format",
+      "quality",
+      "resize_to",
+      "keep_aspect",
+      "remove_background_enabled",
+      "bg_model",
       "progress_cb"
     ],
     "image_to_ascii": [
@@ -621,13 +769,39 @@
   },
   "app/features/markdown/ops.py": {
     "render_markdown_to_html": [
-      "text"
+      "text",
+      "flavor"
+    ],
+    "build_styled_markdown_document": [
+      "text",
+      "flavor",
+      "theme_mode",
+      "for_pdf"
+    ],
+    "indent_lines": [
+      "text",
+      "spaces"
+    ],
+    "outdent_lines": [
+      "text",
+      "spaces"
+    ],
+    "toggle_task_item": [
+      "line"
+    ],
+    "callout_block": [
+      "kind",
+      "body"
+    ],
+    "footnote_snippet": [
+      "index"
     ],
     "wrap_or_placeholder": [
       "selected",
       "marker_open",
       "marker_close",
-      "placeholder"
+      "placeholder",
+      "marker"
     ],
     "toggle_heading": [
       "line",
@@ -642,14 +816,17 @@
       "line"
     ],
     "make_link": [
-      "selected"
+      "selected",
+      "url"
     ],
     "make_image": [
-      "selected"
+      "selected",
+      "url"
     ],
     "horizontal_rule": [],
     "code_block": [
-      "selected"
+      "selected",
+      "language"
     ],
     "markdown_table_skeleton": [
       "rows",
@@ -794,6 +971,23 @@
       "output_path",
       "subtitle_file",
       "font_size"
+    ],
+    "change_playback_speed": [
+      "input_path",
+      "output_path",
+      "speed_factor"
+    ],
+    "reverse_media": [
+      "input_path",
+      "output_path"
+    ],
+    "video_to_gif": [
+      "input_path",
+      "output_path",
+      "start_time",
+      "duration",
+      "fps",
+      "width"
     ]
   },
   "app/features/metadata/ops.py": {
@@ -815,6 +1009,10 @@
       "input_path",
       "output_path"
     ],
+    "export_metadata": [
+      "input_path",
+      "output_path"
+    ],
     "bulk_update_metadata": [
       "input_path",
       "output_path",
@@ -832,8 +1030,16 @@
     "metadata_support_report": [
       "path"
     ],
+    "extract_gps_info": [
+      "image_path"
+    ],
+    "strip_any_metadata": [
+      "input_path",
+      "output_path"
+    ],
     "gps_preview_for_metadata": [
-      "metadata"
+      "metadata",
+      "file_path"
     ],
     "camera_field_presets": [],
     "batch_metadata_cleanup": [
@@ -842,6 +1048,18 @@
       "recursive",
       "preview",
       "progress_cb"
+    ],
+    "get_office_metadata": [
+      "path"
+    ],
+    "strip_office_metadata": [
+      "input_path",
+      "output_path"
+    ],
+    "save_office_metadata": [
+      "input_path",
+      "output_path",
+      "edits"
     ]
   },
   "app/features/model3d/brep_backend.py": {
@@ -879,6 +1097,13 @@
     "brep_scale": [
       "shape",
       "factor"
+    ],
+    "brep_translate": [
+      "shape",
+      "vec"
+    ],
+    "brep_center": [
+      "shape"
     ],
     "mesh_to_brep": [
       "vertices",
@@ -946,7 +1171,8 @@
     ],
     "mark_destination_known": [
       "conn",
-      "ip"
+      "ip",
+      "known"
     ],
     "cached_domains": [
       "conn"
@@ -960,7 +1186,13 @@
     ],
     "search_history": [
       "conn",
-      "filters"
+      "process_name",
+      "domain",
+      "start_date",
+      "end_date",
+      "limit",
+      "query",
+      "process"
     ],
     "top_processes": [
       "conn",
@@ -1001,12 +1233,33 @@
     "DomainResolver.resolve": [
       "self",
       "ip"
+    ],
+    "DomainResolver.resolve_cached": [
+      "self",
+      "ip"
+    ],
+    "classify_connection_trust": [
+      "process_name",
+      "remote_ip",
+      "remote_domain"
     ]
   },
   "app/features/ocr/ops.py": {
     "get_supported_languages": [],
     "discover_tesseract_languages": [
       "data_dir"
+    ],
+    "parse_page_selection": [
+      "pages_str",
+      "total_pages"
+    ],
+    "inspect_pdf_searchable_status": [
+      "pdf_path",
+      "min_chars"
+    ],
+    "expand_ocr_inputs": [
+      "paths",
+      "recursive"
     ],
     "reconstruct_page_layout": [
       "words"
@@ -1021,14 +1274,16 @@
       "pages",
       "language",
       "dpi",
-      "progress_callback"
+      "progress_callback",
+      "force_overwrite"
     ],
     "ocr_file": [
       "file_path",
       "pages",
       "language",
       "dpi",
-      "progress_callback"
+      "progress_callback",
+      "force_overwrite"
     ],
     "create_searchable_pdf": [
       "input_path",
@@ -1036,7 +1291,9 @@
       "pages",
       "language",
       "dpi",
-      "progress_callback"
+      "progress_callback",
+      "force_overwrite",
+      "force_reocr"
     ],
     "save_ocr_text": [
       "ocr_result",
@@ -1053,6 +1310,9 @@
     ]
   },
   "app/features/palette/ops.py": {
+    "rgb_to_hsl": [
+      "rgb"
+    ],
     "ColorSwatch.rgb_str": [
       "self"
     ],
@@ -1307,6 +1567,27 @@
       "start_page",
       "end_page",
       "progress_cb"
+    ],
+    "parse_split_ranges": [
+      "spec",
+      "total_pages"
+    ],
+    "render_pdf_thumbnails": [
+      "path",
+      "pages",
+      "max_dim"
+    ],
+    "assemble_pdf_workspace": [
+      "sources",
+      "pages_spec",
+      "output_path",
+      "page_numbers"
+    ],
+    "export_pdf_groups": [
+      "sources",
+      "groups",
+      "output_dir",
+      "page_numbers"
     ]
   },
   "app/features/playlist/ops.py": {
@@ -1410,6 +1691,10 @@
       "subject",
       "body"
     ],
+    "make_whatsapp_payload": [
+      "phone",
+      "message"
+    ],
     "make_phone_payload": [
       "number"
     ],
@@ -1438,10 +1723,6 @@
       "org",
       "url",
       "address"
-    ],
-    "make_whatsapp_payload": [
-      "phone",
-      "message"
     ],
     "make_asset_tag_payload": [
       "asset_id",
@@ -1501,6 +1782,9 @@
     ]
   },
   "app/features/renamer/ops.py": {
+    "RenamePlan.to_dict": [
+      "self"
+    ],
     "save_preset": [
       "name",
       "mode",
@@ -1533,7 +1817,12 @@
       "file_paths"
     ],
     "save_cross_folder_plan": [
-      "config"
+      "name",
+      "source_folders",
+      "mode",
+      "params",
+      "target_dir",
+      "processed_files"
     ],
     "find_new_files_for_plan": [
       "source_folders",
@@ -1545,6 +1834,19 @@
     ],
     "execute_renames": [
       "plans"
+    ],
+    "natural_sort_key": [
+      "path"
+    ],
+    "sort_file_paths": [
+      "file_paths",
+      "sort_by"
+    ],
+    "preview_step_pipeline": [
+      "file_paths",
+      "steps",
+      "sort_by",
+      "auto_resolve_conflicts"
     ]
   },
   "app/features/resume/ops.py": {
@@ -1578,14 +1880,6 @@
       "before",
       "after"
     ],
-    "export_html": [
-      "resume",
-      "theme",
-      "layout",
-      "accent_color",
-      "palette",
-      "font_scale"
-    ],
     "save_profile": [
       "resume",
       "profile_name"
@@ -1593,6 +1887,27 @@
     "apply_profile": [
       "resume",
       "profile_name"
+    ],
+    "resolve_calibri_fonts": [],
+    "split_into_lines": [
+      "text",
+      "font",
+      "fontsize",
+      "max_width"
+    ],
+    "render_resume_pdf_bytes": [
+      "resume",
+      "font_pt"
+    ],
+    "render_resume_preview_pages": [
+      "resume",
+      "dpi",
+      "font_pt"
+    ],
+    "export_pdf": [
+      "resume",
+      "output_path",
+      "theme"
     ],
     "export_docx": [
       "resume",
@@ -1602,10 +1917,13 @@
     "export_markdown": [
       "resume"
     ],
-    "export_pdf": [
+    "export_html": [
       "resume",
-      "output_path",
-      "theme"
+      "theme",
+      "layout",
+      "accent_color",
+      "palette",
+      "font_scale"
     ]
   },
   "app/features/text_tools/ops.py": {
@@ -1622,6 +1940,9 @@
       "text"
     ],
     "to_camel_case": [
+      "text"
+    ],
+    "to_pascal_case": [
       "text"
     ],
     "to_snake_case": [
@@ -1715,6 +2036,38 @@
       "right_text"
     ]
   },
+  "app/features/unit_converter/ops.py": {
+    "normalize_unit_identifier": [
+      "unit_code"
+    ],
+    "format_magnitude": [
+      "val",
+      "mode",
+      "sig_figs"
+    ],
+    "get_unit_catalog": [],
+    "convert_unit_value": [
+      "value",
+      "from_unit",
+      "to_unit",
+      "fmt_mode",
+      "sig_figs"
+    ],
+    "convert_to_compatible_units": [
+      "value",
+      "from_unit",
+      "category_id",
+      "include_all_pint",
+      "fmt_mode",
+      "sig_figs"
+    ],
+    "convert_pint_expression": [
+      "expression",
+      "target_unit",
+      "fmt_mode",
+      "sig_figs"
+    ]
+  },
   "app/features/word_counter/ops.py": {
     "count_syllables_in_word": [
       "word"
@@ -1726,6 +2079,9 @@
     ],
     "extract_text_from_file": [
       "file_path"
+    ],
+    "generate_report": [
+      "stats"
     ]
   },
   "app/system/shell_integration.py": {

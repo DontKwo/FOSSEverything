@@ -57,5 +57,7 @@
   "app.system:shell_integration": "Qt UI component shell_integration replaced by pywebview implementation.",
   "app.core:theme": "PyQt6 theme module replaced by CSS theme tokens.",
   "app.features.converter.office_ops:extract_text_from_office": "Office extraction folded into converter and metadata.",
-  "app.features.office.ops:extract_text_from_office": "Office extraction folded into converter and metadata."
+  "app.features.office.ops:extract_text_from_office": "Office extraction folded into converter and metadata.",
+  "app.features.screenshot.ops:capture_full_screen": "Removed",
+  "app.features.screenshot.ops:capture_screen_region": "Removed"
 }
