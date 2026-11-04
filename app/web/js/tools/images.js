@@ -68,13 +68,11 @@ window.FOSS = window.FOSS || {};
     var sidebar = window.FOSS.dom.el("div", { className: "images-sidebar-pane" });
     var stage = window.FOSS.dom.el("div", { className: "images-stage-pane" });
 
-    // Model Selector
-    var modelSelect = window.FOSS.dom.el("select", {
-      className: "input",
-      "data-testid": "images-bg-model-select",
-      "aria-label": "Background Removal Model",
-      title: "Background Removal Model",
-      style: "width: 100%;"
+    // Model Selector State
+    var selectedModelId = "";
+    var modelCardsContainer = window.FOSS.dom.el("div", {
+      "data-testid": "images-bg-model-cards",
+      style: "display: grid; grid-template-columns: 1fr; gap: var(--space-2); width: 100%; max-height: 15rem; overflow-y: auto; padding-right: var(--space-1);"
     });
 
     // Model Manager Card
@@ -121,9 +119,9 @@ window.FOSS = window.FOSS || {};
         modelsCatalog = res.models;
         modelsDir = res.models_dir || "";
 
-        // Populate select
-        var previousVal = modelSelect.value;
-        modelSelect.innerHTML = "";
+        // Populate Model Cards
+        var previousVal = selectedModelId;
+        modelCardsContainer.innerHTML = "";
         var bestDefault = "";
 
         modelsCatalog.forEach(function (m) {
@@ -131,24 +129,57 @@ window.FOSS = window.FOSS || {};
           var mLabel = m.label || (m.name + (m.description ? " (" + m.description + ")" : ""));
           var mSize = m.download_size || (m.size_mb ? m.size_mb + " MB" : "");
           var isDownloaded = !!(m.downloaded || m.cached || m.local_cache);
-          var statusTag = isDownloaded ? "[Downloaded" + (mSize ? " - " + mSize : "") + "]" : "[Not Downloaded" + (mSize ? " - " + mSize : "") + "]";
-          var opt = window.FOSS.dom.el("option", {
-            value: mId,
-            text: statusTag + " " + mLabel
-          });
-          modelSelect.appendChild(opt);
           if (isDownloaded && !bestDefault) {
             bestDefault = mId;
           }
+
+          var pillClass = isDownloaded ? "badge success" : "badge-neutral";
+          var pillText = isDownloaded ? "Downloaded" : "Not Downloaded";
+
+          var card = window.FOSS.dom.el("div", {
+            className: "card row items-center justify-between" + (selectedModelId === mId ? " ring" : ""),
+            style: "cursor: pointer; padding: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-md); transition: border-color 0.2s, box-shadow 0.2s;",
+            onClick: function() {
+                selectedModelId = mId;
+                // Re-render selection ring
+                Array.from(modelCardsContainer.children).forEach(function(c) {
+                    c.style.setProperty("border-color", "var(--border)");
+                    c.classList.remove("ring");
+                });
+                card.style.setProperty("border-color", "var(--accent)");
+                card.classList.add("ring");
+            }
+          }, [
+             window.FOSS.dom.el("div", { className: "flex-col", style: "flex: 1;" }, [
+                 window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: mLabel }),
+                 window.FOSS.dom.el("span", { className: "text-muted text-xs", text: mSize || "Unknown Size" })
+             ]),
+             window.FOSS.dom.el("span", { className: pillClass + " text-xs", style: "padding: 0.125rem 0.375rem; border-radius: 9999px; white-space: nowrap;", text: pillText })
+          ]);
+
+
+
+          modelCardsContainer.appendChild(card);
         });
 
         if (previousVal) {
-          modelSelect.value = previousVal;
+          selectedModelId = previousVal;
         } else if (bestDefault) {
-          modelSelect.value = bestDefault;
+          selectedModelId = bestDefault;
         } else {
-          modelSelect.value = "isnet-general-use";
+          selectedModelId = "isnet-general-use";
         }
+
+        // Apply ring to initial selected card
+        Array.from(modelCardsContainer.children).forEach(function(c, i) {
+            if (modelsCatalog[i] && (modelsCatalog[i].id || modelsCatalog[i].name) === selectedModelId) {
+                c.style.setProperty("border-color", "var(--accent)");
+                c.classList.add("ring");
+            } else {
+                c.style.setProperty("border-color", "var(--border)");
+                c.classList.remove("ring");
+            }
+        });
 
         // Populate Manager list
         modelListContainer.innerHTML = "";
@@ -381,12 +412,12 @@ window.FOSS = window.FOSS || {};
           if (!chosenPath.toLowerCase().endsWith(".png")) {
             chosenPath = chosenPath + ".png";
           }
-          statusBar.textContent = "Removing background with " + modelSelect.value + "...";
+          statusBar.textContent = "Removing background with " + selectedModelId + "...";
           removeBtn.disabled = true;
 
           window.FOSS.api("images_remove_background", {
             file_path: currentFile,
-            model: modelSelect.value,
+            model: selectedModelId,
             backdrop: backdropSelect.value,
             color: colorPicker.value,
             blur_radius: parseInt(blurSlider.value, 10) || 25,
@@ -431,7 +462,7 @@ window.FOSS = window.FOSS || {};
           if (!outP.toLowerCase().endsWith(".png")) outP += ".png";
           window.FOSS.api("images_remove_background", {
             file_path: currentFile,
-            model: modelSelect.value,
+            model: selectedModelId,
             backdrop: backdropSelect.value,
             color: colorPicker.value,
             blur_radius: parseInt(blurSlider.value, 10) || 25,
@@ -464,7 +495,7 @@ window.FOSS = window.FOSS || {};
                 file_paths: res.paths,
                 output_dir: outD,
                 remove_background: true,
-                bg_model: modelSelect.value
+                bg_model: selectedModelId
               }).then(function () {
                 showResult(outD, "Batch Background Removal Complete");
                 statusBar.textContent = "Batch processing complete.";
@@ -481,7 +512,7 @@ window.FOSS = window.FOSS || {};
       className: "card flex-col gap-2",
       style: "width: 100%;"
     }, [
-      window.FOSS.components.field("AI Model", modelSelect),
+      window.FOSS.components.field("AI Model", modelCardsContainer),
       window.FOSS.components.field("Backdrop", backdropSelect),
       backdropOptionsRow,
       window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap", style: "margin-top: var(--space-2);" }, [
