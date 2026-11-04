@@ -25,7 +25,7 @@ def scenario_loaded(page: Page, fixtures: dict[str, str], api: Any) -> None:
     expect(flavor_sel).to_be_visible()
     flavor_sel.select_option("commonmark")
     page.wait_for_timeout(150)
-    flavor_sel.select_option("github")
+    flavor_sel.select_option("gfm")
     page.wait_for_timeout(150)
     calc_clear_overlays(page)
 
