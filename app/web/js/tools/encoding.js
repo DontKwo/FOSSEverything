@@ -260,9 +260,8 @@ window.FOSS = window.FOSS || {};
           return;
         }
         window.FOSS.api("select_save_path", {
-          title: "Save Encoded Payload",
           default_name: "payload.txt",
-          filters: [{ name: "Text File", extensions: ["txt"] }, { name: "All Files", extensions: ["*"] }]
+          file_types: [["Text File", "*.txt"], ["All Files", "*.*"]]
         }).then(function (res) {
           var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
           if (!outPath) return;
@@ -387,37 +386,47 @@ window.FOSS = window.FOSS || {};
         var apiMethod = "encoding_base64_encode_file";
         var params = { input_path: inPath };
 
-        if (s === "Base64") {
-          apiMethod = "encoding_base64_encode_file";
-          params.url_safe = false;
-        } else if (s === "Hex") {
-          apiMethod = "encoding_hex_encode_file";
-          params.spaced = true;
-        } else if (s === "Binary") {
-          apiMethod = "encoding_binary_encode_file";
-          params.spaced = true;
-        }
-
-        statusBar.textContent = "Encoding file with " + s + "...";
-        window.FOSS.api(apiMethod, params).then(function (res) {
-          if (res && res.ok) {
-            resultHost.innerHTML = "";
-            var card = window.FOSS.components.resultCard({
-              testid: "encoding-file-result",
-              title: "File Encoded Successfully",
-              outputPath: res.output_path || inPath,
-              details: [
-                { label: "Scheme", value: s },
-                { label: "Result Size", value: (res.result ? res.result.length + " characters" : "Output file written") }
-              ]
-            });
-            resultHost.appendChild(card);
-            statusBar.textContent = "[OK] File encoded with " + s;
-          } else {
-            showError((res && res.error) || "File encoding failed");
+        window.FOSS.api("select_save_path", {
+          default_name: "encoded_output.txt",
+          file_types: [["All Files", "*.*"]]
+        }).then(function (saveRes) {
+          var outPath = (saveRes && saveRes.paths && saveRes.paths.length > 0) ? saveRes.paths[0] : "";
+          if (!outPath) {
+            outPath = inPath + ".txt";
           }
-        }).catch(function (err) {
-          showError(err.message || String(err));
+          if (s === "Base64") {
+            apiMethod = "encoding_base64_encode_file";
+            params.url_safe = false;
+          } else if (s === "Hex") {
+            apiMethod = "encoding_hex_encode_file";
+            params.spaced = true;
+          } else if (s === "Binary") {
+            apiMethod = "encoding_binary_encode_file";
+            params.spaced = true;
+          }
+          params.output_path = outPath;
+
+          statusBar.textContent = "Encoding file with " + s + "...";
+          window.FOSS.api(apiMethod, params).then(function (res) {
+            if (res && res.ok) {
+              resultHost.innerHTML = "";
+              var card = window.FOSS.components.resultCard({
+                testid: "encoding-file-result",
+                title: "File Encoded Successfully",
+                outputPath: res.output_path || outPath,
+                details: [
+                  { label: "Scheme", value: s },
+                  { label: "Result Size", value: (res.result ? res.result.length + " characters" : "Output file written") }
+                ]
+              });
+              resultHost.appendChild(card);
+              statusBar.textContent = "[OK] File encoded with " + s;
+            } else {
+              showError((res && res.error) || "File encoding failed");
+            }
+          }).catch(function (err) {
+            showError(err.message || String(err));
+          });
         });
       }
     }, [window.FOSS.icons.el("upload", 14), window.FOSS.dom.el("span", { text: "Encode File" })]);
