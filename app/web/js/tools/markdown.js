@@ -196,10 +196,9 @@ window.FOSS = window.FOSS || {};
         updatePreview();
       }
     }, [
-      window.FOSS.dom.el("option", { value: "github", text: "GitHub Flavored Markdown (Default)", selected: activeFlavor === "github" || activeFlavor === "gfm" }),
-      window.FOSS.dom.el("option", { value: "gfm", text: "GFM", style: "display: none;" }),
+      window.FOSS.dom.el("option", { value: "gfm", text: "GFM", selected: activeFlavor === "gfm" || activeFlavor === "github" }),
       window.FOSS.dom.el("option", { value: "commonmark", text: "CommonMark", selected: activeFlavor === "commonmark" }),
-      window.FOSS.dom.el("option", { value: "strict", text: "Strict Standard Markdown", selected: activeFlavor === "strict" })
+      window.FOSS.dom.el("option", { value: "strict", text: "Strict", selected: activeFlavor === "strict" })
     ]);
 
     function exportHtml() {
