@@ -79,6 +79,7 @@ window.FOSS = window.FOSS || {};
   function renderScaleCustomizer(panel) {
     var currentScale = window.FOSS.store.get("ui_scale", 1.0);
     var scaleDebounceTimer = null;
+    var visualDebounceTimer = null;
 
     var scaleOutput = window.FOSS.dom.el("output", {
       id: "settings-scale-value",
@@ -97,6 +98,10 @@ window.FOSS = window.FOSS || {};
       onInput: function (e) {
         var val = parseFloat(e.target.value);
         scaleOutput.textContent = Math.round(val * 100) + "%";
+        if (visualDebounceTimer) cancelAnimationFrame(visualDebounceTimer);
+        visualDebounceTimer = requestAnimationFrame(function () {
+          window.FOSS.theme.applyScale(val);
+        });
         if (scaleDebounceTimer) clearTimeout(scaleDebounceTimer);
         scaleDebounceTimer = setTimeout(function () {
           window.FOSS.theme.setScale(val);
