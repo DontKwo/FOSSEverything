@@ -62,8 +62,9 @@ window.FOSS = window.FOSS || {};
 
   function append(parent, child) {
     if (!parent || !child) return;
+    var pNode = parent.nodeType ? parent : (parent.el && parent.el.nodeType ? parent.el : null);
     var node = child.nodeType ? child : (child.el && child.el.nodeType ? child.el : null);
-    if (node) parent.appendChild(node);
+    if (pNode && node) pNode.appendChild(node);
   }
 
   function qs(selector, parent) {
