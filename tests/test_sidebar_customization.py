@@ -101,3 +101,17 @@ class TestSidebarCustomization(unittest.TestCase):
             theme_js = f.read()
         self.assertIn("0.50", theme_js)
         self.assertIn("2.50", theme_js)
+
+    def test_resolve_sidebar_layout_permits_multiple_sections(self) -> None:
+        # Verify resolveSidebarLayout permits items across multiple sections.
+        router_path = os.path.join("app", "web", "js", "core", "router.js")
+        with open(router_path, "r", encoding="utf-8") as f:
+            router_js = f.read()
+
+        # Verify there's no global seen-set or deduplication blocking multiple section entries
+        self.assertNotIn("seenIds", router_js)
+        self.assertNotIn("isAlreadyInAnySection", router_js)
+
+        # Verify it specifically checks only the target section when appending
+        self.assertIn("targetSec.items.forEach", router_js)
+        self.assertIn("isAlreadyInTarget", router_js)
