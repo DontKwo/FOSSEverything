@@ -227,8 +227,37 @@ window.FOSS = window.FOSS || {};
         var meta = STEP_METAS[step.type] || { title: "Step " + (index + 1), icon: "edit" };
         var card = window.FOSS.dom.el("div", {
           className: "renamer-step-card" + (step.enabled ? "" : " disabled"),
-          "data-testid": "renamer-step-" + index
+          "data-testid": "renamer-step-" + index,
+          draggable: "true"
         });
+
+        card.ondragstart = function (e) {
+          e.dataTransfer.setData("application/json", JSON.stringify({ type: "renamer-step", index: index }));
+          card.classList.add("dragging");
+        };
+        card.ondragend = function (e) {
+          card.classList.remove("dragging");
+        };
+        card.ondragover = function (e) {
+          e.preventDefault();
+          card.classList.add("renamer-drag-over");
+        };
+        card.ondragleave = function (e) {
+          card.classList.remove("renamer-drag-over");
+        };
+        card.ondrop = function (e) {
+          e.preventDefault();
+          card.classList.remove("renamer-drag-over");
+          try {
+            var data = JSON.parse(e.dataTransfer.getData("application/json"));
+            if (data.type === "renamer-step" && data.index !== index) {
+              var draggedItem = currentSteps.splice(data.index, 1)[0];
+              currentSteps.splice(index, 0, draggedItem);
+              renderSteps();
+              schedulePreviewUpdate();
+            }
+          } catch (err) {}
+        };
 
         // Top bar: badge, up, down, enable switch, remove
         var enableCheckbox = window.FOSS.dom.el("input", {
@@ -296,10 +325,17 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.icons.el("x", 14)]);
 
+        var gripHandle = window.FOSS.dom.el("span", {
+          className: "text-muted",
+          style: "cursor: grab; display: inline-flex; align-items: center;",
+          "aria-hidden": "true"
+        }, [window.FOSS.icons.el("grip", 14)]);
+
         var cardHeader = window.FOSS.dom.el("div", {
           className: "row gap-2 items-center justify-between"
         }, [
           window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+            gripHandle,
             window.FOSS.icons.el(meta.icon, 14),
             window.FOSS.dom.el("span", {
               className: "font-semibold text-xs",
