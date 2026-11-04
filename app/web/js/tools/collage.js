@@ -1499,8 +1499,8 @@ window.FOSS = window.FOSS || {};
           { name: "Image (" + defaultExt + ")", extensions: [defaultExt.replace(".", "")] }
         ]
       }).then(function (res) {
-        if (!res || res.cancelled || !(res.path || (res.paths && res.paths[0]))) return;
-        var chosenPath = res.path || (res.paths && res.paths[0]);
+        if (!res || res.cancelled || !res.path) return;
+        var chosenPath = res.path;
         if (!chosenPath.toLowerCase().endsWith(defaultExt)) {
           chosenPath = chosenPath + defaultExt;
         }
