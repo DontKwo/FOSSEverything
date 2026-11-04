@@ -49,7 +49,7 @@ class UtilitiesAndDataFixesTests(unittest.TestCase):
 
     # 17.2: QR & Barcode generation & ICS handling
     def test_qr_barcode_bounding_box(self) -> None:
-        res = self.api.qr_generate_barcode({"payload": "12345678", "format": "code128"})
+        res = self.api.qr_generate_barcode({"payload": "12345678", "barcode_type": "code128"})
         self.assertTrue(res.get("ok"))
         self.assertIn("data_url", res)
         self.assertGreater(res.get("width", 0), 0)
