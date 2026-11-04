@@ -10,7 +10,7 @@ import io
 import logging
 import os
 import sys
-from typing import Callable, Sequence
+from typing import Callable, Sequence, Any
 from PIL import Image
 import pymupdf
 
@@ -77,14 +77,14 @@ def discover_tesseract_languages(data_dir: str | None = None) -> list[str]:
 
 
 
-def parse_page_selection(spec: str | None, total_pages: int) -> list[int]:
+def parse_page_selection(pages_str: str | None, total_pages: int) -> list[int]:
     # Parse 1-indexed page selection string into ordered, deduplicated page indices.
     if total_pages <= 0:
         return []
-    if spec is None or spec.strip().lower() in ("", "all", "*"):
+    if pages_str is None or pages_str.strip().lower() in ("", "all", "*"):
         return list(range(1, total_pages + 1))
 
-    tokens = [t.strip() for t in spec.split(",") if t.strip()]
+    tokens = [t.strip() for t in pages_str.split(",") if t.strip()]
     if not tokens:
         return list(range(1, total_pages + 1))
 
@@ -190,13 +190,13 @@ def expand_ocr_inputs(paths: Sequence[str], recursive: bool = True) -> list[str]
     return sorted(dict.fromkeys(collected))
 
 
-def reconstruct_page_layout(words: Sequence[dict] | None) -> dict:
+def reconstruct_page_layout(words: Sequence[dict[str, Any]] | None) -> dict[str, Any]:
     """Infer logical columns and simple table-like grouping from OCR words."""
     items = list(words or [])
     if not items:
         return {"layout_type": "single_column", "columns": [], "tables": []}
 
-    lines: list[list[dict]] = []
+    lines: list[list[dict[str, Any]]] = []
     for word in sorted(items, key=lambda x: (x.get("bbox", [0, 0, 0, 0])[1], x.get("bbox", [0, 0, 0, 0])[0])):
         bbox = word.get("bbox", [0, 0, 0, 0])
         y_center = (bbox[1] + bbox[3]) / 2
@@ -254,7 +254,7 @@ def ocr_image(
     image_input: str | bytes | Image.Image,
     language: str = "eng",
     dpi: int = 200,
-) -> dict:
+) -> dict[str, Any]:
     """Run Tesseract OCR on image path/bytes/PIL Image; return text and metadata."""
     if isinstance(image_input, Image.Image):
         pdf_bytes = _pil_to_pdf_bytes(image_input)
@@ -327,14 +327,14 @@ def ocr_pdf(
     dpi: int = 150,
     progress_callback: Callable[[int, int], None] | None = None,
     force_overwrite: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """Run OCR on a PDF document across all or selected pages."""
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
     page_texts: list[str] = []
-    words_by_page: list[list[dict]] = []
-    blocks_by_page: list[list[dict]] = []
+    words_by_page: list[list[dict[str, Any]]] = []
+    blocks_by_page: list[list[dict[str, Any]]] = []
 
     with pymupdf.open(pdf_path) as doc:
         total_pages = len(doc)
@@ -422,7 +422,7 @@ def ocr_file(
     dpi: int = 150,
     progress_callback: Callable[[int, int], None] | None = None,
     force_overwrite: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     """Universal OCR dispatcher for PDFs and any supported image format."""
     ext = os.path.splitext(file_path)[1].lower()
     if ext == ".pdf":
@@ -490,7 +490,7 @@ def create_searchable_pdf(
                 if words:
                     shape = page.new_shape()
                     for word_tuple in words:
-                        x0, y0, x1, y1, word_text = word_tuple[0], word_tuple[1], word_tuple[2], word_tuple[3], word_tuple[4]
+                        x0, y0, _x1, y1, word_text = word_tuple[0], word_tuple[1], word_tuple[2], word_tuple[3], word_tuple[4]
                         font_size = max(4.0, (y1 - y0) * 0.9)
                         shape.insert_text(
                             pymupdf.Point(x0, y1),
@@ -518,7 +518,7 @@ def create_searchable_pdf(
             if words:
                 shape = page.new_shape()
                 for word_tuple in words:
-                    x0, y0, x1, y1, word_text = word_tuple[0], word_tuple[1], word_tuple[2], word_tuple[3], word_tuple[4]
+                    x0, y0, _x1, y1, word_text = word_tuple[0], word_tuple[1], word_tuple[2], word_tuple[3], word_tuple[4]
                     font_size = max(4.0, (y1 - y0) * 0.9)
                     shape.insert_text(
                         pymupdf.Point(x0, y1),
@@ -537,7 +537,7 @@ def create_searchable_pdf(
 
 
 def save_ocr_text(
-    ocr_result: dict | str,
+    ocr_result: dict[str, Any] | str,
     output_path: str,
     as_markdown: bool = False,
 ) -> str:
@@ -565,7 +565,7 @@ def save_ocr_text(
     return output_path
 
 
-def export_ocr_hocr(ocr_result: dict, output_path: str) -> str:
+def export_ocr_hocr(ocr_result: dict[str, Any], output_path: str) -> str:
     """Export OCR results to a basic hOCR XML document."""
     word_pages = ocr_result.get("words_by_page") or [ocr_result.get("words", [])]
     hocr_pages = []
@@ -594,7 +594,7 @@ def export_ocr_hocr(ocr_result: dict, output_path: str) -> str:
     return output_path
 
 
-def export_ocr_alto(ocr_result: dict, output_path: str) -> str:
+def export_ocr_alto(ocr_result: dict[str, Any], output_path: str) -> str:
     """Export OCR results to ALTO XML for downstream document processing tools."""
     word_pages = ocr_result.get("words_by_page") or [ocr_result.get("words", [])]
     page_blocks = []
