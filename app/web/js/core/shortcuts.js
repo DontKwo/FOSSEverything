@@ -59,12 +59,17 @@ window.FOSS = window.FOSS || {};
   function init() {
     document.addEventListener("keydown", handleKeyDown);
 
+    var wheelRAF = null;
     window.addEventListener("wheel", function (e) {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         e.stopPropagation();
         if (e.deltaY !== 0 && window.FOSS.theme && window.FOSS.theme.stepScale) {
-          window.FOSS.theme.stepScale(e.deltaY < 0 ? 1 : -1);
+          if (wheelRAF) cancelAnimationFrame(wheelRAF);
+          wheelRAF = requestAnimationFrame(function () {
+            window.FOSS.theme.stepScale(e.deltaY < 0 ? 1 : -1);
+            wheelRAF = null;
+          });
         }
       }
     }, { passive: false });
