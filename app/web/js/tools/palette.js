@@ -636,7 +636,15 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
         copyAllBtn,
         formatSelect,
-        exportBtn
+        exportBtn,
+        window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm btn-icon",
+          "data-testid": "palette-defaults-btn",
+          "aria-label": "Palette defaults",
+          title: "Edit defaults",
+          type: "button",
+          onClick: function () { window.FOSS.toolDefaults.openEditor("palette", "Color Palette"); }
+        }, [window.FOSS.icons.el("settings", 14)])
       ])
     ]);
 

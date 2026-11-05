@@ -276,6 +276,13 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.icons.el("refresh-cw", 12), window.FOSS.dom.el("span", { text: "Load Sample" })])
       ]),
+      window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm btn-icon",
+        "data-testid": "resume-defaults-btn",
+        "aria-label": "Resume defaults",
+        title: "Edit defaults",
+        onclick: function () { window.FOSS.toolDefaults.openEditor("resume", "Resume Studio"); }
+      }, [window.FOSS.icons.el("settings", 14)]),
       window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
         pageBadgeEl = window.FOSS.dom.el("span", {
           className: "badge success text-xs",

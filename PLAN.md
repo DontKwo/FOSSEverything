@@ -81,36 +81,7 @@ The following items were verified working as of the current state of `redesign-n
 
 ## Section 2: Remaining Work
 
-### 2.1 Collage and Palette Tool Defaults Hook Completion
-
-**Issue**: `collage.js` and `palette.js` listen to `foss:tool-defaults-changed` via `applyDefaultsHook` but do not appear to call `window.FOSS.toolDefaults.openEditor(...)` from a gear/defaults button in their topbars.
-
-**Verify** by checking if each tool renders a `data-testid="<tool_id>-defaults-btn"` button in the topbar. If missing, add:
-```javascript
-window.FOSS.dom.el("button", {
-  className: "btn btn-icon btn-ghost btn-sm",
-  "data-testid": "<tool_id>-defaults-btn",
-  "aria-label": "Tool defaults",
-  title: "Edit defaults",
-  onClick: function () {
-    window.FOSS.toolDefaults.openEditor("<tool_id>", "<Tool Title>");
-  }
-}, [window.FOSS.icons.el("settings", 16)])
-```
-
-Run `tests/test_web_static.py::test_tool_data_testids` to verify testid prefix compliance after adding.
-
-### 2.2 Resume Defaults Gear Button
-
-**Issue**: `resume.js` calls `loadDefaults()` on init and has a `defaultsLoaded` flag but it is unclear if the gear button (`resume-defaults-btn`) exists in the topbar.
-
-**Verify**: Search for `"resume-defaults-btn"` in `resume.js`. If missing, add the gear button to the resume topbar exactly as described in 2.1.
-
-### 2.3 Network Monitor Defaults Gear Button
-
-**Issue**: `network_monitor.js` reads defaults via `window.FOSS.toolDefaults.get(...)` but may not expose a `network_monitor-defaults-btn` topbar button.
-
-**Verify** and add if missing, following the same pattern as 2.1.
+*All items complete. No remaining work.*
 
 ---
 

@@ -412,12 +412,21 @@ window.FOSS = window.FOSS || {};
     }
     updatePills();
 
+    var nmDefaultsBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm btn-icon",
+      "data-testid": "network_monitor-defaults-btn",
+      "aria-label": "Network monitor defaults",
+      title: "Edit defaults",
+      onclick: function () { window.FOSS.toolDefaults.openEditor("network_monitor", "Network Traffic Monitor"); }
+    }, [window.FOSS.icons.el("settings", 14)]);
+
     var toolbarTop = window.FOSS.dom.el("div", { className: "row gap-sm items-center mb-sm flex-wrap" }, [
       filterInput,
       autoRefreshSelect,
       refreshBtn,
       markKnownBtn,
-      markUnknownBtn
+      markUnknownBtn,
+      nmDefaultsBtn
     ]);
 
     var toolbarBottom = window.FOSS.dom.el("div", { className: "row justify-between items-center mb-md flex-wrap gap-sm" }, [
