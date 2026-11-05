@@ -1,0 +1,6 @@
+#EXTM3U
+#PLAYLIST:Sample Tracks
+#EXTINF:2,FOSS Everything - Sample Tone
+sample.wav
+#EXTINF:2,FOSS Everything - Sample Clip
+sample.mp4

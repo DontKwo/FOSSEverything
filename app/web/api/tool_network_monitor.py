@@ -4,6 +4,8 @@ from app.features.network_monitor.db import (
     connect,
     connections_over_time,
     db_path,
+    destination_status,
+    known_destinations,
     mark_destination_known,
     per_app_summary,
     prune_older_than,
@@ -59,6 +61,7 @@ class NetworkMonitorApiMixin:
                 "status": c.status,
                 "domain": c.remote_domain,
                 "is_new": c.is_new_destination,
+                "is_known": c.is_known,
                 "first_seen": c.first_seen,
                 "bytes_sent": c.bytes_sent,
                 "bytes_recv": c.bytes_recv,
@@ -118,9 +121,10 @@ class NetworkMonitorApiMixin:
             procs = [dict(r) for r in top_processes(conn, limit=int(params.get("limit", 10)))]
             timeline = [dict(r) for r in connections_over_time(conn, days=int(params.get("days", 7)))]
             unknowns = [dict(r) for r in unknown_destinations(conn)[:50]]
+            known = [dict(r) for r in known_destinations(conn)[:50]]
         finally:
             conn.close()
-        return ok(top_domains=domains, top_processes=procs, timeline=timeline, unknown_destinations=unknowns)
+        return ok(top_domains=domains, top_processes=procs, timeline=timeline, unknown_destinations=unknowns, known_destinations=known)
 
     @api_method
     def network_apps(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -134,7 +138,7 @@ class NetworkMonitorApiMixin:
 
     @api_method
     def network_manage_destinations(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Mark remote IP or domain as approved known destination.
+        # Persist a remote IP or domain as known (default) or unknown.
         require(params, "destination")
         dest = str(params["destination"]).strip()
         cleaned_dest = dest.split(":")[0] if ":" in dest and not dest.startswith("[") else dest
@@ -142,10 +146,23 @@ class NetworkMonitorApiMixin:
         conn = connect()
         try:
             mark_destination_known(conn, cleaned_dest, known=known)
+            status = destination_status(conn, cleaned_dest)
             unknowns = [dict(r) for r in unknown_destinations(conn)]
         finally:
             conn.close()
-        return ok(destination=cleaned_dest, known=known, remaining_unknowns=len(unknowns))
+        return ok(destination=cleaned_dest, known=known, status=status, remaining_unknowns=len(unknowns))
+
+    @api_method
+    def network_destination_status(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Report the stored known/unknown classification of a destination.
+        require(params, "destination")
+        dest = str(params["destination"]).strip()
+        conn = connect()
+        try:
+            status = destination_status(conn, dest)
+        finally:
+            conn.close()
+        return ok(destination=dest, status=status, known=status == "known")
 
     @api_method
     def network_database_ops(self, params: dict[str, Any]) -> dict[str, Any]:

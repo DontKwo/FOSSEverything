@@ -63,19 +63,23 @@ def scenario_profiles(page: Page, fixtures: dict[str, str], api: Any) -> None:
 
 
 def scenario_preview(page: Page, fixtures: dict[str, str], api: Any) -> None:
-    # Render preview iframe and export structured Markdown resume.
+    # Exercise preview toolbar modes and export plain text through the Save As dialog.
     sample = fixtures.get("sample.txt", "sample.txt")
-    out_md = str(Path(sample).parent / "out_resume.md")
-    api._dialog_answers.append(out_md)
+    out_txt = str(Path(sample).parent / "out_resume.txt")
+    api._dialog_answers.append(out_txt)
 
     page.evaluate("window.FOSS.router.open('resume', 'preview')")
     page.wait_for_timeout(300)
 
     expect(page.locator("[data-testid='resume-preview-stage']")).to_be_visible()
-    page.click("[data-testid='resume-export-md-btn']")
+    for testid in ["resume-fit-page", "resume-zoom-50", "resume-zoom-125", "resume-fit-width"]:
+        page.click(f"[data-testid='{testid}']")
+        expect(page.locator(f"[data-testid='{testid}']")).to_have_attribute("aria-pressed", "true")
+    page.click("[data-testid='resume-export-txt-btn']")
     page.wait_for_timeout(300)
 
     expect(page.locator("[data-testid='resume-export-result']")).to_be_visible()
+    assert Path(out_txt).exists()
     calc_clear_overlays(page)
 
 

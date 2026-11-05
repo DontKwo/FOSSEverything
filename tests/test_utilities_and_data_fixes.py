@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 
+import h5py
 from PIL import Image
 
 from app.features.encoding.ops import html_encode_numeric
@@ -108,14 +109,27 @@ class UtilitiesAndDataFixesTests(unittest.TestCase):
     # 17.4: Data suite fixes (HDF5, format_css, json_schema, cron)
     def test_data_hdf5_real_bytes(self) -> None:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as tf:
-            # Write standard 64-byte HDF5 superblock header
-            tf.write(b"\x89HDF\r\n\x1a\n" + b"\x00" * 56)
             h5_path = tf.name
         try:
+            with h5py.File(h5_path, "w") as hf:
+                hf.create_group("grp").create_dataset("values", data=[1, 2, 3])
             self.assertTrue(is_hdf5_file(h5_path))
             info = inspect_hdf5(h5_path)
             self.assertIsInstance(info, dict)
             self.assertEqual(info.get("format"), "HDF5")
+            self.assertEqual(info["summary"]["datasets_count"], 1)
+        finally:
+            if os.path.exists(h5_path):
+                os.remove(h5_path)
+
+    def test_data_hdf5_corrupt_header_reports_clean_error(self) -> None:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".h5") as tf:
+            tf.write(b"\x89HDF\r\n\x1a\n" + b"\x00" * 56)
+            h5_path = tf.name
+        try:
+            res = self.api.data_inspect_structure({"file_path": h5_path})
+            self.assertFalse(res.get("ok"))
+            self.assertIn("error", res)
         finally:
             if os.path.exists(h5_path):
                 os.remove(h5_path)

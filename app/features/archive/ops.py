@@ -22,6 +22,43 @@ def compute_file_sha256(path: str) -> str:
     return hasher.hexdigest()
 
 
+def verify_archive_sha256(archive_path: str, expected_sha256: str) -> dict[str, Any]:
+    # Compare the archive file SHA-256 digest with an expected hex value.
+    actual = compute_file_sha256(os.path.abspath(archive_path))
+    expected = expected_sha256.strip().lower()
+    return {"valid": actual == expected, "actual": actual, "expected": expected}
+
+
+def hash_archive_members(archive_path: str) -> list[dict[str, Any]]:
+    # Stream every file member through SHA-256 without extracting to disk.
+    archive_path = os.path.abspath(archive_path)
+    lower = archive_path.lower()
+    entries: list[dict[str, Any]] = []
+    if lower.endswith(".zip"):
+        with zipfile.ZipFile(archive_path, "r") as zip_file:
+            for info in zip_file.infolist():
+                if info.is_dir():
+                    continue
+                hasher = hashlib.sha256()
+                with zip_file.open(info) as stream:
+                    while chunk := stream.read(65536):
+                        hasher.update(chunk)
+                entries.append({"path": info.filename, "size_bytes": int(info.file_size), "sha256": hasher.hexdigest()})
+    elif lower.endswith((".tar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".tar.bz2", ".tbz2")):
+        with tarfile.open(archive_path, "r:*") as tar_file:
+            for member in tar_file:
+                stream = tar_file.extractfile(member) if member.isfile() else None
+                if stream is None:
+                    continue
+                hasher = hashlib.sha256()
+                while chunk := stream.read(65536):
+                    hasher.update(chunk)
+                entries.append({"path": member.name, "size_bytes": int(member.size), "sha256": hasher.hexdigest()})
+    else:
+        raise ValueError(f"Unsupported archive type: {archive_path}")
+    return entries
+
+
 def archive_format_for_path(path: str) -> str:
     # Return the archive format implied by a filename.
     lower = path.lower()
@@ -119,7 +156,7 @@ def create_multi_source_archive(
         }
         tar_mode = mode_map.get(fmt_clean, "w:")
         tar_kwargs: dict[str, Any] = {}
-        if fmt_clean == "tar.gz" and compression_level in (0, 6, 9):
+        if fmt_clean == "tar.gz" and 0 <= compression_level <= 9:
             tar_kwargs["compresslevel"] = compression_level
         with tarfile.open(output_path, tar_mode, **tar_kwargs) as tar_file:
             for source_entry in sources:

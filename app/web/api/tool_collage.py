@@ -36,6 +36,19 @@ def _parse_rgba(val: Any, default_alpha: int = 255) -> tuple[int, int, int, int]
     return (240, 240, 240, default_alpha)
 
 
+def _calc_save_flat(image_obj: Image.Image, out_path: str) -> None:
+    # Save a flattened collage by extension, compositing transparency onto white for JPEG.
+    ext = os.path.splitext(out_path)[1].lower()
+    if ext in (".jpg", ".jpeg"):
+        backdrop = Image.new("RGBA", image_obj.size, (255, 255, 255, 255))
+        backdrop.alpha_composite(image_obj.convert("RGBA"))
+        backdrop.convert("RGB").save(out_path, quality=92)
+    elif ext == ".webp":
+        image_obj.save(out_path, quality=90)
+    else:
+        image_obj.save(out_path, format="PNG")
+
+
 class CollageApiMixin:
     @api_method
     def collage_presets(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -87,7 +100,7 @@ class CollageApiMixin:
             watermark_text=str(wm_text) if wm_text else None,
         )
         os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
-        res_img.save(out_path)
+        _calc_save_flat(res_img, out_path)
         return ok(output_path=out_path, width=res_img.width, height=res_img.height)
 
     @api_method
@@ -196,12 +209,5 @@ class CollageApiMixin:
         # Flattened mode
         composite = render_freeform_composite(canvas_w, canvas_h, layers, bg_rgba=bg_rgba)
         os.makedirs(os.path.dirname(os.path.abspath(out_p)), exist_ok=True)
-        ext = os.path.splitext(out_p)[1].lower()
-        if ext in (".jpg", ".jpeg"):
-            composite.convert("RGB").save(out_p, quality=92)
-        elif ext == ".webp":
-            composite.save(out_p, quality=90)
-        else:
-            composite.save(out_p, format="PNG")
-
+        _calc_save_flat(composite, out_p)
         return ok(output_path=out_p, width=composite.width, height=composite.height)

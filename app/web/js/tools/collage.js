@@ -3,9 +3,28 @@
 window.FOSS = window.FOSS || {};
 
 (function () {
+  var applyDefaultsHook = null;
+  var FLAT_TYPES = {
+    png: { name: "PNG Image (*.png)", extensions: ["png"] },
+    jpeg: { name: "JPEG Image (*.jpg)", extensions: ["jpg", "jpeg"] }
+  };
+  var LAYERED_TYPES = {
+    psd: { name: "Photoshop Layered (*.psd)", extensions: ["psd"] },
+    ora: { name: "OpenRaster Layered (*.ora)", extensions: ["ora"] },
+    zip: { name: "Transparent PNG Stack (*.zip)", extensions: ["zip"] },
+    tiff: { name: "Multi-Layer TIFF (*.tiff)", extensions: ["tiff", "tif"] }
+  };
+
+  window.addEventListener("foss:tool-defaults-changed", function (evt) {
+    if (evt.detail && evt.detail.toolId === "collage" && applyDefaultsHook) applyDefaultsHook();
+  });
+
   function renderMain(panel, ctx) {
     panel.innerHTML = "";
     panel.setAttribute("data-testid", "tool-page-collage");
+    var toolDefaults = window.FOSS.toolDefaults.all("collage");
+    var defaultColumns = Math.min(5, Math.max(1, parseInt(toolDefaults.columns, 10) || 2));
+    var defaultPadding = Math.min(60, Math.max(0, parseInt(toolDefaults.padding, 10)));
 
     var activeMode = "grid"; // "grid" or "freeform"
     var exportMode = "flattened"; // "flattened" or "layered"
@@ -13,8 +32,8 @@ window.FOSS = window.FOSS || {};
     var selectedLayerId = null;
     var canvasWidth = 1920;
     var canvasHeight = 1080;
-    var isTransparent = false;
-    var bgColor = "#f0f0f0";
+    var isTransparent = !!toolDefaults.transparent_bg;
+    var bgColor = String(toolDefaults.bg_color);
     var loadedBitmaps = {}; // source_path -> HTMLImageElement
 
     var statusBar = window.FOSS.dom.el("div", {
@@ -146,6 +165,7 @@ window.FOSS = window.FOSS || {};
       type: "checkbox",
       id: "collage-transparent-chk-id",
       className: "checkbox",
+      checked: isTransparent,
       "data-testid": "collage-transparent-chk",
       "aria-label": "Transparent background",
       title: "Transparent background",
@@ -160,7 +180,7 @@ window.FOSS = window.FOSS || {};
     var hiddenColorPicker = window.FOSS.dom.el("input", {
       type: "color",
       hidden: true,
-      value: "#f0f0f0",
+      value: bgColor,
       "aria-label": "Pick background color",
       title: "Pick background color",
       onChange: function () {
@@ -177,7 +197,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "collage-bg-color",
       "aria-label": "Background color hex",
       title: "Background color hex",
-      value: "#f0f0f0",
+      value: bgColor,
       onInput: function () {
         bgColor = bgColorInput.value;
         renderCanvas();
@@ -559,11 +579,12 @@ window.FOSS = window.FOSS || {};
       onChange: updateGridPreview
     }, [
       window.FOSS.dom.el("option", { value: "1", text: "1" }),
-      window.FOSS.dom.el("option", { value: "2", selected: true, text: "2" }),
+      window.FOSS.dom.el("option", { value: "2", text: "2" }),
       window.FOSS.dom.el("option", { value: "3", text: "3" }),
       window.FOSS.dom.el("option", { value: "4", text: "4" }),
       window.FOSS.dom.el("option", { value: "5", text: "5" })
     ]);
+    colsSelect.value = String(defaultColumns);
 
     var fitSelect = window.FOSS.dom.el("select", {
       className: "select w-28",
@@ -583,7 +604,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "collage-padding-input",
       "aria-label": "Cell padding",
       title: "Cell padding",
-      value: 12,
+      value: defaultPadding,
       min: 0,
       max: 60,
       onInput: updateGridPreview
@@ -684,8 +705,7 @@ window.FOSS = window.FOSS || {};
       title: "Flattened format"
     }, [
       window.FOSS.dom.el("option", { value: "png", text: "PNG (Lossless)" }),
-      window.FOSS.dom.el("option", { value: "jpeg", text: "JPEG (Compressed)" }),
-      window.FOSS.dom.el("option", { value: "webp", text: "WEBP (Modern Web)" })
+      window.FOSS.dom.el("option", { value: "jpeg", text: "JPEG (Compressed)" })
     ]);
 
     var layeredFormatSelect = window.FOSS.dom.el("select", {
@@ -736,7 +756,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "collage-split"
     }, [
       stagePane,
-      window.FOSS.components.splitDivider({ vertical: true }),
+      window.FOSS.components.splitDivider({ vertical: true, side: "right" }),
       sidebarPane
     ]);
 
@@ -1477,20 +1497,17 @@ window.FOSS = window.FOSS || {};
       clearError();
 
       if (exportMode === "layered") {
-        var fmt = layeredFormatSelect.value || "psd";
-        var ext = "." + fmt;
+        var preferredLayered = layeredFormatSelect.value || "psd";
+        var layeredOrder = [preferredLayered].concat(Object.keys(LAYERED_TYPES).filter(function (key) { return key !== preferredLayered; }));
         window.FOSS.api("select_save_path", {
           title: "Save Layered Composition",
-          default_name: "layers_composition" + ext,
-          file_types: [
-            { name: fmt.toUpperCase() + " Project", extensions: [fmt] }
-          ]
+          default_name: "collage",
+          file_types: layeredOrder.map(function (key) { return LAYERED_TYPES[key]; })
         }).then(function (res) {
           if (!res || res.cancelled || !(res.path || (res.paths && res.paths[0]))) return;
           var chosenPath = res.path || (res.paths && res.paths[0]);
-          if (!chosenPath.toLowerCase().endsWith(ext)) {
-            chosenPath = chosenPath + ext;
-          }
+          var chosenExt = chosenPath.split(".").pop().toLowerCase();
+          var fmt = chosenExt === "tif" ? "tiff" : chosenExt;
 
           statusBar.textContent = "Exporting layered project...";
           window.FOSS.api("collage_export_freeform", {
@@ -1530,20 +1547,15 @@ window.FOSS = window.FOSS || {};
         return;
       }
 
-      var activeExportFormat = flatFormatSelect.value || "png";
-      var defaultExt = activeExportFormat === "jpeg" ? ".jpg" : ".png";
+      var preferredFlat = flatFormatSelect.value || "png";
+      var flatOrder = [preferredFlat].concat(Object.keys(FLAT_TYPES).filter(function (key) { return key !== preferredFlat; }));
       window.FOSS.api("select_save_path", {
         title: "Save Collage",
-        default_name: "collage" + defaultExt,
-        file_types: [
-          { name: "Image (" + defaultExt + ")", extensions: [defaultExt.replace(".", "")] }
-        ]
+        default_name: "collage",
+        file_types: flatOrder.map(function (key) { return FLAT_TYPES[key]; })
       }).then(function (res) {
         if (!res || res.cancelled || !res.path) return;
         var chosenPath = res.path;
-        if (!chosenPath.toLowerCase().endsWith(defaultExt)) {
-          chosenPath = chosenPath + defaultExt;
-        }
 
         statusBar.textContent = "Exporting collage...";
         if (activeMode === "freeform") {
@@ -1612,6 +1624,19 @@ window.FOSS = window.FOSS || {};
       handleSave();
     }
 
+    applyDefaultsHook = function () {
+      var fresh = window.FOSS.toolDefaults.all("collage");
+      isTransparent = !!fresh.transparent_bg;
+      bgColor = String(fresh.bg_color);
+      transparentChk.checked = isTransparent;
+      bgColorInput.value = bgColor;
+      hiddenColorPicker.value = bgColor;
+      colsSelect.value = String(Math.min(5, Math.max(1, parseInt(fresh.columns, 10) || 2)));
+      paddingInput.value = Math.min(60, Math.max(0, parseInt(fresh.padding, 10)));
+      renderCanvas();
+      if (activeMode === "grid") updateGridPreview();
+    };
+
     renderLayerList();
     renderCanvas();
   }
@@ -1621,8 +1646,14 @@ window.FOSS = window.FOSS || {};
     title: "Collage & Layers Studio",
     navName: "Collage",
     category: "Visuals",
-    icon: "grid",
+    icon: "collage",
     workbench: true,
+    defaults: [
+      { key: "transparent_bg", label: "Transparent background by default", type: "toggle", default: false },
+      { key: "bg_color", label: "Default background color", type: "color", default: "#ffffff" },
+      { key: "columns", label: "Default grid columns", type: "number", min: 1, max: 5, step: 1, default: 2 },
+      { key: "padding", label: "Default cell padding", type: "number", min: 0, max: 60, step: 1, default: 12 }
+    ],
     description: "Freeform multi-layer canvas with Z-ordering, transforms, grid collages, and layered PSD/ORA/ZIP export.",
     onFiles: function (paths) {
       if (!paths || !paths.length) return;

@@ -2,6 +2,57 @@
 window.FOSS = window.FOSS || {};
 
 (function () {
+  var LANGUAGES = {
+    eng: "English",
+    spa: "Spanish",
+    fra: "French",
+    deu: "German",
+    ita: "Italian",
+    por: "Portuguese",
+    chi_sim: "Chinese (Simplified)",
+    chi_tra: "Chinese (Traditional)",
+    jpn: "Japanese",
+    kor: "Korean",
+    rus: "Russian",
+    ara: "Arabic",
+    hin: "Hindi",
+    nld: "Dutch",
+    pol: "Polish",
+    tur: "Turkish",
+    ukr: "Ukrainian",
+    vie: "Vietnamese"
+  };
+  var INPUT_TYPES = ["pdf", "png", "jpg", "jpeg", "webp", "tif", "tiff", "bmp"];
+
+  function ocrDefault(key, fallback) {
+    return window.FOSS.toolDefaults.get("ocr", key, fallback);
+  }
+
+  function languageOptions(catalog, selected) {
+    return Object.keys(catalog).map(function (code) {
+      return window.FOSS.dom.el("option", {
+        value: code,
+        text: catalog[code] + " (" + code + ")",
+        selected: code === selected
+      });
+    });
+  }
+
+  function fillLanguages(select, catalog) {
+    var keep = select.value;
+    select.innerHTML = "";
+    languageOptions(catalog, keep).forEach(function (opt) {
+      select.appendChild(opt);
+    });
+    select.value = keep;
+  }
+
+  function languageDefaultOptions() {
+    return Object.keys(LANGUAGES).map(function (code) {
+      return { value: code, label: LANGUAGES[code] + " (" + code + ")" };
+    });
+  }
+
   function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(function () {});
@@ -45,6 +96,7 @@ window.FOSS = window.FOSS || {};
       if (s) s.textContent = msg;
       errorBanner.classList.remove("hidden");
       statusBar.textContent = "Error: " + msg;
+      leftCol.scrollTop = 0;
     }
 
     function clearError() {
@@ -65,6 +117,7 @@ window.FOSS = window.FOSS || {};
       });
       resultHost.appendChild(card);
       resultHost.classList.remove("hidden");
+      leftCol.scrollTop = 0;
     }
 
     // Searchable PDF status banner
@@ -96,21 +149,20 @@ window.FOSS = window.FOSS || {};
     var previewImg = window.FOSS.dom.el("img", {
       "data-testid": "ocr-preview-img",
       alt: "Open a document to see preview",
-      className: "hidden",
-      style: "max-width: 100%; height: auto; object-fit: contain; margin: 0 auto; background: var(--bg-raised); border-radius: var(--radius-md); transition: transform 0.15s ease;"
+      className: "ocr-preview-img hidden"
     });
 
     var previewPlaceholder = window.FOSS.dom.el("div", {
-      className: "text-muted text-sm text-center",
-      style: "padding: var(--space-6) var(--space-4); background: var(--bg-raised); border-radius: var(--radius-md);",
+      className: "ocr-preview-placeholder text-muted text-sm text-center",
       text: "No document loaded"
     });
 
     var previewCanvas = window.FOSS.dom.el("div", {
       className: "ocr-preview-canvas",
-      "data-testid": "ocr-preview-canvas",
-      style: "min-height: 24rem; max-height: 40rem; overflow: auto; display: flex; align-items: center; justify-content: center; background: var(--bg-raised); border-radius: var(--radius-md); padding: var(--space-2); position: relative;"
-    }, [previewImg, previewPlaceholder]);
+      "data-testid": "ocr-preview-canvas"
+    }, [
+      window.FOSS.dom.el("div", { className: "ocr-preview-scroll" }, [previewImg, previewPlaceholder])
+    ]);
 
     var zoomLevelLabel = window.FOSS.dom.el("span", {
       className: "text-xs font-mono",
@@ -121,8 +173,7 @@ window.FOSS = window.FOSS || {};
     function applyZoom(delta, reset) {
       if (reset) previewZoom = 1.0;
       else previewZoom = Math.min(3.0, Math.max(0.4, Math.round((previewZoom + delta) * 10) / 10));
-      previewImg.style.setProperty("transform", "scale(" + previewZoom + ")");
-      previewImg.style.setProperty("transform-origin", "center center");
+      previewImg.style.setProperty("width", Math.round(previewZoom * 100) + "%");
       zoomLevelLabel.textContent = Math.round(previewZoom * 100) + "%";
     }
 
@@ -223,24 +274,28 @@ window.FOSS = window.FOSS || {};
 
       if (currentFile.toLowerCase().endsWith(".pdf")) {
         window.FOSS.api("pdf_render_page", { file_path: currentFile, page_number: currentPage }).then(function (res) {
-          if (res && res.image_data) {
-            previewImg.src = res.image_data;
-            previewImg.classList.remove("hidden");
-            previewPlaceholder.classList.add("hidden");
-          }
-        });
-      } else {
-        window.FOSS.api("image_to_data_url", { file_path: currentFile }).then(function (res) {
           if (res && res.data_url) {
             previewImg.src = res.data_url;
             previewImg.classList.remove("hidden");
             previewPlaceholder.classList.add("hidden");
           }
+        }).catch(function (err) {
+          showError("Preview failed: " + (err.message || err));
+        });
+      } else {
+        window.FOSS.api("ocr_preview_image", { file_path: currentFile }).then(function (res) {
+          if (res && res.data_url) {
+            previewImg.src = res.data_url;
+            previewImg.classList.remove("hidden");
+            previewPlaceholder.classList.add("hidden");
+          }
+        }).catch(function (err) {
+          showError("Preview failed: " + (err.message || err));
         });
       }
     }
 
-    var previewCard = window.FOSS.dom.el("div", { className: "card card-compact stack-sm" }, [
+    var previewCard = window.FOSS.dom.el("div", { className: "card card-compact stack-sm ocr-preview-card" }, [
       window.FOSS.dom.el("div", { className: "row-between items-center" }, [
         window.FOSS.dom.el("h3", { className: "card-title text-base", text: "OCR Preview" }),
         window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
@@ -261,30 +316,11 @@ window.FOSS = window.FOSS || {};
       className: "select",
       "data-testid": "ocr-language",
       "aria-label": "OCR Language"
-    }, [
-      window.FOSS.dom.el("option", { value: "eng", text: "English (eng)", selected: true }),
-      window.FOSS.dom.el("option", { value: "spa", text: "Spanish (spa)" }),
-      window.FOSS.dom.el("option", { value: "fra", text: "French (fra)" }),
-      window.FOSS.dom.el("option", { value: "deu", text: "German (deu)" }),
-      window.FOSS.dom.el("option", { value: "ita", text: "Italian (ita)" }),
-      window.FOSS.dom.el("option", { value: "por", text: "Portuguese (por)" }),
-      window.FOSS.dom.el("option", { value: "chi_sim", text: "Chinese Simplified (chi_sim)" }),
-      window.FOSS.dom.el("option", { value: "jpn", text: "Japanese (jpn)" }),
-      window.FOSS.dom.el("option", { value: "rus", text: "Russian (rus)" })
-    ]);
+    }, languageOptions(LANGUAGES, ocrDefault("language", "eng")));
+    langSelect.value = ocrDefault("language", "eng");
 
     window.FOSS.api("ocr_languages", {}).then(function (res) {
-      if (res && res.catalog) {
-        langSelect.innerHTML = "";
-        Object.keys(res.catalog).forEach(function (code) {
-          var opt = window.FOSS.dom.el("option", {
-            value: code,
-            text: res.catalog[code] + " (" + code + ")",
-            selected: code === "eng"
-          });
-          langSelect.appendChild(opt);
-        });
-      }
+      if (res && res.catalog) fillLanguages(langSelect, res.catalog);
     });
 
     var dpiSelect = window.FOSS.dom.el("select", {
@@ -293,9 +329,10 @@ window.FOSS = window.FOSS || {};
       "aria-label": "OCR DPI Resolution"
     }, [
       window.FOSS.dom.el("option", { value: "150", text: "150 DPI (Fast)" }),
-      window.FOSS.dom.el("option", { value: "200", text: "200 DPI (Recommended)", selected: true }),
+      window.FOSS.dom.el("option", { value: "200", text: "200 DPI (Recommended)" }),
       window.FOSS.dom.el("option", { value: "300", text: "300 DPI (Fine Print)" })
     ]);
+    dpiSelect.value = String(ocrDefault("dpi", "200"));
 
     var pageRangeInput = window.FOSS.dom.el("input", {
       type: "text",
@@ -307,7 +344,7 @@ window.FOSS = window.FOSS || {};
 
     var forceOverwriteCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
-      checked: false,
+      checked: !!ocrDefault("force_reocr", false),
       "data-testid": "ocr-force-reocr-check",
       "aria-label": "Force re-OCR on pages with existing searchable text"
     });
@@ -337,7 +374,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("pdf", 16), window.FOSS.dom.el("span", { text: "Save Searchable PDF..." })]);
 
-    var settingsCard = window.FOSS.dom.el("div", { className: "card card-compact stack-sm" }, [
+    var settingsCard = window.FOSS.dom.el("div", { className: "card card-compact stack-sm ocr-settings-card" }, [
       window.FOSS.dom.el("h3", { className: "card-title text-base", text: "OCR Settings" }),
       window.FOSS.dom.el("div", { className: "field" }, [
         window.FOSS.dom.el("label", { text: "Language" }),
@@ -360,7 +397,7 @@ window.FOSS = window.FOSS || {};
     var filePicker = window.FOSS.components.filePicker({
       testid: "ocr-file-picker",
       label: "Choose PDF or Image File",
-      fileTypes: ["PDF and Images (*.pdf;*.png;*.jpg;*.jpeg;*.webp;*.tiff;*.bmp)", "All Files (*.*)"],
+      fileTypes: INPUT_TYPES,
       onSelect: function (file) {
         var p = typeof file === "string" ? file : (file ? file.path : "");
         if (!p) return;
@@ -401,11 +438,10 @@ window.FOSS = window.FOSS || {};
     });
 
     var textArea = window.FOSS.dom.el("textarea", {
-      className: "code-editor grow",
+      className: "code-editor ocr-text-area",
       "data-testid": "ocr-text-result",
       placeholder: "Extracted text appears here. Existing searchable text is preserved unless Force re-OCR is checked.",
       "aria-label": "Extracted OCR text",
-      style: "min-height: 22rem; height: 100%; width: 100%; font-family: monospace; resize: none;",
       onInput: function () {
         updateTextStats();
       }
@@ -424,9 +460,10 @@ window.FOSS = window.FOSS || {};
       "data-testid": "ocr-output-format",
       "aria-label": "Output text format"
     }, [
-      window.FOSS.dom.el("option", { value: "txt", text: "Plain Text (.txt)", selected: true }),
+      window.FOSS.dom.el("option", { value: "txt", text: "Plain Text (.txt)" }),
       window.FOSS.dom.el("option", { value: "md", text: "Markdown (.md)" })
     ]);
+    formatSelect.value = ocrDefault("output_format", "txt");
 
     var copyBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
@@ -447,28 +484,34 @@ window.FOSS = window.FOSS || {};
           showError("No extracted text to save");
           return;
         }
-        var ext = formatSelect.value === "md" ? ".md" : ".txt";
-        var filterDesc = formatSelect.value === "md" ? "Markdown Files" : "Text Files";
+        var fileTypes = [
+          { name: "Plain Text (*.txt)", extensions: ["txt"] },
+          { name: "Markdown (*.md)", extensions: ["md"] },
+          { name: "PDF Document (*.pdf)", extensions: ["pdf"] }
+        ];
+        if (formatSelect.value === "md") fileTypes.unshift(fileTypes.splice(1, 1)[0]);
         window.FOSS.api("select_save_path", {
           title: "Save Extracted Text",
-          default_name: "extracted_text" + ext,
-          file_types: [{ name: filterDesc, extensions: [ext.replace(".", "")] }]
+          default_name: "extracted_text",
+          file_types: fileTypes
         }).then(function (dlg) {
           var chosenPath = (dlg && (dlg.path || dlg.file_path || dlg.output_path)) || "";
           if (!chosenPath) return;
-          if (!chosenPath.toLowerCase().endsWith(ext)) {
-            chosenPath = chosenPath + ext;
+          if (chosenPath.toLowerCase().endsWith(".pdf")) {
+            runMakeSearchablePdf(chosenPath);
+            return;
           }
           window.FOSS.api("write_text_file", { path: chosenPath, content: textArea.value }).then(function () {
             window.FOSS.toast.show("Saved text to " + chosenPath, "success");
+          }).catch(function (err) {
+            showError("Save failed: " + (err.message || err));
           });
         });
       }
     }, [window.FOSS.icons.el("save", 16), window.FOSS.dom.el("span", { text: "Save Text..." })]);
 
     var textCard = window.FOSS.dom.el("div", {
-      className: "card card-compact stack-sm grow",
-      style: "height: 100%; display: flex; flex-direction: column;"
+      className: "card card-compact stack-sm ocr-text-card"
     }, [
       window.FOSS.dom.el("div", { className: "row-between" }, [
         window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Extracted Text" }),
@@ -499,7 +542,6 @@ window.FOSS = window.FOSS || {};
         language: langSelect.value,
         dpi: parseInt(dpiSelect.value, 10),
         force_reocr: forceOverwriteCheck.checked,
-        force_overwrite: forceOverwriteCheck.checked,
         page_range: pageRangeInput.value.trim()
       };
 
@@ -518,52 +560,56 @@ window.FOSS = window.FOSS || {};
       });
     }
 
-    function runMakeSearchablePdf() {
+    function startSearchablePdf(chosenPath) {
+      progressBar.el.classList.remove("hidden");
+      progressBar.setIndeterminate(true);
+      statusBar.textContent = "Generating searchable PDF...";
+
+      var params = {
+        input_path: currentFile,
+        output_path: chosenPath,
+        language: langSelect.value,
+        dpi: parseInt(dpiSelect.value, 10),
+        force_reocr: forceOverwriteCheck.checked,
+        page_range: pageRangeInput.value.trim()
+      };
+
+      window.FOSS.api("ocr_create_searchable_pdf", params).then(function (res) {
+        progressBar.el.classList.add("hidden");
+        if (res && res.output_path) {
+          showResult(res.output_path, "Searchable PDF Created");
+          statusBar.textContent = "Searchable PDF generated: " + res.output_path;
+        } else {
+          showError((res && res.error) || "Failed to create searchable PDF");
+        }
+      }).catch(function (err) {
+        progressBar.el.classList.add("hidden");
+        showError(String(err));
+      });
+    }
+
+    function runMakeSearchablePdf(presetPath) {
       if (!currentFile) return;
       clearError();
+      if (presetPath) {
+        startSearchablePdf(presetPath);
+        return;
+      }
       window.FOSS.api("select_save_path", {
         title: "Save Searchable PDF",
-        default_name: "searchable.pdf",
-        file_types: [{ name: "PDF Documents", extensions: ["pdf"] }]
+        default_name: "searchable",
+        file_types: [{ name: "PDF Document (*.pdf)", extensions: ["pdf"] }]
       }).then(function (dlg) {
         var chosenPath = (dlg && (dlg.path || dlg.file_path || dlg.output_path)) || "";
-        if (!chosenPath) return;
-        if (!chosenPath.toLowerCase().endsWith(".pdf")) {
-          chosenPath = chosenPath + ".pdf";
-        }
-        progressBar.el.classList.remove("hidden");
-        progressBar.setIndeterminate(true);
-        statusBar.textContent = "Generating searchable PDF...";
-
-        var params = {
-          input_path: currentFile,
-          output_path: chosenPath,
-          language: langSelect.value,
-          dpi: parseInt(dpiSelect.value, 10),
-          force_reocr: forceOverwriteCheck.checked,
-          force_overwrite: forceOverwriteCheck.checked,
-          page_range: pageRangeInput.value.trim()
-        };
-
-        window.FOSS.api("ocr_create_searchable_pdf", params).then(function (res) {
-          progressBar.el.classList.add("hidden");
-          if (res && res.output_path) {
-            showResult(res.output_path, "Searchable PDF Created");
-            statusBar.textContent = "Searchable PDF generated: " + res.output_path;
-          } else {
-            showError((res && res.error) || "Failed to create searchable PDF");
-          }
-        }).catch(function (err) {
-          progressBar.el.classList.add("hidden");
-          showError(String(err));
-        });
+        if (chosenPath) startSearchablePdf(chosenPath);
       });
     }
 
     var leftCol = window.FOSS.dom.el("div", {
-      className: "stack-sm",
-      style: "width: var(--split-left, 24rem); flex-shrink: 0;"
+      className: "ocr-left-col stack-sm"
     }, [
+      errorBanner,
+      resultHost,
       filePicker.el,
       searchableBanner,
       previewCard,
@@ -571,19 +617,15 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var splitArea = window.FOSS.dom.el("div", {
-      className: "split resizable markdown-workbench-split grow",
+      className: "split resizable ocr-workbench-split grow",
       "data-testid": "ocr-split"
     }, [
       leftCol,
-      window.FOSS.components.splitDivider({ targetSplit: null, testid: "ocr-split-divider" }),
+      window.FOSS.components.splitDivider({ testid: "ocr-split-divider" }),
       textCard
     ]);
 
-    panel.appendChild(window.FOSS.dom.el("div", { className: "stack grow", style: "height: 100%; min-height: 0;" }, [
-      errorBanner,
-      resultHost,
-      splitArea
-    ]));
+    panel.appendChild(window.FOSS.dom.el("div", { className: "stack grow ocr-panel-stack" }, [splitArea]));
 
     ctx.state = ctx.state || {};
     ctx.state.loadFile = loadFile;
@@ -621,7 +663,7 @@ window.FOSS = window.FOSS || {};
       className: "btn btn-secondary btn-sm",
       "data-testid": "ocr-batch-add-btn",
       onclick: function () {
-        window.FOSS.api("select_files", { file_types: ["PDF and Images (*.pdf;*.png;*.jpg;*.jpeg;*.webp;*.tiff;*.bmp)", "All Files (*.*)"] }).then(function (res) {
+        window.FOSS.api("select_files", { title: "Select Files for Batch OCR", file_types: INPUT_TYPES }).then(function (res) {
           if (res && res.paths) {
             addPathsToQueue(res.paths);
           }
@@ -693,22 +735,11 @@ window.FOSS = window.FOSS || {};
       "data-dense": "true",
       "data-testid": "ocr-batch-language",
       "aria-label": "Batch OCR Language"
-    }, [
-      window.FOSS.dom.el("option", { value: "eng", text: "English (eng)", selected: true })
-    ]);
+    }, languageOptions(LANGUAGES, ocrDefault("language", "eng")));
+    langSelect.value = ocrDefault("language", "eng");
 
     window.FOSS.api("ocr_languages", {}).then(function (res) {
-      if (res && res.catalog) {
-        langSelect.innerHTML = "";
-        Object.keys(res.catalog).forEach(function (code) {
-          var opt = window.FOSS.dom.el("option", {
-            value: code,
-            text: res.catalog[code] + " (" + code + ")",
-            selected: code === "eng"
-          });
-          langSelect.appendChild(opt);
-        });
-      }
+      if (res && res.catalog) fillLanguages(langSelect, res.catalog);
     });
 
     var dpiSelect = window.FOSS.dom.el("select", {
@@ -718,9 +749,10 @@ window.FOSS = window.FOSS || {};
       "aria-label": "Batch OCR Resolution"
     }, [
       window.FOSS.dom.el("option", { value: "150", text: "150 DPI" }),
-      window.FOSS.dom.el("option", { value: "200", text: "200 DPI", selected: true }),
+      window.FOSS.dom.el("option", { value: "200", text: "200 DPI" }),
       window.FOSS.dom.el("option", { value: "300", text: "300 DPI" })
     ]);
+    dpiSelect.value = String(ocrDefault("dpi", "200"));
 
     var formatSelect = window.FOSS.dom.el("select", {
       className: "select",
@@ -758,7 +790,7 @@ window.FOSS = window.FOSS || {};
 
     var forceOverwriteCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
-      checked: false,
+      checked: !!ocrDefault("force_reocr", false),
       "data-testid": "ocr-batch-force-reocr-check",
       "aria-label": "Force re-OCR existing searchable text in batch",
       title: "Force re-OCR existing searchable text in batch"
@@ -801,7 +833,7 @@ window.FOSS = window.FOSS || {};
     ]);
 
     // Queue Table
-    var tableHost = window.FOSS.dom.el("div", { className: "grow", "data-testid": "ocr-batch-list" });
+    var tableHost = window.FOSS.dom.el("div", { className: "grow ocr-batch-host", "data-testid": "ocr-batch-list" });
 
     function renderQueueTable() {
       tableHost.innerHTML = "";
@@ -852,7 +884,7 @@ window.FOSS = window.FOSS || {};
         window.FOSS.dom.el("tbody", {}, rows)
       ]);
 
-      tableHost.appendChild(window.FOSS.dom.el("div", { className: "table-wrap scroll-x" }, [table]));
+      tableHost.appendChild(window.FOSS.dom.el("div", { className: "ocr-batch-scroll scroll-x" }, [table]));
     }
 
     function executeBatch() {
@@ -869,7 +901,6 @@ window.FOSS = window.FOSS || {};
         dpi: parseInt(dpiSelect.value, 10),
         format: formatSelect.value,
         force_reocr: forceOverwriteCheck.checked,
-        force_overwrite: forceOverwriteCheck.checked,
         output_dir: outFolderInput.value.trim() || undefined
       };
 
@@ -896,7 +927,7 @@ window.FOSS = window.FOSS || {};
       });
     }
 
-    panel.appendChild(window.FOSS.dom.el("div", { className: "stack grow", style: "height: 100%;" }, [
+    panel.appendChild(window.FOSS.dom.el("div", { className: "stack grow ocr-panel-stack" }, [
       topBar,
       optionsBar,
       errorBanner,
@@ -915,8 +946,33 @@ window.FOSS = window.FOSS || {};
     title: "OCR Studio",
     navName: "OCR",
     category: "Documents",
-    icon: "file-text",
+    icon: "ocr",
     workbench: true,
+    defaults: [
+      { key: "language", label: "Language", type: "select", options: languageDefaultOptions(), default: "eng" },
+      {
+        key: "dpi",
+        label: "Resolution",
+        type: "select",
+        options: [
+          { value: "150", label: "150 DPI" },
+          { value: "200", label: "200 DPI" },
+          { value: "300", label: "300 DPI" }
+        ],
+        default: "200"
+      },
+      {
+        key: "output_format",
+        label: "Output format",
+        type: "select",
+        options: [
+          { value: "txt", label: "Plain Text (.txt)" },
+          { value: "md", label: "Markdown (.md)" }
+        ],
+        default: "txt"
+      },
+      { key: "force_reocr", label: "Force re-OCR existing text", type: "toggle", default: false }
+    ],
     description: "Extract text from scans and images; create searchable PDFs completely offline.",
     tabs: [
       { id: "document", label: "Document OCR", render: renderDocumentOcr },

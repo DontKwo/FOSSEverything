@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import struct
 from math import sqrt
 
 import numpy as np
@@ -243,3 +244,15 @@ def sample_pixel_color(img: Image.Image, x: int, y: int) -> ColorSwatch:
     )
 
 
+def build_ase_bytes(colors: list[tuple[int, int, int]], names: list[str]) -> bytes:
+    # Build an Adobe Swatch Exchange file with one global RGB entry per color.
+    payload = bytearray(b"ASEF")
+    payload.extend(struct.pack(">HHI", 1, 0, len(colors)))
+    for rgb, name in zip(colors, names):
+        name_bytes = (name + "\x00").encode("utf-16-be")
+        body = struct.pack(">H", len(name) + 1) + name_bytes + b"RGB "
+        body += struct.pack(">fff", rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0)
+        body += struct.pack(">H", 0)
+        payload.extend(struct.pack(">HI", 0x0001, len(body)))
+        payload.extend(body)
+    return bytes(payload)

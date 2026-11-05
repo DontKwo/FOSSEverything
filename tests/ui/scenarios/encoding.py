@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Callable
 from playwright.sync_api import Page, expect
 
@@ -51,6 +52,7 @@ def scenario_file_tab(page: Page, fixtures: dict[str, str], api: Any) -> None:
     # Test file tab with fixture selection and encoding.
     sample_file = fixtures.get("sample.txt", "")
     api._dialog_answers.append(sample_file)
+    api._dialog_answers.append(str(Path(sample_file).with_name("encoded_payload")))
     page.evaluate("window.FOSS.router.open('encoding', 'file')")
     page.click("[data-testid='encoding-file-picker-browse']")
     page.click("[data-testid='encoding-file-encode']")

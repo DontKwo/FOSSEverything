@@ -1,7 +1,11 @@
 """Unit tests for color palette extraction operations."""
+import os
+import struct
+import tempfile
 import unittest
 from PIL import Image
 from app.features.palette import ops as palette_ops
+from app.web.api.tool_palette import PaletteApiMixin
 
 
 class PaletteOpsTests(unittest.TestCase):
@@ -43,6 +47,31 @@ class PaletteOpsTests(unittest.TestCase):
         swatches = palette_ops.extract_palette(self.img, n_colors=3, method="kmeans")
         self.assertEqual(len(swatches), 3)
         self.assertTrue(all(s.name for s in swatches))
+
+
+    def test_build_ase_bytes_layout(self) -> None:
+        data = palette_ops.build_ase_bytes([(255, 0, 0), (0, 0, 255)], ["red", "blue"])
+        self.assertEqual(data[:4], b"ASEF")
+        version_major, version_minor, block_count = struct.unpack(">HHI", data[4:12])
+        self.assertEqual((version_major, version_minor, block_count), (1, 0, 2))
+        block_type, block_len = struct.unpack(">HI", data[12:18])
+        self.assertEqual(block_type, 1)
+        name_len = struct.unpack(">H", data[18:20])[0]
+        self.assertEqual(name_len, len("red") + 1)
+        model_offset = 20 + name_len * 2
+        self.assertEqual(data[model_offset:model_offset + 4], b"RGB ")
+        red, green, blue = struct.unpack(">fff", data[model_offset + 4:model_offset + 16])
+        self.assertEqual((red, green, blue), (1.0, 0.0, 0.0))
+        self.assertEqual(len(data), 12 + (6 + block_len) + (6 + 2 + 2 * len("blue\x00") + 18))
+
+    def test_palette_export_ase_api(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            out_path = os.path.join(tmp_dir, "palette.ase")
+            result = PaletteApiMixin().palette_export_ase({"colors": ["#FF0000", "#00FF00"], "output_path": out_path})
+            self.assertTrue(result["ok"])
+            with open(out_path, "rb") as handle:
+                self.assertEqual(handle.read(4), b"ASEF")
+            self.assertFalse(PaletteApiMixin().palette_export_ase({})["ok"])
 
 
 if __name__ == "__main__":

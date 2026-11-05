@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Callable
 from playwright.sync_api import Page, expect
 
@@ -26,6 +27,7 @@ def scenario_result(page: Page, fixtures: dict[str, str], api: Any) -> None:
     # Load sample png fixture and convert to jpeg.
     sample = fixtures.get("sample.png", "sample.png")
     api._dialog_answers.append(sample)
+    api._dialog_answers.append(str(Path(sample).parent / "out_converted.jpg"))
     page.evaluate("window.FOSS.router.open('converter', 'single')")
     page.click("[data-testid='converter-choose-file']")
     page.wait_for_timeout(250)

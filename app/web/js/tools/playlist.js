@@ -2,8 +2,15 @@
 window.FOSS = window.FOSS || {};
 
 (function () {
+  var TOOL_ID = "playlist";
   var currentTracks = [];
   var currentDirection = "spotify -> youtube / youtube music";
+
+  var EXPORT_TYPES = {
+    m3u8: { label: "M3U8", method: "playlist_export_m3u8", type: { name: "M3U8 Playlist (*.m3u8)", extensions: ["m3u8"] } },
+    csv: { label: "CSV", method: "playlist_export_csv", type: { name: "CSV Spreadsheet (*.csv)", extensions: ["csv"] } },
+    json: { label: "JSON", method: "playlist_export_json", type: { name: "JSON Document (*.json)", extensions: ["json"] } }
+  };
 
   function formatDuration(ms) {
     if (!ms || isNaN(ms)) return "";
@@ -13,36 +20,125 @@ window.FOSS = window.FOSS || {};
     return min + ":" + (sec < 10 ? "0" + sec : sec);
   }
 
-  function renderFetch(panel, ctx) {
+  function trackDuration(track) {
+    return track.duration_str || formatDuration(track.duration_ms);
+  }
+
+  function defaultExportFormat() {
+    var value = String(window.FOSS.toolDefaults.get(TOOL_ID, "export_format", "m3u8"));
+    return EXPORT_TYPES[value] ? value : "m3u8";
+  }
+
+  function failureReason(res, fallback) {
+    if (res && res.error) {
+      return typeof res.error === "string" ? res.error : (res.error.message || fallback);
+    }
+    return fallback;
+  }
+
+  function toastError(message) {
+    window.FOSS.toast.show({ message: message, type: "error" });
+  }
+
+  function toastSuccess(message) {
+    window.FOSS.toast.show({ message: message, type: "success" });
+  }
+
+  function extOf(path) {
+    var match = /\.([A-Za-z0-9]+)$/.exec(path || "");
+    return match ? match[1].toLowerCase() : "";
+  }
+
+  function orderedExportTypes(preferred) {
+    var order = [preferred].concat(Object.keys(EXPORT_TYPES).filter(function (key) { return key !== preferred; }));
+    return order.map(function (key) { return EXPORT_TYPES[key].type; });
+  }
+
+  function exportTracks(preferred) {
+    if (!currentTracks.length) {
+      return Promise.resolve({ ok: false, error: "No tracks to export. Import or parse a playlist first." });
+    }
+    return window.FOSS.api("select_save_path", {
+      title: "Export Playlist",
+      default_name: "playlist",
+      file_types: orderedExportTypes(preferred)
+    }).then(function (sel) {
+      var path = (sel && (sel.path || (sel.paths && sel.paths[0]))) || "";
+      if (!path) return { ok: false, cancelled: true };
+      var fmt = EXPORT_TYPES[extOf(path)] ? extOf(path) : preferred;
+      return window.FOSS.api(EXPORT_TYPES[fmt].method, { tracks: currentTracks, output_path: path }, { silent: true }).then(function (res) {
+        if (!res || res.ok === false || !res.output_path) {
+          return { ok: false, error: failureReason(res, "The playlist file could not be written.") };
+        }
+        return { ok: true, output_path: res.output_path, label: EXPORT_TYPES[fmt].label };
+      });
+    });
+  }
+
+  function exportButton(fmt, testid, onDone) {
+    var isDefault = fmt === defaultExportFormat();
+    return window.FOSS.dom.el("button", {
+      className: "btn btn-sm " + (isDefault ? "btn-primary" : "btn-secondary"),
+      "data-testid": testid,
+      type: "button",
+      title: "Export as " + EXPORT_TYPES[fmt].label,
+      onClick: function () {
+        exportTracks(fmt).then(function (result) {
+          if (result.cancelled) return;
+          if (!result.ok) {
+            toastError("Export failed: " + result.error);
+            return;
+          }
+          onDone(result);
+        });
+      }
+    }, [
+      window.FOSS.icons.el(fmt === "m3u8" ? "music" : "file-text", 14),
+      window.FOSS.dom.el("span", { text: "Export " + EXPORT_TYPES[fmt].label })
+    ]);
+  }
+
+  function createBanner(testid) {
+    var span = window.FOSS.dom.el("span", { className: "banner-msg", text: "" });
+    var banner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden mb-sm",
+      "data-testid": testid
+    }, [window.FOSS.icons.el("alert", 18), span]);
+    return {
+      el: banner,
+      show: function (msg) {
+        span.textContent = msg;
+        banner.classList.remove("hidden");
+      },
+      clear: function () {
+        banner.classList.add("hidden");
+      }
+    };
+  }
+
+  function openSearchUrl(url) {
+    window.FOSS.api("open_url", { url: url });
+  }
+
+  function renderFetch(panel) {
+    var D = window.FOSS.dom;
     panel.innerHTML = "";
 
-    var statusBar = window.FOSS.dom.el("div", {
+    var statusBar = D.el("div", {
       className: "text-xs text-muted mb-sm",
       "data-testid": "playlist-status",
       text: "Enter a playlist URL or configure API access below."
     });
+    var banner = createBanner("playlist-error-banner");
 
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden mb-sm",
-      "data-testid": "playlist-error-banner"
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
-
-    function showError(msg) {
-      var span = errorBanner.querySelector(".banner-msg");
-      if (span) span.textContent = msg;
-      errorBanner.classList.remove("hidden");
+    function fail(prefix, reason) {
+      var msg = prefix + ": " + reason;
+      banner.show(msg);
       statusBar.textContent = "Error: " + msg;
+      toastError(msg);
     }
 
-    function clearError() {
-      errorBanner.classList.add("hidden");
-    }
-
-    // Group: Fetch from URL
-    var urlInput = window.FOSS.dom.el("input", {
+    var urlInput = D.el("input", {
       type: "text",
       className: "input",
       "data-testid": "playlist-url-input",
@@ -51,137 +147,79 @@ window.FOSS = window.FOSS || {};
       placeholder: "Paste Spotify or YouTube playlist URL (e.g. https://open.spotify.com/playlist/... or https://www.youtube.com/playlist?list=...)"
     });
 
-    var fetchBtn = window.FOSS.dom.el("button", {
+    var fetchBtn = D.el("button", {
       className: "btn btn-primary",
       "data-testid": "playlist-fetch-btn",
       "aria-label": "Fetch playlist",
       title: "Fetch playlist",
+      type: "button",
       onClick: function () {
-        try {
-          clearError();
-          var url = urlInput.value.trim();
-          if (!url) {
-            showError("Please enter a valid playlist URL.");
+        banner.clear();
+        var url = urlInput.value.trim();
+        if (!url) {
+          banner.show("Please enter a valid playlist URL.");
+          statusBar.textContent = "Error: Please enter a valid playlist URL.";
+          return;
+        }
+        statusBar.textContent = "Fetching playlist tracks...";
+        window.FOSS.api("playlist_fetch", { url: url }, { silent: true }).then(function (res) {
+          if (res && res.ok !== false && res.tracks) {
+            currentTracks = res.tracks;
+            statusBar.textContent = "Loaded " + res.tracks.length + " tracks.";
+            toastSuccess("Loaded " + res.tracks.length + " tracks.");
+            window.FOSS.router.open(TOOL_ID, "output");
             return;
           }
-          statusBar.textContent = "Fetching playlist tracks...";
-          window.FOSS.api("playlist_fetch", { url: url }).then(function (res) {
-            if (res && res.tracks) {
-              currentTracks = res.tracks;
-              statusBar.textContent = "Loaded " + res.tracks.length + " tracks.";
-              window.FOSS.toast.show({ message: "Loaded " + res.tracks.length + " tracks.", type: "success" });
-              window.FOSS.router.open("playlist", "output");
-            } else if (res && res.error) {
-              var errMsg = (res.error && res.error.message) || String(res.error) || "Failed to fetch playlist.";
-              showError(errMsg);
-              window.FOSS.toast.show({ message: errMsg, type: "error" });
-            }
-          }).catch(function (err) {
-            var errMsg = (err && err.message) || String(err) || "Fetch request failed.";
-            showError(errMsg);
-            window.FOSS.toast.show({ message: errMsg, type: "error" });
-          });
-        } catch (err) {
-          var errMsg = (err && err.message) || String(err) || "Fetch request failed.";
-          showError(errMsg);
-          window.FOSS.toast.show({ message: errMsg, type: "error" });
-        }
+          fail("Could not fetch playlist", failureReason(res, "The remote service returned no tracks."));
+        });
       }
-    }, [
-      window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "Fetch Playlist" })
-    ]);
+    }, [window.FOSS.icons.el("download", 16), D.el("span", { text: "Fetch Playlist" })]);
 
-    var chooseFileBtn = window.FOSS.dom.el("button", {
+    var chooseFileBtn = D.el("button", {
       className: "btn btn-primary",
       "data-testid": "playlist-choose-file",
       type: "button",
       onClick: function () {
-        try {
-          clearError();
-          window.FOSS.api("select_file", {
-            title: "Select Playlist File",
-            file_types: ["m3u8", "m3u", "csv", "txt", "json"]
-          }).then(function (res) {
-            var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
-            if (!p) return;
-            statusBar.textContent = "Importing playlist file...";
-            window.FOSS.api("playlist_import_file", { file_path: p }).then(function (importRes) {
-              if (importRes && importRes.tracks && importRes.tracks.length) {
-                currentTracks = importRes.tracks;
-                statusBar.textContent = "Loaded " + importRes.tracks.length + " tracks from file.";
-                window.FOSS.toast.show({ message: "Loaded " + importRes.tracks.length + " tracks.", type: "success" });
-              } else {
-                showError("No tracks found in playlist file.");
-              }
-            }).catch(function (err) {
-              var errMsg = (err && err.message) || String(err) || "Failed to import file.";
-              showError(errMsg);
-              window.FOSS.toast.show({ message: errMsg, type: "error" });
-            });
-          }).catch(function (err) {
-            var errMsg = (err && err.message) || String(err) || "Failed to select file.";
-            showError(errMsg);
-            window.FOSS.toast.show({ message: errMsg, type: "error" });
+        banner.clear();
+        window.FOSS.api("select_file", {
+          title: "Select Playlist File",
+          file_types: ["m3u8", "m3u", "csv", "txt", "json"]
+        }).then(function (res) {
+          var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
+          if (!p) return;
+          statusBar.textContent = "Importing playlist file...";
+          window.FOSS.api("playlist_import_file", { file_path: p }, { silent: true }).then(function (importRes) {
+            if (importRes && importRes.ok !== false && importRes.tracks && importRes.tracks.length) {
+              currentTracks = importRes.tracks;
+              statusBar.textContent = "Loaded " + importRes.tracks.length + " tracks from file.";
+              toastSuccess("Loaded " + importRes.tracks.length + " tracks.");
+              window.FOSS.router.open(TOOL_ID, "output");
+              return;
+            }
+            fail("Could not import file", failureReason(importRes, "No tracks found in playlist file."));
           });
-        } catch (err) {
-          var errMsg = (err && err.message) || String(err) || "Failed to process file selection.";
-          showError(errMsg);
-          window.FOSS.toast.show({ message: errMsg, type: "error" });
-        }
+        });
       }
-    }, [window.FOSS.icons.el("folder", 16), window.FOSS.dom.el("span", { text: "Import Playlist File (M3U8, CSV)..." })]);
+    }, [window.FOSS.icons.el("folder", 16), D.el("span", { text: "Import Playlist File (M3U8, CSV)..." })]);
 
-    var exportCsvDirectBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "playlist-export-csv-btn",
-      type: "button",
-      onClick: function () {
-        try {
-          if (!currentTracks.length) {
-            showError("No tracks to export. Import a playlist first.");
-            return;
-          }
-          window.FOSS.api("select_save_path", { title: "Save CSV Playlist", default_name: "playlist.csv" }).then(function (res) {
-            var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
-            if (!p) return;
-            window.FOSS.api("playlist_export_csv", { tracks: currentTracks, output_path: p }).then(function (exportRes) {
-              if (exportRes && exportRes.output_path) {
-                statusBar.textContent = "CSV Playlist Exported: " + exportRes.output_path;
-                window.FOSS.toast.show({ message: "CSV Playlist Exported", type: "success" });
-              }
-            }).catch(function (err) {
-              window.FOSS.toast.show({ message: "Failed to export CSV: " + (err.message || String(err)), type: "error" });
-            });
-          }).catch(function (err) {
-            window.FOSS.toast.show({ message: "Failed to select save path: " + (err.message || String(err)), type: "error" });
-          });
-        } catch (err) {
-          window.FOSS.toast.show({ message: "Failed to process CSV export: " + (err.message || String(err)), type: "error" });
-        }
-      }
-    }, [window.FOSS.icons.el("file-text", 16), window.FOSS.dom.el("span", { text: "Export CSV" })]);
+    var exportDefaultBtn = exportButton(defaultExportFormat(), "playlist-export-default-btn", function (result) {
+      statusBar.textContent = result.label + " Playlist Exported: " + result.output_path;
+      toastSuccess(result.label + " playlist exported.");
+    });
 
-    var fileCard = window.FOSS.dom.el("div", { className: "card card-compact" }, [
-      window.FOSS.dom.el("div", {
-        className: "card-title text-sm font-semibold",
-        text: "Import Local Playlist File"
-      }),
-      window.FOSS.dom.el("div", { className: "text-xs text-muted mb-2", text: "Open existing M3U, M3U8, or CSV playlist files." }),
-      window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap" }, [chooseFileBtn, exportCsvDirectBtn])
+    var fileCard = D.el("div", { className: "card card-compact" }, [
+      D.el("div", { className: "card-title text-sm font-semibold", text: "Import Local Playlist File" }),
+      D.el("div", { className: "text-xs text-muted mb-2", text: "Open existing M3U, M3U8, CSV, or JSON playlist files." }),
+      D.el("div", { className: "row gap-2 flex-wrap" }, [chooseFileBtn, exportDefaultBtn])
     ]);
 
-    var fetchCard = window.FOSS.dom.el("div", { className: "card card-compact" }, [
-      window.FOSS.dom.el("div", {
-        className: "card-title text-sm font-semibold",
-        text: "Fetch from URL (Spotify or YouTube Playlist)"
-      }),
+    var fetchCard = D.el("div", { className: "card card-compact" }, [
+      D.el("div", { className: "card-title text-sm font-semibold", text: "Fetch from URL (Spotify or YouTube Playlist)" }),
       urlInput,
-      window.FOSS.dom.el("div", { className: "row mt-2" }, [fetchBtn])
+      D.el("div", { className: "row mt-2" }, [fetchBtn])
     ]);
 
-    // Group: Spotify Login
-    var spotifyClientIdInput = window.FOSS.dom.el("input", {
+    var spotifyClientIdInput = D.el("input", {
       type: "text",
       className: "input",
       "data-testid": "playlist-spotify-client-id",
@@ -190,49 +228,37 @@ window.FOSS = window.FOSS || {};
       placeholder: "Paste Spotify Client ID"
     });
 
-    var spotifyCard = window.FOSS.dom.el("div", { className: "card card-compact" }, [
-      window.FOSS.dom.el("div", {
-        className: "card-title text-sm font-semibold",
-        text: "Spotify Account Setup (Optional)"
-      }),
+    function authCall(method, params, okMessage, failPrefix) {
+      window.FOSS.api(method, params, { silent: true }).then(function (res) {
+        if (res && res.ok !== false && (res.saved || res.logged_in !== false)) {
+          toastSuccess(okMessage);
+          return;
+        }
+        toastError(failPrefix + ": " + failureReason(res, "The service did not confirm the request."));
+      });
+    }
+
+    var spotifyCard = D.el("div", { className: "card card-compact" }, [
+      D.el("div", { className: "card-title text-sm font-semibold", text: "Spotify Account Setup (Optional)" }),
       window.FOSS.components.field("Spotify Client ID", spotifyClientIdInput),
-      window.FOSS.dom.el("div", { className: "row gap-2 mt-2 flex-wrap" }, [
-        window.FOSS.dom.el("button", {
+      D.el("div", { className: "row gap-2 mt-2 flex-wrap" }, [
+        D.el("button", {
           className: "btn btn-secondary btn-sm",
           "data-testid": "playlist-spotify-save-id-btn",
           type: "button",
           onClick: function () {
-            try {
-              var cid = spotifyClientIdInput.value.trim();
-              window.FOSS.api("playlist_spotify_auth", { action: "save_client_id", client_id: cid }).then(function () {
-                window.FOSS.toast.show({ message: "Spotify Client ID saved.", type: "success" });
-              }).catch(function (err) {
-                window.FOSS.toast.show({ message: "Failed to save Spotify Client ID: " + (err.message || String(err)), type: "error" });
-              });
-            } catch (err) {
-              window.FOSS.toast.show({ message: "Failed to process Spotify Client ID: " + (err.message || String(err)), type: "error" });
-            }
+            authCall("playlist_spotify_auth", { action: "save_client_id", client_id: spotifyClientIdInput.value.trim() }, "Spotify Client ID saved.", "Failed to save Spotify Client ID");
           }
-        }, [window.FOSS.dom.el("span", { text: "Save Client ID" })]),
-        window.FOSS.dom.el("button", {
+        }, [D.el("span", { text: "Save Client ID" })]),
+        D.el("button", {
           className: "btn btn-secondary btn-sm",
           "data-testid": "playlist-spotify-login-btn",
           type: "button",
           onClick: function () {
-            try {
-              window.FOSS.api("playlist_spotify_auth", { action: "login" }).then(function (res) {
-                if (res && res.logged_in) {
-                  window.FOSS.toast.show({ message: "Logged in with Spotify.", type: "success" });
-                }
-              }).catch(function (err) {
-                window.FOSS.toast.show({ message: "Failed to login with Spotify: " + (err.message || String(err)), type: "error" });
-              });
-            } catch (err) {
-              window.FOSS.toast.show({ message: "Failed to process Spotify login: " + (err.message || String(err)), type: "error" });
-            }
+            authCall("playlist_spotify_auth", { action: "login" }, "Logged in with Spotify.", "Failed to log in with Spotify");
           }
-        }, [window.FOSS.dom.el("span", { text: "Log In with Spotify" })]),
-        window.FOSS.dom.el("button", {
+        }, [D.el("span", { text: "Spotify Login" })]),
+        D.el("button", {
           className: "btn btn-ghost btn-sm",
           "data-testid": "playlist-spotify-instructions-btn",
           type: "button",
@@ -242,12 +268,11 @@ window.FOSS = window.FOSS || {};
               type: "info"
             });
           }
-        }, [window.FOSS.dom.el("span", { text: "Setup Guide" })])
+        }, [D.el("span", { text: "Setup Guide" })])
       ])
     ]);
 
-    // Group: YouTube Login
-    var ytClientIdInput = window.FOSS.dom.el("input", {
+    var ytClientIdInput = D.el("input", {
       type: "text",
       className: "input",
       "data-testid": "playlist-yt-client-id",
@@ -256,7 +281,7 @@ window.FOSS = window.FOSS || {};
       placeholder: "Google OAuth Client ID"
     });
 
-    var ytClientSecretInput = window.FOSS.dom.el("input", {
+    var ytClientSecretInput = D.el("input", {
       type: "password",
       className: "input",
       "data-testid": "playlist-yt-client-secret",
@@ -265,437 +290,282 @@ window.FOSS = window.FOSS || {};
       placeholder: "Google OAuth Client Secret"
     });
 
-    var ytCard = window.FOSS.dom.el("div", { className: "card card-compact" }, [
-      window.FOSS.dom.el("div", {
-        className: "card-title text-sm font-semibold",
-        text: "YouTube Account Setup (Optional for Playlist Creation)"
-      }),
-      window.FOSS.dom.el("div", { className: "grid grid-cols-2 gap-2" }, [
+    var ytCard = D.el("div", { className: "card card-compact" }, [
+      D.el("div", { className: "card-title text-sm font-semibold", text: "YouTube Account Setup (Optional for Playlist Creation)" }),
+      D.el("div", { className: "grid grid-cols-2 gap-2" }, [
         window.FOSS.components.field("Client ID", ytClientIdInput),
         window.FOSS.components.field("Client Secret", ytClientSecretInput)
       ]),
-      window.FOSS.dom.el("div", { className: "row gap-2 mt-2 flex-wrap" }, [
-        window.FOSS.dom.el("button", {
+      D.el("div", { className: "row gap-2 mt-2 flex-wrap" }, [
+        D.el("button", {
           className: "btn btn-secondary btn-sm",
           "data-testid": "playlist-yt-save-btn",
           type: "button",
           onClick: function () {
-            try {
-              var cid = ytClientIdInput.value.trim();
-              var sec = ytClientSecretInput.value.trim();
-              window.FOSS.api("playlist_youtube_auth", { action: "save_credentials", client_id: cid, client_secret: sec }).then(function () {
-                window.FOSS.toast.show({ message: "YouTube credentials saved.", type: "success" });
-              }).catch(function (err) {
-                window.FOSS.toast.show({ message: "Failed to save YouTube credentials: " + (err.message || String(err)), type: "error" });
-              });
-            } catch (err) {
-              window.FOSS.toast.show({ message: "Failed to process YouTube credentials: " + (err.message || String(err)), type: "error" });
-            }
+            authCall("playlist_youtube_auth", {
+              action: "save_credentials",
+              client_id: ytClientIdInput.value.trim(),
+              client_secret: ytClientSecretInput.value.trim()
+            }, "YouTube credentials saved.", "Failed to save YouTube credentials");
           }
-        }, [window.FOSS.dom.el("span", { text: "Save Credentials" })]),
-        window.FOSS.dom.el("button", {
+        }, [D.el("span", { text: "Save Credentials" })]),
+        D.el("button", {
           className: "btn btn-secondary btn-sm",
           "data-testid": "playlist-yt-login-btn",
           type: "button",
           onClick: function () {
-            try {
-              window.FOSS.api("playlist_youtube_auth", { action: "login" }).then(function (res) {
-                if (res && res.logged_in) {
-                  window.FOSS.toast.show({ message: "Logged in with YouTube.", type: "success" });
-                }
-              }).catch(function (err) {
-                window.FOSS.toast.show({ message: "Failed to login with YouTube: " + (err.message || String(err)), type: "error" });
-              });
-            } catch (err) {
-              window.FOSS.toast.show({ message: "Failed to process YouTube login: " + (err.message || String(err)), type: "error" });
-            }
+            authCall("playlist_youtube_auth", { action: "login" }, "Logged in with YouTube.", "Failed to log in with YouTube");
           }
-        }, [window.FOSS.dom.el("span", { text: "Log In with YouTube" })])
+        }, [D.el("span", { text: "Log In with YouTube" })])
       ])
     ]);
 
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(window.FOSS.dom.el("div", { className: "flex-col gap-3" }, [
-      fileCard,
-      fetchCard,
-      spotifyCard,
-      ytCard
-    ]));
+    D.append(panel, statusBar);
+    D.append(panel, banner.el);
+    D.append(panel, D.el("div", { className: "flex-col gap-3" }, [fileCard, fetchCard, spotifyCard, ytCard]));
   }
 
-  function renderPaste(panel, ctx) {
+  function renderPaste(panel) {
+    var D = window.FOSS.dom;
     panel.innerHTML = "";
 
-    var statusBar = window.FOSS.dom.el("div", {
+    var statusBar = D.el("div", {
       className: "text-xs text-muted mb-sm",
       "data-testid": "playlist-paste-status",
       text: "Paste track lines formatted as Artist - Song Title."
     });
+    var banner = createBanner("playlist-paste-error-banner");
 
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden mb-sm",
-      "data-testid": "playlist-paste-error-banner"
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
-
-    function showError(msg) {
-      var span = errorBanner.querySelector(".banner-msg");
-      if (span) span.textContent = msg;
-      errorBanner.classList.remove("hidden");
-    }
-
-    function clearError() {
-      errorBanner.classList.add("hidden");
-    }
-
-    var directionSelect = window.FOSS.dom.el("select", {
+    var directionSelect = D.el("select", {
       className: "input",
       "data-testid": "playlist-direction-select",
       "aria-label": "Direction",
       title: "Direction",
-      onChange: function () {
-        currentDirection = directionSelect.value;
-      }
+      onChange: function () { currentDirection = directionSelect.value; }
     }, [
-      window.FOSS.dom.el("option", { value: "spotify -> youtube / youtube music", text: "Spotify -> YouTube / YouTube Music" }),
-      window.FOSS.dom.el("option", { value: "youtube -> spotify", text: "YouTube -> Spotify" })
+      D.el("option", { value: "spotify -> youtube / youtube music", text: "Spotify -> YouTube / YouTube Music" }),
+      D.el("option", { value: "youtube -> spotify", text: "YouTube -> Spotify" })
     ]);
     directionSelect.value = currentDirection;
 
-    var textarea = window.FOSS.dom.el("textarea", {
-      className: "input font-mono text-sm",
+    var textarea = D.el("textarea", {
+      className: "input font-mono text-sm playlist-paste-input",
       "data-testid": "playlist-paste-input",
       "aria-label": "Paste Tracklist Lines",
       title: "Paste Tracklist Lines",
       placeholder: "Queen - Bohemian Rhapsody\nThe Beatles - Hey Jude\nPink Floyd - Comfortably Numb",
-      rows: 10,
-      style: "width: 100%; min-height: 180px;"
+      rows: 10
     });
 
-    var pasteGroup = window.FOSS.dom.el("div", { className: "card card-compact flex-col gap-3" }, [
-      window.FOSS.dom.el("div", {
-        className: "card-title text-sm font-semibold",
-        text: "Paste Tracklist Text (Artist - Title, Numbered Lists, CSV Lines)"
-      }),
+    var pasteGroup = D.el("div", { className: "card card-compact flex-col gap-3" }, [
+      D.el("div", { className: "card-title text-sm font-semibold", text: "Paste Tracklist Text (Artist - Title, Numbered Lists, CSV Lines)" }),
       window.FOSS.components.field("Conversion Direction", directionSelect),
       textarea,
-      window.FOSS.dom.el("div", { className: "row gap-2" }, [
-        window.FOSS.dom.el("button", {
+      D.el("div", { className: "row gap-2" }, [
+        D.el("button", {
           className: "btn btn-primary",
           "data-testid": "playlist-parse-btn",
           type: "button",
           onClick: function () {
-            try {
-              clearError();
-              var text = textarea.value.trim();
-              if (!text) {
-                showError("Please enter or paste tracklist text first.");
+            banner.clear();
+            var text = textarea.value.trim();
+            if (!text) {
+              banner.show("Please enter or paste tracklist text first.");
+              return;
+            }
+            statusBar.textContent = "Parsing tracks...";
+            window.FOSS.api("playlist_parse_text", { text: text }, { silent: true }).then(function (res) {
+              if (res && res.ok !== false && res.tracks) {
+                currentTracks = res.tracks;
+                statusBar.textContent = "Parsed " + res.tracks.length + " tracks.";
+                toastSuccess("Parsed " + res.tracks.length + " tracks.");
+                window.FOSS.router.open(TOOL_ID, "output");
                 return;
               }
-              statusBar.textContent = "Parsing tracks...";
-              window.FOSS.api("playlist_parse_text", { text: text }).then(function (res) {
-                if (res && res.tracks) {
-                  currentTracks = res.tracks;
-                  statusBar.textContent = "Parsed " + res.tracks.length + " tracks.";
-                  window.FOSS.toast.show({ message: "Parsed " + res.tracks.length + " tracks.", type: "success" });
-                  window.FOSS.router.open("playlist", "output");
-                } else if (res && res.error) {
-                  showError(res.error.message || "Failed to parse tracklist.");
-                  window.FOSS.toast.show({ message: res.error.message || "Failed to parse tracklist.", type: "error" });
-                }
-              }).catch(function (err) {
-                showError((err && err.message) || "Parse request failed.");
-                window.FOSS.toast.show({ message: (err && err.message) || "Parse request failed.", type: "error" });
-              });
-            } catch (err) {
-              showError((err && err.message) || "Parse request failed.");
-              window.FOSS.toast.show({ message: (err && err.message) || "Parse request failed.", type: "error" });
-            }
+              var reason = failureReason(res, "Failed to parse tracklist.");
+              banner.show(reason);
+              toastError("Could not parse tracklist: " + reason);
+            });
           }
-        }, [
-          window.FOSS.icons.el("file-text", 16),
-          window.FOSS.dom.el("span", { text: "Parse Tracks" })
-        ]),
-        window.FOSS.dom.el("button", {
+        }, [window.FOSS.icons.el("file-text", 16), D.el("span", { text: "Parse Tracks" })]),
+        D.el("button", {
           className: "btn btn-ghost",
           "data-testid": "playlist-paste-clear-btn",
           type: "button",
           onClick: function () {
             textarea.value = "";
-            clearError();
+            banner.clear();
             statusBar.textContent = "Cleared tracklist text.";
           }
-        }, [window.FOSS.dom.el("span", { text: "Clear" })])
+        }, [D.el("span", { text: "Clear" })])
       ])
     ]);
 
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(pasteGroup);
+    D.append(panel, statusBar);
+    D.append(panel, banner.el);
+    D.append(panel, pasteGroup);
   }
 
-  function renderOutput(panel, ctx) {
+  function searchButton(label, title, url) {
+    return window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm",
+      type: "button",
+      text: label,
+      title: title,
+      onClick: function () { openSearchUrl(url); }
+    });
+  }
+
+  function buildTrackTable() {
+    var D = window.FOSS.dom;
+    var thead = D.el("thead", {}, [
+      D.el("tr", {}, [
+        D.el("th", { className: "playlist-col-num", text: "#" }),
+        D.el("th", { text: "Title" }),
+        D.el("th", { text: "Artist" }),
+        D.el("th", { text: "Album" }),
+        D.el("th", { text: "Duration" }),
+        D.el("th", { className: "playlist-col-links", text: "Search Links" })
+      ])
+    ]);
+    var tbody = D.el("tbody", {});
+    currentTracks.forEach(function (t, idx) {
+      var query = encodeURIComponent((t.artist || "") + " " + (t.title || ""));
+      tbody.appendChild(D.el("tr", {}, [
+        D.el("td", { className: "font-mono text-muted text-xs", text: String(idx + 1) }),
+        D.el("td", { className: "font-semibold", text: t.title || "Unknown" }),
+        D.el("td", { text: t.artist || "Unknown" }),
+        D.el("td", { className: "text-muted", text: t.album || "" }),
+        D.el("td", { className: "font-mono text-xs text-muted", text: trackDuration(t) }),
+        D.el("td", {}, [
+          D.el("div", { className: "row gap-1" }, [
+            searchButton("Spotify", "Search on Spotify", "https://open.spotify.com/search/" + query),
+            searchButton("YT", "Search on YouTube", "https://www.youtube.com/results?search_query=" + query),
+            searchButton("YTM", "Search on YouTube Music", "https://music.youtube.com/search?q=" + query)
+          ])
+        ])
+      ]));
+    });
+    var table = D.el("table", { className: "table text-sm playlist-table", "data-testid": "playlist-tracks-table" }, [thead, tbody]);
+    return D.el("div", { className: "table-wrap playlist-table-wrap", "data-testid": "playlist-table-scroll" }, [table]);
+  }
+
+  function renderOutput(panel) {
+    var D = window.FOSS.dom;
     panel.innerHTML = "";
 
-    var statusBar = window.FOSS.dom.el("div", {
+    var statusBar = D.el("div", {
       className: "text-xs text-muted mb-sm",
       "data-testid": "playlist-output-status",
       text: "Loaded Tracks: " + currentTracks.length
     });
+    var banner = createBanner("playlist-output-error-banner");
 
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden mb-sm",
-      "data-testid": "playlist-output-error-banner"
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
-
-    var resultCardHost = window.FOSS.dom.el("div", {
-      className: "hidden mb-sm",
-      "data-testid": "playlist-output-result"
-    });
+    var resultCardHost = D.el("div", { className: "hidden mb-sm", "data-testid": "playlist-output-result" });
 
     function showResult(path, titleText) {
       resultCardHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({
+      D.append(resultCardHost, window.FOSS.components.resultCard({
         testid: "playlist-result-card",
         title: titleText || "Playlist Export Ready",
         outputPath: path
-      });
-      resultCardHost.appendChild(card);
+      }));
       resultCardHost.classList.remove("hidden");
     }
 
-    var exportCsvBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "playlist-export-csv-btn",
-      type: "button",
-      onClick: function () {
-        try {
-          if (!currentTracks.length) return;
-          window.FOSS.api("select_save_path", { title: "Save CSV Playlist", default_name: "playlist.csv" }).then(function (res) {
-            var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
-            if (!p) return;
-            window.FOSS.api("playlist_export_csv", { tracks: currentTracks, output_path: p }).then(function (exportRes) {
-              if (exportRes && exportRes.output_path) {
-                showResult(exportRes.output_path, "CSV Playlist Exported");
-              }
-            }).catch(function (err) {
-              window.FOSS.toast.show({ message: "Failed to export CSV: " + (err.message || String(err)), type: "error" });
-            });
-          }).catch(function (err) {
-            window.FOSS.toast.show({ message: "Failed to select save path: " + (err.message || String(err)), type: "error" });
-          });
-        } catch (err) {
-          window.FOSS.toast.show({ message: "Failed to process CSV export: " + (err.message || String(err)), type: "error" });
-        }
-      }
-    }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "Export CSV" })]);
+    function onExported(result) {
+      showResult(result.output_path, result.label + " Playlist Exported");
+    }
 
-    var exportM3u8Btn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "playlist-export-m3u8-btn",
-      type: "button",
-      onClick: function () {
-        try {
-          if (!currentTracks.length) return;
-          window.FOSS.api("select_save_path", { title: "Save M3U8 Playlist", default_name: "playlist.m3u8" }).then(function (res) {
-            var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
-            if (!p) return;
-            window.FOSS.api("playlist_export_m3u8", { tracks: currentTracks, output_path: p }).then(function (exportRes) {
-              if (exportRes && exportRes.output_path) {
-                showResult(exportRes.output_path, "M3U8 Playlist Exported");
-              }
-            }).catch(function (err) {
-              window.FOSS.toast.show({ message: "Failed to export M3U8: " + (err.message || String(err)), type: "error" });
-            });
-          }).catch(function (err) {
-            window.FOSS.toast.show({ message: "Failed to select save path: " + (err.message || String(err)), type: "error" });
-          });
-        } catch (err) {
-          window.FOSS.toast.show({ message: "Failed to process M3U8 export: " + (err.message || String(err)), type: "error" });
-        }
-      }
-    }, [window.FOSS.icons.el("music", 14), window.FOSS.dom.el("span", { text: "Export M3U8" })]);
+    var exportCsvBtn = exportButton("csv", "playlist-export-csv-btn", onExported);
+    var exportM3u8Btn = exportButton("m3u8", "playlist-export-m3u8-btn", onExported);
+    var exportJsonBtn = exportButton("json", "playlist-export-json-btn", onExported);
 
-    var copyLinksBtn = window.FOSS.dom.el("button", {
+    var copyLinksBtn = D.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "playlist-copy-links-btn",
       type: "button",
       onClick: function () {
-        try {
-          if (!currentTracks.length) return;
-          var links = currentTracks.map(function (t) {
-            return (t.artist || "") + " - " + (t.title || "") + ": " + (t.spotify_url || t.youtube_url || "");
-          }).join("\n");
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(links).then(function () {
-              window.FOSS.toast.show({ message: "Copied track links to clipboard.", type: "success" });
-            }).catch(function (err) {
-              window.FOSS.toast.show({ message: "Failed to copy links: " + (err.message || String(err)), type: "error" });
-            });
-          }
-        } catch (err) {
-          window.FOSS.toast.show({ message: "Failed to process copying links: " + (err.message || String(err)), type: "error" });
+        if (!currentTracks.length) return;
+        var links = currentTracks.map(function (t) {
+          return (t.artist || "") + " - " + (t.title || "") + ": " + (t.spotify_url || t.youtube_url || "");
+        }).join("\n");
+        if (!navigator.clipboard || !navigator.clipboard.writeText) {
+          toastError("Clipboard access is not available in this window.");
+          return;
         }
+        navigator.clipboard.writeText(links).then(function () {
+          toastSuccess("Copied track links to clipboard.");
+        }).catch(function (err) {
+          toastError("Failed to copy links: " + ((err && err.message) || String(err)));
+        });
       }
-    }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy Links" })]);
+    }, [window.FOSS.icons.el("copy", 14), D.el("span", { text: "Copy Links" })]);
 
-    var buildYtBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary btn-sm",
+    var buildYtBtn = D.el("button", {
+      className: "btn btn-secondary btn-sm",
       "data-testid": "playlist-yt-build-btn",
       type: "button",
       onClick: function () {
-        try {
-          if (!currentTracks.length) {
-            window.FOSS.toast.show({ message: "No tracks to export.", type: "error" });
-            return;
-          }
-          var playlistName = prompt("Enter YouTube Playlist Title:", "Imported Playlist");
+        if (!currentTracks.length) {
+          toastError("No tracks to export.");
+          return;
+        }
+        window.FOSS.dialogs.prompt({
+          title: "Create YouTube Playlist",
+          message: "Enter YouTube playlist title:",
+          defaultValue: "Imported Playlist",
+          confirmText: "Create"
+        }).then(function (playlistName) {
           if (!playlistName) return;
           statusBar.textContent = "Creating YouTube playlist: " + playlistName + "...";
-          window.FOSS.job("playlist_youtube_build", {
-            playlist_title: playlistName,
-            tracks: currentTracks
-          }).then(function (res) {
-            if (res && res.playlist_url) {
+          window.FOSS.job("playlist_youtube_build", { playlist_title: playlistName, tracks: currentTracks }).then(function (res) {
+            if (res && res.ok !== false && res.playlist_url) {
               statusBar.textContent = "Created YouTube playlist (" + (res.added_count || currentTracks.length) + " tracks).";
-              window.FOSS.toast.show({ message: "Playlist created on YouTube!", type: "success" });
+              toastSuccess("Playlist created on YouTube.");
+              return;
             }
-          }).catch(function (err) {
-            var errMsg = (err && err.message) || String(err) || "Failed to create YouTube playlist.";
-            statusBar.textContent = "Error: " + errMsg;
-            window.FOSS.toast.show({ message: errMsg, type: "error" });
+            var reason = failureReason(res, "YouTube did not return a playlist URL.");
+            statusBar.textContent = "Error: " + reason;
+            toastError("Could not create YouTube playlist: " + reason);
           });
-        } catch (err) {
-          var errMsg = (err && err.message) || String(err) || "Failed to create YouTube playlist.";
-          statusBar.textContent = "Error: " + errMsg;
-          window.FOSS.toast.show({ message: errMsg, type: "error" });
-        }
+        });
       }
-    }, [window.FOSS.icons.el("play", 14), window.FOSS.dom.el("span", { text: "Create YouTube Playlist..." })]);
+    }, [window.FOSS.icons.el("play", 14), D.el("span", { text: "Create YouTube Playlist..." })]);
 
-    var exportToolbar = window.FOSS.dom.el("div", {
-      className: "row gap-2 items-center justify-between flex-wrap card card-compact",
-      style: "width: 100%;"
+    var exportToolbar = D.el("div", {
+      className: "row gap-2 items-center justify-between flex-wrap card card-compact playlist-export-bar"
     }, [
-      window.FOSS.dom.el("div", { className: "text-sm font-semibold", text: "Export & Sync" }),
-      window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
-        exportCsvBtn,
-        exportM3u8Btn,
-        copyLinksBtn,
-        buildYtBtn
-      ])
+      D.el("div", { className: "text-sm font-semibold", text: "Export & Sync" }),
+      D.el("div", { className: "row gap-2 items-center flex-wrap" }, [exportCsvBtn, exportM3u8Btn, exportJsonBtn, copyLinksBtn, buildYtBtn])
     ]);
 
-    var contentHost = window.FOSS.dom.el("div", { className: "card card-compact", "data-testid": "playlist-tracks-card" });
-
+    var contentHost = D.el("div", { className: "card card-compact", "data-testid": "playlist-tracks-card" });
     if (!currentTracks || currentTracks.length === 0) {
-      contentHost.appendChild(window.FOSS.dom.el("div", {
+      contentHost.appendChild(D.el("div", {
         className: "p-4 text-center text-muted font-mono text-sm",
         "data-testid": "playlist-empty-state",
         text: "No tracks loaded yet. Fetch a URL or paste text."
       }));
     } else {
-      var table = window.FOSS.dom.el("table", { className: "table w-full text-sm", "data-testid": "playlist-tracks-table" });
-      var thead = window.FOSS.dom.el("thead", {}, [
-        window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("th", { style: "width: 2.5rem;", text: "#" }),
-          window.FOSS.dom.el("th", { text: "Title" }),
-          window.FOSS.dom.el("th", { text: "Artist" }),
-          window.FOSS.dom.el("th", { text: "Album" }),
-          window.FOSS.dom.el("th", { text: "Duration" }),
-          window.FOSS.dom.el("th", { style: "width: 12rem;", text: "Search Links" })
-        ])
-      ]);
-      var tbody = window.FOSS.dom.el("tbody", {});
-
-      currentTracks.forEach(function (t, idx) {
-        var query = encodeURIComponent((t.artist || "") + " " + (t.title || ""));
-        var tr = window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("td", { className: "font-mono text-muted text-xs", text: String(idx + 1) }),
-          window.FOSS.dom.el("td", { className: "font-semibold", text: t.title || "Unknown" }),
-          window.FOSS.dom.el("td", { text: t.artist || "Unknown" }),
-          window.FOSS.dom.el("td", { className: "text-muted", text: t.album || "" }),
-          window.FOSS.dom.el("td", { className: "font-mono text-xs text-muted", text: formatDuration(t.duration_ms) }),
-          window.FOSS.dom.el("td", {}, [
-            window.FOSS.dom.el("div", { className: "row gap-1" }, [
-              window.FOSS.dom.el("button", {
-                className: "btn btn-ghost btn-sm",
-                type: "button",
-                text: "Spotify",
-                title: "Search on Spotify",
-                onClick: function () {
-                  try {
-                    window.FOSS.api("open_url", { url: "https://open.spotify.com/search/" + query }).catch(function (err) {
-                      window.FOSS.toast.show({ message: "Failed to open URL: " + (err.message || String(err)), type: "error" });
-                    });
-                  } catch (err) {
-                    window.FOSS.toast.show({ message: "Failed to open URL: " + (err.message || String(err)), type: "error" });
-                  }
-                }
-              }),
-              window.FOSS.dom.el("button", {
-                className: "btn btn-ghost btn-sm",
-                type: "button",
-                text: "YT",
-                title: "Search on YouTube",
-                onClick: function () {
-                  try {
-                    window.FOSS.api("open_url", { url: "https://www.youtube.com/results?search_query=" + query }).catch(function (err) {
-                      window.FOSS.toast.show({ message: "Failed to open URL: " + (err.message || String(err)), type: "error" });
-                    });
-                  } catch (err) {
-                    window.FOSS.toast.show({ message: "Failed to open URL: " + (err.message || String(err)), type: "error" });
-                  }
-                }
-              }),
-              window.FOSS.dom.el("button", {
-                className: "btn btn-ghost btn-sm",
-                type: "button",
-                text: "YTM",
-                title: "Search on YouTube Music",
-                onClick: function () {
-                  try {
-                    window.FOSS.api("open_url", { url: "https://music.youtube.com/search?q=" + query }).catch(function (err) {
-                      window.FOSS.toast.show({ message: "Failed to open URL: " + (err.message || String(err)), type: "error" });
-                    });
-                  } catch (err) {
-                    window.FOSS.toast.show({ message: "Failed to open URL: " + (err.message || String(err)), type: "error" });
-                  }
-                }
-              })
-            ])
-          ])
-        ]);
-        tbody.appendChild(tr);
-      });
-
-      table.appendChild(thead);
-      table.appendChild(tbody);
-      var tableWrap = window.FOSS.dom.el("div", { className: "table-wrap scroll-x", style: "width: 100%; overflow-x: auto;" }, [table]);
-      contentHost.appendChild(tableWrap);
+      D.append(contentHost, buildTrackTable());
     }
 
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(resultCardHost);
-    panel.appendChild(window.FOSS.dom.el("div", { className: "flex-col gap-3" }, [
-      exportToolbar,
-      contentHost
-    ]));
+    D.append(panel, statusBar);
+    D.append(panel, banner.el);
+    D.append(panel, resultCardHost);
+    D.append(panel, D.el("div", { className: "flex-col gap-3" }, [exportToolbar, contentHost]));
   }
 
   window.FOSS.router.register({
-    id: "playlist",
+    id: TOOL_ID,
     title: "Playlist Porter",
     navName: "Playlist Porter",
     category: "Media",
-    icon: "music",
+    icon: "playlist",
+    defaults: [
+      { key: "export_format", label: "Default export format", type: "select", options: [{ value: "m3u8", label: "M3U8" }, { value: "csv", label: "CSV" }, { value: "json", label: "JSON" }], default: "m3u8" }
+    ],
     tabs: [
       { id: "import", label: "Import / Fetch", aliases: ["fetch"], render: renderFetch },
       { id: "paste", label: "Paste Text", render: renderPaste },

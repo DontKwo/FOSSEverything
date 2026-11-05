@@ -99,16 +99,6 @@ def make_email_payload(to: str, subject: str = "", body: str = "") -> str:
     return f"mailto:{to}?{query}" if query else f"mailto:{to}"
 
 
-def make_whatsapp_payload(phone: str, text: str = "") -> str:
-    """Format a WhatsApp click-to-chat URL."""
-    digits = re.sub(r"\D", "", phone)
-    if not digits:
-        return ""
-    if text:
-        return f"https://wa.me/{digits}?text={urllib.parse.quote(text)}"
-    return f"https://wa.me/{digits}"
-
-
 def make_phone_payload(number: str) -> str:
     """Format a tel: URI for a phone number."""
     return f"tel:{number.strip()}" if number.strip() else ""
@@ -134,6 +124,16 @@ def make_geo_payload(latitude: float | str, longitude: float | str, altitude: fl
     return f"geo:{lat},{lon}"
 
 
+def _ical_datetime(value: str) -> str:
+    cleaned = value.strip().replace("-", "").replace(":", "")
+    if "T" not in cleaned:
+        return cleaned
+    date_part, time_part = cleaned.split("T", 1)
+    zulu = "Z" if time_part.endswith("Z") else ""
+    digits = time_part.rstrip("Z").ljust(6, "0")[:6]
+    return f"{date_part}T{digits}{zulu}"
+
+
 def make_calendar_payload(
     summary: str,
     start: str,
@@ -149,10 +149,10 @@ def make_calendar_payload(
         "VERSION:2.0",
         "BEGIN:VEVENT",
         f"SUMMARY:{summary}",
-        f"DTSTART:{start.replace('-', '').replace(':', '').replace('T', '')}",
+        f"DTSTART:{_ical_datetime(start)}",
     ]
     if end:
-        lines.append(f"DTEND:{end.replace('-', '').replace(':', '').replace('T', '')}")
+        lines.append(f"DTEND:{_ical_datetime(end)}")
     if location:
         lines.append(f"LOCATION:{location}")
     if description:
@@ -441,6 +441,18 @@ def _generate_library_barcode(
     }
     img = instance.render(options)
     return img.convert("RGBA")
+
+
+def save_barcode_svg(value: str, barcode_type: str, output_path: str, include_label: bool = True) -> str:
+    """Write a vector SVG barcode for a supported symbology."""
+    text = (value or "").strip()
+    if not text:
+        raise ValueError("Barcode value cannot be empty.")
+    barcode_class = _barcode_lib.get_barcode_class((barcode_type or "code128").lower())
+    instance = barcode_class(text)
+    with open(output_path, "wb") as handle:
+        instance.write(handle, options={"write_text": include_label})
+    return output_path
 
 
 def generate_barcode(

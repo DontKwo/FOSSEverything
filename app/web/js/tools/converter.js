@@ -10,6 +10,55 @@ window.FOSS = window.FOSS || {};
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 
+  var pendingPaths = [];
+
+  var IMAGE_FAMILIES = ["image"];
+  var DOCUMENT_FAMILIES = ["office", "document", "ebook", "note"];
+
+  function pickDefaultTarget(family, targets) {
+    if (!targets || !targets.length) return "";
+    var fam = String(family || "").toLowerCase();
+    var wanted = "";
+    if (IMAGE_FAMILIES.indexOf(fam) >= 0) {
+      wanted = window.FOSS.toolDefaults.get("converter", "image_format", "png");
+    } else if (DOCUMENT_FAMILIES.indexOf(fam) >= 0) {
+      wanted = window.FOSS.toolDefaults.get("converter", "document_format", "pdf");
+    }
+    var hit = targets.filter(function (t) { return t.toLowerCase() === String(wanted).toLowerCase(); });
+    return hit.length ? hit[0] : targets[0];
+  }
+
+  function extForTarget(target) {
+    var lower = String(target || "").toLowerCase();
+    if (lower.indexOf("pdf") === 0) return "pdf";
+    if (lower === "jpeg") return "jpg";
+    return lower.replace(/[^a-z0-9]/g, "");
+  }
+
+  function buildFileTypes(selected, targets) {
+    var seen = {};
+    var ordered = [selected].concat(targets || []);
+    var types = [];
+    ordered.forEach(function (t) {
+      if (!t) return;
+      var ext = extForTarget(t);
+      if (!ext || seen[ext]) return;
+      seen[ext] = true;
+      types.push({ name: t + " (*." + ext + ")", extensions: ext === "jpg" ? ["jpg", "jpeg"] : [ext] });
+    });
+    return types;
+  }
+
+  function targetFromPath(path, current, targets) {
+    var ext = (path.split(".").pop() || "").toLowerCase();
+    var matches = (targets || []).filter(function (t) {
+      var tExt = extForTarget(t);
+      return tExt === ext || (tExt === "jpg" && ext === "jpeg") || (tExt === "tiff" && ext === "tif");
+    });
+    if (!matches.length || matches.indexOf(current) >= 0) return current;
+    return matches[0];
+  }
+
   // TAB 1: Single File Converter
   function renderSingle(panel, ctx) {
     panel.innerHTML = "";
@@ -126,36 +175,17 @@ window.FOSS = window.FOSS || {};
       type: "text",
       className: "input font-mono",
       "data-testid": "converter-output-stem",
-      placeholder: "Default (source filename)",
-      "aria-label": "Output Filename Stem",
-      title: "Output Filename Stem"
+      placeholder: "converted",
+      "aria-label": "Suggested Filename",
+      title: "Suggested Filename"
     });
-
-    var outputDirInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input font-mono grow",
-      "data-testid": "converter-output-dir",
-      placeholder: "Same as source directory",
-      "aria-label": "Output Folder",
-      title: "Output Folder"
-    });
-
-    var browseDirBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "converter-browse-dir-btn",
-      type: "button",
-      onClick: function () {
-        window.FOSS.api("select_folder", { title: "Select Output Folder" }).then(function (res) {
-          if (res && res.path) outputDirInput.value = res.path;
-        });
-      }
-    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Browse..." })]);
 
     var qualitySlider = window.FOSS.components.slider({
+      testid: "converter-quality",
       label: "Image Quality",
       min: 10,
       max: 100,
-      value: 85,
+      value: window.FOSS.toolDefaults.get("converter", "quality", 90),
       step: 5,
       unit: "%"
     });
@@ -194,26 +224,26 @@ window.FOSS = window.FOSS || {};
           return;
         }
         clearError();
-        statusBar.textContent = "Converting file...";
         var tgt = targetSelect.value;
         var stem = outputStemInput.value.trim();
-        var outDir = outputDirInput.value.trim();
         var dpi = parseInt(dpiInput.value, 10) || 150;
-        var q = qualitySlider.getValue ? qualitySlider.getValue() : 85;
+        var q = qualitySlider.getValue();
 
-        var baseName = currentFile.split(/[/\\]/).pop().replace(/\.[^/.]+$/, "");
-        var defName = (stem || baseName) + "." + tgt.toLowerCase();
         window.FOSS.api("select_save_path", {
           title: "Save Converted File",
-          default_name: defName
+          default_name: stem || "converted",
+          file_types: buildFileTypes(tgt, availableTargetsList)
         }).then(function (res) {
-          var outPath = (res && res.path) || (res && res.paths && res.paths[0]) || "";
-          window.FOSS.api("converter_convert_file", {
+          var outPath = (res && res.path) || "";
+          if (!outPath) {
+            statusBar.textContent = "Save cancelled";
+            return null;
+          }
+          statusBar.textContent = "Converting file...";
+          return window.FOSS.api("converter_convert_file", {
             file_path: currentFile,
-            output_path: outPath || undefined,
-            target_format: tgt,
-            output_stem: stem || undefined,
-            output_dir: outDir || undefined,
+            output_path: outPath,
+            target_format: targetFromPath(outPath, tgt, availableTargetsList),
             dpi: dpi,
             quality: q
           }).then(function (convRes) {
@@ -223,23 +253,9 @@ window.FOSS = window.FOSS || {};
             } else {
               showError("Conversion produced no output file.");
             }
-          }).catch(function (err) {
-            showError((err && err.message) || String(err));
           });
-        }).catch(function () {
-          window.FOSS.api("converter_convert_file", {
-            file_path: currentFile,
-            target_format: tgt,
-            output_stem: stem || undefined,
-            output_dir: outDir || undefined,
-            dpi: dpi,
-            quality: q
-          }).then(function (convRes) {
-            if (convRes && convRes.output_path) {
-              statusBar.textContent = "Conversion complete: " + convRes.output_path;
-              showResult(convRes.output_path, "Conversion Complete");
-            }
-          });
+        }).catch(function (err) {
+          showError((err && err.message) || String(err));
         });
       }
     }, [window.FOSS.icons.el("refresh", 16), window.FOSS.dom.el("span", { text: "Convert File" })]);
@@ -251,11 +267,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Conversion Options" }),
       window.FOSS.components.field("Target Format", targetSelect),
       contextualOptionsContainer,
-      window.FOSS.components.field("Custom Output Filename (Optional)", outputStemInput),
-      window.FOSS.dom.el("div", { className: "flex-col gap-1" }, [
-        window.FOSS.dom.el("label", { className: "text-xs font-semibold text-muted", text: "Output Folder" }),
-        window.FOSS.dom.el("div", { className: "row gap-2" }, [outputDirInput, browseDirBtn])
-      ]),
+      window.FOSS.components.field("Suggested Filename (Optional)", outputStemInput),
       convertBtn
     ]);
 
@@ -288,6 +300,7 @@ window.FOSS = window.FOSS || {};
         availableTargetsList.forEach(function (t) {
           targetSelect.appendChild(window.FOSS.dom.el("option", { value: t, text: t }));
         });
+        targetSelect.value = pickDefaultTarget(currentFamily, availableTargetsList);
         updateContextualOptions();
         statusBar.textContent = "Ready (" + availableTargetsList.length + " compatible target formats)";
       }).catch(function (err) {
@@ -299,6 +312,12 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(errorBanner);
     panel.appendChild(resultHost);
     panel.appendChild(split);
+
+    if (pendingPaths.length) {
+      var firstPath = pendingPaths[0];
+      pendingPaths = [];
+      loadFile(firstPath);
+    }
   }
 
   // TAB 2: Batch & Folder Queue
@@ -453,7 +472,7 @@ window.FOSS = window.FOSS || {};
               size_bytes: it.size_bytes || 0,
               family: it.family || "File",
               targets: it.targets || [],
-              target_format: it.default_target || (it.targets && it.targets[0]) || "",
+              target_format: pickDefaultTarget(it.family, it.targets) || it.default_target || "",
               status: "Queued",
               error: null,
               output_path: ""
@@ -656,7 +675,8 @@ window.FOSS = window.FOSS || {};
           };
         }),
         output_dir: outDir || undefined,
-        preserve_tree: preserve
+        preserve_tree: preserve,
+        quality: window.FOSS.toolDefaults.get("converter", "quality", 90)
       }).then(function (res) {
         isProcessing = false;
         if (res && res.results) {
@@ -720,6 +740,12 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(card);
 
     renderQueueTable();
+
+    if (pendingPaths.length) {
+      var queuedPaths = pendingPaths;
+      pendingPaths = [];
+      addPathsToQueue(queuedPaths);
+    }
   }
 
   window.FOSS.router.register({
@@ -727,14 +753,20 @@ window.FOSS = window.FOSS || {};
     title: "File Format Converter",
     navName: "Converter",
     category: "Utilities",
-    icon: "refresh",
+    icon: "converter",
     workbench: true,
+    defaults: [
+      { key: "image_format", label: "Default image target format", type: "select", options: ["png", "jpeg", "webp", "bmp", "tiff"], default: "png" },
+      { key: "document_format", label: "Default document target format", type: "select", options: ["pdf", "txt", "md", "html", "csv"], default: "pdf" },
+      { key: "quality", label: "Default quality", type: "number", min: 10, max: 100, step: 5, default: 90, hint: "Applies to JPEG and WebP output." }
+    ],
     tabs: [
       { id: "single", label: "Single File", render: renderSingle },
       { id: "batch", label: "Batch & Folder Queue", aliases: ["queue"], render: renderBatch }
     ],
     onFiles: function (paths, ctx) {
       if (!paths || !paths.length) return;
+      pendingPaths = paths.slice();
       if (paths.length === 1) {
         window.FOSS.router.open("converter", "single");
       } else {

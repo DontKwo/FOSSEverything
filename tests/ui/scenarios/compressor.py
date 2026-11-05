@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Callable
 from playwright.sync_api import Page, expect
 
@@ -28,12 +29,14 @@ def scenario_result(page: Page, fixtures: dict[str, str], api: Any) -> None:
     # Queue image fixture and execute compression run.
     sample = fixtures.get("sample.png", "sample.png")
     api._dialog_answers.append([sample])
+    api._dialog_answers.append(str(Path(sample).parent / "out_compressed.png"))
     page.evaluate("window.FOSS.router.open('compressor', 'main')")
     page.click("[data-testid='compressor-choose-file']")
     page.wait_for_timeout(250)
 
     tbl = page.locator("[data-testid='compressor-queue-table'] table")
     expect(tbl).to_be_visible()
+    expect(page.locator("[data-testid='compressor-estimate-readout']")).to_contain_text("Estimated savings")
 
     page.click("[data-testid='compressor-run-btn']")
     page.wait_for_timeout(350)

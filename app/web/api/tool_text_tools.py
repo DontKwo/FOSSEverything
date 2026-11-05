@@ -7,8 +7,10 @@ from app.features.text_tools.ops import (
     code_points_to_text,
     collapse_spaces,
     dedupe_lines,
+    diff_side_by_side,
     diff_texts,
     join_lines,
+    normalize_for_diff,
     normalize_line_endings,
     number_lines,
     remove_blank_lines,
@@ -189,8 +191,16 @@ class TextToolsApiMixin:
     def text_tools_diff(self, params: dict[str, Any]) -> dict[str, Any]:
         # Compute differences between two strings.
         require(params, "text1", "text2")
-        diff_res = diff_texts(str(params["text1"]), str(params["text2"]))
-        return ok(diff=diff_res["diff"], additions=diff_res["added"], deletions=diff_res["removed"])
+        text1 = normalize_for_diff(str(params["text1"]), bool(params.get("ignore_whitespace")), bool(params.get("ignore_case")))
+        text2 = normalize_for_diff(str(params["text2"]), bool(params.get("ignore_whitespace")), bool(params.get("ignore_case")))
+        view = str(params.get("view", "unified")).lower()
+        if view == "unified":
+            diff_res = diff_texts(text1, text2)
+        elif view == "side_by_side":
+            diff_res = diff_side_by_side(text1, text2)
+        else:
+            return fail(f"Unsupported diff view: {view}", code="InvalidMode")
+        return ok(diff=diff_res["diff"], additions=diff_res["added"], deletions=diff_res["removed"], view=view)
 
     @api_method
     def text_diff(self, params: dict[str, Any]) -> dict[str, Any]:

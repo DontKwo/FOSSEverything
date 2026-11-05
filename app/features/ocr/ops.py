@@ -363,7 +363,8 @@ def ocr_pdf(
                 skipped_searchable.append(page_num)
             else:
                 try:
-                    tp = page.get_textpage_ocr(language=language, dpi=dpi, full=True)
+                    keeps_digital_text = not force_overwrite and len(existing_text) >= 15
+                    tp = page.get_textpage_ocr(language=language, dpi=dpi, full=not keeps_digital_text)
                     page_text = tp.extractText().strip()
                     raw_words = tp.extractWORDS()
                     page_words = [

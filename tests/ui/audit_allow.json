@@ -1,7 +1,7 @@
 [
   { "check": "A2", "view": "network_monitor", "selector": "table.table.w-full" },
-  { "check": "A2", "view": "network_monitor", "selector": "[data-testid=\"network-apps-table\"]" },
-  { "check": "A2", "view": "network_monitor", "selector": "[data-testid=\"network-live-table\"]" },
+  { "check": "A2", "view": "network_monitor", "selector": "[data-testid=\"network_monitor-apps-table\"]" },
+  { "check": "A2", "view": "network_monitor", "selector": "[data-testid=\"network_monitor-live-table\"]" },
   { "check": "A6", "view": "text_tools", "selector": "[data-testid=\"text_tools-diff-left-input\"]" },
   { "check": "A6", "view": "text_tools", "selector": "[data-testid=\"text_tools-diff-right-input\"]" },
   { "check": "A6", "view": "text_tools", "selector": "[data-testid=\"text_tools-input-input\"]" },

@@ -14,7 +14,8 @@ window.FOSS = window.FOSS || {};
   var selectedPlaneIdx = 0;
   var cutPieces = [];
   var selectedPieceIdx = -1;
-  var wireframeMode = false;
+  var renderMode = "shaded";
+  var displayUnit = "mm";
   var showAxes = true;
   var showScales = true;
   var showBoundingBox = true;
@@ -27,6 +28,58 @@ window.FOSS = window.FOSS || {};
     distance: 3.0,
     target: [0, 0, 0]
   };
+
+  var SAVE_TYPE_DEFS = {
+    stl: { name: "STL Mesh (*.stl)", extensions: ["stl"] },
+    obj: { name: "OBJ Wavefront (*.obj)", extensions: ["obj"] },
+    gltf: { name: "GLTF Scene (*.gltf)", extensions: ["gltf"] },
+    glb: { name: "GLB Binary Scene (*.glb)", extensions: ["glb"] },
+    ply: { name: "PLY Polygon (*.ply)", extensions: ["ply"] },
+    step: { name: "STEP CAD Solid (*.step)", extensions: ["step"] },
+    iges: { name: "IGES CAD Surface (*.iges)", extensions: ["iges"] }
+  };
+
+  function applyStoredDefaults() {
+    var defs = window.FOSS.toolDefaults.all("model3d");
+    renderMode = defs.render_mode || "shaded";
+    showScales = defs.show_grid !== false;
+    displayUnit = defs.unit === "inch" ? "inch" : "mm";
+  }
+
+  function unitLabel() {
+    return displayUnit === "inch" ? "in" : "mm";
+  }
+
+  function modelSaveTypes(preferred) {
+    var order = (preferred ? [preferred] : []).concat(["stl", "obj", "gltf"]);
+    var seen = {};
+    var out = [];
+    order.forEach(function (ext) {
+      if (SAVE_TYPE_DEFS[ext] && !seen[ext]) {
+        seen[ext] = true;
+        out.push(SAVE_TYPE_DEFS[ext]);
+      }
+    });
+    return out;
+  }
+
+  function sourceExt() {
+    var match = /\.([A-Za-z0-9]+)$/.exec(currentModelPath || "");
+    var ext = match ? match[1].toLowerCase() : "";
+    if (ext === "stp") return "step";
+    if (ext === "igs") return "iges";
+    return ext;
+  }
+
+  function pickModelSavePath(title, preferred) {
+    return window.FOSS.api("select_save_path", {
+      title: title,
+      default_name: "model",
+      file_types: modelSaveTypes(preferred || sourceExt())
+    }).then(function (res) {
+      return (res && (res.path || (res.paths && res.paths[0]))) || "";
+    });
+  }
 
   function base64ToFloat32Array(b64) {
     var bin = atob(b64);
@@ -205,6 +258,8 @@ window.FOSS = window.FOSS || {};
       text: "Scale: --"
     });
 
+    applyStoredDefaults();
+
     var axesCheckbox = window.FOSS.dom.el("input", {
       type: "checkbox",
       checked: showAxes,
@@ -255,16 +310,26 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.dom.el("span", { text: "Reset" })]);
 
-    var wireframeBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-ghost btn-sm",
-      "data-testid": "model3d-wireframe-btn",
-      title: "Toggle Wireframe",
-      type: "button",
-      onClick: function () {
-        wireframeMode = !wireframeMode;
+    var renderModeSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-testid": "model3d-render-mode",
+      "aria-label": "Render Mode",
+      title: "Render Mode",
+      onChange: function () {
+        renderMode = renderModeSelect.value;
         render();
       }
-    }, [window.FOSS.dom.el("span", { text: "Wireframe" })]);
+    }, [
+      window.FOSS.dom.el("option", { value: "shaded", text: "Shaded" }),
+      window.FOSS.dom.el("option", { value: "wireframe", text: "Wireframe" }),
+      window.FOSS.dom.el("option", { value: "normal", text: "Normals" })
+    ]);
+
+    function syncControls() {
+      renderModeSelect.value = renderMode;
+      scalesCheckbox.checked = showScales;
+    }
+    syncControls();
 
     var toolbar = window.FOSS.dom.el("div", {
       className: "model3d-viewport-toolbar btn-group",
@@ -305,7 +370,7 @@ window.FOSS = window.FOSS || {};
           render();
         }
       }, [window.FOSS.dom.el("span", { text: "Side" })]),
-      wireframeBtn,
+      renderModeSelect,
       window.FOSS.dom.el("label", {
         className: "row items-center gap-xs text-xs",
         style: "cursor: pointer; margin-left: var(--space-2);"
@@ -380,6 +445,8 @@ window.FOSS = window.FOSS || {};
           "void main() {",
           "  if (uUnlit == 1) {",
           "    gl_FragColor = uColor;",
+          "  } else if (uUnlit == 2) {",
+          "    gl_FragColor = vec4(normalize(vNorm) * 0.5 + 0.5, 1.0);",
           "  } else {",
           "    vec3 norm = normalize(vNorm);",
           "    vec3 light = normalize(uLightDir);",
@@ -491,7 +558,7 @@ window.FOSS = window.FOSS || {};
         var dx = modelBounds.max[0] - modelBounds.min[0];
         var dy = modelBounds.max[1] - modelBounds.min[1];
         var dz = modelBounds.max[2] - modelBounds.min[2];
-        bboxBadge.textContent = "L: " + dx.toFixed(2) + " x W: " + dy.toFixed(2) + " x H: " + dz.toFixed(2);
+        bboxBadge.textContent = "L: " + dx.toFixed(2) + " x W: " + dy.toFixed(2) + " x H: " + dz.toFixed(2) + " " + unitLabel();
         bboxBadge.classList.remove("hidden");
       } else {
         bboxBadge.classList.add("hidden");
@@ -500,7 +567,7 @@ window.FOSS = window.FOSS || {};
       if (showScales && modelBounds) {
         var sp = modelBounds.span || 1.0;
         var st = sp / 10;
-        scaleBadge.textContent = "Grid: " + st.toFixed(st < 1 ? 2 : 1) + " | Span: " + sp.toFixed(2);
+        scaleBadge.textContent = "Grid: " + st.toFixed(st < 1 ? 2 : 1) + " " + unitLabel() + " | Span: " + sp.toFixed(2) + " " + unitLabel();
         scaleBadge.classList.remove("hidden");
       } else {
         scaleBadge.classList.add("hidden");
@@ -552,7 +619,7 @@ window.FOSS = window.FOSS || {};
 
       // Render 3D Model Mesh or Wireframe
       if (modelMeshBuffer) {
-        if (wireframeMode) {
+        if (renderMode === "wireframe") {
           gl.uniform1i(shaderProg.uUnlit, 1);
           gl.uniform4f(shaderProg.uColor, 0.9, 0.55, 0.2, 1.0);
           gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
@@ -562,7 +629,7 @@ window.FOSS = window.FOSS || {};
           gl.disableVertexAttribArray(shaderProg.aNorm);
           gl.drawArrays(gl.LINES, 0, modelMeshBuffer.wireframeCount);
         } else {
-          gl.uniform1i(shaderProg.uUnlit, 0);
+          gl.uniform1i(shaderProg.uUnlit, renderMode === "normal" ? 2 : 0);
           gl.uniform4f(shaderProg.uColor, 0.65, 0.68, 0.76, 1.0);
 
           gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
@@ -759,8 +826,17 @@ window.FOSS = window.FOSS || {};
       canvas: canvas,
       render: render,
       setPickMode: function (mode) { pickMode = mode; },
-      onPickPoint: null
+      onPickPoint: null,
+      onUnitChange: null
     };
+
+    window.addEventListener("foss:tool-defaults-changed", function (e) {
+      if (!e.detail || e.detail.toolId !== "model3d") return;
+      applyStoredDefaults();
+      syncControls();
+      render();
+      if (sharedViewportInstance.onUnitChange) sharedViewportInstance.onUnitChange();
+    });
 
     setTimeout(render, 50);
     return sharedViewportInstance;
@@ -852,8 +928,7 @@ window.FOSS = window.FOSS || {};
       text: "Center Origin",
       onClick: function () {
         if (!currentModelPath) return;
-        window.FOSS.api("select_save_path", { title: "Save Centered Model", default_name: "centered.stl" }).then(function (saveRes) {
-          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
+        pickModelSavePath("Save Centered Model").then(function (outP) {
           if (!outP) return;
           window.FOSS.api("model3d_center_origin", { file_path: currentModelPath, output_path: outP }).then(function (res) {
             if (res && res.output_path) {
@@ -874,8 +949,7 @@ window.FOSS = window.FOSS || {};
       text: "Repair Mesh",
       onClick: function () {
         if (!currentModelPath) return;
-        window.FOSS.api("select_save_path", { title: "Save Repaired Model", default_name: "repaired.stl" }).then(function (saveRes) {
-          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
+        pickModelSavePath("Save Repaired Model").then(function (outP) {
           if (!outP) return;
           window.FOSS.api("model3d_repair", { file_path: currentModelPath, output_path: outP }).then(function (res) {
             if (res && res.output_path) {
@@ -919,12 +993,31 @@ window.FOSS = window.FOSS || {};
       updateInspectorData();
     });
 
+    var unitSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-testid": "model3d-unit-select",
+      "aria-label": "Display Unit",
+      title: "Display Unit",
+      onChange: function () {
+        displayUnit = unitSelect.value;
+        viewport.render();
+        updateInspectorData();
+      }
+    }, [
+      window.FOSS.dom.el("option", { value: "mm", text: "mm" }),
+      window.FOSS.dom.el("option", { value: "inch", text: "inch" })
+    ]);
+    unitSelect.value = displayUnit;
+
     // Inspector Cards
     var infoCard = window.FOSS.dom.el("div", {
       className: "card card-compact",
       "data-testid": "model3d-info-card"
     }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Model Geometry & Topology" }),
+      window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
+        window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Model Geometry & Topology" }),
+        unitSelect
+      ]),
       window.FOSS.dom.el("div", { className: "grid grid-cols-2 gap-sm text-xs", "data-testid": "model3d-info-grid" }, [
         window.FOSS.dom.el("div", {}, [window.FOSS.dom.el("span", { className: "text-muted", text: "Format: " }), window.FOSS.dom.el("span", { "data-testid": "model3d-format", text: currentModelInfo ? currentModelInfo.format || "Mesh" : "N/A" })]),
         window.FOSS.dom.el("div", {}, [window.FOSS.dom.el("span", { className: "text-muted", text: "Watertight: " }), window.FOSS.dom.el("span", { "data-testid": "model3d-watertight", text: currentModelInfo ? (currentModelInfo.watertight ? "Yes" : "No") : "N/A" })]),
@@ -937,7 +1030,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", {
             "data-testid": "model3d-bbox-lwh",
             className: "font-mono font-semibold",
-            text: modelBounds && modelBounds.min ? (modelBounds.max[0] - modelBounds.min[0]).toFixed(2) + " x " + (modelBounds.max[1] - modelBounds.min[1]).toFixed(2) + " x " + (modelBounds.max[2] - modelBounds.min[2]).toFixed(2) : "--"
+            text: modelBounds && modelBounds.min ? (modelBounds.max[0] - modelBounds.min[0]).toFixed(2) + " x " + (modelBounds.max[1] - modelBounds.min[1]).toFixed(2) + " x " + (modelBounds.max[2] - modelBounds.min[2]).toFixed(2) + " " + unitLabel() : "--"
           })
         ])
       ])
@@ -955,12 +1048,13 @@ window.FOSS = window.FOSS || {};
       if (fEl) fEl.textContent = String(stats.triangle_count || 0);
       var volEl = panel.querySelector("[data-testid='model3d-volume']");
       if (volEl) volEl.textContent = String(stats.volume ? stats.volume.toFixed(2) : "0.00");
+      unitSelect.value = displayUnit;
       var lwhEl = panel.querySelector("[data-testid='model3d-bbox-lwh']");
       if (lwhEl && modelBounds && modelBounds.min) {
         var dx = modelBounds.max[0] - modelBounds.min[0];
         var dy = modelBounds.max[1] - modelBounds.min[1];
         var dz = modelBounds.max[2] - modelBounds.min[2];
-        lwhEl.textContent = dx.toFixed(2) + " x " + dy.toFixed(2) + " x " + dz.toFixed(2);
+        lwhEl.textContent = dx.toFixed(2) + " x " + dy.toFixed(2) + " x " + dz.toFixed(2) + " " + unitLabel();
       }
       if (typeof updateDimReadouts === "function") {
         updateDimReadouts();
@@ -1039,9 +1133,9 @@ window.FOSS = window.FOSS || {};
       var fy = parseFloat(scaleYInput.value) || 1.0;
       var fz = parseFloat(scaleZInput.value) || 1.0;
 
-      dimXReadout.textContent = "X: " + (dx * fx).toFixed(2);
-      dimYReadout.textContent = "Y: " + (dy * fy).toFixed(2);
-      dimZReadout.textContent = "Z: " + (dz * fz).toFixed(2);
+      dimXReadout.textContent = "X: " + (dx * fx).toFixed(2) + " " + unitLabel();
+      dimYReadout.textContent = "Y: " + (dy * fy).toFixed(2) + " " + unitLabel();
+      dimZReadout.textContent = "Z: " + (dz * fz).toFixed(2) + " " + unitLabel();
     }
 
     factorInput.addEventListener("input", function () {
@@ -1082,8 +1176,7 @@ window.FOSS = window.FOSS || {};
         var fx = uniformCheck.checked ? factor : parseFloat(scaleXInput.value || factorInput.value || "1.0");
         var fy = uniformCheck.checked ? factor : parseFloat(scaleYInput.value || factorInput.value || "1.0");
         var fz = uniformCheck.checked ? factor : parseFloat(scaleZInput.value || factorInput.value || "1.0");
-        window.FOSS.api("select_save_path", { title: "Save Scaled Model", default_name: "scaled.stl" }).then(function (saveRes) {
-          var outP = (saveRes && (saveRes.path || (saveRes.paths && saveRes.paths[0]))) || "";
+        pickModelSavePath("Save Scaled Model").then(function (outP) {
           if (!outP) return;
           window.FOSS.api("model3d_scale", {
             file_path: currentModelPath,
@@ -1184,6 +1277,8 @@ window.FOSS = window.FOSS || {};
       }
     });
 
+    viewport.onUnitChange = updateInspectorData;
+
     viewport.onPickPoint = function (mode, pt) {
       if (mode === "point_a") {
         p1x.value = pt[0].toFixed(2);
@@ -1214,7 +1309,7 @@ window.FOSS = window.FOSS || {};
         window.FOSS.api("model3d_measure", { p1: ptA, p2: ptB }).then(function (res) {
           if (res && res.distance !== undefined) {
             var valEl = distanceDisplay.querySelector("[data-testid='model3d-distance-value']");
-            if (valEl) valEl.textContent = String(res.distance) + " units";
+            if (valEl) valEl.textContent = String(res.distance) + " " + unitLabel();
           }
         });
       }
@@ -1248,7 +1343,7 @@ window.FOSS = window.FOSS || {};
       measureCard
     ]);
 
-    var divider = window.FOSS.components.splitDivider({ vertical: true });
+    var divider = window.FOSS.components.splitDivider({ vertical: true, side: "right" });
     divider.addEventListener("mousedown", function () {
       if (viewport && viewport.el) {
         viewport.el.style.setProperty("pointer-events", "none");
@@ -1428,11 +1523,7 @@ window.FOSS = window.FOSS || {};
               window.FOSS.toast.show({ message: "Select a cut piece first.", type: "info" });
               return;
             }
-            window.FOSS.api("select_save_path", {
-              title: "Save Cut Piece",
-              default_name: "piece_" + (selectedPieceIdx + 1) + ".stl"
-            }).then(function (saveRes) {
-              var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
+            pickModelSavePath("Save Cut Piece", "stl").then(function (outP) {
               if (!outP) return;
               window.FOSS.api("model3d_export", { file_path: cutPieces[selectedPieceIdx], output_path: outP });
             });
@@ -1543,7 +1634,7 @@ window.FOSS = window.FOSS || {};
       cutPiecesCard
     ]);
 
-    var dividerCut = window.FOSS.components.splitDivider({ vertical: true });
+    var dividerCut = window.FOSS.components.splitDivider({ vertical: true, side: "right" });
     dividerCut.addEventListener("mousedown", function () {
       if (viewport && viewport.el) {
         viewport.el.style.setProperty("pointer-events", "none");
@@ -1597,6 +1688,7 @@ window.FOSS = window.FOSS || {};
     }, [
       window.FOSS.dom.el("option", { value: "stl", text: "STL (Mesh)" }),
       window.FOSS.dom.el("option", { value: "obj", text: "OBJ (Wavefront)" }),
+      window.FOSS.dom.el("option", { value: "gltf", text: "GLTF (Scene)" }),
       window.FOSS.dom.el("option", { value: "ply", text: "PLY (Polygon)" }),
       window.FOSS.dom.el("option", { value: "step", text: "STEP (CAD Solid)" }),
       window.FOSS.dom.el("option", { value: "iges", text: "IGES (CAD Surface)" })
@@ -1611,11 +1703,12 @@ window.FOSS = window.FOSS || {};
           window.FOSS.toast.show({ message: "Open a 3D model first.", type: "error" });
           return;
         }
-        var ext = formatSelect.value;
-        window.FOSS.api("select_save_path", { title: "Export 3D Model", default_name: "model." + ext }).then(function (saveRes) {
-          var outP = (saveRes && saveRes.paths && saveRes.paths[0]) || "";
+        var chosen = formatSelect.value;
+        var types = [SAVE_TYPE_DEFS[chosen]].concat(modelSaveTypes("").filter(function (t) { return t.extensions[0] !== chosen; }));
+        window.FOSS.api("select_save_path", { title: "Export 3D Model", default_name: "model", file_types: types }).then(function (saveRes) {
+          var outP = (saveRes && (saveRes.path || (saveRes.paths && saveRes.paths[0]))) || "";
           if (!outP) return;
-          window.FOSS.api("model3d_export", { file_path: currentModelPath, output_path: outP, format: ext }).then(function (res) {
+          window.FOSS.api("model3d_export", { file_path: currentModelPath, output_path: outP }).then(function (res) {
             if (res && res.output_path) {
               window.FOSS.toast.show({ message: "Exported to " + res.output_path, type: "success" });
             }
@@ -1640,7 +1733,7 @@ window.FOSS = window.FOSS || {};
       exportCard
     ]);
 
-    var dividerExport = window.FOSS.components.splitDivider({ vertical: true });
+    var dividerExport = window.FOSS.components.splitDivider({ vertical: true, side: "right" });
     dividerExport.addEventListener("mousedown", function () {
       if (viewport && viewport.el) {
         viewport.el.style.setProperty("pointer-events", "none");
@@ -1675,8 +1768,13 @@ window.FOSS = window.FOSS || {};
     title: "3D Model Studio",
     navName: "3D Models",
     category: "Visuals",
-    icon: "box",
+    icon: "model3d",
     workbench: true,
+    defaults: [
+      { key: "render_mode", label: "Default render mode", type: "select", options: [{ value: "shaded", label: "Shaded" }, { value: "wireframe", label: "Wireframe" }, { value: "normal", label: "Normals" }], default: "shaded" },
+      { key: "show_grid", label: "Show reference grid", type: "toggle", default: true },
+      { key: "unit", label: "Default unit", type: "select", options: [{ value: "mm", label: "Millimeters (mm)" }, { value: "inch", label: "Inches (in)" }], default: "mm" }
+    ],
     tabs: [
       { id: "inspector", label: "Inspector & Tools", render: renderUnifiedInspector },
       { id: "cut", label: "Cut Plane", render: renderCut },

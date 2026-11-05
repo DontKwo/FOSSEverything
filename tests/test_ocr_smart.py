@@ -119,3 +119,59 @@ def test_ocr_batch_folder_support(tmp_path: Path) -> None:
     assert out_txt.exists()
     assert "Batch item text" in out_txt.read_text(encoding="utf-8")
 
+
+
+def _make_text_pdf(path: Path, line: str) -> None:
+    # Write a one-page PDF holding a digital text stream.
+    doc = pymupdf.open()
+    page = doc.new_page(width=300, height=300)
+    page.insert_text((50, 50), line)
+    doc.save(str(path))
+    doc.close()
+
+
+def test_force_reocr_false_preserves_digital_text_stream(tmp_path: Path) -> None:
+    # Searchable PDF output keeps the original text stream when force_reocr is False.
+    src_pdf = tmp_path / "digital.pdf"
+    out_pdf = tmp_path / "digital_out.pdf"
+    _make_text_pdf(src_pdf, "Digital stream sentinel text")
+
+    api = MockWebApi()
+    res = api.ocr_create_searchable_pdf({
+        "input_path": str(src_pdf),
+        "output_path": str(out_pdf),
+        "force_reocr": False,
+    })
+    assert res.get("ok") is True
+
+    out_doc = pymupdf.open(str(out_pdf))
+    try:
+        assert out_doc[0].get_text("text").count("Digital stream sentinel text") == 1
+    finally:
+        out_doc.close()
+
+
+def test_force_reocr_false_skips_ocr_on_searchable_pages(tmp_path: Path) -> None:
+    # Text extraction reports searchable pages as skipped and returns the exact digital text.
+    src_pdf = tmp_path / "digital_extract.pdf"
+    _make_text_pdf(src_pdf, "Exact digital extraction line")
+
+    api = MockWebApi()
+    res = api.ocr_recognize_file({"file_path": str(src_pdf), "force_reocr": False})
+    assert res.get("ok") is True
+    assert res.get("skipped_searchable_pages") == [1]
+    assert "Exact digital extraction line" in str(res.get("text"))
+
+
+def test_ocr_preview_image_returns_data_url(tmp_path: Path) -> None:
+    # Image preview endpoint returns a PNG data URL and tolerates empty params.
+    pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 40, 30), 0)
+    pix.clear_with(200)
+    img_path = tmp_path / "preview.png"
+    pix.save(str(img_path))
+
+    api = MockWebApi()
+    res = api.ocr_preview_image({"file_path": str(img_path)})
+    assert res.get("ok") is True
+    assert str(res.get("data_url")).startswith("data:image/png;base64,")
+    assert api.ocr_preview_image({}).get("ok") is False

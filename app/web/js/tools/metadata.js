@@ -4,6 +4,37 @@ window.FOSS = window.FOSS || {};
 (function () {
   var globalCurrentFile = "";
 
+  var TYPE_LABELS = {
+    jpg: "JPEG Image", jpeg: "JPEG Image", png: "PNG Image", webp: "WebP Image", gif: "GIF Image",
+    bmp: "Bitmap Image", tif: "TIFF Image", tiff: "TIFF Image", pdf: "PDF Document",
+    docx: "Microsoft Word Document", docm: "Microsoft Word Macro Document",
+    xlsx: "Microsoft Excel Workbook", xlsm: "Microsoft Excel Macro Workbook",
+    pptx: "Microsoft PowerPoint Presentation", pptm: "Microsoft PowerPoint Macro Presentation",
+    odt: "OpenDocument Text", ods: "OpenDocument Spreadsheet", odp: "OpenDocument Presentation",
+    mp3: "MP3 Audio", wav: "WAV Audio", flac: "FLAC Audio", m4a: "M4A Audio", ogg: "Ogg Audio",
+    mp4: "MP4 Video", mov: "QuickTime Video", mkv: "Matroska Video", webm: "WebM Video"
+  };
+
+  function matchedFileTypes(filePath) {
+    var base = String(filePath || "").split(/[/\\]/).pop();
+    var dot = base.lastIndexOf(".");
+    var ext = dot !== -1 ? base.substring(dot + 1).toLowerCase() : "";
+    if (!ext) return [];
+    var label = TYPE_LABELS[ext] || (ext.toUpperCase() + " File");
+    return [{ name: label + " (*." + ext + ")", extensions: [ext] }];
+  }
+
+  function savePathFor(filePath, title, baseName) {
+    return window.FOSS.api("select_save_path", {
+      title: title,
+      default_name: baseName,
+      file_types: matchedFileTypes(filePath)
+    }).then(function (res) {
+      if (!res || res.cancelled) return "";
+      return res.path || (res.paths && res.paths[0]) || "";
+    });
+  }
+
   function renderInspectTab(panel, ctx) {
     panel.innerHTML = "";
     panel.setAttribute("data-testid", "metadata-inspect-page");
@@ -193,6 +224,12 @@ window.FOSS = window.FOSS || {};
       saveBtn
     ]);
 
+    var backupSwitch = window.FOSS.components.switch({
+      testid: "metadata-backup-toggle",
+      label: "Create a backup copy of the original file",
+      checked: !!window.FOSS.toolDefaults.get("metadata", "create_backup", false)
+    });
+
     // Primary Strip Button
     var stripBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary w-full",
@@ -218,6 +255,7 @@ window.FOSS = window.FOSS || {};
       fileCard,
       privacyCard,
       warningBanner,
+      backupSwitch.el,
       stripBtn,
       editCard,
       diffTableHost
@@ -440,14 +478,20 @@ window.FOSS = window.FOSS || {};
       if (subjectInput.value.trim()) edits.subject = subjectInput.value.trim();
       if (keywordsInput.value.trim()) edits.keywords = keywordsInput.value.trim();
 
-      statusBar.textContent = "Saving metadata edits...";
-      window.FOSS.api("metadata_save", { file_path: currentFilePath, updates: edits }).then(function (res) {
-        if (res.ok === false) {
-          showError(res.error || "Save edits failed");
+      savePathFor(currentFilePath, "Save Edited File", "edited").then(function (destPath) {
+        if (!destPath) {
+          statusBar.textContent = "Save cancelled";
           return;
         }
-        showResult(res.output_path, "Saved Edited File");
-        statusBar.textContent = "[OK] Saved edits to: " + res.output_path;
+        statusBar.textContent = "Saving metadata edits...";
+        return window.FOSS.api("metadata_save", { file_path: currentFilePath, updates: edits, output_path: destPath }).then(function (res) {
+          if (res.ok === false) {
+            showError(res.error || "Save edits failed");
+            return;
+          }
+          showResult(res.output_path, "Saved Edited File");
+          statusBar.textContent = "[OK] Saved edits to: " + res.output_path;
+        });
       }).catch(function (err) {
         showError("Save edits failed: " + (err && err.message ? err.message : String(err)));
       });
@@ -460,43 +504,35 @@ window.FOSS = window.FOSS || {};
       }
       clearError();
 
-      var baseName = currentFilePath.split(/[/\\]/).pop();
-      var ext = baseName.lastIndexOf(".") !== -1 ? baseName.substring(baseName.lastIndexOf(".")) : "";
-      var stem = ext ? baseName.substring(0, baseName.lastIndexOf(".")) : baseName;
-
       function doStrip(destPath) {
         statusBar.textContent = "Stripping all metadata...";
-        window.FOSS.api("metadata_strip_any", {
+        return window.FOSS.api("metadata_strip_any", {
           file_path: currentFilePath,
-          output_path: destPath || undefined
+          output_path: destPath,
+          backup: backupSwitch.isChecked()
         }).then(function (res) {
           if (res.ok === false) {
             showError(res.error || "Stripping metadata failed");
             return;
           }
           showResult(res.output_path, "Clean Copy Saved (All Metadata Stripped)");
-          statusBar.textContent = "[OK] Clean copy written: " + res.output_path;
-          renderInspectTable({
-            "Status": "Sanitized (All Metadata Stripped)",
-            "Author / Creator": "",
-            "Title": "",
-            "Revision": "",
-            "Company": "",
-            "Comments": ""
+          var backupNote = res.backup_path ? " Backup: " + res.backup_path : "";
+          statusBar.textContent = "[OK] Clean copy written: " + res.output_path + "." + backupNote;
+          return window.FOSS.api("metadata_inspect", { file_path: res.output_path }).then(function (after) {
+            var cleaned = (after && after.metadata) || {};
+            renderInspectTable(Object.keys(cleaned).length ? cleaned : { "Status": "Sanitized (no metadata fields remain)" });
           });
-        }).catch(function (err) {
-          showError("Stripping failed: " + (err && err.message ? err.message : String(err)));
         });
       }
 
-      window.FOSS.api("select_save_path", {
-        title: "Save Clean Copy (Metadata Stripped)",
-        default_name: stem + "_clean" + ext
-      }).then(function (res) {
-        var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
-        doStrip(p);
-      }).catch(function () {
-        doStrip("");
+      savePathFor(currentFilePath, "Save Clean Copy (Metadata Stripped)", "clean").then(function (destPath) {
+        if (!destPath) {
+          statusBar.textContent = "Save cancelled";
+          return;
+        }
+        return doStrip(destPath);
+      }).catch(function (err) {
+        showError("Stripping failed: " + (err && err.message ? err.message : String(err)));
       });
     }
 
@@ -708,8 +744,11 @@ window.FOSS = window.FOSS || {};
     title: "Metadata Tools",
     navName: "Metadata",
     category: "Utilities",
-    icon: "file",
+    icon: "metadata",
     workbench: true,
+    defaults: [
+      { key: "create_backup", label: "Create backup of original file when stripping", type: "toggle", default: false }
+    ],
     onFiles: function (paths) {
       if (!paths || !paths.length) return;
       window.FOSS.router.open("metadata", "inspect");

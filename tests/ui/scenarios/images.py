@@ -23,6 +23,9 @@ def scenario_background(page: Page, fixtures: dict[str, str], api: Any) -> None:
 
     expect(page.locator("[data-testid='images-bg-model-select']")).to_be_visible()
     expect(page.locator("[data-testid='images-bg-status']")).to_contain_text("Selected: sample.png")
+    expect(page.locator("[data-testid='images-defaults-btn']")).to_be_visible()
+    expect(page.locator("[data-testid='images-bg-model-badge']")).not_to_have_text("Checking...")
+    expect(page.locator("[data-testid='images-bg-model-select']")).to_have_value("u2net")
     calc_clear_overlays(page)
 
 

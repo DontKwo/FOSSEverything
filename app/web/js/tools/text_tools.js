@@ -2,6 +2,22 @@
 window.FOSS = window.FOSS || {};
 
 (function () {
+  var CASE_MODES = [
+    { id: "upper", mode: "uppercase", label: "UPPERCASE" },
+    { id: "lower", mode: "lowercase", label: "lowercase" },
+    { id: "title", mode: "titlecase", label: "Title Case" },
+    { id: "sentence", mode: "sentencecase", label: "Sentence case" },
+    { id: "camel", mode: "camelcase", label: "camelCase" },
+    { id: "snake", mode: "snakecase", label: "snake_case" },
+    { id: "kebab", mode: "kebabcase", label: "kebab-case" },
+    { id: "constant", mode: "constantcase", label: "CONSTANT_CASE" },
+    { id: "pascal", mode: "pascalcase", label: "PascalCase" }
+  ];
+
+  function toolDefault(key, fallback) {
+    return window.FOSS.toolDefaults.get("text_tools", key, fallback);
+  }
+
   function showToast(msg, kind) {
     if (window.FOSS && window.FOSS.toast && typeof window.FOSS.toast.show === "function") {
       window.FOSS.toast.show(msg, kind);
@@ -12,15 +28,14 @@ window.FOSS = window.FOSS || {};
     panel.innerHTML = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted wb-status",
       "data-testid": "text_tools-status",
       text: "Ready"
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
       className: "banner danger hidden",
-      "data-testid": "text_tools-error",
-      style: { marginBottom: "var(--space-2)" }
+      "data-testid": "text_tools-error"
     }, [
       window.FOSS.icons.el("alert", 16),
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
@@ -59,32 +74,50 @@ window.FOSS = window.FOSS || {};
     }
 
     // Sidebar: transparent container with individual cards
-    var sidebar = window.FOSS.dom.el("div", {
-      className: "text-tools-sidebar-pane",
-      style: { width: "100%", height: "100%", overflowY: "auto" }
-    });
+    var sidebar = window.FOSS.dom.el("div", { className: "text-tools-sidebar-pane" });
 
     // Helper for card titles
     function makeCardTitle(title) {
       return window.FOSS.dom.el("div", {
         className: "text-xs font-semibold uppercase tracking-wider text-muted",
-        style: { marginBottom: "var(--space-1)" },
         text: title
       });
     }
 
     // Category 1: Case Conversions
-    var caseModes = [
-      { id: "upper", label: "UPPERCASE" },
-      { id: "lower", label: "lowercase" },
-      { id: "title", label: "Title Case" },
-      { id: "sentence", label: "Sentence case" },
-      { id: "camel", label: "camelCase" },
-      { id: "snake", label: "snake_case" },
-      { id: "kebab", label: "kebab-case" },
-      { id: "constant", label: "CONSTANT_CASE" },
-      { id: "pascal", label: "PascalCase" }
-    ];
+    var caseModes = CASE_MODES;
+
+    function applyCase(mode, label) {
+      var val = inputEditor.getValue();
+      clearError();
+      window.FOSS.api("text_tools_case", { text: val, mode: mode }).then(function (res) {
+        setOutput(res.result || "", "[OK] Converted to " + label);
+      }).catch(function (err) {
+        showError(err.message || String(err));
+      });
+    }
+
+    var caseSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm flex-1",
+      "data-testid": "text_tools-case-select",
+      "aria-label": "Default case mode"
+    }, caseModes.map(function (m) {
+      return window.FOSS.dom.el("option", { value: m.mode, text: m.label });
+    }));
+    caseSelect.value = String(toolDefault("case_mode", "titlecase"));
+
+    var caseApplyBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "text_tools-case-apply",
+      "aria-label": "Apply selected case mode",
+      title: "Apply selected case mode",
+      onClick: function () {
+        var chosen = caseModes.find(function (m) { return m.mode === caseSelect.value; });
+        applyCase(caseSelect.value, chosen ? chosen.label : caseSelect.value);
+      }
+    }, [window.FOSS.dom.el("span", { text: "Apply" })]);
+
+    var caseQuickRow = window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [caseSelect, caseApplyBtn]);
 
     var caseBtns = window.FOSS.dom.el("div", {
       className: "row flex-wrap gap-1"
@@ -98,23 +131,14 @@ window.FOSS = window.FOSS || {};
         "data-alt-testid": "text_tools-case-" + m.id,
         "aria-label": "Convert to " + m.label,
         title: m.label,
-        onClick: function () {
-          var val = inputEditor.getValue();
-          clearError();
-          window.FOSS.api("text_tools_case", { text: val, mode: m.id }).then(function (res) {
-            setOutput(res.result || "", "[OK] Converted to " + m.label);
-          }).catch(function (err) {
-            showError(err.message || String(err));
-          });
-        }
+        onClick: function () { applyCase(m.id, m.label); }
       }, [window.FOSS.dom.el("span", { text: m.label })]);
       caseBtns.appendChild(btn);
     });
 
     var caseCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-1",
-      style: { width: "100%" }
-    }, [makeCardTitle("Case Conversions"), caseBtns]);
+      className: "card card-compact flex-col gap-1"
+    }, [makeCardTitle("Case Conversions"), caseQuickRow, caseBtns]);
 
     sidebar.appendChild(caseCard);
 
@@ -152,8 +176,7 @@ window.FOSS = window.FOSS || {};
     });
 
     var lineCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-1",
-      style: { width: "100%" }
+      className: "card card-compact flex-col gap-1"
     }, [makeCardTitle("Lines & Sorting"), lineBtns]);
 
     sidebar.appendChild(lineCard);
@@ -192,8 +215,7 @@ window.FOSS = window.FOSS || {};
     });
 
     var cleanCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-1",
-      style: { width: "100%" }
+      className: "card card-compact flex-col gap-1"
     }, [makeCardTitle("Trim & Clean"), cleanBtns]);
 
     sidebar.appendChild(cleanCard);
@@ -232,8 +254,7 @@ window.FOSS = window.FOSS || {};
     });
 
     var convCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-1",
-      style: { width: "100%" }
+      className: "card card-compact flex-col gap-1"
     }, [makeCardTitle("Text Representation"), convBtns]);
 
     sidebar.appendChild(convCard);
@@ -244,8 +265,7 @@ window.FOSS = window.FOSS || {};
       className: "input input-sm",
       "data-testid": "text_tools-regex-pattern",
       placeholder: "Regex pattern (e.g. \\b\\w+\\b)",
-      "aria-label": "Regex Pattern",
-      style: { width: "100%", marginBottom: "var(--space-1)" }
+      "aria-label": "Regex Pattern"
     });
 
     var regexReplacement = window.FOSS.dom.el("input", {
@@ -253,8 +273,7 @@ window.FOSS = window.FOSS || {};
       className: "input input-sm",
       "data-testid": "text_tools-regex-replacement",
       placeholder: "Replacement string",
-      "aria-label": "Replacement String",
-      style: { width: "100%", marginBottom: "var(--space-1)" }
+      "aria-label": "Replacement String"
     });
 
     var regexCaseCheck = window.FOSS.dom.el("input", { type: "checkbox", id: "tt-regex-case" });
@@ -279,8 +298,7 @@ window.FOSS = window.FOSS || {};
     });
 
     var regexFlagsRow = window.FOSS.dom.el("div", {
-      className: "row items-center flex-wrap gap-2",
-      style: { marginBottom: "var(--space-2)" }
+      className: "row items-center flex-wrap gap-2"
     }, [
       window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [regexCaseCheck, regexCaseLabel]),
       window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [regexMultiCheck, regexMultiLabel]),
@@ -292,7 +310,6 @@ window.FOSS = window.FOSS || {};
       "data-testid": "text_tools-regex-apply",
       "aria-label": "Apply regular expression replacement",
       title: "Replace All Matches",
-      style: { width: "100%" },
       onClick: function () {
         var pattern = regexPattern.value;
         var text = inputEditor.getValue();
@@ -318,8 +335,7 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.icons.el("search", 14), window.FOSS.dom.el("span", { text: "Replace All Matches" })]);
 
     var regexCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-1",
-      style: { width: "100%" }
+      className: "card card-compact flex-col gap-1"
     }, [
       makeCardTitle("Regex Find & Replace"),
       regexPattern,
@@ -331,10 +347,7 @@ window.FOSS = window.FOSS || {};
     sidebar.appendChild(regexCard);
 
     // Right Stage: Action toolbar + Side-by-Side Editors
-    var stage = window.FOSS.dom.el("div", {
-      className: "text-tools-stage-pane",
-      style: { width: "100%", height: "100%", display: "flex", flexDirection: "column", gap: "var(--space-2)" }
-    });
+    var stage = window.FOSS.dom.el("div", { className: "text-tools-stage-pane" });
 
     var swapBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
@@ -400,17 +413,11 @@ window.FOSS = window.FOSS || {};
       }
     });
 
-    var toolbar = window.FOSS.dom.el("div", {
-      className: "row items-center flex-wrap gap-2 p-2 rounded",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
-    }, [filePicker.el, swapBtn, useOutBtn, copyOutBtn, clearBtn]);
+    var toolbar = window.FOSS.dom.el("div", { className: "wb-toolbar" }, [filePicker.el, swapBtn, useOutBtn, copyOutBtn, clearBtn]);
 
-    var editorsGrid = window.FOSS.dom.el("div", {
-      className: "row gap-2 items-stretch code-editor-fill",
-      style: { flex: "1 1 0%", minHeight: "22rem", width: "100%" }
-    }, [
-      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [inputEditor.el]),
-      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [outputEditor.el])
+    var editorsGrid = window.FOSS.dom.el("div", { className: "wb-editor-grid" }, [
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [inputEditor]),
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [outputEditor])
     ]);
 
     stage.appendChild(toolbar);
@@ -418,10 +425,7 @@ window.FOSS = window.FOSS || {};
     stage.appendChild(editorsGrid);
     stage.appendChild(statusBar);
 
-    var workbench = window.FOSS.dom.el("div", {
-      className: "split resizable text-tools-workbench",
-      style: { height: "100%", width: "100%" }
-    });
+    var workbench = window.FOSS.dom.el("div", { className: "split resizable text-tools-workbench" });
 
     var divider = window.FOSS.components.splitDivider({
       targetSplit: workbench,
@@ -439,7 +443,7 @@ window.FOSS = window.FOSS || {};
     panel.innerHTML = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted wb-status",
       "data-testid": "text_tools-diff-status",
       text: "Ready"
     });
@@ -458,14 +462,15 @@ window.FOSS = window.FOSS || {};
       fillHeight: true
     });
 
-    var diffModeSelect = window.FOSS.dom.el("select", {
-      className: "input input-sm",
-      "aria-label": "Diff Mode",
-      style: { width: "130px" }
+    var diffViewSelect = window.FOSS.dom.el("select", {
+      className: "input input-sm wb-select-md",
+      "data-testid": "text_tools-diff-view",
+      "aria-label": "Diff View Mode"
     }, [
-      window.FOSS.dom.el("option", { value: "lines", text: "Line by Line" }),
-      window.FOSS.dom.el("option", { value: "words", text: "Word by Word" })
+      window.FOSS.dom.el("option", { value: "unified", text: "Unified Diff" }),
+      window.FOSS.dom.el("option", { value: "side_by_side", text: "Side by Side" })
     ]);
+    diffViewSelect.value = String(toolDefault("diff_view", "unified"));
 
     var ignoreWhitespaceCheck = window.FOSS.dom.el("input", { type: "checkbox", id: "tt-diff-ws" });
     var ignoreWhitespaceLabel = window.FOSS.dom.el("label", {
@@ -489,7 +494,7 @@ window.FOSS = window.FOSS || {};
 
     var diffOutput = window.FOSS.components.codeEditor({
       testid: "text_tools-diff-output",
-      title: "Unified Diff",
+      title: "Diff Result",
       placeholder: "Diff output will be displayed here...",
       readOnly: true,
       fillHeight: true
@@ -508,7 +513,8 @@ window.FOSS = window.FOSS || {};
           text1: t1,
           text2: t2,
           ignore_whitespace: ignoreWhitespaceCheck.checked,
-          ignore_case: ignoreCaseCheck.checked
+          ignore_case: ignoreCaseCheck.checked,
+          view: diffViewSelect.value
         }).then(function (res) {
           var added = res.added !== undefined ? res.added : (res.additions || 0);
           var removed = res.removed !== undefined ? res.removed : (res.deletions || 0);
@@ -546,43 +552,32 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear" })]);
 
-    var toolbar = window.FOSS.dom.el("div", {
-      className: "row items-center flex-wrap gap-2 p-2 rounded",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
-    }, [
+    var toolbar = window.FOSS.dom.el("div", { className: "wb-toolbar" }, [
       compareBtn,
       swapBtn,
       clearBtn,
-      diffModeSelect,
+      diffViewSelect,
       window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [ignoreWhitespaceCheck, ignoreWhitespaceLabel]),
       window.FOSS.dom.el("div", { className: "row items-center gap-1" }, [ignoreCaseCheck, ignoreCaseLabel]),
       statsBadge
     ]);
 
-    var topGrid = window.FOSS.dom.el("div", {
-      className: "row gap-2 items-stretch code-editor-fill",
-      style: { flex: "1 1 0%", minHeight: "15rem", width: "100%" }
-    }, [
-      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [leftEditor.el]),
-      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0", height: "100%" } }, [rightEditor.el])
+    var editorsGrid = window.FOSS.dom.el("div", { className: "wb-editor-grid" }, [
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [leftEditor]),
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [rightEditor]),
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [diffOutput])
     ]);
 
-    var bottomPane = window.FOSS.dom.el("div", {
-      className: "flex-col code-editor-fill",
-      style: { flex: "1 1 0%", minHeight: "15rem", width: "100%" }
-    }, [diffOutput.el]);
-
-    panel.appendChild(window.FOSS.dom.el("div", {
-      className: "flex-col gap-2",
-      style: { height: "100%", width: "100%", overflowY: "auto" }
-    }, [toolbar, topGrid, bottomPane, statusBar]));
+    panel.appendChild(toolbar);
+    panel.appendChild(editorsGrid);
+    panel.appendChild(statusBar);
   }
 
   function renderWordCounterTab(panel, ctx) {
     panel.innerHTML = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted wb-status",
       "data-testid": "text_tools-counter-status",
       text: "Ready"
     });
@@ -607,10 +602,7 @@ window.FOSS = window.FOSS || {};
     ];
 
     var statEls = {};
-    var statGrid = window.FOSS.dom.el("div", {
-      className: "grid gap-2",
-      style: { gridTemplateColumns: "repeat(4, minmax(0, 1fr))", width: "100%" }
-    });
+    var statGrid = window.FOSS.dom.el("div", { className: "wb-stat-grid" });
 
     statKeys.forEach(function (sk) {
       var valEl = window.FOSS.dom.el("div", {
@@ -621,8 +613,7 @@ window.FOSS = window.FOSS || {};
       statEls[sk.id] = valEl;
 
       var card = window.FOSS.dom.el("div", {
-        className: "p-2 rounded text-center",
-        style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)" }
+        className: "wb-box text-center"
       }, [
         valEl,
         window.FOSS.dom.el("div", { className: "text-xs text-muted", text: sk.label })
@@ -650,8 +641,7 @@ window.FOSS = window.FOSS || {};
     });
 
     var readabilityCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-2 p-3",
-      style: { width: "100%" }
+      className: "card card-compact flex-col gap-2 p-3"
     }, [
       window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: "Readability & Reading Level" }),
       window.FOSS.dom.el("div", { className: "row items-center justify-between" }, [
@@ -663,8 +653,7 @@ window.FOSS = window.FOSS || {};
 
     // Keywords table container: no border/card to avoid A4 table height containment violation
     var kwTableHost = window.FOSS.dom.el("div", {
-      className: "flex-col gap-2",
-      style: { width: "100%" }
+      className: "flex-col gap-2 wb-field-full"
     }, [
       window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: "Top Keywords & Density" }),
       window.FOSS.dom.el("div", { className: "text-muted text-xs text-center", text: "Enter text to compute keyword density." })
@@ -686,7 +675,7 @@ window.FOSS = window.FOSS || {};
       if (kws.length > 0) {
         kwTableHost.innerHTML = "";
         kwTableHost.appendChild(window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: "Top Keywords & Density" }));
-        var tbl = window.FOSS.dom.el("table", { className: "table text-xs", style: { width: "100%" } });
+        var tbl = window.FOSS.dom.el("table", { className: "table text-xs w-full" });
         var thead = window.FOSS.dom.el("thead", {}, [
           window.FOSS.dom.el("tr", {}, [
             window.FOSS.dom.el("th", { text: "Keyword" }),
@@ -777,35 +766,27 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear" })]);
 
-    var toolbar = window.FOSS.dom.el("div", {
-      className: "row items-center flex-wrap gap-2 p-2 rounded",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
-    }, [filePicker.el, exportBtn, clearBtn]);
+    var toolbar = window.FOSS.dom.el("div", { className: "wb-toolbar" }, [filePicker.el, exportBtn, clearBtn]);
 
     var rightPane = window.FOSS.dom.el("div", {
-      className: "flex-col gap-3",
-      style: { flex: "1 1 0%", minWidth: "0", overflowY: "auto" }
+      className: "wb-editor-col wb-scroll gap-3"
     }, [statGrid, readabilityCard, kwTableHost]);
 
-    var mainGrid = window.FOSS.dom.el("div", {
-      className: "row gap-3 items-stretch",
-      style: { flex: "1 1 0%", minHeight: "22rem", width: "100%" }
-    }, [
-      window.FOSS.dom.el("div", { className: "flex-col flex-1", style: { minWidth: "0", height: "100%" } }, [counterEditor.el]),
+    var mainGrid = window.FOSS.dom.el("div", { className: "wb-editor-grid" }, [
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [counterEditor]),
       rightPane
     ]);
 
-    panel.appendChild(window.FOSS.dom.el("div", {
-      className: "flex-col gap-2",
-      style: { height: "100%", width: "100%", overflowY: "auto" }
-    }, [toolbar, mainGrid, statusBar]));
+    panel.appendChild(toolbar);
+    panel.appendChild(mainGrid);
+    panel.appendChild(statusBar);
   }
 
   function renderWritingTab(panel, ctx) {
     panel.innerHTML = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted wb-status",
       "data-testid": "text_tools-writing-status",
       text: "Ready"
     });
@@ -819,9 +800,8 @@ window.FOSS = window.FOSS || {};
     });
 
     var grammarResults = window.FOSS.dom.el("div", {
-      className: "flex-col gap-2 p-2",
-      "data-testid": "text_tools-grammar-results",
-      style: { flex: "1 1 0%", minHeight: "10rem", overflowY: "auto" }
+      className: "flex-col gap-2 wb-box-grow",
+      "data-testid": "text_tools-grammar-results"
     }, [
       window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: "Grammar & Style Issues" }),
       window.FOSS.dom.el("div", { className: "text-muted text-xs text-center", text: "Click 'Check Grammar' to inspect text." })
@@ -852,8 +832,7 @@ window.FOSS = window.FOSS || {};
           } else {
             issues.forEach(function (iss) {
               var card = window.FOSS.dom.el("div", {
-                className: "p-2 rounded flex-col gap-1",
-                style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)" }
+                className: "wb-box flex-col gap-1"
               }, [
                 window.FOSS.dom.el("div", { className: "text-xs font-semibold text-warning", text: iss.type || "Issue" }),
                 window.FOSS.dom.el("div", { className: "text-xs", text: iss.message })
@@ -867,13 +846,12 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.icons.el("check-circle", 14), window.FOSS.dom.el("span", { text: "Check Grammar" })]);
 
     var grammarSection = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-2 p-3",
-      style: { width: "100%" }
+      className: "card card-compact flex-col gap-2 p-3 wb-grow"
     }, [
       window.FOSS.dom.el("div", { className: "text-sm font-semibold", text: "Offline Grammar & Style Checker" }),
-      window.FOSS.dom.el("div", { className: "row gap-2 items-stretch", style: { minHeight: "14rem" } }, [
-        window.FOSS.dom.el("div", { className: "flex-col flex-1", style: { minWidth: "0" } }, [grammarEditor.el]),
-        window.FOSS.dom.el("div", { className: "flex-col flex-1", style: { minWidth: "0" } }, [grammarResults])
+      window.FOSS.dom.el("div", { className: "wb-editor-grid" }, [
+        window.FOSS.dom.el("div", { className: "wb-editor-col" }, [grammarEditor]),
+        window.FOSS.dom.el("div", { className: "wb-editor-col" }, [grammarResults])
       ]),
       window.FOSS.dom.el("div", { className: "row" }, [checkGrammarBtn])
     ]);
@@ -881,72 +859,64 @@ window.FOSS = window.FOSS || {};
     // Sub-segment 2: Citation Builder
     var citTitle = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input input-sm",
+      className: "input input-sm wb-flow",
       "data-testid": "text_tools-cit-title",
       placeholder: "Work / Article / Book Title",
-      "aria-label": "Work Title",
-      style: { flex: "2 1 12rem" }
+      "aria-label": "Work Title"
     });
 
     var citAuthors = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input input-sm",
+      className: "input input-sm wb-flow",
       "data-testid": "text_tools-cit-authors",
       placeholder: "Author(s) (e.g. Shannon, C. E.; Weaver, W.)",
-      "aria-label": "Authors",
-      style: { flex: "2 1 12rem" }
+      "aria-label": "Authors"
     });
 
     var citYear = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input input-sm",
+      className: "input input-sm wb-flow",
       "data-testid": "text_tools-cit-year",
       placeholder: "Year (e.g. 1948)",
-      "aria-label": "Year",
-      style: { flex: "1 1 6rem" }
+      "aria-label": "Year"
     });
 
     var citPublisher = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input input-sm",
+      className: "input input-sm wb-flow",
       "data-testid": "text_tools-cit-publisher",
       placeholder: "Journal / Publisher / Source",
-      "aria-label": "Publisher",
-      style: { flex: "2 1 12rem" }
+      "aria-label": "Publisher"
     });
 
     var citVolume = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input input-sm",
+      className: "input input-sm wb-flow",
       "data-testid": "text_tools-cit-volume",
       placeholder: "Vol / Issue",
-      "aria-label": "Volume",
-      style: { flex: "1 1 5rem" }
+      "aria-label": "Volume"
     });
 
     var citPages = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input input-sm",
+      className: "input input-sm wb-flow",
       "data-testid": "text_tools-cit-pages",
       placeholder: "Pages (e.g. 379-423)",
-      "aria-label": "Pages",
-      style: { flex: "1 1 6rem" }
+      "aria-label": "Pages"
     });
 
     var citDoi = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input input-sm",
+      className: "input input-sm wb-flow",
       "data-testid": "text_tools-cit-doi",
       placeholder: "DOI or URL",
-      "aria-label": "DOI or URL",
-      style: { flex: "2 1 12rem" }
+      "aria-label": "DOI or URL"
     });
 
     var citStyle = window.FOSS.dom.el("select", {
-      className: "input input-sm",
+      className: "input input-sm wb-flow",
       "data-testid": "text_tools-cit-style",
-      "aria-label": "Citation Style",
-      style: { flex: "1 1 8rem" }
+      "aria-label": "Citation Style"
     }, [
       window.FOSS.dom.el("option", { value: "apa", text: "APA 7th Edition" }),
       window.FOSS.dom.el("option", { value: "mla", text: "MLA 9th Edition" }),
@@ -956,9 +926,8 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var citOutput = window.FOSS.dom.el("div", {
-      className: "p-3 rounded font-mono text-sm",
+      className: "wb-box wb-details font-mono text-sm",
       "data-testid": "text_tools-citation-output",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", minHeight: "3rem", wordBreak: "break-all" },
       text: "Formatted citation will appear here."
     });
 
@@ -1006,8 +975,7 @@ window.FOSS = window.FOSS || {};
     var citInputsRow2 = window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap items-center" }, [citPublisher, citVolume, citPages, citDoi, citStyle]);
 
     var citationSection = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-2 p-3",
-      style: { width: "100%" }
+      className: "card card-compact flex-col gap-2 p-3"
     }, [
       window.FOSS.dom.el("div", { className: "text-sm font-semibold", text: "Academic Citation Builder" }),
       citInputsRow1,
@@ -1017,8 +985,7 @@ window.FOSS = window.FOSS || {};
     ]);
 
     panel.appendChild(window.FOSS.dom.el("div", {
-      className: "flex-col gap-3",
-      style: { height: "100%", width: "100%", overflowY: "auto" }
+      className: "wb-fill wb-scroll gap-3"
     }, [grammarSection, citationSection, statusBar]));
   }
 
@@ -1027,8 +994,29 @@ window.FOSS = window.FOSS || {};
     title: "Text Tools",
     navName: "Text Tools",
     category: "Data",
-    icon: "edit",
+    icon: "text_tools",
     workbench: true,
+    defaults: [
+      {
+        key: "case_mode",
+        label: "Default case mode",
+        type: "select",
+        options: CASE_MODES.map(function (m) { return { value: m.mode, label: m.label }; }),
+        default: "titlecase",
+        hint: "Case mode preselected in the Case Conversions quick selector."
+      },
+      {
+        key: "diff_view",
+        label: "Default diff view",
+        type: "select",
+        options: [
+          { value: "unified", label: "Unified" },
+          { value: "side_by_side", label: "Side by side" }
+        ],
+        default: "unified",
+        hint: "View used when comparing texts."
+      }
+    ],
     tabs: [
       { id: "transforms", label: "Text Transforms", aliases: ["main", "case"], render: renderTransformsTab },
       { id: "diff", label: "Side-by-Side Diff", aliases: ["diff_checker"], render: renderDiffTab },

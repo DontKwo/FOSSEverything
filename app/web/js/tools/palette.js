@@ -77,6 +77,34 @@ window.FOSS = window.FOSS || {};
     return (lighter + 0.05) / (darker + 0.05);
   }
 
+  function wcagGrade(ratio) {
+    if (ratio >= 7.0) return "AAA";
+    if (ratio >= 4.5) return "AA";
+    if (ratio >= 3.0) return "AA Large";
+    return "Fail";
+  }
+
+  function formatColor(rgbArr, hslArr, fmt) {
+    if (fmt === "rgb") return "rgb(" + rgbArr[0] + ", " + rgbArr[1] + ", " + rgbArr[2] + ")";
+    if (fmt === "hsl") return "hsl(" + hslArr[0] + ", " + hslArr[1] + "%, " + hslArr[2] + "%)";
+    var hexParts = rgbArr.map(function (ch) { return ("0" + ch.toString(16)).slice(-2); });
+    return "#" + hexParts.join("").toUpperCase();
+  }
+
+  var EXPORT_TYPES = {
+    json: { name: "JSON File (*.json)", extensions: ["json"], api: "palette_export_json" },
+    css: { name: "CSS Variables (*.css)", extensions: ["css"], api: "palette_export_css" },
+    ase: { name: "Adobe Swatch Exchange (*.ase)", extensions: ["ase"], api: "palette_export_ase" },
+    png: { name: "PNG Swatch Strip (*.png)", extensions: ["png"], api: "palette_export_strip" },
+    gpl: { name: "GIMP Palette (*.gpl)", extensions: ["gpl"], api: "palette_export_gpl" },
+    aco: { name: "Adobe Swatch (*.aco)", extensions: ["aco"], api: "palette_export_aco" }
+  };
+  var applyDefaultsHook = null;
+
+  window.addEventListener("foss:tool-defaults-changed", function (evt) {
+    if (evt.detail && evt.detail.toolId === "palette" && applyDefaultsHook) applyDefaultsHook();
+  });
+
   function copyToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(function () {});
@@ -95,6 +123,8 @@ window.FOSS = window.FOSS || {};
 
   function renderPalette(panel, ctx) {
     panel.innerHTML = "";
+    var toolDefaults = window.FOSS.toolDefaults.all("palette");
+    var copyFormat = String(toolDefaults.copy_format);
 
     var activeTab = "dominant";
     var currentImagePath = "";
@@ -214,9 +244,16 @@ window.FOSS = window.FOSS || {};
       title: "Swatches count (2 to 24)",
       min: "2",
       max: "24",
-      value: "8"
+      value: String(toolDefaults.swatch_count)
     });
     countInput.setAttribute("data-testid", "palette-num-colors");
+
+    applyDefaultsHook = function () {
+      var fresh = window.FOSS.toolDefaults.all("palette");
+      copyFormat = String(fresh.copy_format);
+      countInput.value = String(fresh.swatch_count);
+      renderActiveSwatches();
+    };
 
     var methodSelect = window.FOSS.dom.el("select", {
       className: "input",
@@ -553,11 +590,14 @@ window.FOSS = window.FOSS || {};
           showError("No swatches to copy.");
           return;
         }
-        var hexList = swatches.map(function (s) { return s.hex; }).join(", ");
-        copyToClipboard(hexList);
-        statusBar.textContent = "Copied " + swatches.length + " hex codes to clipboard.";
+        var colorList = swatches.map(function (s) {
+          var rgbArr = s.rgb || parseHex(s.hex);
+          return formatColor(rgbArr, s.hsl || rgbToHsl(rgbArr[0], rgbArr[1], rgbArr[2]), copyFormat);
+        }).join(", ");
+        copyToClipboard(colorList);
+        statusBar.textContent = "Copied " + swatches.length + " " + copyFormat.toUpperCase() + " colors to clipboard.";
       }
-    }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy All Hex" })]);
+    }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy All" })]);
     copyAllBtn.setAttribute("data-testid", "palette-copy-all-btn");
 
     var formatSelect = window.FOSS.dom.el("select", {
@@ -567,9 +607,10 @@ window.FOSS = window.FOSS || {};
       title: "Export Format",
       style: "min-width: 10rem;"
     }, [
-      window.FOSS.dom.el("option", { value: "strip", text: "PNG Swatch Strip" }),
-      window.FOSS.dom.el("option", { value: "css", text: "CSS Variables (.css)" }),
       window.FOSS.dom.el("option", { value: "json", text: "JSON (.json)" }),
+      window.FOSS.dom.el("option", { value: "css", text: "CSS Variables (.css)" }),
+      window.FOSS.dom.el("option", { value: "ase", text: "Adobe Swatch Exchange (.ase)" }),
+      window.FOSS.dom.el("option", { value: "png", text: "PNG Swatch Strip (.png)" }),
       window.FOSS.dom.el("option", { value: "gpl", text: "GIMP Palette (.gpl)" }),
       window.FOSS.dom.el("option", { value: "aco", text: "Adobe Swatch (.aco)" })
     ]);
@@ -712,17 +753,18 @@ window.FOSS = window.FOSS || {};
       var rgbArr = swatch.rgb || [0, 0, 0];
       var hslArr = swatch.hsl || rgbToHsl(rgbArr[0], rgbArr[1], rgbArr[2]);
       var colorName = swatch.name || findNearestCssColor(rgbArr[0], rgbArr[1], rgbArr[2]);
-      var rgbStr = "rgb(" + rgbArr[0] + ", " + rgbArr[1] + ", " + rgbArr[2] + ")";
-      var hslStr = "hsl(" + hslArr[0] + ", " + hslArr[1] + "%, " + hslArr[2] + "%)";
+
+      function copyAs(fmt) {
+        var text = formatColor(rgbArr, hslArr, fmt);
+        copyToClipboard(text);
+        statusBar.textContent = "Copied " + text + " to clipboard.";
+      }
 
       var colorBlock = window.FOSS.dom.el("div", {
         className: "palette-swatch-color",
         style: "background-color: " + hexCode + ";",
-        title: "Click to copy " + hexCode,
-        onClick: function () {
-          copyToClipboard(hexCode);
-          statusBar.textContent = "Copied " + hexCode + " to clipboard.";
-        }
+        title: "Click to copy " + formatColor(rgbArr, hslArr, copyFormat),
+        onClick: function () { copyAs(copyFormat); }
       });
 
       var row1 = window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
@@ -734,49 +776,22 @@ window.FOSS = window.FOSS || {};
       ]);
 
       var row2 = window.FOSS.dom.el("div", { className: "flex-col gap-0 text-xs text-muted font-mono" }, [
-        window.FOSS.dom.el("span", { text: rgbStr }),
-        window.FOSS.dom.el("span", { text: hslStr })
+        window.FOSS.dom.el("span", { text: formatColor(rgbArr, hslArr, "rgb") }),
+        window.FOSS.dom.el("span", { text: formatColor(rgbArr, hslArr, "hsl") })
       ]);
 
-      var copyHexBtn = window.FOSS.dom.el("button", {
-        className: "btn btn-ghost btn-sm row gap-1 items-center",
-        "data-dense": "true",
-        title: "Copy HEX",
-        onClick: function () {
-          copyToClipboard(hexCode);
-          statusBar.textContent = "Copied " + hexCode + " to clipboard.";
-        }
-      }, [
-        window.FOSS.icons.el("copy", 14),
-        window.FOSS.dom.el("span", { text: "HEX" })
-      ]);
-
-      var copyRgbBtn = window.FOSS.dom.el("button", {
-        className: "btn btn-ghost btn-sm row gap-1 items-center",
-        "data-dense": "true",
-        title: "Copy RGB",
-        onClick: function () {
-          copyToClipboard(rgbStr);
-          statusBar.textContent = "Copied " + rgbStr + " to clipboard.";
-        }
-      }, [
-        window.FOSS.icons.el("copy", 14),
-        window.FOSS.dom.el("span", { text: "RGB" })
-      ]);
-
-      var copyHslBtn = window.FOSS.dom.el("button", {
-        className: "btn btn-ghost btn-sm row gap-1 items-center",
-        "data-dense": "true",
-        "data-testid": "palette-copy-hsl-btn",
-        title: "Copy HSL",
-        onClick: function () {
-          copyToClipboard(hslStr);
-          statusBar.textContent = "Copied " + hslStr + " to clipboard.";
-        }
-      }, [
-        window.FOSS.icons.el("copy", 14),
-        window.FOSS.dom.el("span", { text: "HSL" })
-      ]);
+      function copyButton(fmt) {
+        return window.FOSS.dom.el("button", {
+          className: "btn btn-sm row gap-1 items-center " + (fmt === copyFormat ? "btn-secondary" : "btn-ghost"),
+          "data-dense": "true",
+          "data-testid": "palette-copy-" + fmt + "-btn",
+          title: { hex: "Copy HEX", rgb: "Copy RGB", hsl: "Copy HSL" }[fmt],
+          onClick: function () { copyAs(fmt); }
+        }, [
+          window.FOSS.icons.el("copy", 14),
+          window.FOSS.dom.el("span", { text: fmt.toUpperCase() })
+        ]);
+      }
 
       var setFgBtn = window.FOSS.dom.el("button", {
         className: "btn btn-ghost btn-sm",
@@ -804,33 +819,32 @@ window.FOSS = window.FOSS || {};
       });
 
       var row3 = window.FOSS.dom.el("div", { className: "row gap-1 items-center flex-wrap" }, [
-        copyHexBtn,
-        copyRgbBtn,
-        copyHslBtn,
+        copyButton("hex"),
+        copyButton("rgb"),
+        copyButton("hsl"),
         setFgBtn,
         setBgBtn
       ]);
 
-      var lumVal = calcLuminance(rgbArr[0], rgbArr[1], rgbArr[2]);
+      function contrastBadge(label, ratio, testid) {
+        var level = ratio >= 4.5 ? "success" : (ratio >= 3.0 ? "warning" : "danger");
+        return window.FOSS.dom.el("span", {
+          className: "badge " + level + " text-xs",
+          "data-testid": testid,
+          title: "WCAG contrast " + label.toLowerCase() + ": " + ratio.toFixed(2) + ":1 (" + wcagGrade(ratio) + ")",
+          text: label + " " + ratio.toFixed(2) + ":1 " + wcagGrade(ratio)
+        });
+      }
+
       var contrastWhite = calcContrastRatio(rgbArr[0], rgbArr[1], rgbArr[2], 255, 255, 255);
       var contrastBlack = calcContrastRatio(rgbArr[0], rgbArr[1], rgbArr[2], 0, 0, 0);
 
       var accessibilityRow = window.FOSS.dom.el("div", {
         className: "palette-swatch-accessibility row gap-1 items-center flex-wrap text-muted",
-        style: "font-size: 0.75rem; border-top: 1px solid var(--border); padding-top: var(--space-1); width: 100%;",
         "data-testid": "palette-swatch-accessibility"
       }, [
-        window.FOSS.dom.el("span", { text: "Lum: " + lumVal.toFixed(3) }),
-        window.FOSS.dom.el("span", {
-          className: "badge " + (contrastWhite >= 4.5 ? "success" : "neutral") + " text-xs",
-          style: "padding: 0 4px; font-size: 0.75rem;",
-          text: "W: " + contrastWhite.toFixed(1) + ":1"
-        }),
-        window.FOSS.dom.el("span", {
-          className: "badge " + (contrastBlack >= 4.5 ? "success" : "neutral") + " text-xs",
-          style: "padding: 0 4px; font-size: 0.75rem;",
-          text: "B: " + contrastBlack.toFixed(1) + ":1"
-        })
+        contrastBadge("White", contrastWhite, "palette-contrast-white"),
+        contrastBadge("Black", contrastBlack, "palette-contrast-black")
       ]);
 
       return window.FOSS.dom.el("div", {
@@ -993,8 +1007,9 @@ window.FOSS = window.FOSS || {};
         renderActiveSwatches();
         renderStripBar();
       }
-      copyToClipboard(hexCode);
-      statusBar.textContent = "Sampled pixel (" + x + ", " + y + "): " + hexCode + " (" + colorName + ") copied to clipboard.";
+      var sampledText = formatColor([r, g, b], hsl, copyFormat);
+      copyToClipboard(sampledText);
+      statusBar.textContent = "Sampled pixel (" + x + ", " + y + "): " + sampledText + " (" + colorName + ") copied to clipboard.";
     });
 
     function loadImageAndExtract() {
@@ -1050,7 +1065,7 @@ window.FOSS = window.FOSS || {};
       });
     }
 
-    function exportPalette(format) {
+    function exportPalette(preferredFormat) {
       clearError();
       var swatchesToExport = getActiveSwatches();
       if (swatchesToExport.length === 0) {
@@ -1058,36 +1073,26 @@ window.FOSS = window.FOSS || {};
         return;
       }
       var colorList = swatchesToExport.map(function (s) { return s.hex; });
-
-      var defaultName = "palette." + (format === "strip" ? "png" : format);
-      var filters = [];
-      if (format === "strip") {
-        filters.push({ name: "PNG Image", extensions: ["png"] });
-      } else if (format === "gpl") {
-        filters.push({ name: "GIMP Palette", extensions: ["gpl"] });
-      } else if (format === "css") {
-        filters.push({ name: "CSS Stylesheet", extensions: ["css"] });
-      } else if (format === "json") {
-        filters.push({ name: "JSON File", extensions: ["json"] });
-      } else if (format === "aco") {
-        filters.push({ name: "Adobe Swatch File", extensions: ["aco"] });
-      }
+      var order = [preferredFormat].concat(Object.keys(EXPORT_TYPES).filter(function (key) { return key !== preferredFormat; }));
 
       window.FOSS.api("select_save_path", {
-        title: "Export Palette (" + format.toUpperCase() + ")",
-        default_name: defaultName,
-        filters: filters
+        title: "Export Palette",
+        default_name: "palette",
+        file_types: order.map(function (key) {
+          return { name: EXPORT_TYPES[key].name, extensions: EXPORT_TYPES[key].extensions };
+        })
       }).then(function (res) {
         var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
         if (!outPath) return;
 
-        var apiMethod = "palette_export_" + format;
-        window.FOSS.api(apiMethod, {
+        var chosenExt = outPath.split(".").pop().toLowerCase();
+        var chosenFormat = EXPORT_TYPES[chosenExt] ? chosenExt : preferredFormat;
+        window.FOSS.api(EXPORT_TYPES[chosenFormat].api, {
           colors: colorList,
           output_path: outPath
         }).then(function (saveRes) {
           var savedPath = saveRes && saveRes.output_path ? saveRes.output_path : outPath;
-          showResult(savedPath, "Palette Exported (" + format.toUpperCase() + ")");
+          showResult(savedPath, "Palette Exported (" + chosenFormat.toUpperCase() + ")");
           statusBar.textContent = "Exported to " + savedPath;
         }).catch(function (err) {
           showError(err && err.message ? err.message : String(err));
@@ -1105,6 +1110,10 @@ window.FOSS = window.FOSS || {};
     category: "Visuals",
     icon: "palette",
     workbench: true,
+    defaults: [
+      { key: "swatch_count", label: "Default swatch count", type: "number", min: 2, max: 24, step: 1, default: 6 },
+      { key: "copy_format", label: "Primary copy format", type: "select", options: ["hex", "rgb", "hsl"], default: "hex" }
+    ],
     onFiles: function (files) {
       if (files && files.length > 0) {
         window.FOSS.router.open("palette", "main");

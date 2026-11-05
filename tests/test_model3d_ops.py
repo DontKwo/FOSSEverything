@@ -68,6 +68,15 @@ class Model3DMeshOpsTests(unittest.TestCase):
                 model3d_ops.export(model, out_path)
                 self.assertTrue(Path(out_path).is_file())
 
+    def test_export_and_reload_gltf_and_glb(self) -> None:
+        with TemporaryDirectory() as directory:
+            model = model3d_ops.load(_box_stl_path(directory))
+            for ext in ("gltf", "glb"):
+                out_path = os.path.join(directory, f"out.{ext}")
+                model3d_ops.export(model, out_path)
+                reloaded = model3d_ops.load(out_path)
+                self.assertEqual(model3d_ops.info(reloaded)["triangle_count"], 12)
+
     def test_repair_fills_holes_and_fixes_normals(self) -> None:
         with TemporaryDirectory() as directory:
             model = model3d_ops.load(_box_stl_path(directory))

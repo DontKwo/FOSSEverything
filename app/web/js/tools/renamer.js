@@ -2,6 +2,8 @@
 window.FOSS = window.FOSS || {};
 
 (function () {
+  var pendingPaths = [];
+
   function renderMain(panel, ctx) {
     panel.innerHTML = "";
     panel.setAttribute("data-testid", "renamer-page");
@@ -69,10 +71,10 @@ window.FOSS = window.FOSS || {};
     var STEP_METAS = {
       replace_text: { title: "Replace Text", icon: "edit" },
       add_text: { title: "Add Prefix / Suffix", icon: "file-plus" },
-      number_sequence: { title: "Add Numbers (01, 02...)", icon: "hash" },
-      add_date: { title: "Add Photo / File Date", icon: "calendar" },
+      number_sequence: { title: "Number Sequence", icon: "hash" },
+      add_date: { title: "Date Stamp", icon: "calendar" },
       clean_name: { title: "Clean Up Characters", icon: "check" },
-      change_case: { title: "Change Capitalization", icon: "type" },
+      change_case: { title: "Change Case", icon: "type" },
       change_extension: { title: "Change Extension", icon: "file" }
     };
 
@@ -82,7 +84,10 @@ window.FOSS = window.FOSS || {};
         return { id: id, type: type, enabled: true, prefix: "", suffix: "" };
       }
       if (type === "number_sequence") {
-        return { id: id, type: type, enabled: true, mode: "suffix", base_name: "Photo", start_at: 1, increment: 1, padding: 2, separator: " - " };
+        return {
+          id: id, type: type, enabled: true, mode: "suffix", base_name: "Photo", start_at: 1, increment: 1,
+          padding: window.FOSS.toolDefaults.get("renamer", "number_padding", 2), separator: " - "
+        };
       }
       if (type === "add_date") {
         return { id: id, type: type, enabled: true, date_source: "best_date", date_format: "YYYY-MM-DD", position: "prefix", separator: " - " };
@@ -91,7 +96,7 @@ window.FOSS = window.FOSS || {};
         return { id: id, type: type, enabled: true, spaces: "collapse", remove_brackets: true, remove_digits: false, remove_punctuation: false, trim_first_n: 0, trim_last_n: 0 };
       }
       if (type === "change_case") {
-        return { id: id, type: type, enabled: true, case_mode: "title" };
+        return { id: id, type: type, enabled: true, case_mode: window.FOSS.toolDefaults.get("renamer", "case_mode", "title") };
       }
       if (type === "change_extension") {
         return { id: id, type: type, enabled: true, extension: "" };
@@ -123,10 +128,10 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "", text: "+ Add Renaming Step..." }),
       window.FOSS.dom.el("option", { value: "replace_text", text: "Replace Text" }),
       window.FOSS.dom.el("option", { value: "add_text", text: "Add Prefix / Suffix" }),
-      window.FOSS.dom.el("option", { value: "number_sequence", text: "Add Numbers (01, 02...)" }),
-      window.FOSS.dom.el("option", { value: "add_date", text: "Add Photo / File Date" }),
+      window.FOSS.dom.el("option", { value: "number_sequence", text: "Number Sequence" }),
+      window.FOSS.dom.el("option", { value: "add_date", text: "Date Stamp" }),
       window.FOSS.dom.el("option", { value: "clean_name", text: "Clean Up Characters" }),
-      window.FOSS.dom.el("option", { value: "change_case", text: "Change Capitalization" }),
+      window.FOSS.dom.el("option", { value: "change_case", text: "Change Case" }),
       window.FOSS.dom.el("option", { value: "change_extension", text: "Change Extension" })
     ]);
 
@@ -511,7 +516,9 @@ window.FOSS = window.FOSS || {};
             window.FOSS.dom.el("option", { value: "1", text: "1 (1, 2, 3)" }),
             window.FOSS.dom.el("option", { value: "2", text: "2 (01, 02)" }),
             window.FOSS.dom.el("option", { value: "3", text: "3 (001, 002)" }),
-            window.FOSS.dom.el("option", { value: "4", text: "4 (0001, 0002)" })
+            window.FOSS.dom.el("option", { value: "4", text: "4 (0001, 0002)" }),
+            window.FOSS.dom.el("option", { value: "5", text: "5 (00001, 00002)" }),
+            window.FOSS.dom.el("option", { value: "6", text: "6 (000001, 000002)" })
           ]);
           padSel.value = String(step.padding || 2);
 
@@ -848,14 +855,15 @@ window.FOSS = window.FOSS || {};
     });
 
     var undoBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-danger font-semibold",
+      className: "btn btn-secondary font-semibold",
       "data-testid": "renamer-undo-btn",
+      title: "Reverse the most recent batch rename",
       disabled: !(lastExecutionResults && lastExecutionResults.length > 0),
       type: "button",
       onClick: function () {
         executeUndo();
       }
-    }, [window.FOSS.icons.el("rotate-ccw", 14), window.FOSS.dom.el("span", { text: "Undo Last Batch" })]);
+    }, [window.FOSS.icons.el("rotate-ccw", 14), window.FOSS.dom.el("span", { text: "Undo Last Rename" })]);
 
     var applyBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
@@ -882,18 +890,28 @@ window.FOSS = window.FOSS || {};
         return;
       }
 
-      window.FOSS.api("renamer_preview", {
-        file_paths: currentFiles,
-        steps: currentSteps,
-        sort_by: sortSelect.value,
-        auto_resolve_conflicts: autoResolveCheck.checked
-      }).then(function (res) {
+      var autoResolve = autoResolveCheck.checked;
+      var request = { file_paths: currentFiles, steps: currentSteps, sort_by: sortSelect.value };
+      var calls = [window.FOSS.api("renamer_preview", Object.assign({ auto_resolve_conflicts: autoResolve }, request))];
+      if (autoResolve) {
+        calls.push(window.FOSS.api("renamer_preview", Object.assign({ auto_resolve_conflicts: false }, request)));
+      }
+      Promise.all(calls).then(function (responses) {
+        var res = responses[0];
         if (!res) return;
         previewPlans = res.entries || [];
+        if (responses[1] && responses[1].entries) {
+          responses[1].entries.forEach(function (raw, i) {
+            if (raw.has_collision && previewPlans[i]) previewPlans[i].renumbered = true;
+          });
+        }
         renderPreviewTable();
         var conflictCount = previewPlans.filter(function (p) { return p.has_collision; }).length;
+        var renumberedCount = previewPlans.filter(function (p) { return p.renumbered; }).length;
         if (conflictCount > 0) {
-          summaryText.textContent = previewPlans.length + " files (" + conflictCount + " name collision detected)";
+          summaryText.textContent = previewPlans.length + " files (" + conflictCount + " name collision(s) must be fixed)";
+        } else if (renumberedCount > 0) {
+          summaryText.textContent = previewPlans.length + " files (" + renumberedCount + " collision(s) auto-numbered)";
         } else {
           summaryText.textContent = previewPlans.length + " file(s) ready to rename";
         }
@@ -929,6 +947,14 @@ window.FOSS = window.FOSS || {};
             title: p.error || "Conflict: name already exists",
             text: "Conflict"
           });
+        } else if (p.renumbered) {
+          statusBadge = window.FOSS.dom.el("span", {
+            className: "badge badge-warning text-xs",
+            style: "white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;",
+            "data-truncate-ok": "true",
+            title: "Name collision resolved by auto-numbering",
+            text: "Renumbered"
+          });
         } else if (p.old_name === p.new_name) {
           statusBadge = window.FOSS.dom.el("span", {
             className: "badge badge-neutral text-xs",
@@ -959,7 +985,10 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.icons.el("x", 14)]);
 
-        return window.FOSS.dom.el("tr", {}, [
+        return window.FOSS.dom.el("tr", {
+          className: (p.has_collision || p.renumbered) ? "renamer-conflict-row" : "",
+          "data-testid": "renamer-preview-row-" + idx
+        }, [
           window.FOSS.dom.el("td", {
             className: "text-xs font-mono text-muted text-center",
             style: "width: 2.5rem;",
@@ -987,7 +1016,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("td", {
             style: "width: 15%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
             "data-truncate-ok": "true",
-            title: p.has_collision ? "Conflict" : (p.old_name === p.new_name ? "Unchanged" : "Ready")
+            title: p.has_collision ? "Conflict" : (p.renumbered ? "Renumbered" : (p.old_name === p.new_name ? "Unchanged" : "Ready"))
           }, [statusBadge]),
           window.FOSS.dom.el("td", {
             className: "text-right",
@@ -1019,6 +1048,11 @@ window.FOSS = window.FOSS || {};
     function executeRename() {
       if (currentFiles.length === 0 || isExecuting) {
         showError("No files loaded to rename.");
+        return;
+      }
+      var blocking = previewPlans.filter(function (p) { return p.has_collision; }).length;
+      if (blocking > 0) {
+        showError(blocking + " name collision(s) must be resolved before renaming. Enable auto-numbering or edit the rules.");
         return;
       }
       isExecuting = true;
@@ -1146,6 +1180,14 @@ window.FOSS = window.FOSS || {};
     renderSteps();
     renderPreviewTable();
     loadRecipes();
+
+    if (pendingPaths.length) {
+      var droppedPaths = pendingPaths;
+      pendingPaths = [];
+      window.FOSS.api("renamer_scan_inputs", { paths: droppedPaths, recursive: false }).then(function (scanRes) {
+        if (scanRes && scanRes.paths) addFiles(scanRes.paths);
+      });
+    }
   }
 
   window.FOSS.router.register({
@@ -1153,13 +1195,31 @@ window.FOSS = window.FOSS || {};
     title: "Batch File Renamer",
     navName: "Renamer",
     category: "Utilities",
-    icon: "folder",
+    icon: "renamer",
     workbench: true,
+    defaults: [
+      { key: "number_padding", label: "Default numbering padding (digits)", type: "number", min: 1, max: 6, step: 1, default: 2 },
+      {
+        key: "case_mode",
+        label: "Default case transformation",
+        type: "select",
+        options: [
+          { value: "title", label: "Title Case" },
+          { value: "lower", label: "lowercase" },
+          { value: "upper", label: "UPPERCASE" },
+          { value: "sentence", label: "Sentence case" },
+          { value: "snake", label: "snake_case" },
+          { value: "kebab", label: "kebab-case" }
+        ],
+        default: "title"
+      }
+    ],
     tabs: [
       { id: "rules", label: "Rules & Preview", aliases: ["main"], render: renderMain }
     ],
     onFiles: function (paths, ctx) {
       if (!paths || !paths.length) return;
+      pendingPaths = paths.slice();
       window.FOSS.router.open("renamer", "rules");
     }
   });

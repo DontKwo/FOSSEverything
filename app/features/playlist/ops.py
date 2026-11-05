@@ -210,6 +210,13 @@ def export_csv_playlist(tracks: list[PlaylistTrack], output_path: str) -> str:
     return output_path
 
 
+def export_json_playlist(tracks: list[PlaylistTrack], output_path: str) -> str:
+    """Export tracks as a JSON document with one object per track."""
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump({"tracks": [tr.to_dict() for tr in tracks]}, f, indent=2)
+    return output_path
+
+
 # URL Detection & Platform Fetching
 
 def detect_url_platform(url: str) -> str | None:

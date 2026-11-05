@@ -78,13 +78,13 @@ def render_markdown_to_html(text: str, flavor: str = "github") -> str:
 
     # Task list checkbox transformation
     rendered = re.sub(
-        r"<li>\s*\[ \]\s+",
-        r'<li class="task-list-item"><input type="checkbox" disabled> ',
+        r"<li>(\s*(?:<p>)?)\[ \]\s+",
+        r'<li class="task-list-item">\1<input type="checkbox" disabled> ',
         rendered,
     )
     rendered = re.sub(
-        r"<li>\s*\[[xX]\]\s+",
-        r'<li class="task-list-item"><input type="checkbox" disabled checked> ',
+        r"<li>(\s*(?:<p>)?)\[[xX]\]\s+",
+        r'<li class="task-list-item">\1<input type="checkbox" disabled checked> ',
         rendered,
     )
 

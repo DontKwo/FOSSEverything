@@ -55,41 +55,4 @@ def test_archive_walkthrough(page: Page, api: Any, tmp_path: Path) -> None:
     expect(page.locator("[data-testid='archive-inspect-status']")).to_contain_text(
         "Integrity check passed"
     )
-
-    # 4. Protect Archive (Encrypt)
-    out_bundle = str(tmp_path / "secure.fossbundle")
-    api._dialog_answers.append([sample_txt])
-    api._dialog_answers.append(out_bundle)
-    page.evaluate("window.FOSS.router.open('archive', 'protect')")
-
-    page.fill("[data-testid='archive-protect-password']", "testpass")
-    page.fill("[data-testid='archive-protect-confirm']", "testpass")
-
-    page.click("[data-testid='archive-protect-add-source']")
-    page.wait_for_timeout(300)
-
-    page.click("[data-testid='archive-protect-run-btn']")
-    page.wait_for_timeout(300)
-
-    expect(page.locator("[data-testid='archive-protect-result']")).to_be_visible()
-    assert Path(out_bundle).exists()
-
-    # 5. Protect Archive (Decrypt)
-    out_decrypt_dir = str(tmp_path / "decrypted")
-    Path(out_decrypt_dir).mkdir(exist_ok=True)
-    api._dialog_answers.append(out_bundle)
-    api._dialog_answers.append(out_decrypt_dir)
-
-    page.click("[data-testid='archive-protect-mode'] button:has-text('Decrypt')")
-    page.wait_for_timeout(300)
-
-    page.fill("[data-testid='archive-protect-password']", "testpass")
-
-    page.click("[data-testid='archive-protect-choose-bundle']")
-    page.wait_for_timeout(300)
-
-    page.click("[data-testid='archive-protect-run-btn']")
-    page.wait_for_timeout(300)
-
-    expect(page.locator("[data-testid='archive-protect-result']")).to_be_visible()
-    assert (Path(out_decrypt_dir) / "sample.txt").exists()
+    expect(page.locator("[data-testid='archive-sha256-readout']")).not_to_contain_text("not computed")

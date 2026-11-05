@@ -1,4 +1,4 @@
-"""Local metadata inspection, editing, and removal for images and PDFs."""
+"""Local metadata inspection, editing, and removal for images, PDFs, Office documents, and media."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import tempfile
 from typing import Any
 
 import pymupdf
@@ -14,6 +15,7 @@ from PIL import ExifTags, Image
 
 from app.core.file_formats import format_from_path
 from app.features.image import ops as image_ops
+from app.features.metadata import ooxml_clean
 
 
 IMAGE_EXTENSIONS = {".bmp", ".gif", ".jpeg", ".jpg", ".png", ".tif", ".tiff", ".webp"}
@@ -270,9 +272,6 @@ def save_edited_metadata(
             raise
         shutil.move(temp_path, output_path)
         return output_path
-    if kind == "Office":
-        return save_office_metadata(input_path, output_path, edits)
-
     raise ValueError(
         f"Metadata Tools does not support this file format ({os.path.splitext(input_path)[1]})."
     )
@@ -447,19 +446,11 @@ def extract_gps_info(image_path: str) -> dict[str, Any]:
                     )
                 return float(v)
 
-            lat = (
-                _to_float(lat_dms[0])
-                + _to_float(lat_dms[1]) / 60.0
-                + _to_float(lat_dms[2]) / 3600.0
-            )
+            lat = _to_float(lat_dms[0]) + _to_float(lat_dms[1]) / 60.0 + _to_float(lat_dms[2]) / 3600.0
             if lat_ref == "S":
                 lat = -lat
 
-            lon = (
-                _to_float(lon_dms[0])
-                + _to_float(lon_dms[1]) / 60.0
-                + _to_float(lon_dms[2]) / 3600.0
-            )
+            lon = _to_float(lon_dms[0]) + _to_float(lon_dms[1]) / 60.0 + _to_float(lon_dms[2]) / 3600.0
             if lon_ref == "W":
                 lon = -lon
 
@@ -723,93 +714,74 @@ def get_office_metadata(path: str) -> dict[str, str]:
     except Exception as exc:
         raise RuntimeError(f"Could not read office metadata: {exc}") from exc
 
+    if ext in ooxml_clean.OOXML_EXTENSIONS:
+        counts = ooxml_clean.ooxml_review_counts(path)
+        if counts["comment_parts"]:
+            meta["Comments"] = f"{counts['comment_parts']} comment part(s)"
+        if counts["tracked_changes"]:
+            meta["Tracked Changes"] = str(counts["tracked_changes"])
+
     return meta
 
 
 def strip_office_metadata(input_path: str, output_path: str) -> str:
-    # Strip author, organization, and revision metadata from Office documents.
-    ext = os.path.splitext(input_path)[1].lower()
-
-    if ext == ".docx":
-        import docx
-
-        doc = docx.Document(input_path)
-        doc.core_properties.author = ""
-        doc.core_properties.last_modified_by = ""
-        doc.core_properties.comments = ""
-        doc.core_properties.title = ""
-        doc.save(output_path)
-        return output_path
-
-    elif ext == ".xlsx":
-        import openpyxl
-
-        wb = openpyxl.load_workbook(input_path)
-        wb.properties.creator = ""
-        wb.properties.lastModifiedBy = ""
-        wb.properties.title = ""
-        wb.properties.description = ""
-        wb.properties.subject = ""
-        wb.save(output_path)
-        return output_path
-
-    elif ext == ".pptx":
-        import pptx
-
-        prs = pptx.Presentation(input_path)
-        prs.core_properties.author = ""
-        prs.core_properties.last_modified_by = ""
-        prs.core_properties.comments = ""
-        prs.core_properties.title = ""
-        prs.save(output_path)
-        return output_path
-
+    # Strip author data, comments, and revisions from Office documents.
     import zipfile
 
+    ext = os.path.splitext(input_path)[1].lower()
+    if ext in ooxml_clean.OOXML_EXTENSIONS:
+        ooxml_clean.sanitize_ooxml(input_path, output_path)
+        return output_path
+
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    blank_meta = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"/>'
+    )
     with zipfile.ZipFile(input_path, "r") as zin:
-        with zipfile.ZipFile(
-            output_path, "w", compression=zipfile.ZIP_DEFLATED
-        ) as zout:
+        with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as zout:
             for item in zin.infolist():
-                fname = item.filename
-                if fname == "docProps/core.xml":
-                    blank_core = (
-                        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
-                        f'<cp:coreProperties xmlns:cp="{NS_CP}" xmlns:dc="{NS_DC}" xmlns:dcterms="{NS_DCTERMS}">\n'
-                        "    <dc:title></dc:title>\n"
-                        "    <dc:creator></dc:creator>\n"
-                        "    <cp:lastModifiedBy></cp:lastModifiedBy>\n"
-                        "    <cp:revision>1</cp:revision>\n"
-                        "</cp:coreProperties>"
-                    )
-                    zout.writestr(item, blank_core.encode("utf-8"))
-                elif fname == "docProps/app.xml":
-                    blank_app = (
-                        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
-                        f'<Properties xmlns="{NS_EP}">\n'
-                        "    <Application>FOSSEverything</Application>\n"
-                        "    <Company></Company>\n"
-                        "</Properties>"
-                    )
-                    zout.writestr(item, blank_app.encode("utf-8"))
-                elif fname == "docProps/custom.xml":
-                    continue  # Drop custom properties entirely
-                elif fname == "_rels/.rels":
-                    rels_xml = zin.read(fname).decode("utf-8")
-                    cleaned_rels = re.sub(
-                        r'<Relationship[^>]*Target="docProps/custom\.xml"[^>]*/>',
-                        "",
-                        rels_xml,
-                    )
-                    zout.writestr(item, cleaned_rels.encode("utf-8"))
-                elif fname == "meta.xml":
-                    blank_meta = '<?xml version="1.0" encoding="UTF-8"?><office:document-meta xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"/>'
+                if item.filename == "meta.xml":
                     zout.writestr(item, blank_meta.encode("utf-8"))
                 else:
-                    zout.writestr(item, zin.read(fname))
-
+                    zout.writestr(item, zin.read(item.filename))
     return output_path
+
+
+def _unique_backup_path(path: str) -> str:
+    stem, suffix = os.path.splitext(path)
+    candidate = f"{stem}_backup{suffix}"
+    counter = 2
+    while os.path.exists(candidate):
+        candidate = f"{stem}_backup{counter}{suffix}"
+        counter += 1
+    return candidate
+
+
+def strip_with_backup(input_path: str, output_path: str, backup: bool = False) -> dict[str, Any]:
+    """Strip metadata, optionally backing up the original first; output_path equal to input replaces it in place."""
+    backup_path = ""
+    if backup:
+        backup_path = _unique_backup_path(input_path)
+        shutil.copy2(input_path, backup_path)
+    in_place = os.path.normcase(os.path.abspath(input_path)) == os.path.normcase(os.path.abspath(output_path))
+    if not in_place:
+        result = strip_any_metadata(input_path, output_path)
+        result["backup_path"] = backup_path
+        return result
+    suffix = os.path.splitext(output_path)[1]
+    handle, temp_path = tempfile.mkstemp(suffix=suffix, dir=os.path.dirname(os.path.abspath(output_path)))
+    os.close(handle)
+    try:
+        result = strip_any_metadata(input_path, temp_path)
+        os.replace(temp_path, output_path)
+    except Exception:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise
+    result["output_path"] = output_path
+    result["backup_path"] = backup_path
+    return result
 
 
 def save_office_metadata(

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mission id="apollo-11" year="1969">
+  <crew>
+    <member seat="1" role="commander">Armstrong</member>
+    <member seat="2" role="pilot">Collins</member>
+    <member seat="3" role="lander pilot">Aldrin</member>
+  </crew>
+  <stages>
+    <stage number="1">
+      <thrust unit="kN">7600</thrust>
+    </stage>
+    <stage number="2">
+      <thrust unit="kN">1000</thrust>
+    </stage>
+    <stage number="3">
+      <thrust unit="kN">200</thrust>
+    </stage>
+  </stages>
+  <notes>Illustrative data &amp; &lt;test&gt; markup.</notes>
+</mission>

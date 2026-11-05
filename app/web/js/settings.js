@@ -24,6 +24,7 @@ window.FOSS = window.FOSS || {};
     var sections = [
       { id: "appearance", label: "Appearance & Theme" },
       { id: "sidebar", label: "Sidebar & Apps" },
+      { id: "defaults", label: "Per-App Defaults" },
       { id: "home", label: "Home & Workspaces" },
       { id: "keybindings", label: "Keybindings" },
       { id: "shell", label: "File Associations & Shell" },
@@ -63,6 +64,8 @@ window.FOSS = window.FOSS || {};
       renderAppearance(panel);
     } else if (secId === "sidebar") {
       renderSidebarCustomizer(panel);
+    } else if (secId === "defaults") {
+      renderToolDefaults(panel);
     } else if (secId === "home") {
       renderHomeSettings(panel);
     } else if (secId === "keybindings") {
@@ -289,14 +292,14 @@ window.FOSS = window.FOSS || {};
 
       secCard.ondragstart = function (e) {
         e.dataTransfer.setData("text/plain", JSON.stringify({ type: "section", secId: sec.id }));
-      });
+      };
       secCard.ondragover = function (e) {
         e.preventDefault();
         secCard.classList.add("drop-target-above");
-      });
+      };
       secCard.ondragleave = function () {
         secCard.classList.remove("drop-target-above");
-      });
+      };
       secCard.ondrop = function (e) {
         e.preventDefault();
         secCard.classList.remove("drop-target-above");
@@ -321,7 +324,7 @@ window.FOSS = window.FOSS || {};
             }
           }
         } catch (err) {}
-      });
+      };
 
       var nameInput = window.FOSS.dom.el("input", {
         type: "text",
@@ -370,15 +373,15 @@ window.FOSS = window.FOSS || {};
         appRow.ondragstart = function (e) {
           e.stopPropagation();
           e.dataTransfer.setData("text/plain", JSON.stringify({ type: "app", appId: item.id, fromSec: sec.id }));
-        });
+        };
         appRow.ondragover = function (e) {
           e.preventDefault();
           e.stopPropagation();
           appRow.classList.add("drop-target-above");
-        });
+        };
         appRow.ondragleave = function () {
           appRow.classList.remove("drop-target-above");
-        });
+        };
         appRow.ondrop = function (e) {
           e.preventDefault();
           e.stopPropagation();
@@ -397,7 +400,7 @@ window.FOSS = window.FOSS || {};
               }
             }
           } catch (err) {}
-        });
+        };
 
         var check = window.FOSS.dom.el("input", {
           type: "checkbox",
@@ -461,6 +464,75 @@ window.FOSS = window.FOSS || {};
     });
 
     panel.appendChild(editor);
+  }
+
+  function renderToolDefaults(panel) {
+    panel.innerHTML = "";
+    panel.appendChild(window.FOSS.dom.el("h2", { className: "card-title", text: "Per-App Defaults" }));
+    panel.appendChild(window.FOSS.dom.el("p", {
+      className: "desc",
+      text: "Choose an app, edit its startup defaults, and save. Apps read these values when they open or reset."
+    }));
+
+    var tools = window.FOSS.router.getRegisteredTools().filter(function (t) {
+      return window.FOSS.toolDefaults.getFields(t.id).length > 0;
+    });
+    if (tools.length === 0) {
+      panel.appendChild(window.FOSS.dom.el("p", { className: "desc", text: "No apps expose configurable defaults." }));
+      return;
+    }
+
+    var selectedId = tools[0].id;
+    var formHost = window.FOSS.dom.el("div", { className: "stack", "data-testid": "settings-defaults-form-host" });
+    var collected = {};
+
+    function showForm() {
+      collected = {};
+      formHost.innerHTML = "";
+      formHost.appendChild(window.FOSS.toolDefaults.buildForm(selectedId, collected));
+    }
+
+    var toolSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-testid": "settings-defaults-tool-select",
+      "aria-label": "Choose app",
+      onChange: function (e) {
+        selectedId = e.target.value;
+        showForm();
+      }
+    }, tools.map(function (t) {
+      return window.FOSS.dom.el("option", { value: t.id, text: t.title });
+    }));
+
+    var saveBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      text: "Save Defaults",
+      "data-testid": "settings-defaults-save-btn",
+      onClick: function () {
+        window.FOSS.toolDefaults.save(selectedId, collected);
+        window.FOSS.toast.show("Defaults saved", "success");
+        showForm();
+      }
+    });
+
+    var resetBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
+      text: "Restore App Defaults",
+      "data-testid": "settings-defaults-reset-btn",
+      onClick: function () {
+        window.FOSS.store.set("tool_defaults." + selectedId, {});
+        window.FOSS.toast.show("Defaults restored", "info");
+        showForm();
+      }
+    });
+
+    panel.appendChild(window.FOSS.dom.el("div", { className: "field" }, [
+      window.FOSS.dom.el("label", { text: "App" }),
+      toolSelect
+    ]));
+    panel.appendChild(formHost);
+    panel.appendChild(window.FOSS.dom.el("div", { className: "row gap-2" }, [saveBtn, resetBtn]));
+    showForm();
   }
 
   function renderHomeSettings(panel) {

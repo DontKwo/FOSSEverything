@@ -4,7 +4,7 @@ import json
 import random
 import secrets
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from app.features.data.ops import (
     clean_markdown_table,
@@ -43,8 +43,24 @@ from app.features.data.ops import (
     validate_syntax,
 )
 from app.web.api.data_structure import inspect_data_structure
-from app.web.api.hdf5_reader import export_hdf5_slice
+from app.web.api.hdf5_reader import (
+    Hdf5Error,
+    describe_hdf5_node,
+    export_hdf5_slice,
+    list_hdf5_children,
+    open_hdf5,
+    preview_hdf5_dataset,
+    search_hdf5,
+)
 from app.web.api.result import api_method, fail, ok, require
+
+
+def _hdf5_result(func: Callable[..., dict[str, Any]], *args: Any, **kwargs: Any) -> dict[str, Any]:
+    # Run an HDF5 reader call and turn reader errors into a clean failure dict.
+    try:
+        return ok(**func(*args, **kwargs))
+    except Hdf5Error as exc:
+        return fail(str(exc), code="Hdf5Error")
 
 
 class DataApiMixin:
@@ -299,10 +315,55 @@ class DataApiMixin:
         output_path = str(params["output_path"])
         slice_spec = str(params.get("slice_spec", ":"))
         out_format = str(params.get("format", "csv"))
-        res = export_hdf5_slice(
-            file_path, dataset_path, slice_spec, output_path, out_format
+        return _hdf5_result(export_hdf5_slice, file_path, dataset_path, slice_spec, output_path, out_format)
+
+    @api_method
+    def data_hdf5_open(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Open an HDF5 file and return file metadata with the first page of root members.
+        require(params, "file_path")
+        return _hdf5_result(open_hdf5, str(params["file_path"]))
+
+    @api_method
+    def data_hdf5_children(self, params: dict[str, Any]) -> dict[str, Any]:
+        # List one page of members of an HDF5 group for lazy tree expansion.
+        require(params, "file_path")
+        return _hdf5_result(
+            list_hdf5_children,
+            str(params["file_path"]),
+            str(params.get("path", "/")),
+            int(params.get("offset", 0)),
+            int(params.get("limit", 500)),
         )
-        return ok(**res)
+
+    @api_method
+    def data_hdf5_node(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Describe an HDF5 node with attributes, storage, filters, dtype, and link target.
+        require(params, "file_path")
+        return _hdf5_result(describe_hdf5_node, str(params["file_path"]), str(params.get("path", "/")))
+
+    @api_method
+    def data_hdf5_preview(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Read a bounded row and column window of an HDF5 dataset with numeric statistics.
+        require(params, "file_path", "path")
+        raw_index = params.get("index")
+        index = [int(i) for i in raw_index] if isinstance(raw_index, list) else None
+        return _hdf5_result(
+            preview_hdf5_dataset,
+            str(params["file_path"]),
+            str(params["path"]),
+            int(params.get("row_start", 0)),
+            int(params.get("row_count", 20)),
+            int(params.get("col_start", 0)),
+            int(params.get("col_count", 12)),
+            index,
+            bool(params.get("include_stats", True)),
+        )
+
+    @api_method
+    def data_hdf5_search(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Search HDF5 member paths for a substring.
+        require(params, "file_path", "query")
+        return _hdf5_result(search_hdf5, str(params["file_path"]), str(params["query"]), int(params.get("limit", 200)))
 
     @api_method
     def data_random_value(self, params: dict[str, Any]) -> dict[str, Any]:

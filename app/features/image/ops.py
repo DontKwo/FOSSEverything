@@ -188,122 +188,35 @@ def get_rembg_models_dir() -> str:
     return unified_dir
 
 
-def image_get_rembg_models() -> list[dict[str, Any]]:
-    # Return model catalog info with local cache status for rembg models.
-    models_info = [
-        {
-            "name": "u2net",
-            "download_size": "~176 MB",
-            "description": "Standard General",
-            "filename": "u2net.onnx",
-        },
-        {
-            "name": "u2netp",
-            "download_size": "~4 MB",
-            "description": "Lightweight Mobile",
-            "filename": "u2netp.onnx",
-        },
-        {
-            "name": "u2net_human_seg",
-            "download_size": "~176 MB",
-            "description": "Human Portrait Segmentation",
-            "filename": "u2net_human_seg.onnx",
-        },
-        {
-            "name": "isnet-general-use",
-            "download_size": "~174 MB",
-            "description": "High Precision Object Cutout",
-            "filename": "isnet-general-use.onnx",
-        },
-    ]
-    unified_dir = get_rembg_models_dir()
-    catalog_list: list[dict[str, Any]] = []
-    for item in models_info:
-        model_name = str(item["name"])
-        fn = str(item["filename"])
-        candidates = [
-            os.path.join(unified_dir, fn),
-            os.path.join(unified_dir, model_name, fn),
-            os.path.join(unified_dir, "models", model_name, fn),
-            os.path.join(os.path.expanduser("~/.u2net"), fn),
-        ]
-        is_cached = any(os.path.isfile(cand) and os.path.getsize(cand) > 0 for cand in candidates)
-        catalog_list.append({
-            "name": model_name,
-            "id": model_name,
-            "download_size": item["download_size"],
-            "size": item["download_size"],
-            "cached": is_cached,
-            "downloaded": is_cached,
-            "local_cache": is_cached,
-            "description": item["description"],
-            "label": f"{model_name} ({item['description']}, {item['download_size']})",
-        })
-    return catalog_list
-
-
-def migrate_existing_rembg_models() -> int:
-    # Migrate previous models from user home directory into unified settings directory.
-    unified_dir = get_rembg_models_dir()
-    migrated_count = 0
-    home = os.path.expanduser("~")
-    external_sources = [
-        os.path.join(home, ".rembg", "models"),
-        os.path.join(home, ".rembg"),
-        os.path.join(home, ".u2net"),
-    ]
-    for src_root in external_sources:
-        if not os.path.isdir(src_root):
-            continue
-        for root, _, files in os.walk(src_root):
-            for fname in files:
-                if fname.endswith(".onnx"):
-                    src_path = os.path.join(root, fname)
-                    for item in REMBG_MODEL_CATALOG:
-                        if fname in item["filenames"]:
-                            target_dir = os.path.join(unified_dir, "models", str(item["id"]))
-                            os.makedirs(target_dir, exist_ok=True)
-                            target_file = os.path.join(target_dir, fname)
-                            if not os.path.exists(target_file):
-                                try:
-                                    shutil.copy2(src_path, target_file)
-                                    migrated_count += 1
-                                except Exception:  # noqa: 10
-                                    pass
-                            break
-    return migrated_count
+def _rembg_model_files(unified_dir: str, item: dict[str, Any]) -> list[str]:
+    # Return existing non-empty model files for a catalog item in the unified cache.
+    found: list[str] = []
+    for fn in item["filenames"]:
+        candidate = os.path.join(unified_dir, fn)
+        if os.path.isfile(candidate) and os.path.getsize(candidate) > 0:
+            found.append(candidate)
+    return found
 
 
 def list_rembg_models_status() -> dict[str, Any]:
-    # Scan unified models directory and report download status of all catalog models.
+    # Scan the unified ~/.u2net cache and report downloaded versus pending status of every catalog model.
     unified_dir = get_rembg_models_dir()
     total_bytes = 0
     models_status = []
     for item in REMBG_MODEL_CATALOG:
-        m_id = str(item["id"])
-        filenames = list(item["filenames"])
-        found_paths: list[str] = []
-        m_bytes = 0
-        for fn in filenames:
-            candidates = [
-                os.path.join(unified_dir, "models", m_id, fn),
-                os.path.join(unified_dir, m_id, fn),
-                os.path.join(unified_dir, fn),
-            ]
-            for c in candidates:
-                if os.path.isfile(c) and os.path.getsize(c) > 0:
-                    found_paths.append(c)
-                    m_bytes += os.path.getsize(c)
-                    break
-        is_downloaded = (len(found_paths) == len(filenames))
+        found_paths = _rembg_model_files(unified_dir, item)
+        m_bytes = sum(os.path.getsize(p) for p in found_paths)
+        is_downloaded = len(found_paths) == len(item["filenames"])
         if is_downloaded:
             total_bytes += m_bytes
         models_status.append({
-            "id": m_id,
+            "id": str(item["id"]),
             "label": item["label"],
             "size_mb": item["size_mb"],
+            "download_size": f"{item['size_mb']:.0f} MB",
             "expected_bytes": item["expected_bytes"],
             "downloaded": is_downloaded,
+            "status": "downloaded" if is_downloaded else "pending",
             "disk_bytes": m_bytes,
             "paths": found_paths,
         })
@@ -325,31 +238,15 @@ def download_rembg_model(model_name: str) -> dict[str, Any]:
 
 
 def delete_rembg_model(model_name: str) -> dict[str, Any]:
-    # Delete local model files from unified directory and evict session from cache.
+    # Delete local model files from the unified cache and evict the session.
     unified_dir = get_rembg_models_dir()
     norm_name = _normalize_model_name(model_name)
-    if norm_name in _SESSION_CACHE:
-        del _SESSION_CACHE[norm_name]
+    _SESSION_CACHE.pop(norm_name, None)
     for item in REMBG_MODEL_CATALOG:
-        if item["id"] == norm_name:
-            for fn in item["filenames"]:
-                for p in [
-                    os.path.join(unified_dir, "models", norm_name, fn),
-                    os.path.join(unified_dir, norm_name, fn),
-                    os.path.join(unified_dir, fn),
-                ]:
-                    if os.path.isfile(p):
-                        try:
-                            os.remove(p)
-                        except OSError:  # noqa: 10
-                            pass
-            sub_dir = os.path.join(unified_dir, "models", norm_name)
-            if os.path.isdir(sub_dir) and not os.listdir(sub_dir):
-                try:
-                    os.rmdir(sub_dir)
-                except OSError:  # noqa: 10
-                    pass
-            break
+        if item["id"] != norm_name:
+            continue
+        for model_path in _rembg_model_files(unified_dir, item):
+            os.remove(model_path)
     return list_rembg_models_status()
 
 

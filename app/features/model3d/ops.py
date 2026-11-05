@@ -17,7 +17,7 @@ import trimesh
 
 from app.core.file_formats import normalized_format
 
-MESH_EXTENSIONS = {".stl", ".obj", ".ply"}
+MESH_EXTENSIONS = {".stl", ".obj", ".ply", ".gltf", ".glb"}
 BREP_EXTENSIONS = {".step", ".stp", ".iges", ".igs"}
 MODEL3D_EXTENSIONS = MESH_EXTENSIONS | BREP_EXTENSIONS
 

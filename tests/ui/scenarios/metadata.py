@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Callable
 from playwright.sync_api import Page, expect
 
@@ -50,6 +51,8 @@ def scenario_strip(page: Page, fixtures: dict[str, str], api: Any) -> None:
     page.evaluate("window.FOSS.router.open('metadata', 'main')")
     page.click("[data-testid='metadata-choose-file']")
     page.wait_for_timeout(250)
+    api._dialog_answers.append(str(Path(sample_file).with_name("clean_out.png")))
+    expect(page.locator("[data-testid='metadata-backup-toggle-input']")).not_to_be_checked()
     page.click("[data-testid='metadata-strip-btn']")
     page.wait_for_timeout(250)
     res_card = page.locator("[data-testid='metadata-result']")

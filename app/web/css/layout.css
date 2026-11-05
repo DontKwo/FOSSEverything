@@ -286,6 +286,15 @@ body {
   gap: var(--space-4);
   align-items: start;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.split > * {
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .split.even {
@@ -297,13 +306,13 @@ body {
 }
 
 .split.resizable {
-  grid-template-columns: var(--split-left, minmax(18rem, 45%)) 0.5rem minmax(18rem, 1fr);
+  grid-template-columns: var(--split-left, minmax(15rem, 45%)) 0.5rem minmax(18rem, 1fr);
   gap: var(--space-2);
   align-items: stretch;
 }
 
 .split.resizable.split-main-first {
-  grid-template-columns: minmax(20rem, 1fr) 0.5rem var(--split-right, 24rem);
+  grid-template-columns: minmax(15rem, 1fr) 0.5rem var(--split-right, 24rem);
   gap: var(--space-2);
   align-items: stretch;
 }

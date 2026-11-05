@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import difflib
 import re
+from typing import Any
 
 
 def _split_words(text: str) -> list[str]:
@@ -243,3 +244,41 @@ def diff_texts(left_text: str, right_text: str) -> dict:
         "removed": removed,
         "changed": bool(diff_lines),
     }
+
+
+def normalize_for_diff(text: str, ignore_whitespace: bool = False, ignore_case: bool = False) -> str:
+    """Collapse whitespace runs and lowercase lines so a diff ignores those differences."""
+    lines = text.splitlines()
+    if ignore_whitespace:
+        lines = [" ".join(line.split()) for line in lines]
+    if ignore_case:
+        lines = [line.lower() for line in lines]
+    return "\n".join(lines)
+
+
+def diff_side_by_side(left_text: str, right_text: str) -> dict[str, Any]:
+    """Compare two text blocks as aligned left and right columns with a change marker per row."""
+    left_lines = left_text.splitlines()
+    right_lines = right_text.splitlines()
+    width = min(max([len(line) for line in left_lines] + [0]), 60)
+    rows: list[str] = []
+    added = 0
+    removed = 0
+    matcher = difflib.SequenceMatcher(None, left_lines, right_lines, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        left_block = left_lines[i1:i2]
+        right_block = right_lines[j1:j2]
+        if tag == "delete":
+            removed += len(left_block)
+        elif tag == "insert":
+            added += len(right_block)
+        elif tag == "replace":
+            removed += len(left_block)
+            added += len(right_block)
+        marker = {"equal": " ", "delete": "<", "insert": ">", "replace": "|"}[tag]
+        for k in range(max(len(left_block), len(right_block))):
+            left_cell = left_block[k] if k < len(left_block) else ""
+            right_cell = right_block[k] if k < len(right_block) else ""
+            rows.append(f"{left_cell:<{width}} {marker} {right_cell}".rstrip())
+    changed = added > 0 or removed > 0
+    return {"diff": "\n".join(rows) if changed else "", "added": added, "removed": removed, "changed": changed}

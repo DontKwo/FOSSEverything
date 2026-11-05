@@ -10,6 +10,8 @@ window.FOSS = window.FOSS || {};
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 
+  var pendingPaths = [];
+
   function renderCompressor(panel, ctx) {
     panel.innerHTML = "";
     panel.setAttribute("data-testid", "compressor-page");
@@ -58,35 +60,67 @@ window.FOSS = window.FOSS || {};
     }
 
     // Left Column: Compression Settings
+    var PROFILE_LABELS = {
+      light: "Low (Fast)",
+      balanced: "Medium (Balanced)",
+      aggressive: "High (Maximum)"
+    };
+
     var presetSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "compressor-preset-select",
-      "aria-label": "Compression Preset",
-      title: "Compression Preset",
+      "aria-label": "Compression Profile",
+      title: "Compression Profile",
       onChange: function () {
         updateRatioEstimate();
+        refreshEstimates();
       }
-    }, [
-      window.FOSS.dom.el("option", { value: "light", text: "Low (~15-30%)" }),
-      window.FOSS.dom.el("option", { value: "balanced", text: "Medium (~30-50%)", selected: "selected" }),
-      window.FOSS.dom.el("option", { value: "aggressive", text: "High (~50-75%)" })
-    ]);
+    }, Object.keys(PROFILE_LABELS).map(function (key) {
+      return window.FOSS.dom.el("option", { value: key, text: PROFILE_LABELS[key] });
+    }));
+    presetSelect.value = window.FOSS.toolDefaults.get("compressor", "profile", "balanced");
 
     var ratioEstimateReadout = window.FOSS.dom.el("div", {
       className: "text-xs font-mono text-muted p-2 rounded bg-neutral",
       "data-testid": "compressor-ratio-estimate",
-      text: "Estimated ratio: ~30-50% reduction (Medium)"
+      text: ""
+    });
+
+    var estimateReadout = window.FOSS.dom.el("div", {
+      className: "text-xs font-mono p-2 rounded bg-neutral",
+      "data-testid": "compressor-estimate-readout",
+      text: "Estimated savings: add files to see an estimate"
     });
 
     function updateRatioEstimate() {
-      var val = presetSelect.value;
-      if (val === "light") {
-        ratioEstimateReadout.textContent = "Estimated ratio: ~15-30% reduction (Low)";
-      } else if (val === "aggressive") {
-        ratioEstimateReadout.textContent = "Estimated ratio: ~50-75% reduction (High)";
-      } else {
-        ratioEstimateReadout.textContent = "Estimated ratio: ~30-50% reduction (Medium)";
+      ratioEstimateReadout.textContent = "Profile: " + (PROFILE_LABELS[presetSelect.value] || presetSelect.value);
+    }
+
+    function refreshEstimates() {
+      var pending = queueItems.filter(function (it) { return it.status !== "Done"; });
+      if (pending.length === 0) {
+        estimateReadout.textContent = "Estimated savings: add files to see an estimate";
+        return;
       }
+      window.FOSS.api("compressor_estimate_savings", {
+        items: pending.map(function (it) { return { path: it.path, category: it.category }; }),
+        preset: presetSelect.value,
+        lossy_png: pngQuantizeCheck.checked
+      }).then(function (res) {
+        if (!res || !res.results) return;
+        var byPath = {};
+        res.results.forEach(function (r) { byPath[r.path] = r; });
+        pending.forEach(function (it) {
+          var est = byPath[it.path];
+          it.est_bytes = est ? est.estimated_bytes : 0;
+          it.est_pct = est ? est.saved_pct : 0;
+        });
+        estimateReadout.textContent = "Estimated savings: " + formatBytes(res.total_saved_bytes) + " (" +
+          res.total_saved_pct + "%) of " + formatBytes(res.total_original_bytes) + " before compressing";
+        renderQueueTable();
+      }).catch(function (err) {
+        showError((err && err.message) || String(err));
+      });
     }
 
     var pngQuantizeCheck = window.FOSS.dom.el("input", {
@@ -95,7 +129,10 @@ window.FOSS = window.FOSS || {};
       "data-testid": "compressor-png-quantize",
       "aria-label": "Quantize PNG Palette",
       title: "Quantize PNG Palette",
-      checked: true
+      checked: true,
+      onChange: function () {
+        refreshEstimates();
+      }
     });
 
     var maxDimInput = window.FOSS.dom.el("input", {
@@ -149,8 +186,9 @@ window.FOSS = window.FOSS || {};
       className: "card card-compact flex-col gap-3"
     }, [
       window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Compression Settings" }),
-      window.FOSS.components.field("Preset", presetSelect),
+      window.FOSS.components.field("Profile", presetSelect),
       ratioEstimateReadout,
+      estimateReadout,
       window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
         pngQuantizeCheck,
         window.FOSS.dom.el("label", {
@@ -206,6 +244,7 @@ window.FOSS = window.FOSS || {};
       onClick: function () {
         queueItems = [];
         renderQueueTable();
+        refreshEstimates();
       }
     }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear" })]);
 
@@ -223,6 +262,9 @@ window.FOSS = window.FOSS || {};
               path: it.path,
               name: it.name,
               category: it.category || "General",
+              output_ext: it.output_ext || "",
+              est_bytes: 0,
+              est_pct: 0,
               size_bytes: it.size_bytes || 0,
               compressed_bytes: 0,
               saved_bytes: 0,
@@ -233,6 +275,7 @@ window.FOSS = window.FOSS || {};
           }
         });
         renderQueueTable();
+        refreshEstimates();
         statusBar.textContent = "Queue: " + queueItems.length + " item(s) ready";
       }).catch(function (err) {
         showError((err && err.message) || String(err));
@@ -301,9 +344,10 @@ window.FOSS = window.FOSS || {};
           });
         } else {
           savingsBadge = window.FOSS.dom.el("span", {
-            className: "badge badge-neutral text-xs",
+            className: "badge badge-neutral text-xs font-mono",
             style: "white-space: nowrap;",
-            text: "Queued"
+            title: "Estimated savings before compressing",
+            text: it.est_bytes > 0 ? "~-" + it.est_pct + "%" : "Queued"
           });
         }
 
@@ -315,6 +359,7 @@ window.FOSS = window.FOSS || {};
           onClick: function () {
             queueItems.splice(idx, 1);
             renderQueueTable();
+            refreshEstimates();
           }
         }, [window.FOSS.icons.el("x", 14)]);
 
@@ -343,14 +388,14 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("td", {
             className: "text-xs font-mono",
             style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-            text: it.compressed_bytes > 0 ? formatBytes(it.compressed_bytes) : "-",
+            text: it.compressed_bytes > 0 ? formatBytes(it.compressed_bytes) : (it.est_bytes > 0 ? "~" + formatBytes(it.est_bytes) : "-"),
             "data-truncate-ok": "true",
-            title: it.compressed_bytes > 0 ? formatBytes(it.compressed_bytes) : "-"
+            title: it.compressed_bytes > 0 ? formatBytes(it.compressed_bytes) : (it.est_bytes > 0 ? "Estimated " + formatBytes(it.est_bytes) : "-")
           }),
           window.FOSS.dom.el("td", {
             style: "width: 25%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
             "data-truncate-ok": "true",
-            title: "-" + it.saved_pct + "%"
+            title: it.status === "Done" ? "-" + it.saved_pct + "%" : "Estimated savings"
           }, [savingsBadge]),
           window.FOSS.dom.el("td", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;" }, [removeBtn])
         ]);
@@ -439,17 +484,26 @@ window.FOSS = window.FOSS || {};
       }
 
       if (queueItems.length === 1) {
-        var baseName = queueItems[0].name;
-        var ext = baseName.lastIndexOf(".") !== -1 ? baseName.substring(baseName.lastIndexOf(".")) : "";
-        var stem = ext ? baseName.substring(0, baseName.lastIndexOf(".")) : baseName;
+        var single = queueItems[0];
+        var srcExt = single.name.lastIndexOf(".") !== -1 ? single.name.substring(single.name.lastIndexOf(".")) : "";
+        var outExt = (single.output_ext || srcExt).replace(/^\./, "").toLowerCase();
         window.FOSS.api("select_save_path", {
           title: "Save Compressed File",
-          default_name: stem + "_compressed" + ext
+          default_name: "compressed",
+          file_types: outExt ? [{ name: outExt.toUpperCase() + " file (*." + outExt + ")", extensions: [outExt] }] : []
         }).then(function (res) {
-          var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
-          runBatchWithCustomPath(p);
-        }).catch(function () {
-          runBatchWithCustomPath("");
+          var chosen = (res && res.path) || "";
+          if (!chosen) {
+            isCompressing = false;
+            single.status = "Queued";
+            statusBar.textContent = "Save cancelled";
+            renderQueueTable();
+            return;
+          }
+          runBatchWithCustomPath(chosen);
+        }).catch(function (err) {
+          isCompressing = false;
+          showError((err && err.message) || String(err));
         });
       } else {
         runBatchWithCustomPath("");
@@ -489,7 +543,14 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(resultHost);
     panel.appendChild(split);
 
+    updateRatioEstimate();
     renderQueueTable();
+
+    if (pendingPaths.length) {
+      var queuedPaths = pendingPaths;
+      pendingPaths = [];
+      addPathsToQueue(queuedPaths);
+    }
   }
 
   window.FOSS.router.register({
@@ -497,13 +558,27 @@ window.FOSS = window.FOSS || {};
     title: "File Compressor",
     navName: "Compressor",
     category: "Utilities",
-    icon: "download",
+    icon: "compressor",
     workbench: true,
+    defaults: [
+      {
+        key: "profile",
+        label: "Default compression profile",
+        type: "select",
+        options: [
+          { value: "light", label: "Low (Fast)" },
+          { value: "balanced", label: "Medium (Balanced)" },
+          { value: "aggressive", label: "High (Maximum)" }
+        ],
+        default: "balanced"
+      }
+    ],
     tabs: [
       { id: "main", label: "File Compressor", aliases: ["single"], render: renderCompressor }
     ],
     onFiles: function (paths, ctx) {
       if (!paths || !paths.length) return;
+      pendingPaths = paths.slice();
       window.FOSS.router.open("compressor", "main");
     }
   });

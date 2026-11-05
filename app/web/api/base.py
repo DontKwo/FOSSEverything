@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 import time
@@ -39,6 +40,47 @@ def format_dialog_file_types(types_param: Any) -> tuple[str, ...]:
             patterns = ';'.join(f'*.{e}' for e in clean_exts)
             return (f'Supported Files ({patterns})', 'All Files (*.*)')
     return ('All Files (*.*)',)
+
+
+_EXT_PATTERN = re.compile(r"\.([A-Za-z0-9]{1,5})$")
+
+
+def _split_extension(name: str) -> tuple[str, str]:
+    # Split a default file name into base name and lowercase extension.
+    match = _EXT_PATTERN.search(name)
+    if not match:
+        return name, ""
+    return name[: match.start()], match.group(1).lower()
+
+
+def _build_save_types(file_types: Any, name_ext: str) -> tuple[tuple[str, ...], list[str]]:
+    # Build pywebview filter strings and the flat list of allowed extensions.
+    dialog_types: list[str] = []
+    allowed: list[str] = []
+    entries: list[Any] = list(file_types) if isinstance(file_types, (list, tuple)) else []
+    if not entries and name_ext:
+        entries = [{"name": f"{name_ext.upper()} File", "extensions": [name_ext]}]
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        exts = [str(e).lstrip(".*").lower() for e in entry.get("extensions", []) if str(e).strip()]
+        if not exts:
+            continue
+        patterns = ";".join(f"*.{e}" for e in exts)
+        label = str(entry.get("name", "Files"))
+        dialog_types.append(label if "(*." in label else f"{label} ({patterns})")
+        allowed.extend(e for e in exts if e not in allowed)
+    return tuple(dialog_types), allowed
+
+
+def _apply_save_extension(path_str: str, allowed_exts: list[str]) -> str:
+    # Append the first allowed extension when the chosen path lacks a matching one.
+    if not allowed_exts:
+        return path_str
+    lowered = path_str.lower()
+    if any(lowered.endswith(f".{ext}") for ext in allowed_exts):
+        return path_str
+    return f"{path_str}.{allowed_exts[0]}"
 
 
 class BaseApi:
@@ -261,29 +303,26 @@ class BaseApi:
 
     @api_method
     def select_save_path(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Open save file path dialog.
+        # Open save dialog with a clean base name and a Save as type dropdown.
         default_name = str(params.get("default_name", "")).strip()
+        base_name, name_ext = _split_extension(default_name)
+        dialog_types, allowed_exts = _build_save_types(params.get("file_types"), name_ext)
+
         if self._dialog_answers:
             ans = self._dialog_answers.pop(0)
             if not ans:
                 return ok(paths=[], path="", file_path="", output_path="", cancelled=True)
-            p_str = str(ans)
-            if default_name and "." in default_name:
-                expected_ext = "." + default_name.rsplit(".", 1)[-1].lower()
-                if not p_str.lower().endswith(expected_ext):
-                    p_str = p_str + expected_ext
+            p_str = _apply_save_extension(str(ans), allowed_exts)
             return ok(paths=[p_str], path=p_str, file_path=p_str, output_path=p_str, cancelled=False)
 
         if not self._window:
             return ok(paths=[], path="", file_path="", output_path="", cancelled=True)
 
-        res = self._window.create_file_dialog(dialog_type=30, save_filename=default_name)
+        res = self._window.create_file_dialog(
+            dialog_type=30, save_filename=base_name, file_types=dialog_types
+        )
         if res:
-            p_str = str(res) if isinstance(res, str) else str(res[0])
-            if default_name and "." in default_name:
-                expected_ext = "." + default_name.rsplit(".", 1)[-1].lower()
-                if not p_str.lower().endswith(expected_ext):
-                    p_str = p_str + expected_ext
+            p_str = _apply_save_extension(str(res) if isinstance(res, str) else str(res[0]), allowed_exts)
             return ok(paths=[p_str], path=p_str, file_path=p_str, output_path=p_str, cancelled=False)
         return ok(paths=[], path="", file_path="", output_path="", cancelled=True)
 

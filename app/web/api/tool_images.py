@@ -27,9 +27,7 @@ from app.features.image.ops import (
     extract_gif_frames,
     flip_image,
     frames_to_gif,
-    get_rembg_models_dir,
     gif_to_video,
-    image_get_rembg_models,
     list_rembg_models_status,
     load_image,
     pixelate_region,
@@ -60,6 +58,12 @@ def _calc_to_data_url(image_obj: Image.Image, format_name: str = "PNG") -> str:
     return f"data:image/{format_name.lower()};base64,{base64_data}"
 
 
+def _calc_save(image_obj: Image.Image, out_path: str, params: dict[str, Any], default_format: str = "") -> None:
+    # Save image in the format given by the output extension with the requested quality.
+    ext = Path(out_path).suffix.lstrip(".")
+    save_image(image_obj, out_path, format=default_format or ext or "PNG", quality=int(params.get("quality", 85)))
+
+
 def calc_color_tuple(color_val: Any) -> tuple[int, int, int]:
     # Parse color value to 3-tuple RGB channels.
     if isinstance(color_val, (list, tuple)) and len(color_val) >= 3:
@@ -88,17 +92,6 @@ class ImagesApiMixin:
         )
 
     @api_method
-    def image_get_rembg_models(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Return model catalog info for rembg models.
-        models = image_get_rembg_models()
-        return ok(models=models, models_dir=get_rembg_models_dir())
-
-    @api_method
-    def images_get_rembg_models(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Alias for returning model catalog info.
-        return self.image_get_rembg_models(params)
-
-    @api_method
     def images_models_status(self, params: dict[str, Any]) -> dict[str, Any]:
         # Scan and return download status of all background removal models.
         status_info = list_rembg_models_status()
@@ -119,6 +112,18 @@ class ImagesApiMixin:
         target_model = str(params["model"])
         status_info = delete_rembg_model(target_model)
         return ok(**status_info)
+
+    @api_method
+    def images_save_preview(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Decode a preview data URL and save it in the format given by the output extension.
+        require(params, "data_url", "output_path")
+        encoded = str(params["data_url"]).split(",", 1)[-1]
+        preview_img = Image.open(io.BytesIO(base64.b64decode(encoded)))
+        preview_img.load()
+        out_p = str(params["output_path"])
+        Path(out_p).parent.mkdir(parents=True, exist_ok=True)
+        _calc_save(preview_img, out_p, params)
+        return ok(output_path=out_p, width=preview_img.width, height=preview_img.height)
 
     @api_method
     def images_load_data(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -161,7 +166,7 @@ class ImagesApiMixin:
         source_img = _calc_load_img(file_path)
         rotated_img = rotate_image(source_img, degrees)
         if out_p:
-            save_image(rotated_img, out_p)
+            _calc_save(rotated_img, out_p, params)
         data_url = _calc_to_data_url(rotated_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=rotated_img.width, height=rotated_img.height)
 
@@ -181,7 +186,7 @@ class ImagesApiMixin:
         source_img = _calc_load_img(file_path)
         flipped_img = flip_image(source_img, horizontal=(direction.lower() != "vertical"))
         if out_p:
-            save_image(flipped_img, out_p)
+            _calc_save(flipped_img, out_p, params)
         data_url = _calc_to_data_url(flipped_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=flipped_img.width, height=flipped_img.height)
 
@@ -203,7 +208,7 @@ class ImagesApiMixin:
         source_img = _calc_load_img(file_path)
         resized_img = resize_image(source_img, req_width, req_height, keep_aspect=keep_aspect)
         if out_p:
-            save_image(resized_img, out_p)
+            _calc_save(resized_img, out_p, params)
         data_url = _calc_to_data_url(resized_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=resized_img.width, height=resized_img.height)
 
@@ -225,7 +230,7 @@ class ImagesApiMixin:
         source_img = _calc_load_img(file_path)
         cropped_img = crop_image(source_img, box)
         if out_p:
-            save_image(cropped_img, out_p)
+            _calc_save(cropped_img, out_p, params)
         data_url = _calc_to_data_url(cropped_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=cropped_img.width, height=cropped_img.height)
 
@@ -277,7 +282,7 @@ class ImagesApiMixin:
             sharpness=s_scaled,
         )
         if out_p:
-            save_image(adjusted_img, out_p)
+            _calc_save(adjusted_img, out_p, params)
         data_url = _calc_to_data_url(adjusted_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=adjusted_img.width, height=adjusted_img.height)
 
@@ -296,7 +301,7 @@ class ImagesApiMixin:
         source_img = _calc_load_img(file_path)
         enhanced_img = auto_enhance(source_img)
         if out_p:
-            save_image(enhanced_img, out_p)
+            _calc_save(enhanced_img, out_p, params)
         data_url = _calc_to_data_url(enhanced_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=enhanced_img.width, height=enhanced_img.height)
 
@@ -316,7 +321,7 @@ class ImagesApiMixin:
         source_img = _calc_load_img(file_path)
         filtered_img = apply_filter_preset(source_img, filter_name)
         if out_p:
-            save_image(filtered_img, out_p)
+            _calc_save(filtered_img, out_p, params)
         data_url = _calc_to_data_url(filtered_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=filtered_img.width, height=filtered_img.height)
 
@@ -330,7 +335,7 @@ class ImagesApiMixin:
         # Remove background using machine learning segmentation models.
         require(params, "file_path")
         file_path = str(params["file_path"])
-        model = str(params.get("model", "isnet-general-use"))
+        model = str(params.get("model", "u2net"))
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
         backdrop = str(params.get("backdrop", "transparent")).lower()
@@ -343,7 +348,7 @@ class ImagesApiMixin:
         elif backdrop == "blur":
             nobg = replace_background_color(nobg, blur_backdrop=True, blur_radius=blur_radius, original_img=source_img)
         if out_p:
-            save_image(nobg, out_p, format="PNG")
+            _calc_save(nobg, out_p, params, default_format="PNG" if backdrop == "transparent" else "")
         data_url = _calc_to_data_url(nobg, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=nobg.width, height=nobg.height)
 
@@ -372,7 +377,7 @@ class ImagesApiMixin:
         source_img = _calc_load_img(file_path)
         bordered_img = add_border(source_img, border_size=border_size, color=color_tuple, polaroid=polaroid)
         if out_p:
-            save_image(bordered_img, out_p)
+            _calc_save(bordered_img, out_p, params)
         data_url = _calc_to_data_url(bordered_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=bordered_img.width, height=bordered_img.height)
 
@@ -393,7 +398,7 @@ class ImagesApiMixin:
         source_img = _calc_load_img(file_path)
         blurred_img = blur_region(source_img, box, radius=blur_radius)
         if out_p:
-            save_image(blurred_img, out_p)
+            _calc_save(blurred_img, out_p, params)
         data_url = _calc_to_data_url(blurred_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=blurred_img.width, height=blurred_img.height)
 
@@ -414,7 +419,7 @@ class ImagesApiMixin:
         source_img = _calc_load_img(file_path)
         pixelated_img = pixelate_region(source_img, box, pixel_size=pixel_size)
         if out_p:
-            save_image(pixelated_img, out_p)
+            _calc_save(pixelated_img, out_p, params)
         data_url = _calc_to_data_url(pixelated_img, "PNG")
         return ok(output_path=out_p, data_url=data_url, width=pixelated_img.width, height=pixelated_img.height)
 

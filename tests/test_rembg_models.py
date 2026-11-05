@@ -20,10 +20,11 @@ class MockApiServer(ImagesApiMixin):
 
 def test_rembg_models_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     # Verify unified rembg storage directory resolution and environment variable wiring.
-    monkeypatch.setenv("FOSS_SETTINGS_DIR", str(tmp_path))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     unified_dir = get_rembg_models_dir()
-    expected_dir = os.path.join(str(tmp_path), "models", "rembg")
-    assert unified_dir == expected_dir
+    expected_dir = str(tmp_path / ".u2net")
+    assert Path(unified_dir) == Path(expected_dir)
     assert os.environ.get("REMBG_HOME") == unified_dir
     assert os.environ.get("U2NET_HOME") == unified_dir
     assert os.path.isdir(unified_dir)
@@ -31,23 +32,24 @@ def test_rembg_models_dir(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> No
 
 def test_rembg_model_status_and_delete(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     # Verify model presence detection and cleanup behavior in unified storage.
-    monkeypatch.setenv("FOSS_SETTINGS_DIR", str(tmp_path))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     models_dir = get_rembg_models_dir()
 
     initial_status = list_rembg_models_status()
     u2netp_status = next(item for item in initial_status["models"] if item["id"] == "u2netp")
     assert not u2netp_status["downloaded"]
+    assert u2netp_status["status"] == "pending"
     assert u2netp_status["disk_bytes"] == 0
 
-    model_sub_dir = Path(models_dir) / "models" / "u2netp"
-    model_sub_dir.mkdir(parents=True, exist_ok=True)
-    dummy_onnx = model_sub_dir / "u2netp.onnx"
+    dummy_onnx = Path(models_dir) / "u2netp.onnx"
     dummy_payload = b"FAKE_ONNX_MODEL_BYTES_FOR_TESTING"
     dummy_onnx.write_bytes(dummy_payload)
 
     updated_status = list_rembg_models_status()
     u2netp_updated = next(item for item in updated_status["models"] if item["id"] == "u2netp")
     assert u2netp_updated["downloaded"]
+    assert u2netp_updated["status"] == "downloaded"
     assert u2netp_updated["disk_bytes"] == len(dummy_payload)
 
     after_delete = delete_rembg_model("u2netp")
@@ -96,3 +98,36 @@ def test_images_flip_vertical(tmp_path: Path) -> None:
     assert flipped_image.getpixel((0, 0)) == (0, 0, 0, 255)
     assert flipped_image.getpixel((0, 19)) == (255, 0, 0, 255)
 
+
+def test_images_save_preview_follows_extension(tmp_path: Path) -> None:
+    # Verify the preview data URL is saved in the format of the chosen extension.
+    import base64
+    import io
+
+    source = Image.new("RGBA", (12, 8), (10, 200, 30, 255))
+    buffer = io.BytesIO()
+    source.save(buffer, format="PNG")
+    data_url = "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode("ascii")
+
+    api_harness = MockApiServer()
+    for ext, expected in (("webp", "WEBP"), ("jpg", "JPEG"), ("png", "PNG")):
+        out_path = tmp_path / f"transformed.{ext}"
+        result = api_harness.images_save_preview({"data_url": data_url, "output_path": str(out_path), "quality": 70})
+        assert result["ok"]
+        with Image.open(out_path) as saved:
+            assert saved.format == expected
+            assert saved.size == (12, 8)
+
+
+def test_images_models_status_reports_badges(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    # Verify every catalog model reports a downloaded or pending status and a size label.
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
+    (tmp_path / ".u2net").mkdir()
+    (tmp_path / ".u2net" / "u2net.onnx").write_bytes(b"FAKE")
+    result = MockApiServer().images_models_status({})
+    assert result["ok"]
+    by_id = {item["id"]: item for item in result["models"]}
+    assert by_id["u2net"]["status"] == "downloaded"
+    assert by_id["u2netp"]["status"] == "pending"
+    assert by_id["u2netp"]["download_size"].endswith("MB")

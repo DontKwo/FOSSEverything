@@ -80,30 +80,6 @@
     "app.features.encoding.ops:url_decode",
     "app.features.encoding.ops:url_encode"
   ],
-  "app/features/hash/tab.py": [
-    "app.core.customizable_toolbar:AppToolBar",
-    "app.core.theme:resolved_palette",
-    "app.core.tooltips:get_tooltip_for",
-    "app.features.hash.ops:SUPPORTED_ALGORITHMS",
-    "app.features.hash.ops:add_trusted_key",
-    "app.features.hash.ops:apply_verification_policy",
-    "app.features.hash.ops:compare_files",
-    "app.features.hash.ops:diff_manifests",
-    "app.features.hash.ops:hash_directory_tree",
-    "app.features.hash.ops:hash_text",
-    "app.features.hash.ops:hmac_digest",
-    "app.features.hash.ops:list_trusted_keys",
-    "app.features.hash.ops:multi_hash_file",
-    "app.features.hash.ops:remove_trusted_key",
-    "app.features.hash.ops:save_signing_keypair",
-    "app.features.hash.ops:sign_file",
-    "app.features.hash.ops:sign_file_with_timestamp",
-    "app.features.hash.ops:verification_policy_presets",
-    "app.features.hash.ops:verify_checksum_manifest",
-    "app.features.hash.ops:verify_hash",
-    "app.features.hash.ops:verify_signature",
-    "app.features.hash.ops:verify_timestamped_signature"
-  ],
   "app/features/image/tab.py": [
     "app.core.customizable_toolbar:AppToolBar",
     "app.core.customizable_toolbar:apply_standard_icon",
@@ -461,7 +437,6 @@
     "app.features.converter.tab:ConverterTab",
     "app.features.data.tab:DataTab",
     "app.features.encoding.tab:EncodingTab",
-    "app.features.hash.tab:HashTab",
     "app.features.image.tab:ImageTab",
     "app.features.markdown.tab:MarkdownTab",
     "app.features.media.tab:MediaTab",
@@ -482,9 +457,7 @@
   ],
   "app/ui/screenshot_dialog.py": [
     "app.core.spinbox:NoScrollSpinBox",
-    "app.core.tooltips:get_tooltip_for",
-    "app.features.screenshot.ops:capture_full_screen",
-    "app.features.screenshot.ops:capture_screen_region"
+    "app.core.tooltips:get_tooltip_for"
   ],
   "app/ui/settings_hub.py": [
     "app.core.spinbox:NoScrollSpinBox",

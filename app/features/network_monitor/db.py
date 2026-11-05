@@ -5,6 +5,7 @@ find, back up, or delete outright to wipe all history.
 """
 from __future__ import annotations
 
+import ipaddress
 import os
 import sqlite3
 from dataclasses import dataclass
@@ -97,13 +98,46 @@ def is_known(conn: sqlite3.Connection, ip: str) -> bool:
     return bool(row and row["known"])
 
 
-def mark_destination_known(conn: sqlite3.Connection, ip: str, known: bool = True) -> None:
-    cleaned = ip.split(":")[0] if ":" in ip and not ip.startswith("[") else ip
-    conn.execute(
-        "UPDATE destinations SET known = ? WHERE ip = ? OR domain = ?",
-        (1 if known else 0, cleaned, cleaned),
-    )
+def _clean_destination(destination: str) -> str:
+    text = destination.strip()
+    return text.split(":")[0] if ":" in text and not text.startswith("[") else text
+
+
+def mark_destination_known(conn: sqlite3.Connection, ip: str, known: bool = True) -> int:
+    # Persist the known flag for an IP or domain; inserts a new row for unseen IP literals.
+    cleaned = _clean_destination(ip)
+    flag = 1 if known else 0
+    cursor = conn.execute("UPDATE destinations SET known = ? WHERE ip = ? OR domain = ?", (flag, cleaned, cleaned))
+    changed = cursor.rowcount
+    if changed == 0 and _is_ip_literal(cleaned):
+        conn.execute(
+            "INSERT INTO destinations (ip, domain, first_seen, known) VALUES (?, NULL, ?, ?)",
+            (cleaned, now_iso(), flag),
+        )
+        changed = 1
     conn.commit()
+    return changed
+
+
+def _is_ip_literal(text: str) -> bool:
+    try:
+        ipaddress.ip_address(text)
+    except ValueError:
+        return False
+    return True
+
+
+def destination_status(conn: sqlite3.Connection, destination: str) -> str:
+    # Returns "known", "unknown", or "untracked" for an IP or domain.
+    cleaned = _clean_destination(destination)
+    row = conn.execute("SELECT known FROM destinations WHERE ip = ? OR domain = ? LIMIT 1", (cleaned, cleaned)).fetchone()
+    if row is None:
+        return "untracked"
+    return "known" if row["known"] else "unknown"
+
+
+def known_destinations(conn: sqlite3.Connection) -> list[sqlite3.Row]:
+    return conn.execute("SELECT ip, domain, first_seen FROM destinations WHERE known = 1 ORDER BY first_seen DESC").fetchall()
 
 
 def cached_domains(conn: sqlite3.Connection) -> dict[str, str | None]:

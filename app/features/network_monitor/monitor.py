@@ -35,6 +35,7 @@ class LiveConnection:
     first_seen: str
     is_new_destination: bool
     status: str = "ESTABLISHED"
+    is_known: bool = True
 
 
 class ConnectionMonitor:
@@ -159,6 +160,7 @@ class ConnectionMonitor:
                     first_seen=first_seen,
                     is_new_destination=not was_known,
                     status=status_str,
+                    is_known=was_known,
                 )
             )
 

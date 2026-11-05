@@ -26,6 +26,7 @@ from app.features.media.ops import (
     trim_media,
     video_to_gif,
 )
+from app.features.media.stream_server import MEDIA_EXTENSIONS, register_media_file
 from app.web.api.result import api_method, fail, ok, require
 
 
@@ -47,10 +48,14 @@ class MediaApiMixin:
 
     @api_method
     def media_get_file_url(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Return local file:// URL scheme string for HTML5 media elements.
+        # Register a local media file and return its loopback HTTP streaming URL.
         require(params, "file_path")
         file_path = Path(str(params["file_path"])).resolve()
-        return ok(url=file_path.as_uri(), file_path=str(file_path))
+        if not file_path.is_file():
+            return fail(f"Media file not found: {file_path}", code="FileNotFound")
+        if file_path.suffix.lower() not in MEDIA_EXTENSIONS:
+            return fail(f"Unsupported media type: {file_path.suffix or 'none'}", code="UnsupportedType")
+        return ok(url=register_media_file(str(file_path)), file_path=str(file_path))
 
     @api_method
     def media_trim(self, params: dict[str, Any]) -> dict[str, Any]:

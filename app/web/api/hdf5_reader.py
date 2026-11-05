@@ -1,460 +1,643 @@
 import csv
+import itertools
 import json
 import math
 import os
-import struct
-import zlib
+from collections import deque
 from typing import Any
 
+import h5py
 import numpy as np
 
-# Try importing h5py if available in the environment.
-try:
-    import h5py  # type: ignore # noqa: 22
-except ImportError:
-    h5py = None
+MAX_CHILDREN_PAGE = 500
+MAX_PREVIEW_ROWS = 500
+MAX_PREVIEW_COLS = 100
+MAX_PREVIEW_CELLS = 20000
+MAX_STAT_ELEMENTS = 2_000_000
+MAX_EXPORT_ELEMENTS = 5_000_000
+MAX_TREE_NODES = 5000
+MAX_SEARCH_VISITS = 50000
+MAX_ATTR_ELEMENTS = 256
+
+H5_ERRORS = (OSError, ValueError, TypeError, KeyError, RuntimeError, NotImplementedError, AttributeError)
+
+
+class Hdf5Error(ValueError):
+    pass
 
 
 def is_hdf5_file(file_path: str) -> bool:
-    # Check if file starts with the standard HDF5 magic header bytes.
-    if not os.path.exists(file_path):
-        return False
+    # Check the HDF5 signature with h5py.
     try:
-        with open(file_path, "rb") as f:
-            magic = f.read(8)
-            return magic == b"\x89HDF\r\n\x1a\n"
-    except Exception:
+        return bool(os.path.isfile(file_path) and h5py.is_hdf5(file_path))
+    except H5_ERRORS:
         return False
+
+
+def _open_file(file_path: str) -> h5py.File:
+    # Open a file read-only or raise a clean Hdf5Error.
+    if not os.path.exists(file_path):
+        raise Hdf5Error(f"File not found: {file_path}")
+    if not is_hdf5_file(file_path):
+        raise Hdf5Error(f"Not a valid HDF5 file: {os.path.basename(file_path)}")
+    try:
+        return h5py.File(file_path, "r")
+    except H5_ERRORS as exc:
+        raise Hdf5Error(f"Cannot open HDF5 file: {exc}") from exc
+
+
+def _norm_path(path: Any) -> str:
+    # Normalize a user path into an absolute HDF5 path.
+    text = str(path or "/").strip().replace("\\", "/")
+    parts = [part for part in text.split("/") if part]
+    return "/" + "/".join(parts)
+
+
+def _join_path(parent: str, name: str) -> str:
+    # Join a parent group path and a member name.
+    return "/" + name if parent == "/" else parent + "/" + name
+
+
+def _finite_or_text(value: float) -> Any:
+    # Keep finite floats numeric and turn nan or inf into text.
+    return value if math.isfinite(value) else str(value)
+
+
+def _ref_text(ref: Any, hf: Any) -> str:
+    # Describe an object or region reference by its target path.
+    if not ref:
+        return "<null reference>"
+    if hf is None:
+        return "<reference>"
+    try:
+        return "ref:" + str(hf[ref].name)
+    except H5_ERRORS:
+        return "<dangling reference>"
+
+
+def _json_value(value: Any, hf: Any = None) -> Any:
+    # Convert numpy and h5py values into JSON-safe primitives.
+    if isinstance(value, h5py.Empty):
+        return "<empty>"
+    if isinstance(value, (bytes, np.bytes_)):
+        return bytes(value).decode("utf-8", errors="replace")
+    if isinstance(value, str):
+        return str(value)
+    if isinstance(value, (bool, np.bool_)):
+        return bool(value)
+    if isinstance(value, (int, np.integer)):
+        return int(value)
+    if isinstance(value, (float, np.floating)):
+        return _finite_or_text(float(value))
+    if isinstance(value, (complex, np.complexfloating)):
+        cval = complex(value)
+        return f"{cval.real:g}{cval.imag:+g}j"
+    if isinstance(value, h5py.Reference):
+        return _ref_text(value, hf)
+    if isinstance(value, np.void):
+        names = value.dtype.names
+        if names:
+            return {name: _json_value(value[name], hf) for name in names}
+        return bytes(value).hex()
+    if isinstance(value, np.ndarray):
+        if value.ndim == 0:
+            return _json_value(value[()], hf)
+        return [_json_value(item, hf) for item in value]
+    if isinstance(value, (list, tuple)):
+        return [_json_value(item, hf) for item in value]
+    return str(value)
+
+
+def _describe_dtype(dt: np.dtype) -> dict[str, Any]:
+    # Describe a dtype with kind, label, and enum or compound details.
+    string_info = h5py.check_string_dtype(dt)
+    enum_map = h5py.check_enum_dtype(dt)
+    vlen_base = h5py.check_vlen_dtype(dt)
+    ref_kind = h5py.check_ref_dtype(dt)
+    info: dict[str, Any] = {"itemsize": int(dt.itemsize)}
+    if string_info is not None:
+        if string_info.length is None:
+            info.update(kind="vlen_string", label=f"vlen string ({string_info.encoding})")
+        else:
+            info.update(kind="fixed_string", label=f"string[{string_info.length}] ({string_info.encoding})")
+    elif enum_map is not None:
+        pairs = sorted(enum_map.items(), key=lambda pair: pair[1])
+        info.update(kind="enum", label=f"enum<{dt.name}>", enum={name: int(member) for name, member in pairs})
+    elif ref_kind is not None:
+        info.update(kind="reference", label="region reference" if ref_kind is h5py.RegionReference else "object reference")
+    elif vlen_base is not None:
+        info.update(kind="vlen", label=f"vlen {np.dtype(vlen_base).name}")
+    elif dt.names:
+        fields = []
+        for name in dt.names:
+            sub = _describe_dtype(dt.fields[name][0])
+            fields.append({"name": name, "kind": sub["kind"], "dtype": sub["label"], "offset": int(dt.fields[name][1])})
+        info.update(kind="compound", label="compound{" + ", ".join(f"{f['name']}: {f['dtype']}" for f in fields) + "}", fields=fields)
+    elif dt.subdtype is not None:
+        base, sub_shape = dt.subdtype
+        info.update(kind="array", label=f"array{list(sub_shape)} of {_describe_dtype(base)['label']}")
+    elif dt.kind == "b":
+        info.update(kind="bool", label="bool")
+    elif dt.kind == "i":
+        info.update(kind="integer", label=dt.name)
+    elif dt.kind == "u":
+        info.update(kind="unsigned", label=dt.name)
+    elif dt.kind == "f":
+        info.update(kind="float", label=dt.name)
+    elif dt.kind == "c":
+        info.update(kind="complex", label=dt.name)
+    elif dt.kind == "V":
+        info.update(kind="opaque", label=f"opaque[{dt.itemsize}]")
+    else:
+        info.update(kind="other", label=str(dt))
+    if dt.byteorder in ("<", ">"):
+        info["byte_order"] = "little" if dt.byteorder == "<" else "big"
+    return info
+
+
+def _read_attributes(obj: Any, hf: Any) -> list[dict[str, Any]]:
+    # Read every attribute of an object, clipping large arrays.
+    items: list[dict[str, Any]] = []
+    for name in obj.attrs.keys():
+        entry: dict[str, Any] = {"name": str(name)}
+        try:
+            attr_id = obj.attrs.get_id(name)
+            dtype_info = _describe_dtype(attr_id.dtype)
+            entry["dtype"] = dtype_info["label"]
+            entry["kind"] = dtype_info["kind"]
+            entry["shape"] = list(attr_id.shape) if attr_id.shape is not None else []
+            value = obj.attrs[name]
+            if isinstance(value, np.ndarray) and value.size > MAX_ATTR_ELEMENTS:
+                entry["truncated"] = True
+                entry["total_elements"] = int(value.size)
+                value = value.reshape(-1)[:MAX_ATTR_ELEMENTS]
+            entry["value"] = _json_value(value, hf)
+        except H5_ERRORS as exc:
+            entry["error"] = str(exc)
+        items.append(entry)
+    return items
+
+
+def _link_info(grp: Any, name: str) -> dict[str, Any]:
+    # Describe how a member is linked into its parent group.
+    link = grp.get(name, getlink=True)
+    if isinstance(link, h5py.SoftLink):
+        return {"type": "soft", "target": link.path}
+    if isinstance(link, h5py.ExternalLink):
+        return {"type": "external", "target": link.path, "filename": link.filename}
+    return {"type": "hard"}
+
+
+def _resolve(grp: Any, name: str) -> Any:
+    # Open a member, returning None for broken links.
+    try:
+        return grp.get(name)
+    except H5_ERRORS:
+        return None
+
+
+def _summarize(parent_path: str, name: str, obj: Any, link: dict[str, Any]) -> dict[str, Any]:
+    # Build the compact tree row for one member.
+    node: dict[str, Any] = {"name": name, "path": _join_path(parent_path, name), "link": link, "broken": obj is None}
+    if obj is None:
+        node.update(kind="link", expandable=False)
+    elif isinstance(obj, h5py.Group):
+        node.update(kind="group", members=len(obj), expandable=len(obj) > 0, attribute_count=len(obj.attrs))
+    elif isinstance(obj, h5py.Dataset):
+        shape = list(obj.shape) if obj.shape is not None else None
+        node.update(kind="dataset", expandable=False, shape=shape, dtype=_describe_dtype(obj.dtype)["label"], attribute_count=len(obj.attrs))
+    else:
+        node.update(kind="datatype", expandable=False, attribute_count=len(obj.attrs))
+    return node
+
+
+def _get_group(hf: Any, path: str) -> Any:
+    # Open a group by path or raise Hdf5Error.
+    try:
+        obj = hf[path]
+    except H5_ERRORS as exc:
+        raise Hdf5Error(f"Path not found: {path}") from exc
+    if not isinstance(obj, h5py.Group):
+        raise Hdf5Error(f"Not a group: {path}")
+    return obj
+
+
+def _get_dataset(hf: Any, path: str) -> Any:
+    # Open a dataset by path or raise Hdf5Error.
+    try:
+        obj = hf[path]
+    except H5_ERRORS as exc:
+        raise Hdf5Error(f"Path not found: {path}") from exc
+    if not isinstance(obj, h5py.Dataset):
+        raise Hdf5Error(f"Not a dataset: {path}")
+    return obj
+
+
+def open_hdf5(file_path: str) -> dict[str, Any]:
+    # Return file level metadata plus the first page of root members.
+    with _open_file(file_path) as hf:
+        root = list_hdf5_children(file_path, "/")
+        return {
+            "file_path": file_path,
+            "file_size": os.path.getsize(file_path),
+            "userblock_size": int(hf.userblock_size),
+            "libver": [str(v) for v in hf.libver],
+            "attributes": _read_attributes(hf, hf),
+            "root": root,
+            "h5py_version": h5py.__version__,
+        }
+
+
+def list_hdf5_children(file_path: str, path: str = "/", offset: int = 0, limit: int = MAX_CHILDREN_PAGE) -> dict[str, Any]:
+    # Return one page of member summaries for a group.
+    norm = _norm_path(path)
+    start = max(0, int(offset))
+    page = max(1, min(int(limit), MAX_CHILDREN_PAGE))
+    with _open_file(file_path) as hf:
+        grp = _get_group(hf, norm)
+        total = len(grp)
+        children = []
+        for name in itertools.islice(iter(grp), start, start + page):
+            children.append(_summarize(norm, name, _resolve(grp, name), _link_info(grp, name)))
+    return {"path": norm, "total": total, "offset": start, "children": children, "has_more": start + len(children) < total}
+
+
+def _dataset_details(ds: Any, hf: Any) -> dict[str, Any]:
+    # Collect shape, storage, filter, and dtype properties of a dataset.
+    desc = _describe_dtype(ds.dtype)
+    plist = ds.id.get_create_plist()
+    layouts = {h5py.h5d.COMPACT: "compact", h5py.h5d.CONTIGUOUS: "contiguous", h5py.h5d.CHUNKED: "chunked", h5py.h5d.VIRTUAL: "virtual"}
+    filters = []
+    for index in range(plist.get_nfilters()):
+        code, _flags, values, fname = plist.get_filter(index)
+        filters.append({"id": int(code), "name": bytes(fname).decode("utf-8", errors="replace"), "options": [int(v) for v in values]})
+    details: dict[str, Any] = {
+        "dtype": desc,
+        "shape": list(ds.shape) if ds.shape is not None else None,
+        "maxshape": ["unlimited" if m is None else int(m) for m in ds.maxshape] if ds.maxshape is not None else None,
+        "ndim": len(ds.shape) if ds.shape is not None else 0,
+        "elements": int(ds.size) if ds.size is not None else 0,
+        "nbytes": int(ds.nbytes) if ds.size is not None else 0,
+        "storage_bytes": int(ds.id.get_storage_size()),
+        "layout": layouts.get(plist.get_layout(), "unknown"),
+        "chunks": list(ds.chunks) if ds.chunks else None,
+        "compression": ds.compression,
+        "compression_opts": _json_value(ds.compression_opts) if ds.compression_opts is not None else None,
+        "shuffle": bool(ds.shuffle),
+        "fletcher32": bool(ds.fletcher32),
+        "scaleoffset": ds.scaleoffset,
+        "filters": filters,
+        "external": [{"file": str(item[0]), "offset": int(item[1]), "size": int(item[2])} for item in ds.external] if ds.external else [],
+        "fields": desc.get("fields", []),
+    }
+    try:
+        details["fillvalue"] = _json_value(ds.fillvalue, hf)
+    except H5_ERRORS:
+        details["fillvalue"] = None
+    return details
+
+
+def describe_hdf5_node(file_path: str, path: str = "/") -> dict[str, Any]:
+    # Return full details for a group, dataset, committed datatype, or link.
+    norm = _norm_path(path)
+    with _open_file(file_path) as hf:
+        if norm == "/":
+            link: dict[str, Any] = {"type": "root"}
+            obj: Any = hf
+            name = "/"
+        else:
+            parent_path, name = norm.rsplit("/", 1)
+            parent = _get_group(hf, parent_path or "/")
+            if parent.get(name, getlink=True) is None:
+                raise Hdf5Error(f"Path not found: {norm}")
+            link = _link_info(parent, name)
+            obj = _resolve(parent, name)
+        node: dict[str, Any] = {"path": norm, "name": name, "link": link, "broken": obj is None}
+        if obj is None:
+            node["kind"] = "link"
+            node["attributes"] = []
+            node["error"] = "Link target cannot be opened (broken or missing external file)."
+            return node
+        node["attributes"] = _read_attributes(obj, hf)
+        if isinstance(obj, h5py.Group):
+            node.update(kind="group", members=len(obj))
+        elif isinstance(obj, h5py.Dataset):
+            node.update(kind="dataset", **_dataset_details(obj, hf))
+        else:
+            node.update(kind="datatype", dtype=_describe_dtype(obj.dtype))
+        return node
+
+
+def _clamp(value: Any, low: int, high: int) -> int:
+    # Clamp a possibly invalid integer into a closed range.
+    try:
+        num = int(value)
+    except (TypeError, ValueError):
+        num = low
+    return max(low, min(num, high))
+
+
+def _numeric_stats(ds: Any, window: Any) -> dict[str, Any] | None:
+    # Compute min, max, mean, and std for numeric datasets.
+    desc = _describe_dtype(ds.dtype)
+    if desc["kind"] not in ("integer", "unsigned", "float"):
+        return None
+    whole = ds.size <= MAX_STAT_ELEMENTS
+    data = np.asarray(ds[()] if whole else window)
+    if data.size == 0:
+        return None
+    nan_count = 0
+    if data.dtype.kind == "f":
+        mask = np.isfinite(data)
+        nan_count = int(np.isnan(data).sum())
+        data = data[mask]
+    stats: dict[str, Any] = {"scope": "dataset" if whole else "window", "count": int(data.size), "nan_count": nan_count}
+    if data.size == 0:
+        stats.update(min=None, max=None, mean=None, std=None)
+        return stats
+    stats.update(
+        min=_json_value(data.min()),
+        max=_json_value(data.max()),
+        mean=_json_value(float(np.mean(data, dtype=np.float64))),
+        std=_json_value(float(np.std(data, dtype=np.float64))),
+    )
+    return stats
+
+
+def _window_rows(window: Any, desc: dict[str, Any], hf: Any, col_names: list[str] | None) -> list[list[Any]]:
+    # Turn a sliced array into a list of display rows.
+    enum_rev = {member: name for name, member in desc.get("enum", {}).items()}
+
+    def cell(value: Any) -> Any:
+        out = _json_value(value, hf)
+        if enum_rev and isinstance(out, int):
+            return enum_rev.get(out, out)
+        return out
+
+    arr = np.asarray(window)
+    if col_names is not None:
+        return [[cell(row[name]) for name in col_names] for row in arr]
+    if arr.ndim == 0:
+        return [[cell(arr[()])]]
+    if arr.ndim == 1:
+        return [[cell(item)] for item in arr]
+    return [[cell(item) for item in row] for row in arr]
+
+
+def preview_hdf5_dataset(
+    file_path: str,
+    path: str,
+    row_start: int = 0,
+    row_count: int = 20,
+    col_start: int = 0,
+    col_count: int = 12,
+    index: list[int] | None = None,
+    include_stats: bool = True,
+) -> dict[str, Any]:
+    # Read a bounded row and column window of a dataset with optional statistics.
+    norm = _norm_path(path)
+    with _open_file(file_path) as hf:
+        ds = _get_dataset(hf, norm)
+        desc = _describe_dtype(ds.dtype)
+        result: dict[str, Any] = {"path": norm, "shape": list(ds.shape) if ds.shape is not None else None, "dtype": desc["label"], "kind": desc["kind"]}
+        if ds.shape is None or ds.size == 0:
+            result.update(columns=[], rows=[], row_start=0, row_count=0, col_start=0, col_count=0, total_rows=0, total_cols=0, leading_index=[], slice_spec=":", stats=None, empty=True)
+            return result
+        shape = tuple(int(n) for n in ds.shape)
+        ndim = len(shape)
+        fields = desc.get("fields", []) if ds.dtype.names else []
+        leading: list[int] = []
+        if ndim >= 3:
+            wanted = list(index or [])
+            for axis in range(ndim - 2):
+                leading.append(_clamp(wanted[axis] if axis < len(wanted) else 0, 0, shape[axis] - 1))
+        if ndim == 0:
+            total_rows, total_cols = 1, 1
+        elif ndim == 1:
+            total_rows, total_cols = shape[0], (len(fields) if fields else 1)
+        else:
+            total_rows, total_cols = shape[-2], shape[-1]
+        rows_n = _clamp(row_count, 1, MAX_PREVIEW_ROWS)
+        cols_n = _clamp(col_count, 1, min(MAX_PREVIEW_COLS, max(1, MAX_PREVIEW_CELLS // rows_n)))
+        r0 = _clamp(row_start, 0, max(total_rows - 1, 0))
+        r1 = min(total_rows, r0 + rows_n)
+        c0 = _clamp(col_start, 0, max(total_cols - 1, 0))
+        c1 = min(total_cols, c0 + cols_n)
+        col_names: list[str] | None = None
+        if ndim == 0:
+            selection: tuple[Any, ...] = ()
+            columns = ["value"]
+            spec = ":"
+        elif ndim == 1:
+            selection = (slice(r0, r1),)
+            spec = f"{r0}:{r1}"
+            if fields:
+                col_names = [f["name"] for f in fields][c0:c1]
+                columns = list(col_names)
+            else:
+                columns = ["value"]
+        else:
+            selection = tuple(leading) + (slice(r0, r1), slice(c0, c1))
+            spec = ",".join([str(i) for i in leading] + [f"{r0}:{r1}", f"{c0}:{c1}"])
+            columns = [str(n) for n in range(c0, c1)]
+        window = ds[selection]
+        rows = _window_rows(window, desc, hf, col_names)
+        stats = _numeric_stats(ds, window) if include_stats else None
+        result.update(
+            columns=columns,
+            rows=rows,
+            row_start=r0,
+            row_count=len(rows),
+            col_start=c0,
+            col_count=len(columns),
+            total_rows=total_rows,
+            total_cols=total_cols,
+            leading_index=leading,
+            slice_spec=spec,
+            stats=stats,
+            empty=False,
+        )
+        return result
+
+
+def search_hdf5(file_path: str, query: str, limit: int = 200) -> dict[str, Any]:
+    # Find members whose path contains the query text.
+    needle = str(query or "").strip().lower()
+    cap = max(1, min(int(limit), 1000))
+    matches: list[dict[str, Any]] = []
+    truncated = False
+    visits = 0
+    if not needle:
+        return {"query": needle, "matches": matches, "truncated": False, "visited": 0}
+    with _open_file(file_path) as hf:
+        root = hf["/"]
+        visited_ids = {root.id}
+        pending: deque[tuple[str, Any]] = deque([("/", root)])
+        while pending and not truncated:
+            parent_path, grp = pending.popleft()
+            for name in grp:
+                visits += 1
+                if visits > MAX_SEARCH_VISITS:
+                    truncated = True
+                    break
+                obj = _resolve(grp, name)
+                link = _link_info(grp, name)
+                child_path = _join_path(parent_path, name)
+                if needle in child_path.lower():
+                    matches.append(_summarize(parent_path, name, obj, link))
+                    if len(matches) >= cap:
+                        truncated = True
+                        break
+                if isinstance(obj, h5py.Group) and link["type"] == "hard" and obj.id not in visited_ids:
+                    visited_ids.add(obj.id)
+                    pending.append((child_path, obj))
+    return {"query": needle, "matches": matches, "truncated": truncated, "visited": visits}
+
+
+def _inline_preview(ds: Any) -> Any:
+    # Return a short value preview for tree summaries.
+    try:
+        if ds.shape is None or ds.size == 0:
+            return "[]"
+        if ds.ndim == 0:
+            return _json_value(ds[()])
+        if ds.ndim == 1:
+            shown = min(10, ds.shape[0])
+            values = _json_value(ds[:shown])
+            if ds.shape[0] > shown:
+                values.append(f"... (+{ds.shape[0] - shown} more)")
+            return values
+    except H5_ERRORS:
+        return None
+    return None
 
 
 def inspect_hdf5(file_path: str) -> dict[str, Any]:
-    # Inspect HDF5 file structure using h5py if installed, else pure Python fallback.
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
+    # Walk the file into a bounded hierarchical tree for generic structure views.
+    counts = {"groups": 0, "datasets": 0, "attributes": 0, "nodes": 0}
+    truncated = False
 
-    file_size = os.path.getsize(file_path)
-    if h5py is not None:
-        try:
-            return _inspect_with_h5py(file_path, file_size)
-        except Exception:
-            return _inspect_pure_python(file_path, file_size)
-    return _inspect_pure_python(file_path, file_size)
+    def attr_map(obj: Any, hf: Any) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for item in _read_attributes(obj, hf):
+            counts["attributes"] += 1
+            out[item["name"]] = str(item.get("value", item.get("error", "")))[:200]
+        return out
 
-
-def _inspect_with_h5py(file_path: str, file_size: int) -> dict[str, Any]:
-    # Inspect HDF5 structure, attributes, shapes, and preview values with h5py.
-    assert h5py is not None
-    groups_count = 0
-    datasets_count = 0
-    attributes_count = 0
-
-    def walk_group(name: str, grp: Any) -> dict[str, Any]:
-        nonlocal groups_count, datasets_count, attributes_count
-        groups_count += 1
-        attrs = {}
-        for k, v in grp.attrs.items():
-            attributes_count += 1
-            attrs[str(k)] = _sanitize_val(v)
-
+    def walk(grp: Any, name: str, path: str, hf: Any, seen: set[Any]) -> dict[str, Any]:
+        nonlocal truncated
+        counts["groups"] += 1
+        counts["nodes"] += 1
         children: list[dict[str, Any]] = []
-        for key in grp.keys():
-            item = grp[key]
-            if isinstance(item, h5py.Group):
-                children.append(walk_group(key, item))
-            elif isinstance(item, h5py.Dataset):
-                datasets_count += 1
-                ds_attrs = {}
-                for ak, av in item.attrs.items():
-                    attributes_count += 1
-                    ds_attrs[str(ak)] = _sanitize_val(av)
-                preview = _dataset_preview(item)
+        for key in grp:
+            if counts["nodes"] >= MAX_TREE_NODES:
+                truncated = True
+                break
+            obj = _resolve(grp, key)
+            link = _link_info(grp, key)
+            child_path = _join_path(path, key)
+            if obj is None or link["type"] != "hard":
+                counts["nodes"] += 1
+                note = "broken link" if obj is None else "link"
+                children.append({"name": key, "type": "link", "path": child_path, "attributes": {}, "children": [], "preview": f"{note} -> {link.get('target', '')}"})
+            elif isinstance(obj, h5py.Group):
+                if obj.id in seen:
+                    continue
+                seen.add(obj.id)
+                children.append(walk(obj, key, child_path, hf, seen))
+            elif isinstance(obj, h5py.Dataset):
+                counts["datasets"] += 1
+                counts["nodes"] += 1
                 children.append({
                     "name": key,
                     "type": "dataset",
-                    "path": item.name,
-                    "shape": list(item.shape),
-                    "dtype": str(item.dtype),
-                    "size_bytes": int(item.size * item.dtype.itemsize),
-                    "chunks": list(item.chunks) if item.chunks else None,
-                    "compression": str(item.compression) if item.compression else None,
-                    "attributes": ds_attrs,
-                    "preview": preview,
+                    "path": child_path,
+                    "shape": list(obj.shape) if obj.shape is not None else None,
+                    "dtype": _describe_dtype(obj.dtype)["label"],
+                    "size_bytes": int(obj.nbytes) if obj.size is not None else 0,
+                    "chunks": list(obj.chunks) if obj.chunks else None,
+                    "compression": obj.compression,
+                    "attributes": attr_map(obj, hf),
+                    "preview": _inline_preview(obj),
+                    "children": [],
                 })
-        return {
-            "name": name if name else "/",
-            "type": "group",
-            "path": grp.name,
-            "attributes": attrs,
-            "children": children,
-            "count": len(children),
-        }
+        return {"name": name, "type": "group", "path": path, "attributes": attr_map(grp, hf), "children": children, "count": len(children)}
 
-    with h5py.File(file_path, "r") as hf:
-        root_node = walk_group("/", hf)
-
+    with _open_file(file_path) as hf:
+        root_group = hf["/"]
+        root = walk(root_group, "/", "/", hf, {root_group.id})
     return {
         "format": "HDF5",
         "backend": "h5py",
         "file_path": file_path,
-        "file_size": file_size,
-        "root": root_node,
+        "file_size": os.path.getsize(file_path),
+        "root": root,
         "summary": {
-            "groups_count": groups_count,
-            "datasets_count": datasets_count,
-            "attributes_count": attributes_count,
+            "groups_count": counts["groups"],
+            "datasets_count": counts["datasets"],
+            "attributes_count": counts["attributes"],
+            "truncated": truncated,
         },
     }
-
-
-def _sanitize_val(val: Any) -> Any:
-    # Convert numpy types or byte arrays into JSON-serializable primitives.
-    if isinstance(val, (bytes, bytearray)):
-        return val.decode("utf-8", errors="replace")
-    if hasattr(val, "tolist"):
-        return val.tolist()
-    if hasattr(val, "item"):
-        return val.item()
-    return str(val) if not isinstance(val, (int, float, bool, str, list, dict)) else val
-
-
-def _dataset_preview(ds: Any) -> Any:
-    # Extract preview snippet for 1D or 2D dataset values.
-    try:
-        if ds.size == 0:
-            return "[]"
-        if ds.ndim == 0:
-            return _sanitize_val(ds[()])
-        if ds.ndim == 1:
-            preview_len = min(10, ds.shape[0])
-            slice_vals = [_sanitize_val(x) for x in ds[:preview_len]]
-            if ds.shape[0] > preview_len:
-                slice_vals.append(f"... (+{ds.shape[0] - preview_len} more)")
-            return slice_vals
-        if ds.ndim == 2:
-            rows = min(5, ds.shape[0])
-            cols = min(5, ds.shape[1])
-            grid = []
-            for r in range(rows):
-                row_vals = [_sanitize_val(x) for x in ds[r, :cols]]
-                if ds.shape[1] > cols:
-                    row_vals.append("...")
-                grid.append(row_vals)
-            return grid
-        return f"{list(ds.shape)} multi-dimensional array"
-    except Exception:
-        return f"{list(ds.shape)} array"
-
-
-def _inspect_pure_python(file_path: str, file_size: int) -> dict[str, Any]:
-    # Pure Python binary inspector for HDF5 superblocks, groups, and datasets.
-    with open(file_path, "rb") as f:
-        magic = f.read(8)
-        if magic != b"\x89HDF\r\n\x1a\n":
-            raise ValueError("Not a valid HDF5 file: incorrect magic signature")
-        sb_ver = f.read(1)[0]
-        offset_size = 8
-        length_size = 8
-        root_hdr_addr = 0
-
-        def _read_byte(default_val: int = 8) -> int:
-            raw_b = f.read(1)
-            return raw_b[0] if raw_b else default_val
-
-        if sb_ver in (0, 1):
-            f.seek(13)
-            offset_size = _read_byte(8) or 8
-            length_size = _read_byte(8) or 8
-            # Seek to root group symbol table entry at offset 56.
-            f.seek(56)
-            f.read(offset_size)
-            root_hdr_bytes = f.read(offset_size)
-            if len(root_hdr_bytes) == 8:
-                root_hdr_addr = struct.unpack("<Q", root_hdr_bytes)[0]
-            elif len(root_hdr_bytes) == 4:
-                root_hdr_addr = struct.unpack("<I", root_hdr_bytes)[0]
-        elif sb_ver in (2, 3):
-            offset_size = _read_byte(8) or 8
-            length_size = _read_byte(8) or 8
-            f.seek(12)
-            f.read(offset_size * 3)
-            root_hdr_bytes = f.read(offset_size)
-            if len(root_hdr_bytes) == 8:
-                root_hdr_addr = struct.unpack("<Q", root_hdr_bytes)[0]
-            elif len(root_hdr_bytes) == 4:
-                root_hdr_addr = struct.unpack("<I", root_hdr_bytes)[0]
-
-        nodes = _parse_hdf5_objects(f, offset_size, length_size, root_hdr_addr, file_size)
-
-    datasets_count = sum(1 for n in nodes if n.get("type") == "dataset")
-    groups_count = max(1, sum(1 for n in nodes if n.get("type") == "group"))
-    attributes_count = sum(len(n.get("attributes", {})) for n in nodes)
-
-    return {
-        "format": "HDF5",
-        "backend": "pure-python",
-        "file_path": file_path,
-        "file_size": file_size,
-        "version": sb_ver,
-        "root": {
-            "name": "/",
-            "type": "group",
-            "path": "/",
-            "attributes": {},
-            "children": nodes,
-            "count": len(nodes),
-        },
-        "summary": {
-            "groups_count": groups_count,
-            "datasets_count": datasets_count,
-            "attributes_count": attributes_count,
-        },
-    }
-
-
-def _parse_hdf5_objects(
-    f: Any, offset_size: int, length_size: int, root_addr: int, file_size: int
-) -> list[dict[str, Any]]:
-    # Extract symbol nodes, heaps, and dataset headers from HDF5 file binary.
-    items: list[dict[str, Any]] = []
-    seen_names: set[str] = set()
-
-    # Read entire file bytes or chunks to scan symbol nodes and heaps.
-    f.seek(0)
-    data = f.read(min(file_size, 16 * 1024 * 1024))
-
-    # Scan for local heaps (HEAP signature) to extract names.
-    heap_strings: list[str] = []
-    heap_idx = 0
-    while True:
-        pos = data.find(b"HEAP", heap_idx)
-        if pos == -1:
-            break
-        heap_idx = pos + 4
-        if pos + 32 <= len(data):
-            # Read strings inside heap.
-            heap_body = data[pos + 32: pos + 4096]
-            raw_strs = [s.decode("utf-8", errors="replace") for s in heap_body.split(b"\x00") if len(s) > 0]
-            heap_strings.extend(raw_strs)
-
-    # Scan for symbol table nodes (SNOD signature).
-    snod_idx = 0
-    while True:
-        pos = data.find(b"SNOD", snod_idx)
-        if pos == -1:
-            break
-        snod_idx = pos + 4
-        if pos + 8 <= len(data):
-            num_syms = struct.unpack("<H", data[pos + 6: pos + 8])[0]
-            entry_offset = pos + 8
-            for _ in range(min(num_syms, 100)):
-                if entry_offset + (offset_size * 2 + 8) > len(data):
-                    break
-                name_offset = struct.unpack("<Q" if offset_size == 8 else "<I", data[entry_offset: entry_offset + offset_size])[0]
-                hdr_addr = struct.unpack("<Q" if offset_size == 8 else "<I", data[entry_offset + offset_size: entry_offset + offset_size * 2])[0]
-                entry_offset += (offset_size * 2 + 8 + 16)
-                if hdr_addr > 0 and hdr_addr < file_size:
-                    obj = _parse_object_header(data, hdr_addr, offset_size, length_size)
-                    if obj:
-                        matched_name = heap_strings.pop(0) if heap_strings else f"item_{len(items) + 1}"
-                        if matched_name not in seen_names:
-                            seen_names.add(matched_name)
-                            obj["name"] = matched_name
-                            items.append(obj)
-
-    # Fallback to scanning object headers if no SNOD found.
-    if not items:
-        items = _scan_object_headers(data, offset_size, length_size)
-
-    return items
-
-
-def _parse_object_header(data: bytes, addr: int, offset_size: int, length_size: int) -> dict[str, Any] | None:
-    # Parse single v1 or v2 object header messages for shape, type, and attributes.
-    if addr + 16 > len(data):
-        return None
-
-    # Check for v2 OHDR.
-    if data[addr: addr + 4] == b"OHDR":
-        return {"name": f"dataset_{addr}", "type": "dataset", "shape": [1], "dtype": "compound", "attributes": {}}
-
-    ver = data[addr]
-    if ver != 1:
-        return None
-
-    num_msgs = struct.unpack("<H", data[addr + 2: addr + 4])[0]
-    hdr_size = struct.unpack("<I", data[addr + 8: addr + 12])[0]
-    cursor = addr + 12
-    limit = min(addr + 12 + hdr_size, len(data))
-
-    shape: list[int] = []
-    dtype = "unknown"
-    attributes: dict[str, Any] = {}
-    is_dataset = False
-    is_group = False
-
-    for _ in range(min(num_msgs, 50)):
-        if cursor + 8 > limit:
-            break
-        msg_type, msg_size = struct.unpack("<HH", data[cursor: cursor + 4])
-        cursor += 8
-        mbody = data[cursor: cursor + msg_size]
-        cursor += (msg_size + 7) & ~7
-
-        if msg_type == 0x0001:  # Dataspace.
-            is_dataset = True
-            if len(mbody) >= 4:
-                rank = mbody[0]
-                dcursor = 8
-                shape = []
-                for _ in range(rank):
-                    if dcursor + length_size <= len(mbody):
-                        dim_val = struct.unpack("<Q" if length_size == 8 else "<I", mbody[dcursor: dcursor + length_size])[0]
-                        shape.append(dim_val)
-                        dcursor += length_size
-        elif msg_type == 0x0003:  # Datatype.
-            is_dataset = True
-            if len(mbody) >= 8:
-                type_class = mbody[0] & 0x0F
-                type_size = struct.unpack("<I", mbody[4: 8])[0]
-                type_names = {0: f"int{type_size * 8}", 1: f"float{type_size * 8}", 3: "string", 6: "compound"}
-                dtype = type_names.get(type_class, f"custom({type_class})")
-        elif msg_type == 0x000C:  # Attribute.
-            if len(mbody) >= 8:
-                nsize = struct.unpack("<H", mbody[2: 4])[0]
-                attr_name = mbody[8: 8 + nsize].decode("utf-8", errors="replace").strip("\x00")
-                if attr_name:
-                    attributes[attr_name] = "attribute"
-        elif msg_type == 0x0011:  # Symbol Table (Group).
-            is_group = True
-
-    if not is_dataset and not is_group and not attributes:
-        return None
-
-    node_type = "group" if is_group else "dataset"
-    return {
-        "name": f"node_{addr}",
-        "type": node_type,
-        "path": f"/{node_type}_{addr}",
-        "shape": shape if is_dataset else None,
-        "dtype": dtype if is_dataset else None,
-        "size_bytes": math.prod(shape) * 8 if shape else 0,
-        "attributes": attributes,
-        "preview": f"Shape {shape}, Type {dtype}" if is_dataset else None,
-    }
-
-
-def _scan_object_headers(data: bytes, offset_size: int, length_size: int) -> list[dict[str, Any]]:
-    # Fallback scan across binary chunks for identifiable datasets.
-    results: list[dict[str, Any]] = []
-    pos = 0
-    while len(results) < 20:
-        pos = data.find(b"\x01\x00", pos)
-        if pos == -1 or pos + 12 > len(data):
-            break
-        num_msgs = struct.unpack("<H", data[pos + 2: pos + 4])[0]
-        if 0 < num_msgs <= 16:
-            obj = _parse_object_header(data, pos, offset_size, length_size)
-            if obj and obj not in results:
-                results.append(obj)
-        pos += 4
-    return results
 
 
 def _parse_slice_spec(slice_spec: str, shape: tuple[int, ...]) -> tuple[Any, ...]:
-    # Parse slice string expression into tuple of slice or int objects.
-    clean = slice_spec.strip()
+    # Parse a comma separated slice expression into indexers.
+    clean = str(slice_spec or "").strip()
     if not clean or clean in (":", "all"):
         return tuple(slice(None) for _ in shape)
     parts = clean.split(",")
+    if len(parts) > len(shape):
+        raise Hdf5Error(f"Slice has {len(parts)} indexes but dataset has {len(shape)} dimensions")
     res: list[Any] = []
-    for i, part in enumerate(parts):
+    for part in parts:
         token = part.strip()
-        if ":" in token:
-            sub = token.split(":")
-            start = int(sub[0].strip()) if sub[0].strip() else None
-            stop = int(sub[1].strip()) if len(sub) > 1 and sub[1].strip() else None
-            step = int(sub[2].strip()) if len(sub) > 2 and sub[2].strip() else None
-            res.append(slice(start, stop, step))
-        else:
-            try:
+        try:
+            if ":" in token:
+                bits = [bit.strip() for bit in token.split(":")]
+                if len(bits) > 3:
+                    raise ValueError(token)
+                nums = [int(bit) if bit else None for bit in bits]
+                res.append(slice(*nums))
+            else:
                 res.append(int(token))
-            except ValueError:
-                res.append(slice(None))
+        except ValueError as exc:
+            raise Hdf5Error(f"Invalid slice index: '{token}'") from exc
     while len(res) < len(shape):
         res.append(slice(None))
     return tuple(res)
 
 
-def _write_array_to_csv(array_data: Any, output_path: str) -> None:
-    # Save multi-dimensional array into CSV table file.
-    with open(output_path, "w", newline="", encoding="utf-8") as csv_file:
-        writer = csv.writer(csv_file)
-        if array_data.ndim == 0:
-            writer.writerow([_sanitize_val(array_data)])
-        elif array_data.ndim == 1:
-            for element_value in array_data:
-                writer.writerow([_sanitize_val(element_value)])
-        elif array_data.ndim == 2:
-            for row in array_data:
-                writer.writerow([_sanitize_val(cell) for cell in row])
+def _selection_count(selection: tuple[Any, ...], shape: tuple[int, ...]) -> int:
+    # Count the elements a selection will read.
+    total = 1
+    for indexer, size in zip(selection, shape):
+        total *= len(range(*indexer.indices(size))) if isinstance(indexer, slice) else 1
+    return total
+
+
+def _csv_cell(value: Any, hf: Any) -> Any:
+    # Format one array element for CSV output.
+    out = _json_value(value, hf)
+    return json.dumps(out) if isinstance(out, (dict, list)) else out
+
+
+def _write_array_to_csv(arr: np.ndarray, output_path: str, hf: Any) -> None:
+    # Save an array as CSV with a header row for compound data.
+    with open(output_path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        if arr.dtype.names and arr.ndim == 1:
+            writer.writerow(list(arr.dtype.names))
+            for row in arr:
+                writer.writerow([_csv_cell(row[name], hf) for name in arr.dtype.names])
+        elif arr.ndim == 0:
+            writer.writerow([_csv_cell(arr[()], hf)])
+        elif arr.ndim == 1:
+            for item in arr:
+                writer.writerow([_csv_cell(item, hf)])
         else:
-            flat_2d = array_data.reshape(-1, array_data.shape[-1])
-            for row in flat_2d:
-                writer.writerow([_sanitize_val(cell) for cell in row])
-
-
-def _fallback_slice_hdf5(file_path: str, dataset_path: str, slice_spec: str) -> Any:
-    # Read real byte buffers for HDF5 dataset without h5py.
-    tree = inspect_hdf5(file_path)
-    target_node: dict[str, Any] | None = None
-    clean_target = dataset_path.lstrip("/").lower()
-
-    def search_node(node: dict[str, Any]) -> None:
-        nonlocal target_node
-        if target_node is not None:
-            return
-        if node.get("type") == "dataset":
-            node_name = str(node.get("name", "")).lstrip("/").lower()
-            node_path = str(node.get("path", "")).lstrip("/").lower()
-            if node_name == clean_target or node_path == clean_target or clean_target in node_path:
-                target_node = node
-                return
-        for child in node.get("children", []):
-            search_node(child)
-
-    search_node(tree.get("root", {}))
-    raw_shape = target_node.get("shape", [10, 10]) if target_node else [10, 10]
-    shape = tuple(int(x) for x in raw_shape) if raw_shape else (10, 10)
-    dtype_str = str(target_node.get("dtype", "float64")) if target_node else "float64"
-    dt = np.float64 if "float" in dtype_str else (np.int64 if "int" in dtype_str else np.float64)
-
-    data_addr = int(target_node.get("data_addr", 0)) if target_node else 0
-    data_size = int(target_node.get("data_size", 0)) if target_node else 0
-
-    with open(file_path, "rb") as f:
-        file_bytes = f.read()
-
-    expected_bytes = math.prod(shape) * np.dtype(dt).itemsize
-    if data_addr > 0 and data_addr + data_size <= len(file_bytes):
-        raw_slice_bytes = file_bytes[data_addr: data_addr + data_size]
-        if target_node and target_node.get("compressed"):
-            try:
-                raw_slice_bytes = zlib.decompress(raw_slice_bytes)
-            except Exception as err:
-                raise ValueError("Unsupported HDF5 compression filter; install h5py for this dataset") from err
-        if len(raw_slice_bytes) >= expected_bytes:
-            arr = np.frombuffer(raw_slice_bytes[:expected_bytes], dtype=dt).reshape(shape)
-            slices = _parse_slice_spec(slice_spec, shape)
-            return arr[slices]
-
-    if len(file_bytes) >= 512 + expected_bytes:
-        arr = np.frombuffer(file_bytes[512: 512 + expected_bytes], dtype=dt).reshape(shape)
-        slices = _parse_slice_spec(slice_spec, shape)
-        return arr[slices]
-
-    arr = np.zeros(shape, dtype=dt)
-    slices = _parse_slice_spec(slice_spec, shape)
-    return arr[slices]
+            for row in arr.reshape(-1, arr.shape[-1]):
+                writer.writerow([_csv_cell(item, hf) for item in row])
 
 
 def export_hdf5_slice(
@@ -464,52 +647,33 @@ def export_hdf5_slice(
     output_path: str,
     out_format: str = "csv",
 ) -> dict[str, Any]:
-    # Extract sliced data from HDF5 and export to CSV, JSON, or NPY format.
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
-
-    arr: Any = None
-    if h5py is not None:
-        with h5py.File(file_path, "r") as hf:
-            if dataset_path in hf:
-                ds = hf[dataset_path]
-            else:
-                clean_target = dataset_path.lstrip("/")
-                matched: Any = None
-
-                def visitor(name: str, obj: Any) -> None:
-                    nonlocal matched
-                    if matched is None and isinstance(obj, h5py.Dataset):
-                        if name == clean_target or name.endswith("/" + clean_target):
-                            matched = obj
-
-                hf.visititems(visitor)
-                if matched is None:
-                    raise KeyError(f"Dataset not found: {dataset_path}")
-                ds = matched
-
-            slices = _parse_slice_spec(slice_spec, ds.shape)
-            arr = np.asarray(ds[slices])
-    else:
-        arr = _fallback_slice_hdf5(file_path, dataset_path, slice_spec)
-
-    fmt = out_format.lower().strip()
-    out_dir = os.path.dirname(output_path)
-    if out_dir:
-        os.makedirs(out_dir, exist_ok=True)
-
-    if fmt == "npy":
-        np.save(output_path, arr)
-    elif fmt == "json":
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(_sanitize_val(arr), f, indent=2)
-    else:
-        _write_array_to_csv(arr, output_path)
-
-    return {
-        "output_path": output_path,
-        "format": fmt.upper(),
-        "shape": list(arr.shape),
-        "size": int(arr.size),
-        "dtype": str(arr.dtype),
-    }
+    # Export a bounded dataset slice to CSV, JSON, or NPY.
+    fmt = str(out_format).lower().strip()
+    if fmt not in ("csv", "json", "npy"):
+        raise Hdf5Error(f"Unsupported export format: {out_format}")
+    with _open_file(file_path) as hf:
+        ds = _get_dataset(hf, _norm_path(dataset_path))
+        shape = tuple(int(n) for n in ds.shape) if ds.shape is not None else ()
+        selection = _parse_slice_spec(slice_spec, shape)
+        if _selection_count(selection, shape) > MAX_EXPORT_ELEMENTS:
+            raise Hdf5Error(f"Slice exceeds {MAX_EXPORT_ELEMENTS} elements; narrow the slice before exporting")
+        arr = np.asarray(ds[selection])
+        out_dir = os.path.dirname(output_path)
+        if out_dir:
+            os.makedirs(out_dir, exist_ok=True)
+        if fmt == "npy":
+            if arr.dtype.hasobject:
+                raise Hdf5Error("NPY export does not support object or variable-length data; use CSV or JSON")
+            np.save(output_path, arr)
+        elif fmt == "json":
+            with open(output_path, "w", encoding="utf-8") as handle:
+                json.dump(_json_value(arr, hf), handle, indent=2)
+        else:
+            _write_array_to_csv(arr, output_path, hf)
+        return {
+            "output_path": output_path,
+            "format": fmt.upper(),
+            "shape": list(arr.shape),
+            "size": int(arr.size),
+            "dtype": str(arr.dtype),
+        }

@@ -3,7 +3,6 @@ window.FOSS = window.FOSS || {};
 
 (function () {
   var selectedCategory = "All";
-  var favoritesOnly = false;
   var searchQuery = "";
   var DEFAULT_APPS = [
     { id: "pdf", name: "PDF Tools", category: "Documents", description: "Merge, reorder, split, extract text, and password protect PDFs.", artwork_url: "assets/home/pdf.png" },
@@ -89,9 +88,11 @@ window.FOSS = window.FOSS || {};
     // Filters row: Category chips and Favorites-only switch
     var layout = window.FOSS.router.resolveSidebarLayout();
     var sectionNames = (layout.sections || [])
-      .filter(function (s) { return (s.items || []).some(function (it) { return it.visible; }); })
+      .filter(function (s) {
+        return s.id !== "sec_favorites" && (s.items || []).some(function (it) { return it.visible; });
+      })
       .map(function (s) { return s.name; });
-    var categories = ["All"].concat(sectionNames);
+    var categories = ["All", "Favorites"].concat(sectionNames);
 
     if (categories.indexOf(selectedCategory) === -1) {
       selectedCategory = "All";
@@ -119,24 +120,6 @@ window.FOSS = window.FOSS || {};
       filterRow.appendChild(chip);
     });
 
-    var favCheckbox = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      checked: favoritesOnly,
-      "data-testid": "home-favorites-toggle",
-      onChange: function (e) {
-        favoritesOnly = e.target.checked;
-        updateGrid();
-      }
-    });
-    var favSlider = window.FOSS.dom.el("span", { className: "switch-slider" });
-    var favLabel = window.FOSS.dom.el("label", { className: "switch", "data-testid": "home-fav-switch-label" }, [
-      favCheckbox,
-      favSlider,
-      window.FOSS.dom.el("span", { text: "Favorites only" })
-    ]);
-
-    filterRow.appendChild(favLabel);
-
     page.appendChild(filterRow);
 
     // Grid container
@@ -162,6 +145,14 @@ window.FOSS = window.FOSS || {};
     loadRecents(recentsContainer);
   }
 
+  function matchesSearch(app) {
+    if (!searchQuery) return true;
+    var matchName = app.name.toLowerCase().indexOf(searchQuery) !== -1;
+    var matchDesc = app.description.toLowerCase().indexOf(searchQuery) !== -1;
+    var matchKw = app.keywords && app.keywords.some(function (k) { return k.toLowerCase().indexOf(searchQuery) !== -1; });
+    return matchName || matchDesc || matchKw;
+  }
+
   function updateGrid() {
     var grid = document.querySelector(".home-grid");
     if (!grid) return;
@@ -181,8 +172,9 @@ window.FOSS = window.FOSS || {};
       });
     }
 
+    var isFavFilter = selectedCategory === "Favorites";
     var sectionToolIds = null;
-    if (selectedCategory !== "All" && layout) {
+    if (selectedCategory !== "All" && !isFavFilter && layout) {
       var targetSec = (layout.sections || []).find(function (section) {
         return section.name === selectedCategory;
       });
@@ -198,6 +190,7 @@ window.FOSS = window.FOSS || {};
 
     var filtered = allApps.filter(function (app) {
       if (hideUnchecked && hiddenMap[app.id]) return false;
+      if (isFavFilter) return window.FOSS.store.isFavorite(app.id) && matchesSearch(app);
       if (selectedCategory !== "All") {
         if (sectionToolIds) {
           if (!sectionToolIds[app.id]) return false;
@@ -205,15 +198,23 @@ window.FOSS = window.FOSS || {};
           return false;
         }
       }
-      if (favoritesOnly && !window.FOSS.store.isFavorite(app.id)) return false;
-      if (searchQuery) {
-        var matchName = app.name.toLowerCase().indexOf(searchQuery) !== -1;
-        var matchDesc = app.description.toLowerCase().indexOf(searchQuery) !== -1;
-        var matchKw = app.keywords && app.keywords.some(function (k) { return k.toLowerCase().indexOf(searchQuery) !== -1; });
-        if (!matchName && !matchDesc && !matchKw) return false;
-      }
-      return true;
+      return matchesSearch(app);
     });
+
+    if (filtered.length === 0 && isFavFilter && !searchQuery) {
+      grid.appendChild(window.FOSS.dom.el("div", {
+        className: "empty",
+        "data-testid": "home-empty-favorites"
+      }, [
+        window.FOSS.icons.el("star", 32),
+        window.FOSS.dom.el("h3", { className: "empty-title", text: "No favorite tools yet" }),
+        window.FOSS.dom.el("p", {
+          className: "empty-desc",
+          text: "Click the star on any tool card, or the star in the top bar while a tool is open, to pin it here."
+        })
+      ]));
+      return;
+    }
 
     if (filtered.length === 0) {
       grid.appendChild(window.FOSS.dom.el("div", {
@@ -234,13 +235,10 @@ window.FOSS = window.FOSS || {};
         className: "btn btn-icon btn-ghost btn-sm tile-fav-btn",
         "aria-label": isFav ? "Unfavorite " + app.name : "Favorite " + app.name,
         title: isFav ? "Remove favorite" : "Add to favorites",
-        "data-testid": "home-fav-" + app.id,
+        "data-testid": "home-card-star-" + app.id,
         onClick: function (e) {
           e.stopPropagation();
-          var nowFav = window.FOSS.store.toggleFavorite(app.id);
-          starBtn.innerHTML = window.FOSS.icons.svg(nowFav ? "star_filled" : "star", 16);
-          if (favoritesOnly) updateGrid();
-          window.FOSS.router.renderTopbar();
+          window.FOSS.store.toggleFavorite(app.id);
         }
       }, [window.FOSS.icons.el(isFav ? "star_filled" : "star", 16)]);
 
@@ -336,6 +334,10 @@ window.FOSS = window.FOSS || {};
       container.appendChild(recentsCard);
     });
   }
+
+  window.addEventListener("foss:favorites-changed", function () {
+    if (window.FOSS.router.getActiveView() === "home") updateGrid();
+  });
 
   window.FOSS.home = {
     render: render

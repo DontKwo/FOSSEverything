@@ -5,6 +5,35 @@ window.FOSS = window.FOSS || {};
   var cachedCatalog = null;
   var expressionHistory = [];
 
+  function buildDefaultFields(categories) {
+    var categoryOptions = (categories || []).map(function (c) {
+      return { value: c.id, label: c.name };
+    });
+    if (!categoryOptions.length) categoryOptions = [{ value: "length", label: "Length" }];
+    return [
+      { key: "category", label: "Default dimension category", type: "select", default: "length", options: categoryOptions },
+      {
+        key: "precision",
+        label: "Default precision (significant digits)",
+        type: "select",
+        default: "4",
+        options: ["4", "6", "7", "9", "12"]
+      },
+      {
+        key: "notation",
+        label: "Default notation",
+        type: "select",
+        default: "standard",
+        options: [
+          { value: "standard", label: "Standard" },
+          { value: "fixed", label: "Fixed Decimal" },
+          { value: "scientific", label: "Scientific Notation" },
+          { value: "engineering", label: "Engineering Notation" }
+        ]
+      }
+    ];
+  }
+
   function fetchCatalog(cb) {
     if (cachedCatalog) {
       cb(cachedCatalog);
@@ -13,6 +42,7 @@ window.FOSS = window.FOSS || {};
     window.FOSS.api("units_catalog", {}).then(function (res) {
       if (res && res.categories) {
         cachedCatalog = res;
+        window.FOSS.toolDefaults.define("unit_converter", buildDefaultFields(res.categories));
         cb(res);
       }
     });
@@ -25,6 +55,10 @@ window.FOSS = window.FOSS || {};
 
     var currentCategory = null;
     var currentCompatibleList = [];
+    var toolDefaults = window.FOSS.toolDefaults;
+    var defaultCategory = String(toolDefaults.get("unit_converter", "category", "length"));
+    var defaultPrecision = String(toolDefaults.get("unit_converter", "precision", 4));
+    var defaultNotation = String(toolDefaults.get("unit_converter", "notation", "standard"));
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted mb-sm",
@@ -103,11 +137,21 @@ window.FOSS = window.FOSS || {};
         triggerConvert();
       }
     }, [
-      window.FOSS.dom.el("option", { value: "smart", text: "Smart Formatting" }),
+      window.FOSS.dom.el("option", { value: "standard", text: "Standard" }),
       window.FOSS.dom.el("option", { value: "fixed", text: "Fixed Decimal" }),
       window.FOSS.dom.el("option", { value: "scientific", text: "Scientific Notation" }),
       window.FOSS.dom.el("option", { value: "engineering", text: "Engineering Notation" })
     ]);
+
+    var includeAllCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      "data-testid": "unit_converter-include-all",
+      "aria-label": "Include all available units",
+      title: "Include all available units",
+      onChange: function () {
+        loadCompatibleTable();
+      }
+    });
 
     var precisionSelect = window.FOSS.dom.el("select", {
       className: "select select-sm text-xs",
@@ -124,7 +168,8 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "9", text: "9 digits" }),
       window.FOSS.dom.el("option", { value: "12", text: "12 digits (High Precision)" })
     ]);
-    precisionSelect.value = "7";
+    precisionSelect.value = defaultPrecision;
+    notationSelect.value = defaultNotation;
 
     var fromUnitSelect = window.FOSS.dom.el("select", {
       className: "select select-sm w-full font-mono text-xs",
@@ -147,8 +192,7 @@ window.FOSS = window.FOSS || {};
     });
 
     var swapBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-icon btn-secondary btn-sm",
-      style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
+      className: "btn btn-secondary btn-sm",
       "data-testid": "unit_converter-swap-btn",
       "aria-label": "Swap Source and Target Units",
       title: "Swap Source and Target Units",
@@ -159,33 +203,30 @@ window.FOSS = window.FOSS || {};
         toUnitSelect.value = temp;
         triggerConvert();
       }
-    }, [window.FOSS.icons.el("refresh", 14)]);
+    }, [window.FOSS.icons.el("refresh", 14), window.FOSS.dom.el("span", { text: "Swap" })]);
 
     var convertBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
+      className: "btn btn-primary w-full",
       "data-testid": "unit_converter-convert-btn",
       type: "button",
       onClick: function () {
         triggerConvert();
       }
-    }, [window.FOSS.icons.el("check", 14), window.FOSS.dom.el("span", { text: "Convert Value" })]);
+    }, [window.FOSS.icons.el("check", 14), window.FOSS.dom.el("span", { text: "Convert" })]);
 
-    // Top Section: Inputs and Primary Action
-    var topRow = window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
-      window.FOSS.components.field("Physical Dimension", categorySelect),
-      window.FOSS.components.field("Quantity Value", valueInput),
-      window.FOSS.components.field("From Unit", fromUnitSelect),
-      swapBtn,
-      window.FOSS.components.field("To Unit", toUnitSelect),
-      convertBtn
-    ]);
-
+    var resultValue = window.FOSS.dom.el("span", {
+      className: "font-mono font-bold",
+      "data-testid": "unit_converter-result-value",
+      "data-truncate-ok": "true",
+      title: "Result",
+      text: "-"
+    });
     var resultBanner = window.FOSS.dom.el("div", {
       className: "banner info",
-      "data-testid": "unit_converter-result-banner",
-      style: "display: none;"
+      "data-testid": "unit_converter-result-banner"
     }, [
-      window.FOSS.dom.el("span", { className: "font-mono font-bold", text: "" })
+      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Result" }),
+      resultValue
     ]);
 
     var primaryCard = window.FOSS.dom.el("div", {
@@ -193,22 +234,30 @@ window.FOSS = window.FOSS || {};
       "data-testid": "unit_converter-primary-card"
     }, [
       window.FOSS.dom.el("div", { className: "font-semibold text-sm", text: "Standard Unit Conversion" }),
-      topRow,
+      window.FOSS.components.field("Physical Dimension", categorySelect),
+      window.FOSS.components.field("Value", valueInput),
+      window.FOSS.components.field("From Unit", fromUnitSelect),
+      window.FOSS.dom.el("div", { className: "row justify-center" }, [swapBtn]),
+      window.FOSS.components.field("To Unit", toUnitSelect),
+      convertBtn,
       resultBanner
     ]);
 
-    // Bottom Section: Dimension and Notation Options
-    var optionsRow = window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap" }, [
+    var optionsRow = window.FOSS.dom.el("div", { className: "flex-col gap-2" }, [
       window.FOSS.components.field("Prefix Multiplier", prefixSelect),
       window.FOSS.components.field("Output Notation", notationSelect),
-      window.FOSS.components.field("Significant Digits", precisionSelect)
+      window.FOSS.components.field("Significant Digits", precisionSelect),
+      window.FOSS.dom.el("label", { className: "row gap-2 items-center text-xs" }, [
+        includeAllCheck,
+        window.FOSS.dom.el("span", { text: "Include every available unit in the table" })
+      ])
     ]);
 
     var optionsCard = window.FOSS.dom.el("div", {
       className: "card card-compact flex-col gap-2",
       "data-testid": "unit_converter-options-card"
     }, [
-      window.FOSS.dom.el("div", { className: "font-semibold text-xs text-muted", text: "Measurement Unit Options" }),
+      window.FOSS.dom.el("div", { className: "font-semibold text-xs text-muted", text: "Advanced Options" }),
       optionsRow
     ]);
 
@@ -306,16 +355,6 @@ window.FOSS = window.FOSS || {};
       }
     });
 
-    var includeAllCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      "data-testid": "unit_converter-include-all",
-      "aria-label": "Include All Units",
-      title: "Include All Units",
-      onChange: function () {
-        loadCompatibleTable();
-      }
-    });
-
     var tableHost = window.FOSS.dom.el("div", {
       className: "table-wrap grow flex-col gap-2",
       "data-testid": "unit_converter-table",
@@ -375,11 +414,7 @@ window.FOSS = window.FOSS || {};
         heroDim.title = "Dimension: " + (res.dimensionality || "[]");
         heroSi.textContent = "SI Base Unit: " + (res.si_base || "standard");
         statusBar.textContent = "Converted " + u1 + " to " + u2;
-        if (resultBanner) {
-          var rSpan = resultBanner.querySelector("span");
-          if (rSpan) rSpan.textContent = res.formatted + " " + u2;
-          resultBanner.style.removeProperty("display");
-        }
+        resultValue.textContent = res.formatted + " " + u2;
       }).catch(function (err) {
         showError((err && err.message) || String(err));
       });
@@ -500,13 +535,7 @@ window.FOSS = window.FOSS || {};
       style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
     }, [
       heroCard,
-      window.FOSS.dom.el("div", { className: "row gap-3 items-center justify-between flex-wrap" }, [
-        tableFilterInput,
-        window.FOSS.dom.el("label", { className: "text-xs row gap-1 items-center" }, [
-          includeAllCheck,
-          window.FOSS.dom.el("span", { text: "All Units" })
-        ])
-      ]),
+      window.FOSS.dom.el("div", { className: "row gap-3 items-center justify-between flex-wrap" }, [tableFilterInput]),
       tableHost
     ]);
 
@@ -535,6 +564,9 @@ window.FOSS = window.FOSS || {};
           text: c.name + " (" + c.unit_count + " units)"
         }));
       });
+      if (catData.categories.some(function (c) { return c.id === defaultCategory; })) {
+        categorySelect.value = defaultCategory;
+      }
       onCategoryChanged();
     });
   }
@@ -781,8 +813,9 @@ window.FOSS = window.FOSS || {};
     title: "Unit Converter",
     navName: "Unit Converter",
     category: "Data",
-    icon: "ruler",
+    icon: "unit_converter",
     workbench: true,
+    defaults: buildDefaultFields([]),
     tabs: [
       { id: "standard", label: "Standard & All Units", render: renderStandard },
       { id: "expression", label: "Compound Expressions", render: renderExpression }

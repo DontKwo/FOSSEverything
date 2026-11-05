@@ -12,11 +12,7 @@ window.FOSS = window.FOSS || {};
       id: "sec_favorites",
       name: "Favorites",
       collapsed: false,
-      items: [
-        { id: "pdf", visible: true },
-        { id: "converter", visible: true },
-        { id: "ocr", visible: true }
-      ]
+      items: []
     },
     {
       id: "sec_documents",
@@ -78,6 +74,9 @@ window.FOSS = window.FOSS || {};
 
   function register(toolDef) {
     registry[toolDef.id] = toolDef;
+    if (toolDef.defaults && window.FOSS.toolDefaults) {
+      window.FOSS.toolDefaults.define(toolDef.id, toolDef.defaults);
+    }
     toolStates[toolDef.id] = toolStates[toolDef.id] || {};
   }
 
@@ -135,6 +134,16 @@ window.FOSS = window.FOSS || {};
       }
     });
 
+    var favIds = window.FOSS.store ? window.FOSS.store.get("favorites", []) : [];
+    var favSec = sections.find(function (s) { return s.id === "sec_favorites"; });
+    if (favSec) {
+      favSec.items = (Array.isArray(favIds) ? favIds : []).filter(function (id) {
+        return registry[id];
+      }).map(function (id) {
+        return { id: id, visible: true };
+      });
+    }
+
     return { version: 1, sections: sections };
   }
 
@@ -185,6 +194,7 @@ window.FOSS = window.FOSS || {};
 
     // Dynamic categorized sections
     var layout = resolveSidebarLayout();
+    var seenNavIds = {};
     layout.sections.forEach(function (sec) {
       var visibleItems = (sec.items || []).filter(function (it) {
         return it.visible && registry[it.id];
@@ -197,9 +207,17 @@ window.FOSS = window.FOSS || {};
       visibleItems.forEach(function (it) {
         var t = registry[it.id];
         var isAct = activeView === t.id;
+        var navTestId = "nav-" + t.id;
+        if (sec.id === "sec_favorites") {
+          navTestId = "nav-fav-" + t.id;
+        } else if (seenNavIds[t.id]) {
+          navTestId = "nav-" + t.id + "-" + sec.id;
+        } else {
+          seenNavIds[t.id] = true;
+        }
         var btn = window.FOSS.dom.el("button", {
           className: "nav-item " + (isAct ? "active" : ""),
-          "data-testid": "nav-" + t.id,
+          "data-testid": navTestId,
           "aria-label": t.title,
           title: t.title,
           onClick: function () {
@@ -336,7 +354,23 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("settings", 16)]);
 
-    var rightGroup = window.FOSS.dom.el("div", { className: "row end" }, [searchBtn, favBar, themeBtn, settingsBtn]);
+    var rightItems = [searchBtn, favBar];
+    if (registry[activeView]) {
+      var starTool = registry[activeView];
+      var starFav = window.FOSS.store.isFavorite(starTool.id);
+      rightItems.push(window.FOSS.dom.el("button", {
+        className: "btn btn-icon btn-ghost btn-sm",
+        "data-testid": "topbar-star-btn",
+        "aria-label": starFav ? "Remove " + starTool.title + " from favorites" : "Add " + starTool.title + " to favorites",
+        "aria-pressed": starFav ? "true" : "false",
+        title: starFav ? "Remove favorite" : "Add to favorites",
+        onClick: function () {
+          window.FOSS.store.toggleFavorite(starTool.id);
+        }
+      }, [window.FOSS.icons.el(starFav ? "star_filled" : "star", 18)]));
+    }
+    rightItems.push(themeBtn, settingsBtn);
+    var rightGroup = window.FOSS.dom.el("div", { className: "row end" }, rightItems);
     topbar.appendChild(rightGroup);
   }
 
@@ -427,25 +461,25 @@ window.FOSS = window.FOSS || {};
     });
 
     // Page Header
-    var isFav = window.FOSS.store.isFavorite(tool.id);
-    var favToggleBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-icon btn-ghost btn-sm",
-      "data-testid": tool.id + "-favorite-toggle",
-      "aria-label": isFav ? "Remove favorite" : "Add to favorites",
-      title: isFav ? "Remove favorite" : "Add to favorites",
-      onClick: function () {
-        var nowFav = window.FOSS.store.toggleFavorite(tool.id);
-        favToggleBtn.innerHTML = window.FOSS.icons.svg(nowFav ? "star_filled" : "star", 18);
-        renderTopbar();
-      }
-    }, [window.FOSS.icons.el(isFav ? "star_filled" : "star", 18)]);
+    var headActions = [];
+    if (window.FOSS.toolDefaults && window.FOSS.toolDefaults.getFields(tool.id).length > 0) {
+      headActions.push(window.FOSS.dom.el("button", {
+        className: "btn btn-icon btn-ghost btn-sm",
+        "data-testid": tool.id + "-defaults-btn",
+        "aria-label": tool.title + " defaults",
+        title: "Configure " + tool.title + " defaults",
+        onClick: function () {
+          window.FOSS.toolDefaults.openEditor(tool.id, tool.title);
+        }
+      }, [window.FOSS.icons.el("sliders", 18)]));
+    }
 
     var headEl = window.FOSS.dom.el("div", { className: "page-head" }, [
       window.FOSS.dom.el("div", { className: "stack-sm" }, [
         window.FOSS.dom.el("h1", { className: "title", text: tool.title }),
         window.FOSS.dom.el("p", { className: "desc", text: tool.description || "" })
       ]),
-      favToggleBtn
+      window.FOSS.dom.el("div", { className: "row" }, headActions)
     ]);
     pageEl.appendChild(headEl);
 
@@ -516,6 +550,11 @@ window.FOSS = window.FOSS || {};
       }
     });
   }
+
+  window.addEventListener("foss:favorites-changed", function () {
+    renderSidebar();
+    renderTopbar();
+  });
 
   window.FOSS.router = {
     register: register,

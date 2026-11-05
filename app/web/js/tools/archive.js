@@ -5,6 +5,45 @@ window.FOSS = window.FOSS || {};
   var globalQueuedSources = [];
   var globalInspectPath = "";
   var globalInspectMembers = [];
+  var globalMemberHashes = {};
+
+  var FORMAT_LABELS = [
+    { fmt: "zip", name: "ZIP Archive (*.zip)", ext: "zip" },
+    { fmt: "tar", name: "TAR Archive (*.tar)", ext: "tar" },
+    { fmt: "tar.gz", name: "TAR.GZ Archive (*.tar.gz)", ext: "tar.gz" },
+    { fmt: "tar.xz", name: "TAR.XZ Archive (*.tar.xz)", ext: "tar.xz" },
+    { fmt: "tar.bz2", name: "TAR.BZ2 Archive (*.tar.bz2)", ext: "tar.bz2" }
+  ];
+
+  function archiveFileTypes(selectedFmt) {
+    var ordered = FORMAT_LABELS.slice().sort(function (a, b) {
+      return (a.fmt === selectedFmt ? 0 : 1) - (b.fmt === selectedFmt ? 0 : 1);
+    });
+    return ordered.map(function (f) { return { name: f.name, extensions: [f.ext] }; });
+  }
+
+  function formatFromPath(path, fallback) {
+    var lower = String(path || "").toLowerCase();
+    if (/\.(tar\.gz|tgz)$/.test(lower)) return "tar.gz";
+    if (/\.(tar\.xz|txz)$/.test(lower)) return "tar.xz";
+    if (/\.(tar\.bz2|tbz2)$/.test(lower)) return "tar.bz2";
+    if (/\.tar$/.test(lower)) return "tar";
+    if (/\.zip$/.test(lower)) return "zip";
+    return fallback;
+  }
+
+  function levelOptions() {
+    var labels = { 0: "Store Only (Level 0 - Fastest)", 1: "Fastest (Level 1)", 6: "Balanced (Level 6)", 9: "Maximum (Level 9 - Smallest)" };
+    var opts = [];
+    for (var lvl = 0; lvl <= 9; lvl++) {
+      opts.push(window.FOSS.dom.el("option", { value: String(lvl), text: labels[lvl] || "Level " + lvl }));
+    }
+    return opts;
+  }
+
+  function shortHash(hex) {
+    return hex ? hex.slice(0, 12) + "..." : "-";
+  }
 
   function formatBytes(bytes) {
     if (bytes === 0 || !bytes) return "0 B";
@@ -51,12 +90,13 @@ window.FOSS = window.FOSS || {};
       "data-testid": "archive-create-result"
     });
 
-    function showResult(path, titleText) {
+    function showResult(path, titleText, details) {
       resultHost.innerHTML = "";
       var card = window.FOSS.components.resultCard({
         testid: "archive-create-result-card",
         title: titleText || "Archive Created",
-        outputPath: path
+        outputPath: path,
+        details: details || []
       });
       resultHost.appendChild(card);
       resultHost.classList.remove("hidden");
@@ -96,44 +136,15 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "tar.bz2", text: "TAR.BZ2 (.tar.bz2)" }),
       window.FOSS.dom.el("option", { value: "tar", text: "TAR (.tar)" })
     ]);
+    formatSelect.value = window.FOSS.toolDefaults.get("archive", "format", "zip");
 
     var compSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "archive-compression-select",
       "aria-label": "Compression Level",
       title: "Compression Level"
-    }, [
-      window.FOSS.dom.el("option", { value: "6", text: "Balanced (Level 6 - Default)" }),
-      window.FOSS.dom.el("option", { value: "0", text: "Store Only (No Compression - Fastest)" }),
-      window.FOSS.dom.el("option", { value: "9", text: "Maximum (Level 9 - Smallest Size)" })
-    ]);
-
-    var outputPathInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input font-mono",
-      "data-testid": "archive-create-output",
-      placeholder: "Auto-generated or custom path",
-      "aria-label": "Output Archive Path",
-      title: "Output Archive Path"
-    });
-
-    var saveAsBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "archive-save-as-btn",
-      type: "button",
-      onClick: function () {
-        var fmt = formatSelect.value;
-        var ext = fmt.indexOf("tar.") === 0 ? "." + fmt : "." + fmt;
-        window.FOSS.api("select_save_path", {
-          title: "Select Output Archive Location",
-          default_name: "archive" + ext
-        }).then(function (res) {
-          if (res && res.path) {
-            outputPathInput.value = res.path;
-          }
-        });
-      }
-    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Save As..." })]);
+    }, levelOptions());
+    compSelect.value = String(window.FOSS.toolDefaults.get("archive", "level", 6));
 
     var handleAddFiles = function () {
       clearError();
@@ -197,39 +208,36 @@ window.FOSS = window.FOSS || {};
           return;
         }
         var fmt = formatSelect.value;
-        var comp = parseInt(compSelect.value, 10) || 6;
-        var outPath = outputPathInput.value.trim();
+        var comp = parseInt(compSelect.value, 10);
+        if (isNaN(comp)) comp = 6;
 
-        function doCreate(destPath) {
-          statusBar.textContent = "Creating archive...";
-          window.FOSS.api("archive_create", {
-            sources: currentSources,
-            format: fmt,
-            compression_level: comp,
-            output_path: destPath || outPath || undefined
-          }).then(function (res) {
-            if (res && res.output_path) {
-              statusBar.textContent = "Archive created successfully.";
-              showResult(res.output_path, "Archive Created");
-            }
-          }).catch(function (err) {
-            showError((err && err.message) || String(err));
-          });
-        }
-
-        var defaultName = "archive." + (fmt === "tar.gz" ? "tar.gz" : fmt);
-        if (currentSources.length === 1) {
-          var firstBase = currentSources[0].split(/[/\\]/).pop().replace(/\.[^/.]+$/, "");
-          defaultName = firstBase + "." + (fmt === "tar.gz" ? "tar.gz" : fmt);
-        }
         window.FOSS.api("select_save_path", {
           title: "Save Archive",
-          default_name: defaultName
+          default_name: "archive",
+          file_types: archiveFileTypes(fmt)
         }).then(function (res) {
-          var p = (res && res.path) || (res && res.paths && res.paths[0]) || "";
-          doCreate(p);
-        }).catch(function () {
-          doCreate(outPath);
+          var destPath = (res && res.path) || "";
+          if (!destPath) {
+            statusBar.textContent = "Save cancelled";
+            return null;
+          }
+          statusBar.textContent = "Creating archive...";
+          return window.FOSS.api("archive_create", {
+            sources: currentSources,
+            format: formatFromPath(destPath, fmt),
+            compression_level: comp,
+            output_path: destPath
+          }).then(function (created) {
+            if (created && created.output_path) {
+              statusBar.textContent = "Archive created successfully.";
+              showResult(created.output_path, "Archive Created", [
+                { label: "Size", value: formatBytes(created.size_bytes) },
+                { label: "SHA-256", value: created.sha256 || "" }
+              ]);
+            }
+          });
+        }).catch(function (err) {
+          showError((err && err.message) || String(err));
         });
       }
     }, [window.FOSS.icons.el("archive", 16), window.FOSS.dom.el("span", { text: "Create Archive" })]);
@@ -241,10 +249,6 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Packaging Options" }),
       window.FOSS.components.field("Archive Format", formatSelect),
       window.FOSS.components.field("Compression Level", compSelect),
-      window.FOSS.dom.el("div", { className: "flex-col gap-1" }, [
-        window.FOSS.components.field("Output Archive Destination", outputPathInput),
-        saveAsBtn
-      ]),
       createBtn
     ]);
 
@@ -416,6 +420,15 @@ window.FOSS = window.FOSS || {};
       title: "Extraction Target Folder"
     });
 
+    var expectedShaInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input font-mono text-xs",
+      "data-testid": "archive-extract-expected-sha",
+      placeholder: "64-character hex digest (optional)",
+      "aria-label": "Expected SHA-256",
+      title: "Expected SHA-256"
+    });
+
     var summaryText = window.FOSS.dom.el("div", {
       className: "text-sm text-muted font-mono",
       text: "No archive loaded. Choose an archive file on the left."
@@ -484,7 +497,8 @@ window.FOSS = window.FOSS || {};
         statusBar.textContent = "Extracting archive safely...";
         window.FOSS.job("archive_extract", {
           archive_path: currentArchivePath,
-          target_dir: targetDir
+          target_dir: targetDir,
+          expected_sha256: expectedShaInput.value.trim() || undefined
         }).then(function (res) {
           if (res && res.target_dir) {
             statusBar.textContent = "Extraction complete: " + res.target_dir;
@@ -505,6 +519,7 @@ window.FOSS = window.FOSS || {};
         window.FOSS.components.field("Destination Folder", targetDirInput),
         browseTargetBtn
       ]),
+      window.FOSS.components.field("Expected SHA-256 (Optional)", expectedShaInput),
       extractBtn
     ]);
 
@@ -635,7 +650,13 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("td", { className: "text-right font-mono text-xs", text: formatBytes(m.size_bytes) }),
           window.FOSS.dom.el("td", { className: "text-right font-mono text-xs text-muted", text: formatBytes(m.compressed_bytes) }),
           window.FOSS.dom.el("td", { className: "text-right font-mono text-xs", text: m.ratio_pct + "%" }),
-          window.FOSS.dom.el("td", { className: "text-right font-mono text-xs text-muted", text: m.modified_iso ? m.modified_iso.slice(0, 19).replace("T", " ") : "-" })
+          window.FOSS.dom.el("td", { className: "text-right font-mono text-xs text-muted", text: m.modified_iso ? m.modified_iso.slice(0, 19).replace("T", " ") : "-" }),
+          window.FOSS.dom.el("td", {
+            className: "font-mono text-xs text-muted",
+            text: shortHash(globalMemberHashes[m.path]),
+            "data-truncate-ok": "true",
+            title: globalMemberHashes[m.path] || "Run Test Integrity to compute"
+          })
         ]);
       });
 
@@ -647,7 +668,8 @@ window.FOSS = window.FOSS || {};
             window.FOSS.dom.el("th", { className: "text-right", text: "Size" }),
             window.FOSS.dom.el("th", { className: "text-right", text: "Compressed" }),
             window.FOSS.dom.el("th", { className: "text-right", text: "Ratio" }),
-            window.FOSS.dom.el("th", { className: "text-right", text: "Modified (UTC)" })
+            window.FOSS.dom.el("th", { className: "text-right", text: "Modified (UTC)" }),
+            window.FOSS.dom.el("th", { text: "SHA-256" })
           ])
         ]),
         window.FOSS.dom.el("tbody", {}, rows)
@@ -662,6 +684,8 @@ window.FOSS = window.FOSS || {};
       window.FOSS.api("archive_list", { archive_path: archPath }).then(function (res) {
         if (res && res.members) {
           globalInspectMembers = res.members;
+          globalMemberHashes = {};
+          digestReadout.textContent = "SHA-256: not computed";
           selectedMemberNames.clear();
           statusBar.textContent = "Archive loaded: " + globalInspectMembers.length + " members.";
           renderMembersTable();
@@ -697,16 +721,74 @@ window.FOSS = window.FOSS || {};
         }
         statusBar.textContent = "Testing archive integrity...";
         window.FOSS.api("archive_test", { archive_path: globalInspectPath }).then(function (res) {
-          if (res && res.valid) {
-            statusBar.textContent = "Integrity check passed: all " + (res.count || 0) + " entries valid.";
-          } else {
+          if (!(res && res.valid)) {
             showError((res && res.message) || "Integrity check failed.");
+            return null;
           }
+          var entryCount = res.details && res.details.count !== undefined ? res.details.count : 0;
+          statusBar.textContent = "Integrity check passed: all " + entryCount + " entries valid.";
+          return window.FOSS.api("archive_checksums", { archive_path: globalInspectPath }).then(function (sums) {
+            if (!sums) return;
+            globalMemberHashes = {};
+            (sums.members || []).forEach(function (entry) { globalMemberHashes[entry.path] = entry.sha256; });
+            digestReadout.textContent = "SHA-256: " + sums.archive_sha256;
+            digestReadout.setAttribute("title", sums.archive_sha256);
+            renderMembersTable();
+          });
         }).catch(function (err) {
           showError((err && err.message) || String(err));
         });
       }
     }, [window.FOSS.icons.el("check", 14), window.FOSS.dom.el("span", { text: "Test Integrity" })]);
+
+    var digestReadout = window.FOSS.dom.el("div", {
+      className: "font-mono text-xs text-muted",
+      "data-testid": "archive-sha256-readout",
+      "data-truncate-ok": "true",
+      title: "SHA-256 digest of the archive file",
+      text: "SHA-256: not computed"
+    });
+
+    var expectedHashInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm font-mono",
+      "data-testid": "archive-inspect-expected-sha",
+      placeholder: "Expected SHA-256 digest...",
+      "aria-label": "Expected SHA-256",
+      title: "Expected SHA-256"
+    });
+
+    var verifyHashBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "archive-verify-sha-btn",
+      type: "button",
+      onClick: function () {
+        clearError();
+        if (!globalInspectPath) {
+          showError("Select an archive first.");
+          return;
+        }
+        var expected = expectedHashInput.value.trim();
+        if (!expected) {
+          showError("Enter an expected SHA-256 digest to compare.");
+          return;
+        }
+        window.FOSS.api("archive_verify_sha256", {
+          archive_path: globalInspectPath,
+          expected_sha256: expected
+        }).then(function (res) {
+          digestReadout.textContent = "SHA-256: " + res.actual;
+          digestReadout.setAttribute("title", res.actual);
+          if (res.valid) {
+            statusBar.textContent = "SHA-256 match: archive digest equals the expected value.";
+          } else {
+            showError("SHA-256 mismatch: archive digest differs from the expected value.");
+          }
+        }).catch(function (err) {
+          showError((err && err.message) || String(err));
+        });
+      }
+    }, [window.FOSS.icons.el("shield", 14), window.FOSS.dom.el("span", { text: "Verify SHA-256" })]);
 
     var filterInput = window.FOSS.dom.el("input", {
       type: "text",
@@ -781,10 +863,10 @@ window.FOSS = window.FOSS || {};
           return;
         }
         var targetFmt = convertTargetSelect.value;
-        var ext = targetFmt.indexOf("tar.") === 0 ? "." + targetFmt : "." + targetFmt;
         window.FOSS.api("select_save_path", {
           title: "Select Converted Archive Location",
-          default_name: "converted" + ext
+          default_name: "converted",
+          file_types: archiveFileTypes(targetFmt)
         }).then(function (res) {
           if (res && res.path) {
             statusBar.textContent = "Converting archive format...";
@@ -819,6 +901,11 @@ window.FOSS = window.FOSS || {};
           convertBtn
         ])
       ]),
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap" }, [
+        expectedHashInput,
+        verifyHashBtn
+      ]),
+      digestReadout,
       tableHost
     ]);
 
@@ -840,6 +927,10 @@ window.FOSS = window.FOSS || {};
     category: "Utilities",
     icon: "archive",
     workbench: true,
+    defaults: [
+      { key: "format", label: "Default archive format", type: "select", options: ["zip", "tar.gz"], default: "zip" },
+      { key: "level", label: "Default compression level", type: "number", min: 0, max: 9, step: 1, default: 6 }
+    ],
     onFiles: function (paths) {
       if (!paths || paths.length === 0) return;
       var first = paths[0];

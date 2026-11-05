@@ -84,6 +84,17 @@ class NetworkMonitorConnectionMonitorTests(NetworkMonitorSqliteMemoryTestCase):
 
         self.assertFalse(second.is_new_destination)
 
+    def test_poll_reports_is_known_flag_and_unmark(self) -> None:
+        with patch("app.features.network_monitor.monitor.psutil.net_connections", return_value=[_make_conn()]):
+            with patch("app.features.network_monitor.monitor.psutil.Process", side_effect=FakeProcess):
+                with patch.object(self.monitor.resolver, "resolve", return_value=None):
+                    first = self.monitor.poll()[0]
+                    self.assertFalse(first.is_known)
+                    db.mark_destination_known(self.conn, "8.8.8.8", known=True)
+                    self.assertTrue(self.monitor.poll()[0].is_known)
+                    db.mark_destination_known(self.conn, "8.8.8.8", known=False)
+                    self.assertFalse(self.monitor.poll()[0].is_known)
+
     def test_stale_connection_keys_are_forgotten(self) -> None:
         with patch("app.features.network_monitor.monitor.psutil.Process", side_effect=FakeProcess):
             with patch.object(self.monitor.resolver, "resolve", return_value=None):

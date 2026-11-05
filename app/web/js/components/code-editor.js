@@ -58,8 +58,7 @@ window.FOSS.components = window.FOSS.components || {};
     }, [copyBtn, clearBtn]);
 
     var header = window.FOSS.dom.el("div", {
-      className: "row-between",
-      style: undefined
+      className: "row-between code-editor-head"
     }, [
       opts.title ? window.FOSS.dom.el("span", { className: "card-title", text: opts.title }) : window.FOSS.dom.el("span", {}),
       toolbar

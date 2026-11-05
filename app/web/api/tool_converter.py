@@ -12,7 +12,9 @@ import trimesh
 import yaml
 
 from app.features.converter.ops import (
+    BatchConversionItem,
     available_targets,
+    batch_convert_files,
     conversion_summary,
     convert_file,
     export_enex,
@@ -30,6 +32,8 @@ EXT_DOCS = {".xps", ".oxps", ".cbz", ".cbr", ".rtf", ".html", ".htm", ".rst"}
 EXT_SUBS = {".srt", ".vtt"}
 EXT_PLAYLISTS = {".m3u", ".m3u8"}
 EXT_FONTS = {".ttx"}
+EXT_RASTER_QUALITY = {".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff", ".gif"}
+EXT_TEXT = {".txt", ".text", ".md", ".markdown"}
 
 
 def _parse_data_to_rows(file_path: str, ext: str) -> list[dict[str, Any]]:
@@ -100,6 +104,21 @@ def _write_data_rows(rows: list[dict[str, Any]], out_path: str, target_fmt: str)
     return out_path
 
 
+def _uses_internal_route(file_path: str, target_format: str) -> bool:
+    # True when the direct dispatch in _convert_single_internal handles this pair.
+    ext = os.path.splitext(file_path)[1].lower()
+    target_fmt = target_format.strip().upper()
+    if ext in EXT_IMAGES or target_fmt == "ICO":
+        return True
+    if ext in EXT_RASTER_QUALITY and target_fmt in ("JPEG", "WEBP"):
+        return True
+    if ext in EXT_MODELS or target_fmt in ("GLTF", "GLB", "3MF", "OFF"):
+        return True
+    if ext in EXT_DATA or target_fmt in ("TSV", "NDJSON"):
+        return True
+    return ext in EXT_TEXT or ext in EXT_DOCS
+
+
 def _convert_single_internal(
     file_path: str,
     target_format: str,
@@ -133,7 +152,7 @@ def _convert_single_internal(
             out_ext = f".{target_fmt.lower()}"
         target_path = str(Path(output_dir) / f"{stem}{out_ext}")
 
-    if ext in EXT_IMAGES or target_fmt in ("ICO",):
+    if ext in EXT_IMAGES or target_fmt == "ICO" or (ext in EXT_RASTER_QUALITY and target_fmt in ("JPEG", "WEBP")):
         try:
             img = Image.open(file_path)
             if target_fmt == "PDF":
@@ -142,6 +161,8 @@ def _convert_single_internal(
                 img.resize((128, 128)).save(target_path, "ICO")
             elif target_fmt == "JPEG":
                 img.convert("RGB").save(target_path, "JPEG", quality=quality)
+            elif target_fmt == "WEBP":
+                img.save(target_path, "WEBP", quality=quality)
             elif target_fmt in ("TXT", "MD", "PDF (SEARCHABLE)", "PDF (Searchable)"):
                 if target_fmt in ("PDF (SEARCHABLE)", "PDF (Searchable)"):
                     ocr_ops.create_searchable_pdf(file_path, target_path, dpi=dpi)
@@ -347,6 +368,10 @@ class ConverterApiMixin:
             quality=quality,
         )
         res_path = created_files[0] if created_files else str(out_p or file_path)
+        if out_p and len(created_files) == 1 and os.path.abspath(res_path) != os.path.abspath(str(out_p)):
+            os.replace(res_path, str(out_p))
+            res_path = str(out_p)
+            created_files = [res_path]
         return ok(output_path=res_path, files=created_files)
 
     @api_method
@@ -356,7 +381,7 @@ class ConverterApiMixin:
 
     @api_method
     def converter_batch_convert(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Batch convert list of files to respective target formats.
+        # Batch convert files, routing standard pairs through batch_convert_files.
         require(params, "items")
         raw_items = list(params["items"])
         out_dir = str(params.get("output_dir", "")).strip()
@@ -369,32 +394,41 @@ class ConverterApiMixin:
             out_dir = str(Path(first_path).parent / "converted") if first_path else "."
 
         os.makedirs(out_dir, exist_ok=True)
-        results: list[dict[str, Any]] = []
-        succeeded = 0
-        failed = 0
+        results: list[dict[str, Any]] = [{} for _ in raw_items]
+        grouped: dict[str, list[tuple[int, BatchConversionItem]]] = {}
 
-        for item in raw_items:
+        for idx, item in enumerate(raw_items):
             in_p = str(item.get("path") or item.get("input_path") or item.get("source_path", ""))
             tgt_fmt = str(item.get("target_format", ""))
             rel_dir = str(item.get("rel_dir", "")).strip()
             item_out_dir = str(Path(out_dir) / rel_dir) if (preserve_tree and rel_dir) else out_dir
 
-            try:
-                created = _convert_single_internal(
-                    in_p,
-                    tgt_fmt,
-                    item_out_dir,
-                    output_stem=item.get("output_stem"),
-                    dpi=dpi,
-                    quality=quality,
-                )
-                res_path = created[0] if created else ""
-                results.append({"path": in_p, "output_path": res_path, "ok": True, "error": None})
-                succeeded += 1
-            except Exception as exc:
-                results.append({"path": in_p, "output_path": "", "ok": False, "error": str(exc)})
-                failed += 1
+            if _uses_internal_route(in_p, tgt_fmt):
+                try:
+                    created = _convert_single_internal(
+                        in_p, tgt_fmt, item_out_dir, output_stem=item.get("output_stem"), dpi=dpi, quality=quality
+                    )
+                    results[idx] = {"path": in_p, "output_path": created[0] if created else "", "ok": True, "error": None}
+                except Exception as exc:
+                    results[idx] = {"path": in_p, "output_path": "", "ok": False, "error": str(exc)}
+                continue
 
+            batch_item = BatchConversionItem(input_path=in_p, target_format=tgt_fmt, output_stem=item.get("output_stem"))
+            grouped.setdefault(item_out_dir, []).append((idx, batch_item))
+
+        for group_dir, pairs in grouped.items():
+            finished = batch_convert_files([pair[1] for pair in pairs], group_dir, dpi=dpi)
+            for (idx, _), done_item in zip(pairs, finished):
+                is_done = done_item.status == "done"
+                results[idx] = {
+                    "path": done_item.input_path,
+                    "output_path": done_item.output_paths[0] if done_item.output_paths else "",
+                    "ok": is_done,
+                    "error": done_item.error,
+                }
+
+        succeeded = sum(1 for res_row in results if res_row.get("ok"))
+        failed = len(results) - succeeded
         summary = f"Converted {succeeded} file(s), {failed} failed"
         return ok(results=results, succeeded=succeeded, failed=failed, summary=summary)
 

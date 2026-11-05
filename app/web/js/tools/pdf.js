@@ -7,6 +7,20 @@ window.FOSS = window.FOSS || {};
   var selectedPageIds = new Set();
   var undoStack = [];
   var idCounter = 1;
+  var dragState = null;
+
+  function pdfDefault(key, fallback) {
+    return window.FOSS.toolDefaults.get("pdf", key, fallback);
+  }
+
+  function rotationStep() {
+    return parseInt(pdfDefault("rotation_step", "90"), 10) || 90;
+  }
+
+  function stemOf(filePath) {
+    var name = String(filePath || "").split(/[\\/]/).pop();
+    return name.replace(/\.[^.]*$/, "");
+  }
 
   function pushUndo() {
     undoStack.push(JSON.stringify(workspaceItems));
@@ -49,7 +63,7 @@ window.FOSS = window.FOSS || {};
           className: "btn btn-primary",
           "data-testid": "pdf-add-files-btn",
           onclick: function () {
-            window.FOSS.api("select_files", { title: "Select PDF Documents", file_types: [{ name: "PDF", extensions: ["pdf"] }] })
+            window.FOSS.api("select_files", { title: "Select PDF Documents", file_types: ["pdf"] })
               .then(function (res) {
                 var pList = (res && (res.file_paths || res.paths)) || [];
                 if (pList.length > 0) {
@@ -190,9 +204,9 @@ window.FOSS = window.FOSS || {};
         window.FOSS.dom.el("button", {
           className: "btn btn-ghost",
           "data-testid": "pdf-rotate-ccw-btn",
-          title: "Rotate selected pages 90 degrees CCW",
+          title: "Rotate selected pages " + rotationStep() + " degrees CCW",
           onclick: function () {
-            rotateSelected(-90);
+            rotateSelected(-rotationStep());
           }
         }, [
           window.FOSS.icons.el("rotate-ccw", 14),
@@ -201,9 +215,9 @@ window.FOSS = window.FOSS || {};
         window.FOSS.dom.el("button", {
           className: "btn btn-ghost",
           "data-testid": "pdf-rotate-cw-btn",
-          title: "Rotate selected pages 90 degrees CW",
+          title: "Rotate selected pages " + rotationStep() + " degrees CW",
           onclick: function () {
-            rotateSelected(90);
+            rotateSelected(rotationStep());
           }
         }, [
           window.FOSS.icons.el("rotate-cw", 14),
@@ -216,19 +230,26 @@ window.FOSS = window.FOSS || {};
           onclick: function () {
             if (selectedPageIds.size === 0) return;
             pushUndo();
+            var withClones = [];
             workspaceItems.forEach(function (item) {
               if (item.kind === "group") {
                 var updated = [];
                 (item.pages || []).forEach(function (page) {
                   updated.push(page);
                   if (selectedPageIds.has(page.id)) {
-                    var clone = Object.assign({}, page, { id: "pg_" + (idCounter++) });
-                    updated.push(clone);
+                    updated.push(Object.assign({}, page, { id: "pg_" + (idCounter++) }));
                   }
                 });
                 item.pages = updated;
+                withClones.push(item);
+              } else {
+                withClones.push(item);
+                if (selectedPageIds.has(item.id)) {
+                  withClones.push(Object.assign({}, item, { id: "pg_" + (idCounter++) }));
+                }
               }
             });
+            workspaceItems = withClones;
             renderWorkspace();
           }
         }, [
@@ -279,7 +300,28 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "text-xs text-muted", "data-testid": "pdf-merge-status", text: "Ready" })
     ]);
 
-    var workspaceArea = window.FOSS.dom.el("div", { className: "pdf-workspace", style: "min-height: 24rem; flex: 1 1 0%;" });
+    var workspaceArea = window.FOSS.dom.el("div", { className: "pdf-workspace", "data-testid": "pdf-workspace" });
+
+    workspaceArea.ondragover = function (e) {
+      if (dragState) e.preventDefault();
+    };
+    workspaceArea.ondrop = function (e) {
+      e.preventDefault();
+      if (!dragState) return;
+      var data = dragState;
+      dragState = null;
+      if (data.type === "group") {
+        var lastItem = workspaceItems[workspaceItems.length - 1];
+        if (lastItem) moveTopLevelItem(data.id, lastItem.id, "after");
+      } else if (data.type === "page") {
+        pushUndo();
+        var movedPage = removePageById(data.id);
+        if (movedPage) {
+          workspaceItems.push(movedPage);
+          renderWorkspace();
+        }
+      }
+    };
 
     function rotateSelected(degrees) {
       pushUndo();
@@ -295,6 +337,20 @@ window.FOSS = window.FOSS || {};
         page.rotation = ((page.rotation || 0) + degrees + 360) % 360;
       });
       renderWorkspace();
+    }
+
+    function rotateGroup(group, degrees) {
+      pushUndo();
+      (group.pages || []).forEach(function (page) {
+        page.rotation = ((page.rotation || 0) + degrees + 360) % 360;
+      });
+      renderWorkspace();
+    }
+
+    function dropEdge(e, el, axis) {
+      var rect = el.getBoundingClientRect();
+      if (axis === "y") return e.clientY > rect.top + rect.height / 2 ? "after" : "before";
+      return e.clientX > rect.left + rect.width / 2 ? "after" : "before";
     }
 
     function addSourcePdfs(paths) {
@@ -321,7 +377,7 @@ window.FOSS = window.FOSS || {};
               sourceId: sourceId,
               sourceName: fileName,
               pageNum: t.page,
-              rotation: t.rotation || 0,
+              rotation: 0,
               thumbUrl: t.data_url
             };
           });
@@ -329,7 +385,7 @@ window.FOSS = window.FOSS || {};
             kind: "group",
             id: "grp_" + (idCounter++),
             name: stem,
-            collapsed: pageItems.length > 12,
+            collapsed: pdfDefault("group_behavior", "expanded") === "collapsed",
             pages: pageItems
           };
         });
@@ -360,7 +416,7 @@ window.FOSS = window.FOSS || {};
           onclick: function () {
             window.FOSS.api("select_files", { title: "Select PDF Documents", file_types: ["pdf"] })
               .then(function (res) {
-                if (res && res.file_paths) addSourcePdfs(res.file_paths);
+                if (res && res.file_paths && res.file_paths.length > 0) addSourcePdfs(res.file_paths);
               });
           }
         }, [
@@ -387,33 +443,57 @@ window.FOSS = window.FOSS || {};
     function renderGroupCard(group, groupIndex, getGlobalPageNum) {
       var card = window.FOSS.dom.el("div", {
         className: "pdf-group-card" + (group.collapsed ? " collapsed" : ""),
-        "data-testid": "pdf-group-" + groupIndex,
-        draggable: "true"
+        "data-testid": "pdf-group-" + groupIndex
       });
 
+      function clearGroupMarks() {
+        card.classList.remove("pdf-drop-into", "pdf-drop-before", "pdf-drop-after");
+      }
+
       card.ondragstart = function (e) {
-        e.dataTransfer.setData("application/json", JSON.stringify({ type: "group", id: group.id }));
+        if (card.getAttribute("draggable") !== "true") return;
+        dragState = { type: "group", id: group.id };
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("application/json", JSON.stringify(dragState));
+      };
+      card.ondragend = function () {
+        card.setAttribute("draggable", "false");
+        dragState = null;
       };
       card.ondragover = function (e) {
         e.preventDefault();
-        card.classList.add("pdf-drop-into");
+        clearGroupMarks();
+        if (dragState && dragState.type === "group") {
+          card.classList.add(dropEdge(e, card, "y") === "after" ? "pdf-drop-after" : "pdf-drop-before");
+        } else {
+          card.classList.add("pdf-drop-into");
+        }
       };
-      card.ondragleave = function () {
-        card.classList.remove("pdf-drop-into");
-      };
+      card.ondragleave = clearGroupMarks;
       card.ondrop = function (e) {
         e.preventDefault();
-        card.classList.remove("pdf-drop-into");
+        var edge = dropEdge(e, card, "y");
+        clearGroupMarks();
         try {
           var data = JSON.parse(e.dataTransfer.getData("application/json"));
-          handleDropOntoGroup(data, group);
+          handleDropOntoGroup(data, group, edge);
         } catch (err) {}
       };
 
       var header = window.FOSS.dom.el("div", { className: "pdf-group-header" });
       var titleWrap = window.FOSS.dom.el("div", { className: "pdf-group-title-wrap" });
 
-      var grip = window.FOSS.icons.el("grip", 16);
+      var grip = window.FOSS.dom.el("span", {
+        className: "pdf-group-grip",
+        title: "Drag to reorder group",
+        "aria-label": "Drag to reorder group",
+        onmousedown: function () {
+          card.setAttribute("draggable", "true");
+        },
+        onmouseup: function () {
+          card.setAttribute("draggable", "false");
+        }
+      }, [window.FOSS.icons.el("grip", 16)]);
 
       var collapseBtn = window.FOSS.dom.el("button", {
         className: "btn btn-ghost btn-icon",
@@ -468,8 +548,26 @@ window.FOSS = window.FOSS || {};
 
       var actionsWrap = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
         window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm btn-icon",
+          "data-testid": "pdf-group-rot-ccw-" + groupIndex,
+          "aria-label": "Rotate group counter-clockwise",
+          title: "Rotate all pages in group " + rotationStep() + " degrees CCW",
+          onclick: function () {
+            rotateGroup(group, -rotationStep());
+          }
+        }, [window.FOSS.icons.el("rotate-ccw", 12)]),
+        window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm btn-icon",
+          "data-testid": "pdf-group-rot-cw-" + groupIndex,
+          "aria-label": "Rotate group clockwise",
+          title: "Rotate all pages in group " + rotationStep() + " degrees CW",
+          onclick: function () {
+            rotateGroup(group, rotationStep());
+          }
+        }, [window.FOSS.icons.el("rotate-cw", 12)]),
+        window.FOSS.dom.el("button", {
           className: "btn btn-ghost btn-sm",
-          "data-testid": "pdf-ungroup-btn",
+          "data-testid": "pdf-group-ungroup-" + groupIndex,
           title: "Ungroup into Pages",
           onclick: function () {
             pushUndo();
@@ -521,25 +619,37 @@ window.FOSS = window.FOSS || {};
       var titleEl = window.FOSS.dom.el("h3", { className: "card-title", text: "Page Viewer - " + page.sourceName + " p." + page.pageNum });
 
       var img = window.FOSS.dom.el("img", {
-        src: page.thumbUrl || "",
-        style: "max-width: 100%; max-height: 60vh; object-fit: contain; transition: transform 0.2s;"
+        className: "pdf-viewer-img",
+        "data-testid": "pdf-viewer-img",
+        alt: "Page " + page.pageNum,
+        src: page.thumbUrl || ""
       });
       img.style.transform = "rotate(" + (page.rotation || 0) + "deg)";
+      var sourceInfo = sources[page.sourceId];
+      if (sourceInfo) {
+        window.FOSS.api("pdf_render_page", {
+          file_path: sourceInfo.path,
+          page_number: page.pageNum - 1,
+          dpi: parseInt(pdfDefault("output_dpi", 150), 10) || 150
+        }).then(function (res) {
+          if (res && res.data_url) img.src = res.data_url;
+        }).catch(function () {});
+      }
 
       var rotateBtn = window.FOSS.dom.el("button", {
         className: "btn btn-secondary",
-        "data-testid": "viewer-rotate-btn",
+        "data-testid": "pdf-viewer-rotate-btn",
         onclick: function () {
           pushUndo();
-          page.rotation = ((page.rotation || 0) + 90 + 360) % 360;
+          page.rotation = ((page.rotation || 0) + rotationStep() + 360) % 360;
           img.style.transform = "rotate(" + page.rotation + "deg)";
           renderWorkspace();
         }
-      }, [window.FOSS.icons.el("rotate-cw", 14), window.FOSS.dom.el("span", { text: "Rotate 90 deg" })]);
+      }, [window.FOSS.icons.el("rotate-cw", 14), window.FOSS.dom.el("span", { text: "Rotate " + rotationStep() + " deg" })]);
 
       var duplicateBtn = window.FOSS.dom.el("button", {
         className: "btn btn-secondary",
-        "data-testid": "viewer-duplicate-btn",
+        "data-testid": "pdf-viewer-duplicate-btn",
         onclick: function () {
           pushUndo();
           var clone = Object.assign({}, page, { id: "pg_" + (idCounter++) });
@@ -556,7 +666,7 @@ window.FOSS = window.FOSS || {};
 
       var deleteBtn = window.FOSS.dom.el("button", {
         className: "btn btn-danger",
-        "data-testid": "viewer-delete-btn",
+        "data-testid": "pdf-viewer-delete-btn",
         onclick: function () {
           pushUndo();
           selectedPageIds.delete(page.id);
@@ -580,11 +690,10 @@ window.FOSS = window.FOSS || {};
         rotateBtn, duplicateBtn, deleteBtn, closeBtn
       ]);
 
-      var contentEl = window.FOSS.dom.el("div", { style: "display: flex; justify-content: center; align-items: center; padding: var(--space-3); background: var(--bg-muted); border-radius: var(--radius);" }, [img]);
+      var contentEl = window.FOSS.dom.el("div", { className: "pdf-viewer-stage" }, [img]);
 
       var modalEl = window.FOSS.dom.el("div", {
-        className: "modal",
-        style: "width: 80vw; max-width: 800px;",
+        className: "modal pdf-viewer-modal",
         role: "dialog",
         "aria-modal": "true"
       }, [titleEl, contentEl, actionsEl]);
@@ -617,17 +726,34 @@ window.FOSS = window.FOSS || {};
         draggable: "true"
       });
 
+      function clearPageMarks() {
+        card.classList.remove("pdf-drop-before", "pdf-drop-after");
+      }
+
       card.ondragstart = function (e) {
-        e.dataTransfer.setData("application/json", JSON.stringify({ type: "page", id: page.id }));
+        e.stopPropagation();
+        dragState = { type: "page", id: page.id };
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("application/json", JSON.stringify(dragState));
+      };
+      card.ondragend = function () {
+        dragState = null;
       };
       card.ondragover = function (e) {
         e.preventDefault();
+        e.stopPropagation();
+        clearPageMarks();
+        card.classList.add(dropEdge(e, card, "x") === "after" ? "pdf-drop-after" : "pdf-drop-before");
       };
+      card.ondragleave = clearPageMarks;
       card.ondrop = function (e) {
         e.preventDefault();
+        e.stopPropagation();
+        var edge = dropEdge(e, card, "x");
+        clearPageMarks();
         try {
           var data = JSON.parse(e.dataTransfer.getData("application/json"));
-          handleDropOntoPage(data, page, parentGroup);
+          handleDropOntoPage(data, page, parentGroup, edge);
         } catch (err) {}
       };
 
@@ -678,11 +804,11 @@ window.FOSS = window.FOSS || {};
           className: "btn btn-ghost btn-icon btn-sm",
           "data-testid": "pdf-card-ccw-" + (globalIdx - 1),
           "aria-label": "Rotate counter-clockwise",
-          title: "Rotate CCW",
+          title: "Rotate " + rotationStep() + " deg counter-clockwise",
           onclick: function (e) {
             e.stopPropagation();
             pushUndo();
-            page.rotation = ((page.rotation || 0) - 90 + 360) % 360;
+            page.rotation = ((page.rotation || 0) - rotationStep() + 360) % 360;
             renderWorkspace();
           }
         }, [window.FOSS.icons.el("rotate-ccw", 12)]),
@@ -691,11 +817,11 @@ window.FOSS = window.FOSS || {};
           "data-testid": "pdf-page-rotate",
           "data-card-cw": String(globalIdx - 1),
           "aria-label": "Rotate clockwise",
-          title: "Rotate 90 deg clockwise",
+          title: "Rotate " + rotationStep() + " deg clockwise",
           onclick: function (e) {
             e.stopPropagation();
             pushUndo();
-            page.rotation = ((page.rotation || 0) + 90 + 360) % 360;
+            page.rotation = ((page.rotation || 0) + rotationStep() + 360) % 360;
             renderWorkspace();
           }
         }, [window.FOSS.icons.el("rotate-cw", 12)]),
@@ -757,8 +883,24 @@ window.FOSS = window.FOSS || {};
       return card;
     }
 
-    function handleDropOntoGroup(data, targetGroup) {
-      if (data.type === "page") {
+    function moveTopLevelItem(itemId, targetId, edge) {
+      var fromIdx = workspaceItems.findIndex(function (it) { return it.id === itemId; });
+      if (fromIdx < 0 || itemId === targetId) return;
+      pushUndo();
+      var moved = workspaceItems.splice(fromIdx, 1)[0];
+      var toIdx = workspaceItems.findIndex(function (it) { return it.id === targetId; });
+      if (toIdx < 0) {
+        workspaceItems.push(moved);
+      } else {
+        workspaceItems.splice(edge === "after" ? toIdx + 1 : toIdx, 0, moved);
+      }
+      renderWorkspace();
+    }
+
+    function handleDropOntoGroup(data, targetGroup, edge) {
+      if (data.type === "group") {
+        moveTopLevelItem(data.id, targetGroup.id, edge);
+      } else if (data.type === "page") {
         pushUndo();
         var movedPage = removePageById(data.id);
         if (movedPage) {
@@ -768,18 +910,16 @@ window.FOSS = window.FOSS || {};
       }
     }
 
-    function handleDropOntoPage(data, targetPage, targetGroup) {
-      if (data.type === "page" && data.id !== targetPage.id) {
+    function handleDropOntoPage(data, targetPage, targetGroup, edge) {
+      if (data.type === "group") {
+        moveTopLevelItem(data.id, targetGroup ? targetGroup.id : targetPage.id, edge);
+      } else if (data.type === "page" && data.id !== targetPage.id) {
         pushUndo();
         var movedPage = removePageById(data.id);
         if (movedPage) {
-          if (targetGroup) {
-            var targetIdx = targetGroup.pages.indexOf(targetPage);
-            targetGroup.pages.splice(targetIdx, 0, movedPage);
-          } else {
-            var gIdx = workspaceItems.indexOf(targetPage);
-            workspaceItems.splice(gIdx, 0, movedPage);
-          }
+          var siblings = targetGroup ? targetGroup.pages : workspaceItems;
+          var targetIdx = siblings.indexOf(targetPage);
+          siblings.splice(edge === "after" ? targetIdx + 1 : targetIdx, 0, movedPage);
           renderWorkspace();
         }
       }
@@ -914,15 +1054,11 @@ window.FOSS = window.FOSS || {};
 
       window.FOSS.api("select_save_path", {
         title: "Save Combined PDF",
-        default_name: "combined.pdf",
-        filter: "pdf",
-        file_types: [{ name: "PDF", extensions: ["pdf"] }]
+        default_name: "combined",
+        file_types: [{ name: "PDF Document (*.pdf)", extensions: ["pdf"] }]
       }).then(function (res) {
         var savePath = res && (res.path || res.file_path || res.output_path);
         if (!savePath) return;
-        if (!savePath.toLowerCase().endsWith(".pdf")) {
-          savePath = savePath + ".pdf";
-        }
         var pageNumbersConfig = stampNumbersCheck && stampNumbersCheck.checked ? {
           enabled: true,
           format: formatSelect.value,
@@ -1066,7 +1202,7 @@ window.FOSS = window.FOSS || {};
 
     var modeSegmented = window.FOSS.components.segmented({
       testid: "pdf-split-mode",
-      options: [
+      items: [
         { id: "ranges", label: "By Page Ranges / List" },
         { id: "every_n", label: "Every N Pages" }
       ],
@@ -1242,8 +1378,8 @@ window.FOSS = window.FOSS || {};
         }
         window.FOSS.api("select_save_path", {
           title: "Save Encrypted PDF",
-          default_filename: protectFile.replace(/\.pdf$/i, "_protected.pdf"),
-          file_types: [["PDF Documents", "*.pdf"]]
+          default_name: stemOf(protectFile) + "_protected",
+          file_types: [{ name: "PDF Document (*.pdf)", extensions: ["pdf"] }]
         }).then(function (res) {
           if (!res || !res.file_path) return;
           return window.FOSS.api("pdf_protect", {
@@ -1308,8 +1444,8 @@ window.FOSS = window.FOSS || {};
         }
         window.FOSS.api("select_save_path", {
           title: "Save Unlocked PDF",
-          default_filename: unlockFile.replace(/\.pdf$/i, "_unlocked.pdf"),
-          file_types: [["PDF Documents", "*.pdf"]]
+          default_name: stemOf(unlockFile) + "_unlocked",
+          file_types: [{ name: "PDF Document (*.pdf)", extensions: ["pdf"] }]
         }).then(function (res) {
           if (!res || !res.file_path) return;
           return window.FOSS.api("pdf_unlock", {
@@ -1358,8 +1494,41 @@ window.FOSS = window.FOSS || {};
     title: "PDF Tools",
     navName: "PDF",
     category: "Documents",
-    icon: "file-text",
+    icon: "pdf",
     workbench: true,
+    defaults: [
+      {
+        key: "group_behavior",
+        label: "Document groups on import",
+        type: "select",
+        options: [
+          { value: "expanded", label: "Expanded" },
+          { value: "collapsed", label: "Collapsed" }
+        ],
+        default: "expanded"
+      },
+      {
+        key: "rotation_step",
+        label: "Rotation step",
+        type: "select",
+        options: [
+          { value: "90", label: "90 deg" },
+          { value: "180", label: "180 deg" },
+          { value: "270", label: "270 deg" }
+        ],
+        default: "90"
+      },
+      {
+        key: "output_dpi",
+        label: "Page viewer output DPI",
+        type: "number",
+        min: 72,
+        max: 600,
+        step: 1,
+        default: 150,
+        hint: "Resolution used when rendering a page in the viewer."
+      }
+    ],
     description: "Combine, organize, split, and protect PDF documents with visual page grid.",
     tabs: [
       { id: "merge", label: "Combine & Organize", render: renderCombineOrganize },

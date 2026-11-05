@@ -9,7 +9,7 @@ def calc_clear_overlays(page: Page) -> None:
         "if (window.FOSS && window.FOSS.tooltips) window.FOSS.tooltips.hide(); "
         "var t = document.getElementById('tooltip-host'); if (t) t.innerHTML = ''; "
         "var h = document.getElementById('toast-host'); if (h) h.innerHTML = ''; "
-        "document.querySelectorAll('.tool-panel-container, #view-root, .workbench, .page, .scroll-main').forEach(function (el) { el.scrollTop = 0; el.scrollLeft = 0; });"
+        "document.querySelectorAll('*').forEach(function (el) { if (el.scrollTop) el.scrollTop = 0; if (el.scrollLeft) el.scrollLeft = 0; });"
     )
 
 
@@ -20,6 +20,10 @@ def scenario_loaded(page: Page, fixtures: dict[str, str], api: Any) -> None:
     expect(status).to_have_text("Ready")
     lst = page.locator("[data-testid='collage-images-list']")
     expect(lst).to_contain_text("No images added")
+    expect(page.locator("[data-testid='collage-defaults-btn']")).to_be_visible()
+    expect(page.locator("[data-testid='collage-columns-select']")).to_have_value("2")
+    expect(page.locator("[data-testid='collage-padding-input']")).to_have_value("12")
+    expect(page.locator("[data-testid='collage-bg-color']")).to_have_value("#ffffff")
     calc_clear_overlays(page)
 
 

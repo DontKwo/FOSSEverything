@@ -11,7 +11,7 @@ from app.features.metadata.ops import (
     inspect_metadata,
     metadata_support_report,
     save_edited_metadata,
-    strip_any_metadata,
+    strip_with_backup,
 )
 from app.web.api.result import api_method, ok, require
 
@@ -27,13 +27,13 @@ class MetadataApiMixin:
 
     @api_method
     def metadata_strip(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Remove all EXIF and identifying metadata fields from file.
+        # Remove identifying metadata from a file, optionally keeping a backup of the original.
         require(params, "file_path")
         file_path = str(params["file_path"])
         p = Path(file_path)
         out_path = str(params["output_path"]) if params.get("output_path") else str(p.parent / f"{p.stem}_clean{p.suffix}")
-        res = strip_any_metadata(file_path, out_path)
-        return ok(output_path=res["output_path"], removed_fields_count=res["removed_fields_count"])
+        res = strip_with_backup(file_path, out_path, backup=bool(params.get("backup", False)))
+        return ok(output_path=res["output_path"], removed_fields_count=res["removed_fields_count"], backup_path=res["backup_path"])
 
     @api_method
     def metadata_strip_any(self, params: dict[str, Any]) -> dict[str, Any]:

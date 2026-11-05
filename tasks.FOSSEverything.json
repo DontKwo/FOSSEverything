@@ -1,0 +1,602 @@
+[
+  {
+    "id": "FOSS-001",
+    "title": "Remove sidebar footer nav-settings button in router.js",
+    "prompt": "In app/web/js/core/router.js, remove the sidebar footer nav-settings button so Settings is accessed exclusively from the topbar gear icon.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-002",
+    "title": "Remove first-run welcome modal from app.js",
+    "prompt": "In app/web/js/app.js, remove the first-run welcome modal and showFirstRunWelcome invocation to streamline application startup.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-003",
+    "title": "Debounce zoom slider in settings.js",
+    "prompt": "In app/web/js/settings.js renderScaleCustomizer, add debouncing to the zoom/scale slider to eliminate jank during rapid adjustments.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-004",
+    "title": "Viewport containment CSS in layout.css",
+    "prompt": "In app/web/css/layout.css, ensure .app, .main, and .scroll-main have overflow-y: auto and min-height: 0 to guarantee strict viewport containment.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-005",
+    "title": "Sticky topbar styling in layout.css",
+    "prompt": "In app/web/css/layout.css, ensure the topbar header uses sticky positioning with z-index containment and proper border styling.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-006",
+    "title": "Drag-and-drop rewrite for sidebar customizer in settings.js",
+    "prompt": "In app/web/js/settings.js renderSidebarCustomizer, implement HTML5 drag-and-drop reordering for sidebar items per PLAN.md section 8.10.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-007",
+    "title": "Remove seen filter from router.js resolveSidebarLayout",
+    "prompt": "In app/web/js/core/router.js resolveSidebarLayout, remove the seen[it.id] deduplication filter to allow items in multiple custom categories.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-008",
+    "title": "Sync Home category filter chips with sidebar sections in home.js",
+    "prompt": "In app/web/js/home.js, dynamically generate home category filter chips from sidebar section configurations per PLAN.md section 8.13.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-009",
+    "title": "Interactive keybindings editor in settings.js",
+    "prompt": "In app/web/js/settings.js, implement renderKeybindings with interactive Rebind, Clear, and Reset buttons.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-010",
+    "title": "Unpack child.el in dom.js append child loop",
+    "prompt": "In app/web/js/core/dom.js, update the child appending loop to unpack child.el if child is an object wrapping an element per PLAN.md section 8.1.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-011",
+    "title": "Add window.FOSS.dom.append helper in dom.js",
+    "prompt": "In app/web/js/core/dom.js, export window.FOSS.dom.append(parent, child) helper handling both DOM elements and component wrapper objects.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-012",
+    "title": "Fix qualitySlider.el appendChild in converter.js",
+    "prompt": "In app/web/js/tools/converter.js, fix qualitySlider appending to access qualitySlider.el per PLAN.md section 8.2.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-013",
+    "title": "Add .code-editor-fill CSS class in tools.css",
+    "prompt": "In app/web/css/tools.css, add the .code-editor-fill class with flex: 1 1 auto, min-height: 0, height: 100% per PLAN.md section 4.2.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-014",
+    "title": "Enable fillHeight on code editors in data.js",
+    "prompt": "In app/web/js/tools/data.js, pass fillHeight: true to all code editor instances and ensure container has .code-editor-fill.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-015",
+    "title": "Disable canvas pointer-events during resizer drag in resizer.js",
+    "prompt": "In app/web/js/core/resizer.js, set pointer-events: none on canvases/iframes during splitter drag to prevent mouse capture loss.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-016",
+    "title": "PDF tool drag-and-drop card reordering in pdf.js",
+    "prompt": "In app/web/js/tools/pdf.js, replace Move Up/Down buttons with HTML5 drag-and-drop cards and add Document Group cards.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-017",
+    "title": "PDF tool page manipulation controls in pdf.js",
+    "prompt": "In app/web/js/tools/pdf.js, add Rotate 90 deg, Delete Page, and Duplicate Page actions to the page viewer.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-018",
+    "title": "Add force_reocr parameter to ocr/ops.py",
+    "prompt": "In app/features/ocr/ops.py, add force_reocr boolean parameter to create_searchable_pdf per PLAN.md section 8.14.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-019",
+    "title": "Add page range parsing in ocr/ops.py",
+    "prompt": "In app/features/ocr/ops.py, implement parse_page_selection(pages_str, total_pages) supporting ranges like 1-3, 5.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-020",
+    "title": "Add folder batch selection in ocr.js",
+    "prompt": "In app/web/js/tools/ocr.js, add an Add Folder button in batch OCR view to scan and queue all supported documents.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-021",
+    "title": "Expand preview canvas min-height in ocr.js",
+    "prompt": "In app/web/js/tools/ocr.js, ensure OCR preview canvas maintains a min-height of 24rem with smooth scaling.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-022",
+    "title": "Permanent split layout in markdown.js",
+    "prompt": "In app/web/js/tools/markdown.js, make the editor and preview side-by-side permanent, removing the single/split mode toggle.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-023",
+    "title": "Parser flavor selector in markdown.js",
+    "prompt": "In app/web/js/tools/markdown.js, add a dropdown selector for parser flavors (GFM, CommonMark, Strict).\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-024",
+    "title": "Rewrite export_docx in resume/ops.py",
+    "prompt": "In app/features/resume/ops.py, update export_docx with clean typography and section spacing per PLAN.md section 8.5.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-025",
+    "title": "Expand live preview width in resume.js",
+    "prompt": "In app/web/js/tools/resume.js, expand the live resume preview container max-width to 58rem with responsive padding.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-026",
+    "title": "Unified Rembg model directory in image/ops.py",
+    "prompt": "In app/features/image/ops.py, unify background removal model cache directory to ~/.u2net/ across all model variants.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-027",
+    "title": "Model selection card with download badges in images.js",
+    "prompt": "In app/web/js/tools/images.js, add Rembg model selection card with badges indicating Downloaded vs Needs Download.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-028",
+    "title": "Prompt select_save_path in collage.js",
+    "prompt": "In app/web/js/tools/collage.js, prompt the user with select_save_path before saving output instead of silent export per PLAN.md section 8.6.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-029",
+    "title": "Layer stack editor in collage.js",
+    "prompt": "In app/web/js/tools/collage.js, implement Bring to Front, Send to Back, and per-layer opacity sliders in the layer panel.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-030",
+    "title": "Flex wrap swatches in palette.js",
+    "prompt": "In app/web/js/tools/palette.js, replace rigid grid layout with row gap-2 flex-wrap for adaptive color swatch cards.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-031",
+    "title": "Color format copy buttons in palette.js",
+    "prompt": "In app/web/js/tools/palette.js, add quick one-click copy buttons for HEX, RGB, and HSL formats on each swatch.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-032",
+    "title": "Streamline 3D model tabs in model3d.js",
+    "prompt": "In app/web/js/tools/model3d.js, consolidate to 3 canonical tabs (View, Transform, Materials) per PLAN.md section 8.8.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-033",
+    "title": "Integrate scale inputs into Inspector in model3d.js",
+    "prompt": "In app/web/js/tools/model3d.js, integrate X/Y/Z scale and dimension readouts into the Inspector panel.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-034",
+    "title": "Model3D canvas pointer isolation during resize",
+    "prompt": "In app/web/js/tools/model3d.js, isolate Three.js canvas pointer events while adjusting sidebar panels.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-035",
+    "title": "Vertical player stack in media.js",
+    "prompt": "In app/web/js/tools/media.js, stack the media player viewport vertically above controls for wide aspect ratio playback.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-036",
+    "title": "Action cards with save path prompt in media.js",
+    "prompt": "In app/web/js/tools/media.js, add action cards for Trim, Extract Audio, and Transcribe with explicit save file dialogs.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-037",
+    "title": "Wrap track table with horizontal scroll in playlist.js",
+    "prompt": "In app/web/js/tools/playlist.js, wrap the playlist track table in .table-wrap.scroll-x to prevent column squishing.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-038",
+    "title": "Catch fetch errors with toasts in playlist.js",
+    "prompt": "In app/web/js/tools/playlist.js, add try-catch wrappers displaying toast notifications on metadata fetch failures.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-039",
+    "title": "Add Folder button in converter.js batch tab",
+    "prompt": "In app/web/js/tools/converter.js, add an Add Folder button to select and convert all files within a chosen directory.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-040",
+    "title": "DOCX/XLSX/PPTX format support in converter/ops.py",
+    "prompt": "In app/features/converter/ops.py, add office document conversion endpoints utilizing LibreOffice or headless pandoc when available.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-041",
+    "title": "Standardize compressor presets in compressor.js",
+    "prompt": "In app/web/js/tools/compressor.js, standardize compression preset buttons to Low, Medium, High with expected ratio hints.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-042",
+    "title": "Compression ratio readout in compressor.js",
+    "prompt": "In app/web/js/tools/compressor.js, display estimated and final byte savings and percentage reduction readouts.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-043",
+    "title": "Consolidate archive tool tabs in archive.js",
+    "prompt": "In app/web/js/tools/archive.js, restructure the interface to 3 primary tabs: Create Archive, Extract Archive, and Inspect Contents.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-044",
+    "title": "Visual rule blocks in renamer.js",
+    "prompt": "In app/web/js/tools/renamer.js, implement visual draggable rule blocks for Replace, Prefix, Suffix, Numbering, and Case.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-045",
+    "title": "Batch rename undo button in renamer.js",
+    "prompt": "In app/web/js/tools/renamer.js, add a prominent Undo Last Batch button restoring original filenames from the history log.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-046",
+    "title": "Metadata stripping for Office docs in metadata/ops.py",
+    "prompt": "In app/features/metadata/ops.py, add metadata sanitization for docx, xlsx, and pptx files per PLAN.md section 8.15.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-047",
+    "title": "Sanitized fields preview table in metadata.js",
+    "prompt": "In app/web/js/tools/metadata.js, display a side-by-side diff table of detected metadata versus sanitized output.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-048",
+    "title": "QR payload generator tab segments in qr.js",
+    "prompt": "In app/web/js/tools/qr.js, segment payload generator tabs into URL, Plain Text, Contact vCard, and WiFi Network.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-049",
+    "title": "1D barcode generation support in qr.js and qr/ops.py",
+    "prompt": "In app/web/js/tools/qr.js and app/features/qr/ops.py, add barcode generation for Code128 and EAN13 formats.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-050",
+    "title": "Classify connection trust in network_monitor/resolver.py",
+    "prompt": "In app/features/network_monitor/resolver.py, implement classify_connection_trust per PLAN.md section 8.9.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-051",
+    "title": "Display Trust Level column in network_monitor.js",
+    "prompt": "In app/web/js/tools/network_monitor.js, add Source Identity and Trust Level columns to the active connections table.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-052",
+    "title": "Top primary controls in unit_converter.js",
+    "prompt": "In app/web/js/tools/unit_converter.js, place category and unit selectors at the top of the view per PLAN.md section 8.7.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-053",
+    "title": "Remove Pint references from unit_converter.js",
+    "prompt": "In app/web/js/tools/unit_converter.js, replace all user-facing Pint library mentions with clean unit labels.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-054",
+    "title": "Enable fillHeight on code editors in data.js",
+    "prompt": "In app/web/js/tools/data.js, pass fillHeight: true and add .code-editor-fill container class to JSON and YAML editors.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-055",
+    "title": "Add to_pascal_case helper in text_tools/ops.py",
+    "prompt": "In app/features/text_tools/ops.py, implement to_pascal_case function per PLAN.md section 8.4.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-056",
+    "title": "Handle pascal case in tool_text_tools.py",
+    "prompt": "In app/api/tool_text_tools.py text_tools_case, add handler for pascal and pascalcase transformations.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-057",
+    "title": "Fill height and save path prompt in encoding.js",
+    "prompt": "In app/web/js/tools/encoding.js, enable fillHeight: true on input/output editors and prompt select_save_path on file save.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-058",
+    "title": "UI scenario test for PDF tool",
+    "prompt": "Create or update tests/ui/scenarios/test_pdf_walkthrough.py covering complete navigation, interaction, and rendering of pdf.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-059",
+    "title": "UI scenario test for OCR tool",
+    "prompt": "Create or update tests/ui/scenarios/test_ocr_walkthrough.py covering complete navigation, interaction, and rendering of ocr.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-060",
+    "title": "UI scenario test for Markdown tool",
+    "prompt": "Create or update tests/ui/scenarios/test_markdown_walkthrough.py covering complete navigation, interaction, and rendering of markdown.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-061",
+    "title": "UI scenario test for Resume builder",
+    "prompt": "Create or update tests/ui/scenarios/test_resume_walkthrough.py covering complete navigation, interaction, and rendering of resume.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-062",
+    "title": "UI scenario test for Image editor",
+    "prompt": "Create or update tests/ui/scenarios/test_images_walkthrough.py covering complete navigation, interaction, and rendering of images.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-063",
+    "title": "UI scenario test for Collage creator",
+    "prompt": "Create or update tests/ui/scenarios/test_collage_walkthrough.py covering complete navigation, interaction, and rendering of collage.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-064",
+    "title": "UI scenario test for Palette studio",
+    "prompt": "Create or update tests/ui/scenarios/test_palette_walkthrough.py covering complete navigation, interaction, and rendering of palette.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-065",
+    "title": "UI scenario test for 3D Model viewer",
+    "prompt": "Create or update tests/ui/scenarios/test_model3d_walkthrough.py covering complete navigation, interaction, and rendering of model3d.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-066",
+    "title": "UI scenario test for Media processor",
+    "prompt": "Create or update tests/ui/scenarios/test_media_walkthrough.py covering complete navigation, interaction, and rendering of media.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-067",
+    "title": "UI scenario test for Playlist manager",
+    "prompt": "Create or update tests/ui/scenarios/test_playlist_walkthrough.py covering complete navigation, interaction, and rendering of playlist.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-068",
+    "title": "UI scenario test for Universal converter",
+    "prompt": "Create or update tests/ui/scenarios/test_converter_walkthrough.py covering complete navigation, interaction, and rendering of converter.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-069",
+    "title": "UI scenario test for Compressor tool",
+    "prompt": "Create or update tests/ui/scenarios/test_compressor_walkthrough.py covering complete navigation, interaction, and rendering of compressor.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-070",
+    "title": "UI scenario test for Archive manager",
+    "prompt": "Create or update tests/ui/scenarios/test_archive_walkthrough.py covering complete navigation, interaction, and rendering of archive.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-071",
+    "title": "UI scenario test for Batch renamer",
+    "prompt": "Create or update tests/ui/scenarios/test_renamer_walkthrough.py covering complete navigation, interaction, and rendering of renamer.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-072",
+    "title": "UI scenario test for Metadata stripper",
+    "prompt": "Create or update tests/ui/scenarios/test_metadata_walkthrough.py covering complete navigation, interaction, and rendering of metadata.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-073",
+    "title": "UI scenario test for QR and barcode studio",
+    "prompt": "Create or update tests/ui/scenarios/test_qr_walkthrough.py covering complete navigation, interaction, and rendering of qr.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-074",
+    "title": "UI scenario test for Network monitor",
+    "prompt": "Create or update tests/ui/scenarios/test_network_monitor_walkthrough.py covering complete navigation, interaction, and rendering of network_monitor.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-075",
+    "title": "UI scenario test for Unit converter",
+    "prompt": "Create or update tests/ui/scenarios/test_unit_converter_walkthrough.py covering complete navigation, interaction, and rendering of unit_converter.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-076",
+    "title": "UI scenario test for Data studio",
+    "prompt": "Create or update tests/ui/scenarios/test_data_walkthrough.py covering complete navigation, interaction, and rendering of data.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-077",
+    "title": "UI scenario test for Text tools",
+    "prompt": "Create or update tests/ui/scenarios/test_text_tools_walkthrough.py covering complete navigation, interaction, and rendering of text_tools.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-078",
+    "title": "UI scenario test for Encoding studio",
+    "prompt": "Create or update tests/ui/scenarios/test_encoding_walkthrough.py covering complete navigation, interaction, and rendering of encoding.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-079",
+    "title": "Audit ops parity script validation",
+    "prompt": "In scripts/audit_ops_parity.py, verify ops parity verification succeeds against all registered tools without error.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-080",
+    "title": "Clean FOSSEverything.spec build configuration",
+    "prompt": "In FOSSEverything.spec, audit and ensure no references exist to deprecated hash or screenshot modules.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-081",
+    "title": "Auto-append file extension in base.py select_save_path",
+    "prompt": "In app/api/base.py select_save_path, ensure default file extension is automatically appended if omitted by user per PLAN.md section 8.3.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-082",
+    "title": "Zoom HUD overlay indicator in shortcuts.js",
+    "prompt": "In app/web/js/core/shortcuts.js, display a floating HUD pill with zoom percentage that fades out after 1.2 seconds on scale change.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-083",
+    "title": "Ctrl+Wheel dynamic zooming in shortcuts.js",
+    "prompt": "In app/web/js/core/shortcuts.js, add Ctrl+Wheel event listener on window to increment/decrement zoom scale smoothly.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-084",
+    "title": "Purge first-run welcome references in app.js",
+    "prompt": "In app/web/js/app.js, completely remove showFirstRunWelcome definitions and styles.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-085",
+    "title": "Update default favorites in router.js DEFAULT_SECTIONS",
+    "prompt": "In app/web/js/core/router.js DEFAULT_SECTIONS, set Favorites section first containing pdf, converter, and ocr per PLAN.md section 8.12.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-086",
+    "title": "Dynamic category filter sync in home.js",
+    "prompt": "In app/web/js/home.js, ensure category chips update reactively when sidebar sections are modified per PLAN.md section 8.13.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-087",
+    "title": "Page range OCR integration in ocr/ops.py",
+    "prompt": "In app/features/ocr/ops.py, connect parse_page_selection to create_searchable_pdf per PLAN.md section 8.14.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-088",
+    "title": "CSS layout full viewport containment",
+    "prompt": "In app/web/css/layout.css, set display: flex, flex-direction: column, height: 100vh, overflow: hidden on html/body per PLAN.md section 8.16.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-089",
+    "title": "Scrollable sidebar pane in tools.css for model3d",
+    "prompt": "In app/web/css/tools.css, ensure .model3d-sidebar-pane has overflow-y: auto and max-height: 100%.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-090",
+    "title": "Full keybinding table rendering in settings.js",
+    "prompt": "In app/web/js/settings.js, render full table of default keybindings with custom rebind action buttons.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-091",
+    "title": "Dynamic keymap dispatch in shortcuts.js",
+    "prompt": "In app/web/js/core/shortcuts.js, implement DEFAULT_KEYMAP dictionary and dynamic event dispatch per PLAN.md section 8.11.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-092",
+    "title": "Sidebar customizer HTML5 drag drop in settings.js",
+    "prompt": "In app/web/js/settings.js, implement ondragstart, ondragover, and ondrop handlers for sidebar items per PLAN.md section 8.10.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-093",
+    "title": "Remove seen deduplication in router.js resolveSidebarLayout",
+    "prompt": "In app/web/js/core/router.js, verify resolveSidebarLayout permits items across multiple sections.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-094",
+    "title": "Collage layer opacity controls in collage.js",
+    "prompt": "In app/web/js/tools/collage.js, add slider and numeric input for per-layer alpha transparency.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-095",
+    "title": "Image model download indicators in images.js",
+    "prompt": "In app/web/js/tools/images.js, query model cache status and display green/gray status pills on model selector cards.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-096",
+    "title": "Arbitrary page grouping in pdf.js",
+    "prompt": "In app/web/js/tools/pdf.js, allow naming and organizing pages into named document groups before merging.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-097",
+    "title": "Unit test suite for app/core/tooltips.py",
+    "prompt": "In tests/test_tooltips.py, write comprehensive tests validating all dictionary keys and tooltip formatting.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-098",
+    "title": "Unit test suite for app/system/shell_integration.py",
+    "prompt": "In tests/test_shell_integration.py, test shell registration commands and context menu arguments.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-099",
+    "title": "Unit test suite for app/core/sidebar_customization.py",
+    "prompt": "In tests/test_sidebar_customization_core.py, test serialization, deserialization, and reset to defaults.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  },
+  {
+    "id": "FOSS-100",
+    "title": "Comprehensive web static assets contract test",
+    "prompt": "In tests/test_web_static_completeness.py, assert that all 21 tool js files, css stylesheets, and icons exist and are valid UTF-8.\n\nCRITICAL INSTRUCTIONS:\n1. Target branch is redesign-next.\n2. Pure 7-bit ASCII only in all app/ and tests/ source files (use \\uXXXX in JS for non-ASCII).\n3. Explicit parameter and return type annotations on every Python function signature.\n4. Comments <= 2 lines. No multi-line docstrings on short functions. No decorative divider banners (######).\n5. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python -m pytest tests/test_api_contract.py tests/test_web_static.py tests/test_web_api.py\n6. Verification: uv run --no-project --python \"C:/Users/Josh/projects/FOSSEverything/.venv/Scripts/python.exe\" python C:/Users/Josh/projects/josh-ai-tools/scripts/claudemd_linter.py . --level strict",
+    "status": "pending"
+  }
+]

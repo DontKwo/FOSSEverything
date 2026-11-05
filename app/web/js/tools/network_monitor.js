@@ -45,10 +45,68 @@ window.FOSS = window.FOSS || {};
     });
   }
 
+  var LIVE_COLUMNS = [
+    { key: "pid", label: "PID", field: "pid", width: "7%", numeric: true },
+    { key: "process", label: "Process", field: "process_name", width: "16%" },
+    { key: "source_identity", label: "Source Identity", field: "source_identity", width: "14%" },
+    { key: "trust_level", label: "Trust Level", field: "trust_level", width: "14%" },
+    { key: "proto", label: "Proto", field: "protocol", width: "6%" },
+    { key: "local", label: "Local", field: "local_address", width: "10%" },
+    { key: "remote", label: "Remote", field: "remote_address", width: "15%" },
+    { key: "host", label: "Host", field: "domain", width: "18%" }
+  ];
+
+  var currentSortCol = "process";
+  var currentSortAsc = true;
+
+  function columnByKey(colKey) {
+    for (var i = 0; i < LIVE_COLUMNS.length; i++) {
+      if (LIVE_COLUMNS[i].key === colKey) return LIVE_COLUMNS[i];
+    }
+    return LIVE_COLUMNS[1];
+  }
+
+  function sortConnections(list) {
+    var col = columnByKey(currentSortCol);
+    return list.slice().sort(function (a, b) {
+      var rawA = a[col.field];
+      var rawB = b[col.field];
+      if (col.numeric) {
+        var numA = Number(rawA || 0);
+        var numB = Number(rawB || 0);
+        if (numA === numB) return 0;
+        return (numA < numB ? -1 : 1) * (currentSortAsc ? 1 : -1);
+      }
+      var valA = String(rawA || "").toLowerCase();
+      var valB = String(rawB || "").toLowerCase();
+      if (valA < valB) return currentSortAsc ? -1 : 1;
+      if (valA > valB) return currentSortAsc ? 1 : -1;
+      return 0;
+    });
+  }
+
+  function isExternalDestination(c) {
+    var ip = c.remote_ip || "";
+    if (!ip || ip === "::" || ip === "0.0.0.0") return false;
+    if (ip === "::1" || ip.indexOf("127.") === 0) return false;
+    return true;
+  }
+
+  function destinationKey(c) {
+    return isExternalDestination(c) ? (c.remote_ip || c.domain || "") : "";
+  }
+
   function renderLive(panel, ctx) {
     clearLiveTimer();
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-network-monitor");
+    panel.setAttribute("data-testid", "network_monitor-page");
+
+    var defaults = window.FOSS.toolDefaults;
+    currentSortCol = String(defaults.get("network_monitor", "default_sort", "process"));
+    currentSortAsc = true;
+    selectedDestination = "";
+    var pollSeconds = Number(defaults.get("network_monitor", "poll_interval", 2));
+    if (!isFinite(pollSeconds) || pollSeconds < 0) pollSeconds = 0;
 
     var header = window.FOSS.dom.el("div", { className: "card-header" }, [
       window.FOSS.dom.el("h2", { className: "card-title", text: "Live Connections" }),
@@ -60,20 +118,26 @@ window.FOSS = window.FOSS || {};
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted mb-sm",
-      "data-testid": "network-live-status",
+      "data-testid": "network_monitor-live-status",
       text: "waiting for first poll"
     });
 
     var throughputPill = window.FOSS.dom.el("div", {
       className: "pill text-xs",
-      "data-testid": "network-live-throughput",
+      "data-testid": "network_monitor-live-throughput",
       text: "Up: 0.0 KB/s | Down: 0.0 KB/s"
+    });
+
+    var selectedLabel = window.FOSS.dom.el("span", {
+      className: "text-xs text-muted",
+      "data-testid": "network_monitor-selected-label",
+      text: "Selected: none"
     });
 
     var filterInput = window.FOSS.dom.el("input", {
       type: "text",
       className: "input flex-1",
-      "data-testid": "network-live-filter",
+      "data-testid": "network_monitor-live-filter",
       "aria-label": "Process or host filter",
       title: "Process or host filter",
       placeholder: "process, domain, or address contains"
@@ -81,7 +145,7 @@ window.FOSS = window.FOSS || {};
 
     var tableHost = window.FOSS.dom.el("div", {
       className: "card mb-md",
-      "data-testid": "network-live-table-host"
+      "data-testid": "network_monitor-live-table-host"
     });
 
     function applyLiveFilterAndRender() {
@@ -102,100 +166,117 @@ window.FOSS = window.FOSS || {};
         return hay.indexOf(query) !== -1;
       });
 
-      renderLiveRows(filtered);
+      renderLiveRows(sortConnections(filtered));
     }
 
     filterInput.addEventListener("input", applyLiveFilterAndRender);
+
+    function handleHeaderClick(colKey) {
+      if (currentSortCol === colKey) {
+        currentSortAsc = !currentSortAsc;
+      } else {
+        currentSortCol = colKey;
+        currentSortAsc = true;
+      }
+      applyLiveFilterAndRender();
+    }
+
+    function renderSortHeader(col) {
+      var active = currentSortCol === col.key;
+      var arrow = active ? (currentSortAsc ? " \u25b2" : " \u25bc") : "";
+      return window.FOSS.dom.el("th", {
+        className: "nm-sortable" + (active ? " nm-sorted" : ""),
+        style: "width: " + col.width + ";",
+        role: "button",
+        tabindex: "0",
+        "aria-sort": active ? (currentSortAsc ? "ascending" : "descending") : "none",
+        "data-testid": "network_monitor-sort-" + col.key,
+        "data-sort-dir": active ? (currentSortAsc ? "asc" : "desc") : "",
+        "data-truncate-ok": "true",
+        title: "Sort by " + col.label,
+        text: col.label + arrow,
+        onclick: function () { handleHeaderClick(col.key); },
+        onkeydown: function (ev) {
+          if (ev.key === "Enter" || ev.key === " ") {
+            ev.preventDefault();
+            handleHeaderClick(col.key);
+          }
+        }
+      });
+    }
+
+    function renderHostCell(c) {
+      var kids = [];
+      if (isExternalDestination(c)) {
+        kids.push(window.FOSS.dom.el("span", {
+          className: "badge nm-dest-badge " + (c.is_known ? "success" : "warning"),
+          "data-testid": "network_monitor-dest-badge",
+          text: c.is_known ? "Known" : "Unknown"
+        }));
+      }
+      var hostText = c.domain || (c.is_new ? "(new)" : "");
+      kids.push(document.createTextNode(hostText));
+      var badgeText = isExternalDestination(c) ? (c.is_known ? "Known " : "Unknown ") : "";
+      return window.FOSS.dom.el("td", {
+        className: "nm-cell",
+        "data-truncate-ok": "true",
+        title: (badgeText + hostText).trim() || "No host"
+      }, kids);
+    }
+
+    function textCell(value, extraClass) {
+      return window.FOSS.dom.el("td", {
+        className: "nm-cell" + (extraClass ? " " + extraClass : ""),
+        "data-truncate-ok": "true",
+        title: value,
+        text: value
+      });
+    }
 
     function renderLiveRows(conns) {
       tableHost.innerHTML = "";
       if (conns.length === 0) {
         tableHost.appendChild(window.FOSS.dom.el("div", {
           className: "p-lg text-center text-muted text-sm",
-          "data-testid": "network-live-empty",
+          "data-testid": "network_monitor-live-empty",
           text: rawLiveConnections.length === 0 ? "waiting for first poll" : "No connections match active filter."
         }));
         return;
       }
 
       var tbl = window.FOSS.dom.el("table", {
-        className: "table w-full text-xs",
-        style: "table-layout: fixed; width: 100%; min-width: 0;",
-        "data-testid": "network-live-table"
+        className: "table w-full text-xs nm-table",
+        "data-testid": "network_monitor-live-table"
       });
       var thead = window.FOSS.dom.el("thead", {}, [
-        window.FOSS.dom.el("tr", {}, [
-          window.FOSS.dom.el("th", { style: "width: 8%; white-space: nowrap;", text: "PID", "data-truncate-ok": "true" }),
-          window.FOSS.dom.el("th", { style: "width: 18%; white-space: nowrap;", text: "Process", "data-truncate-ok": "true" }),
-          window.FOSS.dom.el("th", { style: "width: 16%; white-space: nowrap;", text: "Source Identity", "data-truncate-ok": "true" }),
-          window.FOSS.dom.el("th", { style: "width: 14%; white-space: nowrap;", text: "Trust Level", "data-truncate-ok": "true" }),
-          window.FOSS.dom.el("th", { style: "width: 8%; white-space: nowrap;", text: "Proto", "data-truncate-ok": "true" }),
-          window.FOSS.dom.el("th", { style: "width: 12%; white-space: nowrap;", text: "Local", "data-truncate-ok": "true" }),
-          window.FOSS.dom.el("th", { style: "width: 12%; white-space: nowrap;", text: "Remote", "data-truncate-ok": "true" }),
-          window.FOSS.dom.el("th", { style: "width: 12%; white-space: nowrap;", text: "Host", "data-truncate-ok": "true" })
-        ])
+        window.FOSS.dom.el("tr", {}, LIVE_COLUMNS.map(renderSortHeader))
       ]);
       var tbody = window.FOSS.dom.el("tbody", {});
 
       conns.forEach(function (c) {
+        var key = destinationKey(c);
+        var isSelected = !!selectedDestination && key === selectedDestination;
         var tr = window.FOSS.dom.el("tr", {
-          style: "cursor: pointer;",
+          className: "nm-row" + (isSelected ? " nm-row-selected" : ""),
+          "data-testid": "network_monitor-live-row",
           onclick: function () {
-            selectedDestination = c.domain || c.remote_ip || c.remote_address || "";
-            var knownBtn = panel.querySelector("[data-testid='network_monitor-mark-known-btn']");
-            if (knownBtn) {
-              knownBtn.textContent = "Mark Selected as Known: " + (selectedDestination || "None");
-            }
+            selectedDestination = key;
+            selectedLabel.textContent = "Selected: " + (key || "none (no remote destination)");
+            applyLiveFilterAndRender();
           }
         }, [
+          textCell(String(c.pid || "")),
+          textCell(c.process_name || "", "font-semibold"),
+          textCell(c.source_identity || "Application"),
           window.FOSS.dom.el("td", {
-            style: "width: 8%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-            "data-truncate-ok": "true",
-            title: String(c.pid || ""),
-            text: String(c.pid || "")
-          }),
-          window.FOSS.dom.el("td", {
-            className: "font-semibold",
-            style: "width: 18%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-            "data-truncate-ok": "true",
-            title: c.process_name || "",
-            text: c.process_name || ""
-          }),
-          window.FOSS.dom.el("td", {
-            style: "width: 16%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-            "data-truncate-ok": "true",
-            title: c.source_identity || "Application",
-            text: c.source_identity || "Application"
-          }),
-          window.FOSS.dom.el("td", {
-            style: "width: 14%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            className: "nm-cell",
             "data-truncate-ok": "true",
             title: c.trust_level || "Unverified"
           }, [renderTrustBadge(c.trust_level)]),
-          window.FOSS.dom.el("td", {
-            style: "width: 8%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-            "data-truncate-ok": "true",
-            title: c.protocol || "",
-            text: c.protocol || ""
-          }),
-          window.FOSS.dom.el("td", {
-            style: "width: 12%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-            "data-truncate-ok": "true",
-            title: c.local_address || "",
-            text: c.local_address || ""
-          }),
-          window.FOSS.dom.el("td", {
-            style: "width: 12%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-            "data-truncate-ok": "true",
-            title: c.remote_address || "",
-            text: c.remote_address || ""
-          }),
-          window.FOSS.dom.el("td", {
-            style: "width: 12%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
-            "data-truncate-ok": "true",
-            title: c.domain || "",
-            text: c.domain || (c.is_new ? "(new)" : "")
-          })
+          textCell(c.protocol || ""),
+          textCell(c.local_address || ""),
+          textCell(c.remote_address || ""),
+          renderHostCell(c)
         ]);
         tbody.appendChild(tr);
       });
@@ -227,12 +308,30 @@ window.FOSS = window.FOSS || {};
       });
     }
 
+    function markSelected(known) {
+      if (!selectedDestination) {
+        window.FOSS.toast.show({ message: "Click a connection row first to select a destination.", type: "info" });
+        return;
+      }
+      var target = selectedDestination;
+      window.FOSS.api("network_manage_destinations", { destination: target, known: known }).then(function (res) {
+        if (!res || res.ok === false) return;
+        rawLiveConnections.forEach(function (c) {
+          if (c.remote_ip === target || c.domain === target) {
+            c.is_known = known;
+            c.is_new = !known;
+          }
+        });
+        window.FOSS.toast.show({ message: "Marked " + target + (known ? " as known." : " as unknown."), type: "success" });
+        applyLiveFilterAndRender();
+      });
+    }
+
     var refreshBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
-      "data-testid": "network-live-refresh-btn",
+      "data-testid": "network_monitor-live-refresh-btn",
       "aria-label": "Refresh",
       title: "Refresh",
-      style: "min-height: 36px;",
       onclick: loadLive
     }, [
       window.FOSS.icons.el("refresh", 16),
@@ -242,39 +341,47 @@ window.FOSS = window.FOSS || {};
     var markKnownBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary",
       "data-testid": "network_monitor-mark-known-btn",
-      "aria-label": "Mark selected as known",
-      title: "Mark selected as known",
-      style: "min-height: 36px;",
-      onclick: function () {
-        if (!selectedDestination) {
-          window.FOSS.toast.show({ message: "Click a connection row first to select a destination.", type: "info" });
-          return;
-        }
-        window.FOSS.api("network_manage_destinations", { destination: selectedDestination, known: true }).then(function () {
-          window.FOSS.toast.show({ message: "Marked " + selectedDestination + " as known.", type: "success" });
-          loadLive();
-        });
+      "aria-label": "Mark as Known",
+      title: "Mark Selected as Known",
+      onclick: function () { markSelected(true); }
+    }, [window.FOSS.dom.el("span", { text: "Mark as Known" })]);
+
+    var markUnknownBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
+      "data-testid": "network_monitor-mark-unknown-btn",
+      "aria-label": "Mark as Unknown",
+      title: "Mark Selected as Unknown",
+      onclick: function () { markSelected(false); }
+    }, [window.FOSS.dom.el("span", { text: "Mark as Unknown" })]);
+
+    function startLiveTimer() {
+      clearLiveTimer();
+      if (livePollIntervalMs > 0) {
+        livePollTimer = setInterval(loadLive, livePollIntervalMs);
       }
-    }, [window.FOSS.dom.el("span", { text: "Mark Selected as Known" })]);
+    }
+
+    var pollOptions = [0, 1, 2, 5, 10, 30];
+    if (pollOptions.indexOf(pollSeconds) === -1) pollOptions.push(pollSeconds);
+    pollOptions.sort(function (a, b) { return a - b; });
 
     var autoRefreshSelect = window.FOSS.dom.el("select", {
       className: "select",
+      "data-testid": "network_monitor-live-auto-select",
       "aria-label": "Auto-refresh frequency",
       title: "Auto-refresh frequency",
-      style: "min-height: 36px;",
       onchange: function () {
-        clearLiveTimer();
-        var val = parseInt(autoRefreshSelect.value, 10);
-        livePollIntervalMs = val;
-        if (val > 0) {
-          livePollTimer = setInterval(loadLive, val);
-        }
+        livePollIntervalMs = parseInt(autoRefreshSelect.value, 10) || 0;
+        startLiveTimer();
       }
-    }, [
-      window.FOSS.dom.el("option", { value: "0", text: "Auto: Off" }),
-      window.FOSS.dom.el("option", { value: "2000", text: "Auto: 2s" }),
-      window.FOSS.dom.el("option", { value: "5000", text: "Auto: 5s" })
-    ]);
+    }, pollOptions.map(function (sec) {
+      return window.FOSS.dom.el("option", {
+        value: String(sec * 1000),
+        text: sec === 0 ? "Auto: Off" : "Auto: " + sec + "s"
+      });
+    }));
+    autoRefreshSelect.value = String(pollSeconds * 1000);
+    livePollIntervalMs = pollSeconds * 1000;
 
     var filterPills = window.FOSS.dom.el("div", { className: "row gap-xs items-center" });
     var pillStatuses = [
@@ -291,9 +398,9 @@ window.FOSS = window.FOSS || {};
         var isActive = currentLiveFilterStatus === p.id;
         var btn = window.FOSS.dom.el("button", {
           className: "btn btn-sm " + (isActive ? "btn-primary" : "btn-secondary"),
+          "data-testid": "network_monitor-filter-" + p.id.toLowerCase(),
           "aria-label": "Filter " + p.label,
           title: "Filter " + p.label,
-          style: "min-height: 36px;",
           onclick: function () {
             currentLiveFilterStatus = p.id;
             updatePills();
@@ -309,11 +416,13 @@ window.FOSS = window.FOSS || {};
       filterInput,
       autoRefreshSelect,
       refreshBtn,
-      markKnownBtn
+      markKnownBtn,
+      markUnknownBtn
     ]);
 
     var toolbarBottom = window.FOSS.dom.el("div", { className: "row justify-between items-center mb-md flex-wrap gap-sm" }, [
       filterPills,
+      selectedLabel,
       throughputPill
     ]);
 
@@ -323,13 +432,14 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(toolbarBottom);
     panel.appendChild(tableHost);
 
+    startLiveTimer();
     loadLive();
   }
 
   function renderHistory(panel, ctx) {
     clearLiveTimer();
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-network-monitor");
+    panel.setAttribute("data-testid", "network_monitor-page");
 
     var header = window.FOSS.dom.el("div", { className: "card-header" }, [
       window.FOSS.dom.el("h2", { className: "card-title", text: "Connection History" }),
@@ -341,14 +451,14 @@ window.FOSS = window.FOSS || {};
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted mb-sm",
-      "data-testid": "network-history-status",
+      "data-testid": "network_monitor-history-status",
       text: "Ready"
     });
 
     var procInput = window.FOSS.dom.el("input", {
       type: "text",
       className: "input flex-1",
-      "data-testid": "network-history-proc-input",
+      "data-testid": "network_monitor-history-proc-input",
       "aria-label": "Process",
       title: "Process",
       placeholder: "process name contains"
@@ -357,7 +467,7 @@ window.FOSS = window.FOSS || {};
     var domInput = window.FOSS.dom.el("input", {
       type: "text",
       className: "input flex-1",
-      "data-testid": "network-history-dom-input",
+      "data-testid": "network_monitor-history-dom-input",
       "aria-label": "Domain / IP",
       title: "Domain / IP",
       placeholder: "domain or ip contains"
@@ -365,7 +475,7 @@ window.FOSS = window.FOSS || {};
 
     var tableHost = window.FOSS.dom.el("div", {
       className: "card mb-md",
-      "data-testid": "network-history-table-host"
+      "data-testid": "network_monitor-history-table-host"
     });
 
     function searchHist() {
@@ -380,7 +490,7 @@ window.FOSS = window.FOSS || {};
         if (evts.length === 0) {
           tableHost.appendChild(window.FOSS.dom.el("div", {
             className: "p-lg text-center text-muted text-sm",
-            "data-testid": "network-history-empty",
+            "data-testid": "network_monitor-history-empty",
             text: "No connection events match criteria."
           }));
           return;
@@ -389,7 +499,7 @@ window.FOSS = window.FOSS || {};
         var tbl = window.FOSS.dom.el("table", {
           className: "table w-full text-xs",
           style: "table-layout: fixed; width: 100%; min-width: 0;",
-          "data-testid": "network-history-table"
+          "data-testid": "network_monitor-history-table"
         });
         var thead = window.FOSS.dom.el("thead", {}, [
           window.FOSS.dom.el("tr", {}, [
@@ -469,10 +579,9 @@ window.FOSS = window.FOSS || {};
 
     var searchBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
-      "data-testid": "network-history-search-btn",
+      "data-testid": "network_monitor-history-search-btn",
       "aria-label": "Search",
       title: "Search",
-      style: "min-height: 36px;",
       onclick: searchHist
     }, [
       window.FOSS.icons.el("search", 16),
@@ -481,10 +590,9 @@ window.FOSS = window.FOSS || {};
 
     var retentionBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary",
-      "data-testid": "network-history-retention-btn",
+      "data-testid": "network_monitor-history-retention-btn",
       "aria-label": "Set retention period",
       title: "Set retention period",
-      style: "min-height: 36px;",
       onclick: function () {
         var confFn = (window.FOSS.dialogs && window.FOSS.dialogs.confirm) || window.FOSS.confirm;
         confFn({
@@ -504,10 +612,9 @@ window.FOSS = window.FOSS || {};
 
     var wipeBtn = window.FOSS.dom.el("button", {
       className: "btn btn-danger",
-      "data-testid": "network-history-wipe-btn",
+      "data-testid": "network_monitor-history-wipe-btn",
       "aria-label": "Wipe all history",
       title: "Wipe all history",
-      style: "min-height: 36px;",
       onclick: function () {
         var confFn = (window.FOSS.dialogs && window.FOSS.dialogs.confirm) || window.FOSS.confirm;
         confFn({
@@ -545,7 +652,7 @@ window.FOSS = window.FOSS || {};
   function renderStats(panel, ctx) {
     clearLiveTimer();
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-network-monitor");
+    panel.setAttribute("data-testid", "network_monitor-page");
 
     var header = window.FOSS.dom.el("div", { className: "card-header" }, [
       window.FOSS.dom.el("h2", { className: "card-title", text: "Network Statistics & Insights" }),
@@ -557,13 +664,13 @@ window.FOSS = window.FOSS || {};
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted mb-sm",
-      "data-testid": "network-stats-status",
+      "data-testid": "network_monitor-stats-status",
       text: "Ready"
     });
 
     var statsContainer = window.FOSS.dom.el("div", {
       className: "grid grid-cols-2 gap-md",
-      "data-testid": "network-stats-grid"
+      "data-testid": "network_monitor-stats-grid"
     });
 
     function loadStats() {
@@ -572,7 +679,7 @@ window.FOSS = window.FOSS || {};
         statsContainer.innerHTML = "";
         statusBar.textContent = "Stats updated.";
 
-        var procsCard = window.FOSS.dom.el("div", { className: "card", "data-testid": "network-stats-top-procs" }, [
+        var procsCard = window.FOSS.dom.el("div", { className: "card", "data-testid": "network_monitor-stats-top-procs" }, [
           window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "Top processes by connection count" })
         ]);
         var procsList = (res && res.top_processes) || [];
@@ -587,7 +694,7 @@ window.FOSS = window.FOSS || {};
           });
         }
 
-        var domsCard = window.FOSS.dom.el("div", { className: "card", "data-testid": "network-stats-top-doms" }, [
+        var domsCard = window.FOSS.dom.el("div", { className: "card", "data-testid": "network_monitor-stats-top-doms" }, [
           window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "Top domains contacted" })
         ]);
         var domsList = (res && res.top_domains) || [];
@@ -602,45 +709,60 @@ window.FOSS = window.FOSS || {};
           });
         }
 
-        var unknownsCard = window.FOSS.dom.el("div", { className: "card col-span-2", "data-testid": "network-stats-unknowns" }, [
-          window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: "New / unknown destinations" }),
-          window.FOSS.dom.el("p", { className: "text-xs text-muted mb-sm", text: "Destinations not yet explicitly marked as known." })
-        ]);
-        var unkList = ((res && res.unknown_destinations) || []).slice(0, 10);
-        if (!unkList.length) {
-          unknownsCard.appendChild(window.FOSS.dom.el("p", { className: "text-xs text-muted", text: "All destinations are approved and recognized." }));
-        } else {
-          unkList.forEach(function (u) {
+        function destinationCard(testid, title, hint, emptyText, list, nextKnown, btnLabel) {
+          var card = window.FOSS.dom.el("div", { className: "card col-span-2", "data-testid": testid }, [
+            window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold mb-sm", text: title }),
+            window.FOSS.dom.el("p", { className: "text-xs text-muted mb-sm", text: hint })
+          ]);
+          var shown = (list || []).slice(0, 10);
+          if (!shown.length) {
+            card.appendChild(window.FOSS.dom.el("p", { className: "text-xs text-muted", text: emptyText }));
+            return card;
+          }
+          shown.forEach(function (u) {
             var destLabel = u.domain || u.ip || "Unknown";
-            unknownsCard.appendChild(window.FOSS.dom.el("div", { className: "row justify-between items-center text-xs py-xs" }, [
+            card.appendChild(window.FOSS.dom.el("div", { className: "row justify-between items-center text-xs py-xs" }, [
               window.FOSS.dom.el("span", { className: "font-mono", text: destLabel }),
               window.FOSS.dom.el("button", {
                 className: "btn btn-ghost btn-sm",
-                "aria-label": "Mark selected as known",
-                title: "Mark selected as known",
-                style: "min-height: 36px; padding: 4px 10px;",
+                "aria-label": btnLabel + " " + destLabel,
+                title: btnLabel + " " + destLabel,
                 onclick: function () {
-                  window.FOSS.api("network_manage_destinations", { destination: destLabel, known: true }).then(function () {
+                  window.FOSS.api("network_manage_destinations", { destination: u.ip || destLabel, known: nextKnown }).then(function () {
                     loadStats();
                   });
                 }
-              }, [window.FOSS.dom.el("span", { text: "Mark Selected as Known" })])
+              }, [window.FOSS.dom.el("span", { text: btnLabel })])
             ]));
           });
+          return card;
         }
+
+        var unknownsCard = destinationCard(
+          "network_monitor-stats-unknowns", "New / unknown destinations",
+          "Destinations not yet explicitly marked as known.",
+          "All destinations are approved and recognized.",
+          res && res.unknown_destinations, true, "Mark as Known"
+        );
+        var knownsCard = destinationCard(
+          "network_monitor-stats-knowns", "Known destinations",
+          "Destinations you approved. Mark as unknown to flag them again.",
+          "No destinations are marked as known yet.",
+          res && res.known_destinations, false, "Mark as Unknown"
+        );
 
         statsContainer.appendChild(procsCard);
         statsContainer.appendChild(domsCard);
         statsContainer.appendChild(unknownsCard);
+        statsContainer.appendChild(knownsCard);
       });
     }
 
     var refreshStatsBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary mb-md",
-      "data-testid": "network-refresh-stats-btn",
+      "data-testid": "network_monitor-refresh-stats-btn",
       "aria-label": "Refresh stats",
       title: "Refresh stats",
-      style: "min-height: 36px;",
       onclick: loadStats
     }, [
       window.FOSS.icons.el("refresh", 16),
@@ -658,7 +780,7 @@ window.FOSS = window.FOSS || {};
   function renderApps(panel, ctx) {
     clearLiveTimer();
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-network-monitor");
+    panel.setAttribute("data-testid", "network_monitor-page");
 
     var header = window.FOSS.dom.el("div", { className: "card-header" }, [
       window.FOSS.dom.el("h2", { className: "card-title", text: "Per-App Summary" }),
@@ -670,13 +792,13 @@ window.FOSS = window.FOSS || {};
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted mb-sm",
-      "data-testid": "network-apps-status",
+      "data-testid": "network_monitor-apps-status",
       text: "Ready"
     });
 
     var tableHost = window.FOSS.dom.el("div", {
       className: "card mb-md",
-      "data-testid": "network-apps-table-host"
+      "data-testid": "network_monitor-apps-table-host"
     });
 
     function loadApps() {
@@ -689,7 +811,7 @@ window.FOSS = window.FOSS || {};
         if (apps.length === 0) {
           tableHost.appendChild(window.FOSS.dom.el("div", {
             className: "p-lg text-center text-muted text-sm",
-            "data-testid": "network-apps-empty",
+            "data-testid": "network_monitor-apps-empty",
             text: "No applications logged yet."
           }));
           return;
@@ -698,7 +820,7 @@ window.FOSS = window.FOSS || {};
         var tbl = window.FOSS.dom.el("table", {
           className: "table w-full text-xs",
           style: "table-layout: fixed; width: 100%; min-width: 0;",
-          "data-testid": "network-apps-table"
+          "data-testid": "network_monitor-apps-table"
         });
         var thead = window.FOSS.dom.el("thead", {}, [
           window.FOSS.dom.el("tr", {}, [
@@ -750,10 +872,9 @@ window.FOSS = window.FOSS || {};
 
     var refreshAppsBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary mb-md",
-      "data-testid": "network-apps-refresh-btn",
+      "data-testid": "network_monitor-apps-refresh-btn",
       "aria-label": "Refresh",
       title: "Refresh",
-      style: "min-height: 36px;",
       onclick: loadApps
     }, [
       window.FOSS.icons.el("refresh", 16),
@@ -773,7 +894,26 @@ window.FOSS = window.FOSS || {};
     title: "Network Traffic Monitor",
     navName: "Network Monitor",
     category: "Utilities",
-    icon: "activity",
+    icon: "network_monitor",
+    defaults: [
+      { key: "poll_interval", label: "Live poll interval (seconds)", type: "number", default: 2, min: 0, max: 60, step: 1, hint: "0 turns automatic refresh off." },
+      {
+        key: "default_sort",
+        label: "Default sort column",
+        type: "select",
+        default: "process",
+        options: [
+          { value: "pid", label: "PID" },
+          { value: "process", label: "Process" },
+          { value: "source_identity", label: "Source Identity" },
+          { value: "trust_level", label: "Trust Level" },
+          { value: "proto", label: "Proto" },
+          { value: "local", label: "Local" },
+          { value: "remote", label: "Remote" },
+          { value: "host", label: "Host" }
+        ]
+      }
+    ],
     onHide: function () {
       clearLiveTimer();
     },

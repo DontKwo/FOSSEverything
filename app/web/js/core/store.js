@@ -37,8 +37,8 @@ window.FOSS = window.FOSS || {};
   }
 
   function toggleFavorite(toolId) {
-    var favs = get("favorites", []);
-    if (!Array.isArray(favs)) favs = [];
+    var current = get("favorites", []);
+    var favs = Array.isArray(current) ? current.slice() : [];
     var idx = favs.indexOf(toolId);
     if (idx === -1) {
       favs.push(toolId);
@@ -46,6 +46,9 @@ window.FOSS = window.FOSS || {};
       favs.splice(idx, 1);
     }
     set("favorites", favs);
+    window.dispatchEvent(new CustomEvent("foss:favorites-changed", {
+      detail: { favorites: favs, toolId: toolId }
+    }));
     return idx === -1;
   }
 

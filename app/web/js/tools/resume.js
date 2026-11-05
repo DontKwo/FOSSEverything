@@ -78,8 +78,51 @@ window.FOSS = window.FOSS || {};
   var previewStageEl = null;
   var pageBadgeEl = null;
   var currentFontPt = 11.0;
-  var resumeZoom = 1.0;
+  var currentTheme = "gnc";
+  var currentDateFormat = "Month YYYY";
+  var previewMode = "fit-width";
+  var previewModeButtons = {};
+  var defaultsLoaded = false;
   var idCounter = 100;
+  var ZOOM_PRESETS = [50, 75, 100, 125];
+  var EXPORT_TYPES = {
+    docx: { name: "Microsoft Word Document (*.docx)", extensions: ["docx"] },
+    pdf: { name: "PDF Document (*.pdf)", extensions: ["pdf"] },
+    txt: { name: "Plain Text Document (*.txt)", extensions: ["txt"] }
+  };
+
+  function loadDefaults() {
+    var values = window.FOSS.toolDefaults.all("resume");
+    currentTheme = String(values.theme);
+    currentDateFormat = String(values.date_format);
+    currentFontPt = parseFloat(values.font_scale) || 11.0;
+    defaultsLoaded = true;
+  }
+
+  window.addEventListener("foss:tool-defaults-changed", function (evt) {
+    if (!evt.detail || evt.detail.toolId !== "resume") return;
+    loadDefaults();
+    var fontSel = document.querySelector("[data-testid='resume-font-pt-select']");
+    if (fontSel) fontSel.value = currentFontPt.toFixed(1);
+    var themeSel = document.querySelector("[data-testid='resume-theme-select']");
+    if (themeSel) themeSel.value = currentTheme;
+    var dateSel = document.querySelector("[data-testid='resume-date-format-select']");
+    if (dateSel) dateSel.value = currentDateFormat;
+    schedulePreviewUpdate();
+  });
+
+  function previewPayload() {
+    var payload = {
+      resume: masterResume,
+      font_pt: currentFontPt,
+      theme: currentTheme,
+      date_format: currentDateFormat
+    };
+    if (masterResume.active_profile && masterResume.active_profile !== "Full Master Resume") {
+      payload.profile = masterResume.active_profile;
+    }
+    return payload;
+  }
 
   function schedulePreviewUpdate() {
     if (previewDebounceTimer) clearTimeout(previewDebounceTimer);
@@ -90,14 +133,8 @@ window.FOSS = window.FOSS || {};
 
   function fetchLivePreview() {
     if (!previewStageEl) return;
-    var payload = {
-      resume: masterResume,
-      font_pt: currentFontPt,
-      dpi: 160
-    };
-    if (masterResume.active_profile && masterResume.active_profile !== "Full Master Resume") {
-      payload.profile = masterResume.active_profile;
-    }
+    var payload = previewPayload();
+    payload.dpi = 160;
     window.FOSS.api("resume_render_preview", payload, { silent: true })
       .then(function (res) {
         if (!res) return;
@@ -111,48 +148,65 @@ window.FOSS = window.FOSS || {};
     previewStageEl.innerHTML = "";
     if (pageBadgeEl) {
       if (pageCount === 1) {
-        pageBadgeEl.className = "badge badge-success text-xs";
+        pageBadgeEl.className = "badge success text-xs";
         pageBadgeEl.textContent = "1 Page (Fits Cleanly)";
       } else {
-        pageBadgeEl.className = "badge badge-warning text-xs";
+        pageBadgeEl.className = "badge warning text-xs";
         pageBadgeEl.textContent = pageCount + " Pages (Overflow)";
       }
     }
     pages.forEach(function (pageUrl, pIdx) {
-      var img = window.FOSS.dom.el("img", {
+      previewStageEl.appendChild(window.FOSS.dom.el("img", {
         className: "resume-page-sheet",
         "data-testid": "resume-preview-page-" + pIdx,
         "data-overlay": "true",
         src: pageUrl,
         alt: "Resume Page " + (pIdx + 1)
-      });
-      if (resumeZoom !== 1.0) {
-        img.style.setProperty("transform", "scale(" + resumeZoom + ")");
-        img.style.setProperty("transform-origin", "top center");
-      }
-      previewStageEl.appendChild(img);
+      }));
     });
   }
 
-  function applyResumeZoom() {
+  function applyPreviewMode() {
     if (!previewStageEl) return;
-    var imgs = previewStageEl.querySelectorAll(".resume-page-sheet");
-    imgs.forEach(function (img) {
-      if (resumeZoom !== 1.0) {
-        img.style.setProperty("transform", "scale(" + resumeZoom + ")");
-        img.style.setProperty("transform-origin", "top center");
-      } else {
-        img.style.removeProperty("transform");
-        img.style.removeProperty("transform-origin");
-      }
+    var isZoom = typeof previewMode === "number";
+    previewStageEl.classList.toggle("resume-stage-fit-width", previewMode === "fit-width");
+    previewStageEl.classList.toggle("resume-stage-fit-page", previewMode === "fit-page");
+    previewStageEl.classList.toggle("resume-stage-zoom", isZoom);
+    if (isZoom) previewStageEl.style.setProperty("--resume-zoom", String(previewMode / 100));
+    Object.keys(previewModeButtons).forEach(function (key) {
+      var active = String(previewMode) === key;
+      previewModeButtons[key].classList.toggle("active", active);
+      previewModeButtons[key].setAttribute("aria-pressed", active ? "true" : "false");
     });
-    var label = document.getElementById("resume-zoom-label");
-    if (label) label.textContent = Math.round(resumeZoom * 100) + "%";
+  }
+
+  function setPreviewMode(mode) {
+    previewMode = mode;
+    applyPreviewMode();
+  }
+
+  function exportResume(preferredExt) {
+    var order = [preferredExt].concat(Object.keys(EXPORT_TYPES).filter(function (key) { return key !== preferredExt; }));
+    return window.FOSS.api("select_save_path", {
+      title: "Export Resume",
+      default_name: "resume",
+      file_types: order.map(function (key) { return EXPORT_TYPES[key]; })
+    }).then(function (res) {
+      var savePath = res && (res.file_path || res.path || res.output_path);
+      if (!savePath) return null;
+      var payload = previewPayload();
+      payload.output_path = savePath;
+      return window.FOSS.api("resume_export", payload).then(function (info) {
+        return { path: savePath, info: info };
+      });
+    });
   }
 
   function renderResumeWorkbench(panel, requestedView) {
     panel.innerHTML = "";
     if (requestedView) activeSubView = requestedView;
+    if (!defaultsLoaded) loadDefaults();
+    previewModeButtons = {};
 
     // Top action bar
     var topBar = window.FOSS.dom.el("div", {
@@ -171,8 +225,9 @@ window.FOSS = window.FOSS || {};
           onclick: function () {
             window.FOSS.api("select_file", { title: "Load Master Resume", file_types: ["json"] })
               .then(function (res) {
-                if (res && res.file_path) {
-                  return window.FOSS.api("resume_load_file", { file_path: res.file_path });
+                var picked = res && res.paths && res.paths[0];
+                if (picked) {
+                  return window.FOSS.api("resume_load_file", { file_path: picked });
                 }
               }).then(function (loadRes) {
                 if (loadRes && loadRes.resume) {
@@ -192,8 +247,8 @@ window.FOSS = window.FOSS || {};
           onclick: function () {
             window.FOSS.api("select_save_path", {
               title: "Save Master Resume",
-              default_filename: "master_resume.json",
-              file_types: [["JSON Files", "*.json"]]
+              default_name: "master_resume",
+              file_types: [{ name: "JSON File (*.json)", extensions: ["json"] }]
             }).then(function (res) {
               if (res && res.file_path) {
                 return window.FOSS.api("resume_save_file", { resume: masterResume, output_path: res.file_path });
@@ -223,7 +278,7 @@ window.FOSS = window.FOSS || {};
       ]),
       window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
         pageBadgeEl = window.FOSS.dom.el("span", {
-          className: "badge badge-success text-xs",
+          className: "badge success text-xs",
           "data-testid": "resume-page-badge",
           text: "1 Page (Fits Cleanly)"
         })
@@ -239,28 +294,12 @@ window.FOSS = window.FOSS || {};
     var leftPane = window.FOSS.dom.el("div", { className: "resume-editor-pane" });
     var rightPane = window.FOSS.dom.el("div", { className: "resume-preview-pane" });
 
-    // Sub-view selector on Left Pane
-    var subNav = window.FOSS.components.segmented({
-      testid: "resume-subnav",
-      options: [
-        { id: "personal", label: "Contact & Bio" },
-        { id: "sections", label: "Sections" },
-        { id: "profiles", label: "Tailor & ATS" },
-        { id: "preview", label: "Export" }
-      ],
-      value: activeSubView,
-      onChange: function (val) {
-        activeSubView = val;
-        renderLeftPane();
-      }
-    });
-
     var editorContent = window.FOSS.dom.el("div", { style: "display: flex; flex-direction: column; gap: var(--space-3);" });
-    leftPane.appendChild(subNav.el);
     leftPane.appendChild(editorContent);
 
     function renderLeftPane() {
       editorContent.innerHTML = "";
+      splitWrap.classList.toggle("resume-export-mode", activeSubView === "preview");
       if (activeSubView === "personal") {
         renderPersonalView(editorContent);
       } else if (activeSubView === "sections") {
@@ -273,84 +312,60 @@ window.FOSS = window.FOSS || {};
     }
 
     // Right Pane Toolbar & Stage
-    var previewToolbar = window.FOSS.dom.el("div", { className: "row-between", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
-      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); align-items: center;" }, [
+    var fontSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-testid": "resume-font-pt-select",
+      "aria-label": "Font size",
+      style: "width: 11rem;",
+      onchange: function (e) {
+        currentFontPt = parseFloat(e.target.value) || 11.0;
+        schedulePreviewUpdate();
+      }
+    }, [["11.0", "11.0 pt (Standard)"], ["10.5", "10.5 pt (Compact)"], ["10.0", "10.0 pt (Dense)"]].map(function (opt) {
+      return window.FOSS.dom.el("option", { value: opt[0], text: opt[1], selected: currentFontPt.toFixed(1) === opt[0] });
+    }));
+
+    function modeButton(key, label, testid, mode) {
+      var btn = window.FOSS.dom.el("button", {
+        className: "btn btn-secondary btn-sm",
+        "data-testid": testid,
+        "aria-pressed": "false",
+        onclick: function () { setPreviewMode(mode); }
+      }, [window.FOSS.dom.el("span", { text: label })]);
+      previewModeButtons[key] = btn;
+      return btn;
+    }
+
+    var modeButtons = [
+      modeButton("fit-width", "Fit Width", "resume-fit-width", "fit-width"),
+      modeButton("fit-page", "Fit Page", "resume-fit-page", "fit-page")
+    ].concat(ZOOM_PRESETS.map(function (pct) {
+      return modeButton(String(pct), pct + "%", "resume-zoom-" + pct, pct);
+    }));
+
+    var previewToolbar = window.FOSS.dom.el("div", {
+      className: "row-between resume-preview-toolbar",
+      "data-testid": "resume-preview-toolbar",
+      style: "gap: var(--space-2); flex-wrap: wrap;"
+    }, [
+      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); align-items: center; flex-wrap: wrap;" }, [
         window.FOSS.dom.el("span", { className: "text-xs font-semibold text-muted", text: "Font:" }),
-        window.FOSS.dom.el("select", {
-          className: "select",
-          "data-testid": "resume-font-pt-select",
-          onchange: function (e) {
-            currentFontPt = parseFloat(e.target.value) || 11.0;
-            schedulePreviewUpdate();
-          }
-        }, [
-          window.FOSS.dom.el("option", { value: "11.0", text: "11.0 pt (Standard)", selected: true }),
-          window.FOSS.dom.el("option", { value: "10.5", text: "10.5 pt (Compact)" }),
-          window.FOSS.dom.el("option", { value: "10.0", text: "10.0 pt (Dense)" })
-        ]),
-        window.FOSS.dom.el("button", {
-          className: "btn btn-ghost btn-sm",
-          "data-testid": "resume-zoom-out",
-          title: "Zoom Out",
-          onclick: function () {
-            resumeZoom = Math.max(0.5, Math.round((resumeZoom - 0.1) * 10) / 10);
-            applyResumeZoom();
-          }
-        }, [window.FOSS.icons.el("minus", 12)]),
-        window.FOSS.dom.el("span", {
-          className: "text-xs font-mono text-muted",
-          id: "resume-zoom-label",
-          text: Math.round(resumeZoom * 100) + "%"
-        }),
-        window.FOSS.dom.el("button", {
-          className: "btn btn-ghost btn-sm",
-          "data-testid": "resume-zoom-in",
-          title: "Zoom In",
-          onclick: function () {
-            resumeZoom = Math.min(2.0, Math.round((resumeZoom + 0.1) * 10) / 10);
-            applyResumeZoom();
-          }
-        }, [window.FOSS.icons.el("plus", 12)]),
-        window.FOSS.dom.el("button", {
-          className: "btn btn-ghost btn-sm",
-          "data-testid": "resume-zoom-reset",
-          title: "Reset Zoom",
-          onclick: function () {
-            resumeZoom = 1.0;
-            applyResumeZoom();
-          }
-        }, [window.FOSS.icons.el("refresh-cw", 12)])
-      ]),
+        fontSelect
+      ].concat(modeButtons)),
       window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
         window.FOSS.dom.el("button", {
-          className: "btn btn-secondary btn-sm",
-          "data-testid": "resume-export-md-btn",
-          onclick: function () {
-            exportMarkdown();
-          }
-        }, [window.FOSS.icons.el("file-text", 12), window.FOSS.dom.el("span", { text: "Markdown" })]),
-        window.FOSS.dom.el("button", {
-          className: "btn btn-secondary btn-sm",
-          "data-testid": "resume-export-docx-btn",
-          onclick: function () {
-            exportDocx();
-          }
-        }, [window.FOSS.icons.el("file", 12), window.FOSS.dom.el("span", { text: "Word (.docx)" })]),
-        window.FOSS.dom.el("button", {
           className: "btn btn-primary btn-sm",
-          "data-testid": "resume-export-pdf-btn",
-          onclick: function () {
-            exportPdf();
-          }
-        }, [window.FOSS.icons.el("check", 12), window.FOSS.dom.el("span", { text: "Export PDF" })])
+          "data-testid": "resume-export-btn",
+          onclick: function () { runExport("docx"); }
+        }, [window.FOSS.icons.el("save", 12), window.FOSS.dom.el("span", { text: "Export..." })])
       ])
     ]);
 
     previewStageEl = window.FOSS.dom.el("div", {
       className: "resume-preview-stage",
-      "data-testid": "resume-preview-stage",
-      style: "max-width: 58rem; margin: 0 auto; padding: clamp(1rem, 3vw, 3rem);"
+      "data-testid": "resume-preview-stage"
     });
+    applyPreviewMode();
 
     var exportResultHost = window.FOSS.dom.el("div", { "data-testid": "resume-export-result", hidden: true });
 
@@ -899,7 +914,7 @@ window.FOSS = window.FOSS || {};
                 atsBox.removeAttribute("hidden");
                 atsBox.innerHTML = "";
                 var scorePill = window.FOSS.dom.el("div", {
-                  className: "badge badge-primary text-sm",
+                  className: "badge info text-sm",
                   text: "Keyword Match Score: " + res.score + "%"
                 });
                 var matchedList = window.FOSS.dom.el("p", {
@@ -928,98 +943,73 @@ window.FOSS = window.FOSS || {};
     }
 
     function renderExportView(container) {
+      var themeSelect = window.FOSS.dom.el("select", {
+        className: "select",
+        "data-testid": "resume-theme-select",
+        "aria-label": "Theme",
+        title: "Theme",
+        onchange: function (e) {
+          currentTheme = e.target.value;
+          schedulePreviewUpdate();
+        }
+      }, [window.FOSS.dom.el("option", { value: "gnc", text: "SpaceX GNC", selected: currentTheme === "gnc" })]);
+      var dateSelect = window.FOSS.dom.el("select", {
+        className: "select",
+        "data-testid": "resume-date-format-select",
+        "aria-label": "Date format",
+        title: "Date format",
+        onchange: function (e) {
+          currentDateFormat = e.target.value;
+          schedulePreviewUpdate();
+        }
+      }, ["MM/YYYY", "Month YYYY"].map(function (fmt) {
+        return window.FOSS.dom.el("option", { value: fmt, text: fmt, selected: currentDateFormat === fmt });
+      }));
       var expCard = window.FOSS.dom.el("div", { className: "card", style: "display: flex; flex-direction: column; gap: var(--space-3);" }, [
         window.FOSS.dom.el("h3", { className: "card-title", text: "Export Resume" }),
-        window.FOSS.dom.el("p", { className: "text-xs text-muted", text: "Export formatted resume in PDF, Word (.docx), or structured Markdown." }),
-        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+        window.FOSS.dom.el("p", { className: "text-xs text-muted", text: "Word exports shrink the font until the document fits on one page. The saved file type follows the extension you choose." }),
+        window.FOSS.components.field({ label: "Theme", control: themeSelect }),
+        window.FOSS.components.field({ label: "Date format", control: dateSelect }),
+        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
           window.FOSS.dom.el("button", {
             className: "btn btn-primary",
-            "data-testid": "resume-export-pdf-btn-view",
-            onclick: exportPdf
+            "data-testid": "resume-export-pdf-btn",
+            onclick: function () { runExport("pdf"); }
           }, [window.FOSS.icons.el("check", 14), window.FOSS.dom.el("span", { text: "Export PDF..." })]),
           window.FOSS.dom.el("button", {
             className: "btn btn-secondary",
             "data-testid": "resume-export-docx-btn",
-            onclick: exportDocx
+            onclick: function () { runExport("docx"); }
           }, [window.FOSS.icons.el("file", 14), window.FOSS.dom.el("span", { text: "Export DOCX..." })]),
           window.FOSS.dom.el("button", {
             className: "btn btn-ghost",
-            onclick: exportMarkdown
-          }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "Export Markdown..." })])
+            "data-testid": "resume-export-txt-btn",
+            onclick: function () { runExport("txt"); }
+          }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "Export Text..." })])
         ])
       ]);
       container.appendChild(expCard);
     }
 
-    function exportPdf() {
-      window.FOSS.api("select_save_path", {
-        title: "Export Resume PDF",
-        default_name: "resume.pdf",
-        filter: "pdf",
-        file_types: [["PDF Documents", "*.pdf"]]
-      }).then(function (res) {
-        var savePath = res && (res.file_path || res.path || res.output_path);
-        if (!savePath) return;
-        if (!savePath.toLowerCase().endsWith(".pdf")) {
-          savePath = savePath + ".pdf";
-        }
-        return window.FOSS.api("resume_export_pdf", {
-          resume: masterResume,
-          output_path: savePath,
-          font_pt: currentFontPt
-        }).then(function () {
-          window.FOSS.dialogs.toast("PDF exported successfully.");
-        });
+    function runExport(preferredExt) {
+      exportResume(preferredExt).then(function (done) {
+        if (!done) return;
+        var info = done.info || {};
+        exportResultHost.removeAttribute("hidden");
+        exportResultHost.innerHTML = "";
+        exportResultHost.appendChild(window.FOSS.components.resultCard({
+          testid: "resume-export-result-card",
+          title: "Resume Exported",
+          outputPath: done.path,
+          details: [
+            { label: "Format", value: String(info.format || "").toUpperCase() },
+            { label: "Font", value: Number(info.font_pt || 0).toFixed(2) + " pt" },
+            { label: "Fits one page", value: info.fits_one_page ? "Yes" : "No" }
+          ]
+        }));
+        window.FOSS.dialogs.toast("Resume exported.");
       }).catch(function (err) {
-        window.FOSS.dialogs.toast("Export PDF failed: " + (err.message || err));
-      });
-    }
-
-    function exportDocx() {
-      window.FOSS.api("select_save_path", {
-        title: "Export Resume DOCX",
-        default_name: "resume.docx",
-        filter: "docx",
-        file_types: [["Word Documents", "*.docx"]]
-      }).then(function (res) {
-        var savePath = res && (res.file_path || res.path || res.output_path);
-        if (!savePath) return;
-        if (!savePath.toLowerCase().endsWith(".docx")) {
-          savePath = savePath + ".docx";
-        }
-        return window.FOSS.api("resume_export_docx", {
-          resume: masterResume,
-          output_path: savePath
-        }).then(function () {
-          window.FOSS.dialogs.toast("DOCX exported successfully.");
-        });
-      }).catch(function (err) {
-        window.FOSS.dialogs.toast("Export DOCX failed: " + (err.message || err));
-      });
-    }
-
-    function exportMarkdown() {
-      window.FOSS.api("select_save_path", {
-        title: "Export Resume Markdown",
-        default_filename: (masterResume.contact.name || "resume").replace(/\s+/g, "_") + ".md",
-        file_types: [["Markdown Files", "*.md"]]
-      }).then(function (res) {
-        if (!res || !res.file_path) return;
-        return window.FOSS.api("resume_export_markdown", {
-          resume: masterResume,
-          output_path: res.file_path
-        }).then(function () {
-          exportResultHost.removeAttribute("hidden");
-          exportResultHost.innerHTML = "";
-          exportResultHost.appendChild(window.FOSS.components.resultCard({
-            testid: "resume-export-result-card",
-            title: "Markdown Exported",
-            outputPath: res.file_path
-          }));
-          window.FOSS.dialogs.toast("Markdown exported successfully.");
-        });
-      }).catch(function (err) {
-        window.FOSS.dialogs.toast("Export Markdown failed: " + (err.message || err));
+        window.FOSS.dialogs.toast("Export failed: " + (err.message || err));
       });
     }
   }
@@ -1030,8 +1020,19 @@ window.FOSS = window.FOSS || {};
     title: "Resume Studio",
     navName: "Resume",
     category: "Documents",
-    icon: "award",
+    icon: "resume",
     workbench: true,
+    defaults: [
+      { key: "theme", label: "Default theme", type: "select", options: [{ value: "gnc", label: "SpaceX GNC" }], default: "gnc" },
+      { key: "date_format", label: "Default date format", type: "select", options: ["MM/YYYY", "Month YYYY"], default: "Month YYYY" },
+      {
+        key: "font_scale",
+        label: "Default font scale",
+        type: "select",
+        options: [{ value: "11.0", label: "11.0 pt (Standard)" }, { value: "10.5", label: "10.5 pt (Compact)" }, { value: "10.0", label: "10.0 pt (Dense)" }],
+        default: "11.0"
+      }
+    ],
     description: "SpaceX GNC format resume builder with live document preview and multi-format export.",
     tabs: [
       { id: "personal", label: "Contact & Bio", render: function (p) { renderResumeWorkbench(p, "personal"); } },

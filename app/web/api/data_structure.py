@@ -121,6 +121,7 @@ def _inspect_hdf5_structure(file_path: str) -> dict[str, Any]:
             "groups_count": raw.get("summary", {}).get("groups_count", 0),
             "datasets_count": raw.get("summary", {}).get("datasets_count", 0),
             "attributes_count": raw.get("summary", {}).get("attributes_count", 0),
+            "truncated": raw.get("summary", {}).get("truncated", False),
         },
     }
 

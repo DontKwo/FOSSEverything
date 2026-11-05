@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any, Callable
 from playwright.sync_api import Page, expect
 
@@ -26,6 +27,7 @@ def scenario_result(page: Page, fixtures: dict[str, str], api: Any) -> None:
     # Package sample file fixture into ZIP archive.
     sample = fixtures.get("sample.txt", "sample.txt")
     api._dialog_answers.append([sample])
+    api._dialog_answers.append(str(Path(sample).parent / "out_scenario.zip"))
     page.evaluate("window.FOSS.router.open('archive', 'create')")
     page.click("[data-testid='archive-choose-source']")
     page.wait_for_timeout(250)
@@ -71,15 +73,7 @@ def scenario_inspect(page: Page, fixtures: dict[str, str], api: Any) -> None:
     page.wait_for_timeout(250)
     status = page.locator("[data-testid='archive-inspect-status']")
     expect(status).to_contain_text("Integrity check passed")
-    calc_clear_overlays(page)
-
-
-def scenario_protect(page: Page, fixtures: dict[str, str], api: Any) -> None:
-    # Open Password Bundle tab and verify controls and absence of backup tab.
-    page.evaluate("window.FOSS.router.open('archive', 'protect')")
-    expect(page.locator("[data-testid='archive-protect-password']")).to_be_visible()
-    expect(page.locator("[data-testid='archive-protect-run-btn']")).to_be_visible()
-    expect(page.locator("[data-testid='archive-tab-backup']")).to_have_count(0)
+    expect(page.locator("[data-testid='archive-sha256-readout']")).to_contain_text("SHA-256: ")
     calc_clear_overlays(page)
 
 
@@ -89,5 +83,4 @@ SCENARIOS: list[tuple[str, Callable[[Page, dict[str, str], Any], None]]] = [
     ("error", scenario_error),
     ("extract", scenario_extract),
     ("inspect", scenario_inspect),
-    ("protect", scenario_protect),
 ]

@@ -10,7 +10,34 @@ window.FOSS.components = window.FOSS.components || {};
     return isNaN(fs) || fs <= 0 ? 16 : fs;
   }
 
+  function clampSplitPx(splitEl, side, pxVal) {
+    var rootFs = getRootFontSize();
+    var minLeftPx = 15 * rootFs;
+    var minRightPx = 18 * rootFs;
+    var width = splitEl.getBoundingClientRect().width;
+    if (side === "right") {
+      return Math.max(minRightPx, Math.min(width - minLeftPx, pxVal));
+    }
+    return Math.max(minLeftPx, Math.min(width - minRightPx, pxVal));
+  }
+
+  function reclampSplits() {
+    var splits = document.querySelectorAll(".split");
+    for (var i = 0; i < splits.length; i++) {
+      var splitEl = splits[i];
+      var rootFs = getRootFontSize();
+      ["left", "right"].forEach(function (side) {
+        var prop = "--split-" + side;
+        var rem = parseFloat(splitEl.style.getPropertyValue(prop));
+        if (isNaN(rem)) return;
+        var clamped = clampSplitPx(splitEl, side, rem * rootFs);
+        splitEl.style.setProperty(prop, (clamped / rootFs).toFixed(2) + "rem");
+      });
+    }
+  }
+
   function init() {
+    window.addEventListener("resize", reclampSplits);
     document.addEventListener("mousedown", handleMouseDown);
     document.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -50,7 +77,6 @@ window.FOSS.components = window.FOSS.components || {};
     var side = divider.dataset.side || (split.classList.contains("split-main-first") ? "right" : "left");
     var prop = "--split-" + side;
     var rootFs = getRootFontSize();
-    var rect = split.getBoundingClientRect();
     var currentRem = parseFloat(split.style.getPropertyValue(prop));
 
     if (isNaN(currentRem)) {
@@ -58,12 +84,9 @@ window.FOSS.components = window.FOSS.components || {};
     }
 
     var step = (e.key === "ArrowRight" ? 1 : -1) * (side === "right" ? -1 : 1);
-    var nextRem = currentRem + step;
-    var minRem = 15;
-    var maxRem = (rect.width * 0.80) / rootFs;
-    nextRem = Math.max(minRem, Math.min(maxRem, nextRem));
+    var nextPx = clampSplitPx(split, side, (currentRem + step) * rootFs);
 
-    split.style.setProperty(prop, nextRem.toFixed(2) + "rem");
+    split.style.setProperty(prop, (nextPx / rootFs).toFixed(2) + "rem");
   }
 
   function handleMouseDown(e) {
@@ -149,10 +172,8 @@ window.FOSS.components = window.FOSS.components || {};
 
     if (activeDrag.kind === "split") {
       var sRect = activeDrag.splitEl.getBoundingClientRect();
-      var pxVal = activeDrag.side === "right" ? sRect.right - e.clientX : e.clientX - sRect.left;
-      var minPx = 15 * rootFs;
-      var maxPx = sRect.width * 0.80;
-      pxVal = Math.max(minPx, Math.min(maxPx, pxVal));
+      var rawPx = activeDrag.side === "right" ? sRect.right - e.clientX : e.clientX - sRect.left;
+      var pxVal = clampSplitPx(activeDrag.splitEl, activeDrag.side, rawPx);
       var splitRem = pxVal / rootFs;
       activeDrag.splitEl.style.setProperty("--split-" + activeDrag.side, splitRem.toFixed(2) + "rem");
     }

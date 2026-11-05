@@ -38,6 +38,12 @@ def scenario_extract(page: Page, fixtures: dict[str, str], api: Any) -> None:
 
     expect(page.locator("[data-testid='palette-swatch-list'] .font-mono").first).to_be_visible()
     expect(page.locator("[data-testid='palette-status']")).to_contain_text("Extracted")
+    expect(page.locator("[data-testid='palette-defaults-btn']")).to_be_visible()
+    expect(page.locator("[data-testid='palette-num-colors']")).to_have_value("6")
+    first_card = page.locator("[data-testid='palette-swatch-card']").first
+    for testid in ["palette-copy-hex-btn", "palette-copy-rgb-btn", "palette-copy-hsl-btn", "palette-contrast-white", "palette-contrast-black"]:
+        expect(first_card.locator(f"[data-testid='{testid}']")).to_be_visible()
+    expect(first_card.locator("[data-testid='palette-contrast-white']")).to_contain_text(":1")
     calc_clear_overlays(page)
 
 

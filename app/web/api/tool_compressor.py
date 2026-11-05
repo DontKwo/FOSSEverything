@@ -16,6 +16,19 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tiff", ".tif", "
 PDF_EXTENSIONS = {".pdf"}
 MEDIA_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm", ".avi", ".mp3", ".wav", ".flac", ".aac", ".ogg", ".m4a"}
 ARCHIVE_EXTENSIONS = {".zip", ".tar", ".gz", ".tgz", ".bz2", ".xz"}
+TEXT_EXTENSIONS = {".txt", ".csv", ".json", ".xml", ".html", ".htm", ".md", ".log", ".yaml", ".yml", ".ini", ".py", ".js", ".css"}
+IMAGE_KEEP_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+PROFILE_ORDER = ("light", "balanced", "aggressive")
+ESTIMATE_RATIOS: dict[str, tuple[float, float, float]] = {
+    "PDF": (0.10, 0.25, 0.45),
+    "Image": (0.12, 0.30, 0.50),
+    "PNG": (0.30, 0.45, 0.60),
+    "PNG_LOSSLESS": (0.05, 0.08, 0.10),
+    "Media": (0.20, 0.40, 0.65),
+    "Archive": (0.02, 0.05, 0.08),
+    "Text": (0.55, 0.65, 0.70),
+    "General": (0.03, 0.05, 0.08),
+}
 
 
 def _detect_compressor_category(path_str: str) -> str:
@@ -30,6 +43,29 @@ def _detect_compressor_category(path_str: str) -> str:
     if ext in ARCHIVE_EXTENSIONS:
         return "Archive"
     return "General"
+
+
+def _output_suffix(category: str, src_suffix: str) -> str:
+    # Extension of the file the compressor writes for this category and source.
+    suffix = src_suffix.lower()
+    if category == "Image":
+        return suffix if suffix in IMAGE_KEEP_EXTENSIONS else ".jpg"
+    if category in ("PDF", "Media"):
+        return suffix
+    return ".zip"
+
+
+def _estimate_ratio(category: str, suffix: str, preset: str, lossy_png: bool) -> float:
+    # Expected fraction of bytes removed for a category under one profile.
+    ext = suffix.lower()
+    if category == "Image" and ext == ".png":
+        key = "PNG" if lossy_png else "PNG_LOSSLESS"
+    elif category == "General" and ext in TEXT_EXTENSIONS:
+        key = "Text"
+    else:
+        key = category if category in ESTIMATE_RATIOS else "General"
+    index = PROFILE_ORDER.index(preset) if preset in PROFILE_ORDER else 1
+    return ESTIMATE_RATIOS[key][index]
 
 
 def _compress_image_file(
@@ -116,6 +152,7 @@ class CompressorApiMixin:
                 "rel_dir": rel_dir,
                 "size_bytes": f_path.stat().st_size,
                 "category": cat,
+                "output_ext": _output_suffix(cat, f_path.suffix),
             })
 
         for p_str in raw_paths:
@@ -138,6 +175,44 @@ class CompressorApiMixin:
                             _evaluate_file(entry, "")
 
         return ok(items=discovered, total=len(discovered))
+
+    @api_method
+    def compressor_estimate_savings(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Estimate bytes saved per item and in total for a profile before running.
+        require(params, "items")
+        raw_items = list(params["items"])
+        preset = str(params.get("preset", "balanced")).lower()
+        lossy_png = bool(params.get("lossy_png", True))
+
+        rows: list[dict[str, Any]] = []
+        total_orig = 0
+        total_saved = 0
+        for item in raw_items:
+            in_p = str(item.get("path") or item.get("file_path") or item.get("input_path", ""))
+            if not os.path.isfile(in_p):
+                continue
+            orig_size = os.path.getsize(in_p)
+            cat = str(item.get("category") or _detect_compressor_category(in_p))
+            ratio = _estimate_ratio(cat, Path(in_p).suffix, preset, lossy_png)
+            saved_b = int(orig_size * ratio)
+            rows.append({
+                "path": in_p,
+                "original_bytes": orig_size,
+                "estimated_bytes": orig_size - saved_b,
+                "saved_bytes": saved_b,
+                "saved_pct": round(ratio * 100.0, 1),
+            })
+            total_orig += orig_size
+            total_saved += saved_b
+
+        total_pct = round((total_saved / total_orig) * 100.0, 1) if total_orig > 0 else 0.0
+        return ok(
+            results=rows,
+            total_original_bytes=total_orig,
+            total_estimated_bytes=total_orig - total_saved,
+            total_saved_bytes=total_saved,
+            total_saved_pct=total_pct,
+        )
 
     @api_method
     def compressor_compress_items(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -174,9 +249,9 @@ class CompressorApiMixin:
                 out_p = str(item["output_path"])
             elif out_dir:
                 item_dir = Path(out_dir) / rel_dir if (preserve_tree and rel_dir) else Path(out_dir)
-                out_p = str(item_dir / f"{src_path.stem}_compressed{src_path.suffix}")
+                out_p = str(item_dir / f"{src_path.stem}_compressed{_output_suffix(cat, src_path.suffix)}")
             else:
-                out_p = str(src_path.with_stem(f"{src_path.stem}_compressed"))
+                out_p = str(src_path.with_name(f"{src_path.stem}_compressed{_output_suffix(cat, src_path.suffix)}"))
 
             try:
                 if cat == "Image":

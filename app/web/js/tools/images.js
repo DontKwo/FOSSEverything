@@ -108,55 +108,52 @@ window.FOSS = window.FOSS || {};
     modelManagerCard.appendChild(modelManagerHeader);
     modelManagerCard.appendChild(modelListContainer);
 
+    var modelBadge = window.FOSS.dom.el("span", {
+      className: "badge badge-neutral text-xs",
+      "data-testid": "images-bg-model-badge",
+      text: "Checking..."
+    });
+
+    function updateModelBadge() {
+      var current = modelsCatalog.find(function (m) { return m.id === modelSelect.value; });
+      var isDownloaded = !!(current && current.downloaded);
+      modelBadge.className = "badge text-xs " + (isDownloaded ? "success" : "warning");
+      modelBadge.textContent = current ? (isDownloaded ? "Downloaded" : "Pending download (" + current.download_size + ")") : "Unknown";
+    }
+
+    modelSelect.addEventListener("change", updateModelBadge);
+
     function refreshModelsList() {
-      window.FOSS.api("image_get_rembg_models", {}).then(function (res) {
-        if (!res || !res.models || !res.models.length) {
-          return window.FOSS.api("images_models_status", {});
-        }
-        return res;
-      }).catch(function () {
-        return window.FOSS.api("images_models_status", {});
-      }).then(function (res) {
+      window.FOSS.api("images_models_status", {}).then(function (res) {
         if (!res || !res.models) return;
         modelsCatalog = res.models;
         modelsDir = res.models_dir || "";
 
-        // Populate select
         var previousVal = modelSelect.value;
         modelSelect.innerHTML = "";
-        var bestDefault = "";
-
         modelsCatalog.forEach(function (m) {
-          var mId = m.id || m.name;
-          var mLabel = m.label || (m.name + (m.description ? " (" + m.description + ")" : ""));
-          var mSize = m.download_size || (m.size_mb ? m.size_mb + " MB" : "");
-          var isDownloaded = !!(m.downloaded || m.cached || m.local_cache);
-          var statusTag = isDownloaded ? "[Downloaded" + (mSize ? " - " + mSize : "") + "]" : "[Needs Download" + (mSize ? " - " + mSize : "") + "]";
-          var opt = window.FOSS.dom.el("option", {
-            value: mId,
-            text: statusTag + " " + mLabel
-          });
-          modelSelect.appendChild(opt);
-          if (isDownloaded && !bestDefault) {
-            bestDefault = mId;
-          }
+          var statusTag = m.downloaded ? "[Downloaded]" : "[Pending]";
+          modelSelect.appendChild(window.FOSS.dom.el("option", {
+            value: m.id,
+            text: statusTag + " " + m.label + " - " + m.download_size
+          }));
         });
 
-        if (previousVal) {
+        var preferred = window.FOSS.toolDefaults.get("images", "rembg_model", "u2net");
+        var hasModel = function (id) { return modelsCatalog.some(function (m) { return m.id === id; }); };
+        if (previousVal && hasModel(previousVal)) {
           modelSelect.value = previousVal;
-        } else if (bestDefault) {
-          modelSelect.value = bestDefault;
-        } else {
-          modelSelect.value = "isnet-general-use";
+        } else if (hasModel(preferred)) {
+          modelSelect.value = preferred;
         }
+        updateModelBadge();
 
-        // Populate Manager list
         modelListContainer.innerHTML = "";
         modelsCatalog.forEach(function (m) {
-          var mId = m.id || m.name;
-          var mLabel = m.label || (m.name + (m.description ? " (" + m.description + ")" : ""));
-          var mSize = m.download_size || (m.size_mb ? m.size_mb + " MB" : "");
-          var isDownloaded = !!(m.downloaded || m.cached || m.local_cache);
+          var mId = m.id;
+          var mLabel = m.label;
+          var mSize = m.download_size;
+          var isDownloaded = !!m.downloaded;
 
           var row = window.FOSS.dom.el("div", {
             className: "row items-center justify-between",
@@ -188,7 +185,7 @@ window.FOSS = window.FOSS || {};
             actionCol.appendChild(badge);
             actionCol.appendChild(delBtn);
           } else {
-            var badge = window.FOSS.dom.el("span", { className: "badge warning text-xs", text: "Needs Download" });
+            var badge = window.FOSS.dom.el("span", { className: "badge warning text-xs", text: "Pending" });
             var dlBtn = window.FOSS.dom.el("button", {
               className: "btn btn-sm btn-secondary",
               "data-testid": "images-model-dl-" + mId,
@@ -248,10 +245,10 @@ window.FOSS = window.FOSS || {};
     var viewMode = "cutout"; // cutout | original | both
     var viewModeToggle = window.FOSS.components.segmented({
       testid: "images-view-mode-toggle",
-      options: [
-        { value: "cutout", label: "Cutout" },
-        { value: "original", label: "Original" },
-        { value: "both", label: "Side-by-Side" }
+      items: [
+        { id: "cutout", label: "Cutout" },
+        { id: "original", label: "Original" },
+        { id: "both", label: "Side-by-Side" }
       ],
       value: "cutout",
       onChange: function (val) {
@@ -359,6 +356,26 @@ window.FOSS = window.FOSS || {};
       blurSlider
     ]);
 
+    function cutoutFileTypes() {
+      var types = [{ name: "PNG Image (*.png)", extensions: ["png"] }];
+      if (backdropSelect.value !== "transparent") {
+        types.push({ name: "WebP Image (*.webp)", extensions: ["webp"] });
+        types.push({ name: "JPEG Image (*.jpg)", extensions: ["jpg", "jpeg"] });
+      }
+      return types;
+    }
+
+    function promptCutoutPath() {
+      return window.FOSS.api("select_save_path", {
+        title: "Save Cutout",
+        default_name: "cutout",
+        file_types: cutoutFileTypes()
+      }).then(function (res) {
+        if (!res || res.cancelled) return "";
+        return (res.path || (res.paths && res.paths[0]) || "").trim();
+      });
+    }
+
     // Primary action button
     var removeBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
@@ -368,19 +385,8 @@ window.FOSS = window.FOSS || {};
       onClick: function () {
         if (!currentFile) return showError("Select an image first.");
         clearError();
-        window.FOSS.api("select_save_path", {
-          title: "Save Cutout PNG",
-          default_name: "cutout.png",
-          file_types: [
-            { name: "PNG Image", extensions: ["png"] }
-          ]
-        }).then(function (saveRes) {
-          if (!saveRes || saveRes.cancelled) return;
-          var chosenPath = (saveRes.path || (saveRes.paths && saveRes.paths[0]) || "").trim();
+        promptCutoutPath().then(function (chosenPath) {
           if (!chosenPath) return;
-          if (!chosenPath.toLowerCase().endsWith(".png")) {
-            chosenPath = chosenPath + ".png";
-          }
           statusBar.textContent = "Removing background with " + modelSelect.value + "...";
           removeBtn.disabled = true;
 
@@ -390,6 +396,7 @@ window.FOSS = window.FOSS || {};
             backdrop: backdropSelect.value,
             color: colorPicker.value,
             blur_radius: parseInt(blurSlider.value, 10) || 25,
+            quality: window.FOSS.toolDefaults.get("images", "jpeg_quality", 85),
             output_path: chosenPath
           }).then(function (res) {
             removeBtn.disabled = false;
@@ -401,6 +408,7 @@ window.FOSS = window.FOSS || {};
               statusBar.textContent = "Background removed and saved to " + chosenPath;
               saveCutoutBtn.classList.remove("hidden");
               showResult(chosenPath, "Cutout Saved Successfully");
+              refreshModelsList();
             }
           }).catch(function (err) {
             removeBtn.disabled = false;
@@ -412,30 +420,19 @@ window.FOSS = window.FOSS || {};
       window.FOSS.icons.el("sparkles", 16),
       window.FOSS.dom.el("span", { text: "Remove Background" })
     ]);
-    // Also attach alias data-testid
-    removeBtn.setAttribute("data-testid", "images-remove-bg-btn");
 
     var saveCutoutBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary",
       "data-testid": "images-save-cutout-btn",
-      text: "Save Cutout PNG...",
+      text: "Save Cutout...",
       onClick: function () {
         if (!currentCutoutDataUrl || !currentFile) return showError("Generate a cutout first.");
-        window.FOSS.api("select_save_path", {
-          title: "Save Cutout PNG",
-          default_name: "cutout.png",
-          file_types: [{ name: "PNG Image", extensions: ["png"] }]
-        }).then(function (res) {
-          var outP = (res && res.path) || (res && res.paths && res.paths.length > 0 ? res.paths[0] : "");
+        promptCutoutPath().then(function (outP) {
           if (!outP) return;
-          if (!outP.toLowerCase().endsWith(".png")) outP += ".png";
-          window.FOSS.api("images_remove_background", {
-            file_path: currentFile,
-            model: modelSelect.value,
-            backdrop: backdropSelect.value,
-            color: colorPicker.value,
-            blur_radius: parseInt(blurSlider.value, 10) || 25,
-            output_path: outP
+          window.FOSS.api("images_save_preview", {
+            data_url: currentCutoutDataUrl,
+            output_path: outP,
+            quality: window.FOSS.toolDefaults.get("images", "jpeg_quality", 85)
           }).then(function () {
             showResult(outP, "Cutout Saved");
             statusBar.textContent = "Saved to " + outP;
@@ -482,6 +479,10 @@ window.FOSS = window.FOSS || {};
       style: "width: 100%;"
     }, [
       window.FOSS.components.field("AI Model", modelSelect),
+      window.FOSS.dom.el("div", { className: "row items-center gap-2" }, [
+        window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Model status:" }),
+        modelBadge
+      ]),
       window.FOSS.components.field("Backdrop", backdropSelect),
       backdropOptionsRow,
       window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-wrap", style: "margin-top: var(--space-2);" }, [
@@ -803,36 +804,49 @@ window.FOSS = window.FOSS || {};
       }
     });
 
-    // Save copy button
+    var SAVE_TYPES = {
+      png: { name: "PNG Image (*.png)", extensions: ["png"] },
+      webp: { name: "WebP Image (*.webp)", extensions: ["webp"] },
+      jpeg: { name: "JPEG Image (*.jpg)", extensions: ["jpg", "jpeg"] }
+    };
+
+    var qualityInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input",
+      min: "1",
+      max: "100",
+      value: String(window.FOSS.toolDefaults.get("images", "jpeg_quality", 85)),
+      "data-testid": "images-tf-quality",
+      "aria-label": "JPEG and WebP quality",
+      title: "JPEG and WebP quality",
+      style: "width: 5rem;"
+    });
+
+    // Save the preview shown on stage as a new file in the chosen format
     var saveCopyBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
       "data-testid": "images-tf-save",
       text: "Save Copy As...",
       onClick: function () {
-        if (!currentFile) return showError("Open an image first.");
-        var origExt = (currentFile.split(".").pop() || "png").toLowerCase();
-        var defExt = "." + origExt;
+        if (!currentFile || !previewDataUrl) return showError("Open an image first.");
+        var preferred = String(window.FOSS.toolDefaults.get("images", "export_format", "webp"));
+        var order = [preferred].concat(Object.keys(SAVE_TYPES).filter(function (key) { return key !== preferred; }));
         window.FOSS.api("select_save_path", {
           title: "Save Transformed Image",
-          default_name: "transformed" + defExt,
-          file_types: [
-            { name: "Image (" + defExt + ")", extensions: [origExt] },
-            { name: "PNG Image", extensions: ["png"] },
-            { name: "JPEG Image", extensions: ["jpg", "jpeg"] },
-            { name: "WebP Image", extensions: ["webp"] }
-          ]
+          default_name: "transformed",
+          file_types: order.map(function (key) { return SAVE_TYPES[key]; })
         }).then(function (res) {
           if (!res || res.cancelled) return;
           var outP = (res && res.path) || (res && res.paths && res.paths.length > 0 ? res.paths[0] : "");
           if (!outP) return;
-          window.FOSS.api("images_adjust", {
-            file_path: currentFile,
-            brightness: parseInt(brightSlider.value, 10),
-            contrast: parseInt(contrastSlider.value, 10),
-            saturation: parseInt(satSlider.value, 10),
-            output_path: outP
+          window.FOSS.api("images_save_preview", {
+            data_url: previewDataUrl,
+            output_path: outP,
+            quality: parseInt(qualityInput.value, 10) || 85
           }).then(function () {
             statusBar.textContent = "Saved to " + outP;
+          }).catch(function (err) {
+            showError(err && err.message ? err.message : String(err));
           });
         });
       }
@@ -859,7 +873,11 @@ window.FOSS = window.FOSS || {};
       filterSelect,
       applyFilterBtn
     ]));
-    transformsCard.appendChild(window.FOSS.dom.el("div", { style: "margin-top: var(--space-2);" }, [saveCopyBtn]));
+    transformsCard.appendChild(window.FOSS.dom.el("div", { className: "row items-center gap-2", style: "margin-top: var(--space-2);" }, [
+      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Quality:" }),
+      qualityInput,
+      saveCopyBtn
+    ]));
 
     sidebar.appendChild(filePicker.el);
     sidebar.appendChild(transformsCard);
@@ -950,8 +968,8 @@ window.FOSS = window.FOSS || {};
         if (!asciiPre.textContent) return;
         window.FOSS.api("select_save_path", {
           title: "Save ASCII Art",
-          default_name: "ascii_art.txt",
-          filters: [{ name: "Text File", extensions: ["txt"] }]
+          default_name: "ascii_art",
+          file_types: [{ name: "Text File (*.txt)", extensions: ["txt"] }]
         }).then(function (res) {
           var outP = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
           if (!outP) return;
@@ -1024,8 +1042,8 @@ window.FOSS = window.FOSS || {};
               var framePaths = fRes.paths;
               window.FOSS.api("select_save_path", {
                 title: "Save Animated GIF",
-                default_name: "animation.gif",
-                filters: [{ name: "GIF Animation", extensions: ["gif"] }]
+                default_name: "animation",
+                file_types: [{ name: "GIF Animation (*.gif)", extensions: ["gif"] }]
               }).then(function (sRes) {
                 var outP = sRes && sRes.paths && sRes.paths.length > 0 ? sRes.paths[0] : "";
                 if (!outP) return;
@@ -1071,8 +1089,19 @@ window.FOSS = window.FOSS || {};
     title: "Image Studio",
     navName: "Images",
     category: "Visuals",
-    icon: "image",
+    icon: "images",
     workbench: true,
+    defaults: [
+      {
+        key: "rembg_model",
+        label: "Default background removal model",
+        type: "select",
+        options: ["u2net", "u2netp", "silueta", "isnet-general-use", "u2net_human_seg", "birefnet-general-lite", "bria-rmbg"],
+        default: "u2net"
+      },
+      { key: "export_format", label: "Default export format", type: "select", options: ["png", "webp", "jpeg"], default: "webp" },
+      { key: "jpeg_quality", label: "Default JPEG quality", type: "number", min: 1, max: 100, step: 1, default: 85 }
+    ],
     tabs: [
       { id: "background", label: "Background", render: renderBackground },
       { id: "transform", label: "Transform", render: renderTransform },

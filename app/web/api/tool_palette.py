@@ -11,6 +11,7 @@ from app.features.image.ops import load_image
 
 from app.features.palette.ops import (
     ColorSwatch,
+    build_ase_bytes,
     contrast_ratio,
     extract_palette,
     generate_palette_strip,
@@ -208,6 +209,16 @@ class PaletteApiMixin:
             rgb = _calc_to_rgb(c)
             buf.extend(struct.pack(">HHHHH", 0, rgb[0] * 257, rgb[1] * 257, rgb[2] * 257, 0))
         out_path.write_bytes(bytes(buf))
+        return ok(output_path=str(out_path))
+
+    @api_method
+    def palette_export_ase(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Export palette to Adobe Swatch Exchange (.ase) binary format.
+        require(params, "colors", "output_path")
+        out_path = Path(params["output_path"]).resolve()
+        rgb_list = [_calc_to_rgb(c) for c in params["colors"]]
+        names = [f"{nearest_named_color(rgb)} #{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}" for rgb in rgb_list]
+        out_path.write_bytes(build_ase_bytes(rgb_list, names))
         return ok(output_path=str(out_path))
 
     @api_method

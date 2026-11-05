@@ -1,9 +1,12 @@
+import socket
+import urllib.error
 from pathlib import Path
 from typing import Any
 
 from app.features.playlist.ops import (
     build_track,
     export_csv_playlist,
+    export_json_playlist,
     export_m3u8_playlist,
     fetch_playlist_from_url,
     get_spotify_user_token,
@@ -23,13 +26,30 @@ from app.system.settings import get_setting, set_setting
 from app.web.api.result import api_method, fail, ok, require
 
 
+def _describe_fetch_error(exc: Exception) -> str:
+    # Turn a remote fetch exception into a short, user-readable reason.
+    if isinstance(exc, urllib.error.HTTPError):
+        return f"The server answered HTTP {exc.code} ({exc.reason}). The playlist may be private, removed, or rate limited."
+    if isinstance(exc, (socket.timeout, TimeoutError)):
+        return f"The request timed out. {exc}".strip()
+    if isinstance(exc, urllib.error.URLError):
+        return f"Could not reach the server: {exc.reason}. Check your internet connection."
+    if isinstance(exc, ConnectionError):
+        return f"The connection was interrupted: {exc}"
+    message = str(exc).strip()
+    return message if message else f"{exc.__class__.__name__} while fetching the playlist."
+
+
 class PlaylistApiMixin:
     @api_method
     def playlist_fetch(self, params: dict[str, Any]) -> dict[str, Any]:
         # Fetch tracks from a Spotify or YouTube playlist URL.
         require(params, "url")
         url = str(params["url"]).strip()
-        tracks = fetch_playlist_from_url(url)
+        try:
+            tracks = fetch_playlist_from_url(url)
+        except Exception as exc:
+            return fail(_describe_fetch_error(exc), code="FetchError")
         track_dicts = [t.to_dict() for t in tracks]
         return ok(tracks=track_dicts, count=len(tracks))
 
@@ -86,6 +106,22 @@ class PlaylistApiMixin:
         ]
         out_p = str(params["output_path"])
         export_m3u8_playlist(tracks, out_p)
+        return ok(output_path=out_p)
+
+    @api_method
+    def playlist_export_json(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Export track list to a JSON file.
+        require(params, "tracks", "output_path")
+        tracks = [
+            build_track(
+                artist=str(t.get("artist", "")),
+                title=str(t.get("title", "")),
+                album=str(t.get("album", "")),
+            )
+            for t in params["tracks"]
+        ]
+        out_p = str(params["output_path"])
+        export_json_playlist(tracks, out_p)
         return ok(output_path=out_p)
 
     @api_method

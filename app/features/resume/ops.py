@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import base64
+import copy
 import json
 import logging
+import math
 import os
 import re
 import uuid
@@ -1034,16 +1036,61 @@ def export_pdf(resume: MasterResume, output_path: str, theme: str = "gnc") -> st
     return output_path
 
 
-def export_docx(resume: MasterResume, output_path: str, theme: str = "gnc") -> str:
-    # Export resume to Microsoft Word DOCX matching exact SpaceX GNC formatting.
-    import os
+_DOCX_BASE_PT = 10.5
+_DOCX_MIN_PT = 8.0
+_DOCX_LINE_FACTOR = 1.22
+_DOCX_TEXT_HEIGHT_PT = 698.4
+_DOCX_FIT_MARGIN = 0.97
+_DOCX_CONTENT_WIDTH_PT = 504.0
+_MONTH_NAMES = [
+    "January", "February", "March", "April", "May", "June", "July",
+    "August", "September", "October", "November", "December",
+]
+_MONTH_DATE_PATTERN = re.compile(
+    r"\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+(\d{4})\b", re.IGNORECASE
+)
+_NUMERIC_DATE_PATTERN = re.compile(r"\b(\d{1,2})/(\d{4})\b")
+EXPORT_FORMATS: tuple[str, ...] = ("docx", "pdf", "txt")
+
+
+def _convert_dates(text: str, date_format: str) -> str:
+    # Rewrite month/year tokens in text to the requested date format.
+    if date_format == "MM/YYYY":
+        def to_numeric(match: re.Match[str]) -> str:
+            month_idx = [m[:3].lower() for m in _MONTH_NAMES].index(match.group(1).lower()) + 1
+            return f"{month_idx:02d}/{match.group(2)}"
+
+        return _MONTH_DATE_PATTERN.sub(to_numeric, text)
+    if date_format == "Month YYYY":
+        def to_named(match: re.Match[str]) -> str:
+            month_num = int(match.group(1))
+            if month_num < 1 or month_num > 12:
+                return match.group(0)
+            return f"{_MONTH_NAMES[month_num - 1]} {match.group(2)}"
+
+        return _NUMERIC_DATE_PATTERN.sub(to_named, text)
+    return text
+
+
+def apply_date_format(resume: MasterResume, date_format: str) -> MasterResume:
+    # Return a copy of resume with entry date ranges rewritten to date_format.
+    out = copy.deepcopy(resume)
+    for sec in out.sections:
+        for entry in sec.entries:
+            entry.date_range = _convert_dates(entry.date_range, date_format)
+    return out
+
+
+def _build_docx(resume: MasterResume, body_pt: float) -> tuple[Any, float]:
+    # Build the GNC-format Word document at body_pt and estimate its text height in points.
     import docx
     from docx.shared import Inches, Pt, RGBColor
     from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
     from docx.oxml import parse_xml
     from docx.oxml.ns import nsdecls
 
-    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    ratio = body_pt / _DOCX_BASE_PT
+    fonts = resolve_calibri_fonts()["instances"]
     doc = docx.Document()
     sec = doc.sections[0]
     sec.page_width = Inches(8.5)
@@ -1055,22 +1102,66 @@ def export_docx(resume: MasterResume, output_path: str, theme: str = "gnc") -> s
 
     style_normal = doc.styles["Normal"]
     style_normal.font.name = "Calibri"
-    style_normal.font.size = Pt(10.5)
+    style_normal.font.size = Pt(body_pt)
     style_normal.paragraph_format.line_spacing = 1.0
     style_normal.paragraph_format.space_before = Pt(0)
     style_normal.paragraph_format.space_after = Pt(0)
+    height = [0.0]
 
-    # Header Name
-    p_name = doc.add_paragraph()
-    p_name.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    p_name.paragraph_format.space_after = Pt(2)
-    run_name = p_name.add_run((resume.contact.name or "CANDIDATE NAME").upper())
-    run_name.font.name = "Calibri"
-    run_name.font.size = Pt(20)
-    run_name.font.bold = True
-    run_name.font.color.rgb = RGBColor(0, 0, 0)
+    def add_par(
+        runs: list[tuple[str, float, bool, bool]],
+        before: float = 0.0,
+        after: float = 0.0,
+        center: bool = False,
+        right_tab: bool = False,
+        bullet: bool = False,
+        rule: bool = False,
+    ) -> None:
+        # Add one paragraph of (text, base_size, bold, italic) runs and accumulate its height.
+        para = doc.add_paragraph()
+        fmt = para.paragraph_format
+        fmt.space_before = Pt(before * ratio)
+        fmt.space_after = Pt(after * ratio)
+        if center:
+            para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        if right_tab:
+            fmt.tab_stops.add_tab_stop(Inches(7.0), WD_TAB_ALIGNMENT.RIGHT)
+        avail = _DOCX_CONTENT_WIDTH_PT
+        if bullet:
+            indent = 9.0 * ratio
+            fmt.left_indent = Pt(indent)
+            fmt.first_line_indent = Pt(-indent)
+            fmt.tab_stops.add_tab_stop(Pt(indent))
+            glyph = para.add_run("\u25cf\t")
+            glyph.font.name = "Arial"
+            glyph.font.size = Pt(8.5 * ratio)
+            avail -= indent
+        total_width = 0.0
+        max_size = 0.0
+        for text, base_size, is_bold, is_italic in runs:
+            size = base_size * ratio
+            run = para.add_run(text)
+            run.font.name = "Calibri"
+            run.font.size = Pt(size)
+            run.font.bold = is_bold
+            run.font.italic = is_italic
+            run.font.color.rgb = RGBColor(0, 0, 0)
+            key = "bold_italic" if is_bold and is_italic else "bold" if is_bold else "italic" if is_italic else "regular"
+            total_width += fonts[key].text_length(text.replace("\t", "  "), fontsize=size)
+            max_size = max(max_size, size)
+        if rule:
+            bdr = parse_xml(
+                f'<w:pBdr {nsdecls("w")}><w:bottom w:val="single" w:sz="16" w:space="2" w:color="000000"/></w:pBdr>'
+            )
+            para._p.get_or_add_pPr().append(bdr)
+            height[0] += 4.0 * ratio
+        line_count = max(1, math.ceil(total_width / avail))
+        height[0] += line_count * max_size * _DOCX_LINE_FACTOR + (before + after) * ratio
 
-    # Contact Info
+    def add_header(title: str) -> None:
+        add_par([(title.upper(), 11.0, True, False)], before=6.0, after=2.0, rule=True)
+
+    add_par([((resume.contact.name or "CANDIDATE NAME").upper(), 20.0, True, False)], after=2.0, center=True)
     c_parts = [
         p
         for p in [
@@ -1084,185 +1175,139 @@ def export_docx(resume: MasterResume, output_path: str, theme: str = "gnc") -> s
         if p and p.strip()
     ]
     if c_parts:
-        p_c = doc.add_paragraph()
-        p_c.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p_c.paragraph_format.space_after = Pt(4)
-        run_c = p_c.add_run(" | ".join(c_parts))
-        run_c.font.name = "Calibri"
-        run_c.font.size = Pt(9.5)
+        add_par([(" | ".join(c_parts), 9.5, False, False)], after=4.0, center=True)
 
-    def add_section_header(title: str) -> None:
-        p_h = doc.add_paragraph()
-        p_h.paragraph_format.space_before = Pt(6)
-        p_h.paragraph_format.space_after = Pt(2)
-        r_h = p_h.add_run(title.upper())
-        r_h.font.name = "Calibri"
-        r_h.font.size = Pt(11)
-        r_h.font.bold = True
-        r_h.font.color.rgb = RGBColor(0, 0, 0)
-        bdr = parse_xml(
-            f'<w:pBdr {nsdecls("w")}><w:bottom w:val="single" w:sz="16" w:space="2" w:color="000000"/></w:pBdr>'
-        )
-        p_h._p.get_or_add_pPr().append(bdr)
-
-    # Summary Section
     if resume.summary_enabled and resume.summary.strip():
-        add_section_header("Summary")
-        p_s = doc.add_paragraph()
-        p_s.paragraph_format.space_after = Pt(2)
-        r_s = p_s.add_run(resume.summary.strip())
-        r_s.font.name = "Calibri"
-        r_s.font.size = Pt(10.5)
+        add_header("Summary")
+        add_par([(resume.summary.strip(), 10.5, False, False)], after=2.0)
 
     for s in resume.sections:
-        if not s.enabled:
-            continue
         entries = [e for e in s.entries if e.enabled]
-        if not entries:
+        if not s.enabled or not entries:
             continue
-        add_section_header(s.title)
-
+        add_header(s.title)
         stype = s.type.lower()
         for e in entries:
+            date_run = [("\t" + e.date_range, 10.5, True, False)] if e.date_range else []
             if stype == "education":
-                p_deg = doc.add_paragraph()
-                p_deg.paragraph_format.space_before = Pt(2)
-                p_deg.paragraph_format.space_after = Pt(1)
-                p_deg.paragraph_format.tab_stops.add_tab_stop(
-                    Inches(7.0), WD_TAB_ALIGNMENT.RIGHT
-                )
-                r_title = p_deg.add_run(e.title)
-                r_title.font.name = "Calibri"
-                r_title.font.size = Pt(10.5)
-                r_title.font.bold = True
-                if e.date_range:
-                    r_date = p_deg.add_run(f"\t{e.date_range}")
-                    r_date.font.name = "Calibri"
-                    r_date.font.size = Pt(10.5)
-                    r_date.font.bold = True
-
+                add_par([(e.title, 10.5, True, False)] + date_run, before=2.0, after=1.0, right_tab=True)
                 if e.subtitle:
-                    p_sub = doc.add_paragraph()
-                    p_sub.paragraph_format.space_after = Pt(1)
-                    r_sub = p_sub.add_run(e.subtitle)
-                    r_sub.font.name = "Calibri"
-                    r_sub.font.size = Pt(10.5)
-                    r_sub.font.italic = True
-
+                    add_par([(e.subtitle, 10.5, False, True)], after=1.0)
                 if e.gpa:
-                    p_gpa = doc.add_paragraph()
-                    p_gpa.paragraph_format.space_after = Pt(1)
-                    r_gl = p_gpa.add_run("GPA: ")
-                    r_gl.font.bold = True
-                    p_gpa.add_run(e.gpa)
-
+                    add_par([("GPA: ", 10.5, True, False), (e.gpa, 10.5, False, False)], after=1.0)
                 if e.coursework:
-                    p_cw = doc.add_paragraph()
-                    p_cw.paragraph_format.space_after = Pt(2)
-                    r_cl = p_cw.add_run("Relevant Coursework: ")
-                    r_cl.font.bold = True
-                    p_cw.add_run(e.coursework)
-
-            elif stype in ("experience", "organization", "projects", "other"):
-                p_exp = doc.add_paragraph()
-                p_exp.paragraph_format.space_before = Pt(3)
-                p_exp.paragraph_format.space_after = Pt(1)
-                p_exp.paragraph_format.tab_stops.add_tab_stop(
-                    Inches(7.0), WD_TAB_ALIGNMENT.RIGHT
-                )
-                r_pos = p_exp.add_run(e.title)
-                r_pos.font.name = "Calibri"
-                r_pos.font.size = Pt(10.5)
-                r_pos.font.bold = True
-                if e.subtitle:
-                    r_org = p_exp.add_run(f", {e.subtitle}")
-                    r_org.font.name = "Calibri"
-                    r_org.font.size = Pt(10.5)
-                    r_org.font.italic = True
-                if e.date_range:
-                    r_date = p_exp.add_run(f"\t{e.date_range}")
-                    r_date.font.name = "Calibri"
-                    r_date.font.size = Pt(10.5)
-                    r_date.font.bold = True
-
-                for b in e.bullets:
-                    if not b.enabled or not b.text.strip():
-                        continue
-                    p_b = doc.add_paragraph()
-                    p_b.paragraph_format.left_indent = Pt(9.0)
-                    p_b.paragraph_format.first_line_indent = Pt(-9.0)
-                    p_b.paragraph_format.tab_stops.add_tab_stop(Pt(9.0))
-                    p_b.paragraph_format.space_before = Pt(0)
-                    p_b.paragraph_format.space_after = Pt(1.5)
-                    p_b.paragraph_format.line_spacing = 1.0
-
-                    r_glyph = p_b.add_run("\u25cf\t")
-                    r_glyph.font.name = "Arial"
-                    r_glyph.font.size = Pt(8.5)
-
-                    r_txt = p_b.add_run(b.text.strip())
-                    r_txt.font.name = "Calibri"
-                    r_txt.font.size = Pt(10.5)
-
+                    add_par([("Relevant Coursework: ", 10.5, True, False), (e.coursework, 10.5, False, False)], after=2.0)
             elif stype == "skills":
-                p_sk = doc.add_paragraph()
-                p_sk.paragraph_format.space_before = Pt(2)
-                p_sk.paragraph_format.space_after = Pt(2)
-                r_st = p_sk.add_run(f"{e.title}: ")
-                r_st.font.name = "Calibri"
-                r_st.font.size = Pt(10.5)
-                r_st.font.bold = True
-                s_body = e.skills_text or ", ".join(
-                    [b.text for b in e.bullets if b.enabled]
-                )
-                r_sb = p_sk.add_run(s_body)
-                r_sb.font.name = "Calibri"
-                r_sb.font.size = Pt(10.5)
-
+                body = e.skills_text or ", ".join([b.text for b in e.bullets if b.enabled])
+                add_par([(f"{e.title}: ", 10.5, True, False), (body, 10.5, False, False)], before=2.0, after=2.0)
             else:
-                p_exp = doc.add_paragraph()
-                p_exp.paragraph_format.space_before = Pt(3)
-                p_exp.paragraph_format.space_after = Pt(1)
-                p_exp.paragraph_format.tab_stops.add_tab_stop(
-                    Inches(7.0), WD_TAB_ALIGNMENT.RIGHT
-                )
-                if e.title:
-                    r_pos = p_exp.add_run(e.title)
-                    r_pos.font.name = "Calibri"
-                    r_pos.font.size = Pt(10.5)
-                    r_pos.font.bold = True
+                head_runs = [(e.title, 10.5, True, False)] if e.title else []
                 if e.subtitle:
-                    r_org = p_exp.add_run(f", {e.subtitle}")
-                    r_org.font.name = "Calibri"
-                    r_org.font.size = Pt(10.5)
-                    r_org.font.italic = True
-                if e.date_range:
-                    r_date = p_exp.add_run(f"\t{e.date_range}")
-                    r_date.font.name = "Calibri"
-                    r_date.font.size = Pt(10.5)
-                    r_date.font.bold = True
-
+                    head_runs.append((f", {e.subtitle}", 10.5, False, True))
+                add_par(head_runs + date_run, before=3.0, after=1.0, right_tab=True)
                 for b in e.bullets:
-                    if not b.enabled or not b.text.strip():
-                        continue
-                    p_b = doc.add_paragraph()
-                    p_b.paragraph_format.left_indent = Pt(9.0)
-                    p_b.paragraph_format.first_line_indent = Pt(-9.0)
-                    p_b.paragraph_format.tab_stops.add_tab_stop(Pt(9.0))
-                    p_b.paragraph_format.space_before = Pt(0)
-                    p_b.paragraph_format.space_after = Pt(1.5)
-                    p_b.paragraph_format.line_spacing = 1.0
+                    if b.enabled and b.text.strip():
+                        add_par([(b.text.strip(), 10.5, False, False)], after=1.5, bullet=True)
+    return doc, height[0]
 
-                    r_glyph = p_b.add_run("\u25cf\t")
-                    r_glyph.font.name = "Arial"
-                    r_glyph.font.size = Pt(8.5)
 
-                    r_txt = p_b.add_run(b.text.strip())
-                    r_txt.font.name = "Calibri"
-                    r_txt.font.size = Pt(10.5)
+def estimate_docx_height_pt(resume: MasterResume, body_pt: float = _DOCX_BASE_PT) -> float:
+    # Estimate the text height in points of the DOCX export at body_pt.
+    return _build_docx(resume, body_pt)[1]
 
+
+def fit_docx_font_pt(resume: MasterResume, body_pt: float = _DOCX_BASE_PT) -> float:
+    # Return the largest body size at or below body_pt whose DOCX layout fits one page.
+    limit = _DOCX_TEXT_HEIGHT_PT * _DOCX_FIT_MARGIN
+    size = body_pt
+    while size > _DOCX_MIN_PT:
+        if estimate_docx_height_pt(resume, size) <= limit:
+            return size
+        size = round(size - 0.25, 2)
+    return _DOCX_MIN_PT
+
+
+def write_docx_file(resume: MasterResume, output_path: str, body_pt: float) -> str:
+    # Write the DOCX export at exactly body_pt.
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    doc, _ = _build_docx(resume, body_pt)
     doc.save(output_path)
     return output_path
+
+
+def export_docx(resume: MasterResume, output_path: str, theme: str = "gnc") -> str:
+    # Export resume to a one-page Word DOCX matching SpaceX GNC formatting.
+    return write_docx_file(resume, output_path, fit_docx_font_pt(resume))
+
+
+def export_text(resume: MasterResume) -> str:
+    # Export resume to plain text with uppercase section headings.
+    lines: list[str] = [resume.contact.name.upper()]
+    if resume.contact.title:
+        lines.append(resume.contact.title)
+    contact_parts = [
+        p
+        for p in [
+            resume.contact.phone,
+            resume.contact.email,
+            resume.contact.location,
+            resume.contact.linkedin,
+            resume.contact.github,
+            resume.contact.website,
+        ]
+        if p.strip()
+    ]
+    if contact_parts:
+        lines.append(" | ".join(contact_parts))
+    lines.append("")
+    if resume.summary_enabled and resume.summary.strip():
+        lines.extend(["SUMMARY", resume.summary.strip(), ""])
+    for sec in resume.sections:
+        entries = [e for e in sec.entries if e.enabled]
+        if not sec.enabled or not entries:
+            continue
+        lines.append(sec.title.upper())
+        for entry in entries:
+            head = ", ".join([p for p in [entry.title, entry.subtitle] if p])
+            if entry.date_range:
+                head = f"{head} ({entry.date_range})" if head else entry.date_range
+            if head:
+                lines.append(head)
+            if entry.gpa:
+                lines.append(f"GPA: {entry.gpa}")
+            if entry.coursework:
+                lines.append(f"Relevant Coursework: {entry.coursework}")
+            if entry.skills_text:
+                lines.append(entry.skills_text)
+            for b in entry.bullets:
+                if b.enabled and b.text.strip():
+                    lines.append(f"- {b.text.strip()}")
+            lines.append("")
+    return "\n".join(lines)
+
+
+def export_resume_file(resume: MasterResume, output_path: str, font_pt: float = 11.0) -> dict[str, Any]:
+    # Export by output extension (docx, pdf, txt) and report format, size, and page fit.
+    os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
+    fmt = os.path.splitext(output_path)[1].lstrip(".").lower()
+    if fmt == "docx":
+        body_pt = fit_docx_font_pt(resume, max(font_pt - 0.5, _DOCX_MIN_PT))
+        write_docx_file(resume, output_path, body_pt)
+        fits = estimate_docx_height_pt(resume, body_pt) <= _DOCX_TEXT_HEIGHT_PT * _DOCX_FIT_MARGIN
+        return {"format": fmt, "font_pt": body_pt + 0.5, "fits_one_page": fits}
+    if fmt == "pdf":
+        pdf_bytes = render_resume_pdf_bytes(resume, font_pt=font_pt)
+        with open(output_path, "wb") as handle:
+            handle.write(pdf_bytes)
+        doc = pymupdf.open("pdf", pdf_bytes)
+        pages = len(doc)
+        doc.close()
+        return {"format": fmt, "font_pt": font_pt, "fits_one_page": pages == 1}
+    if fmt == "txt":
+        with open(output_path, "w", encoding="utf-8") as handle:
+            handle.write(export_text(resume))
+        return {"format": fmt, "font_pt": font_pt, "fits_one_page": True}
+    raise ValueError(f"Unsupported resume export format: .{fmt}")
 
 
 def export_markdown(resume: MasterResume) -> str:

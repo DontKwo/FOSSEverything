@@ -12,11 +12,14 @@ from app.features.archive.ops import (
     create_password_protected_bundle,
     extract_archive,
     extract_password_protected_bundle,
+    compute_file_sha256,
     extract_selected_members,
+    hash_archive_members,
     inspect_archive_members,
     rotate_bundle_key,
     snapshot_directory,
     test_archive,
+    verify_archive_sha256,
     verify_bundle_integrity,
 )
 from app.web.api.result import api_method, ok, require
@@ -67,7 +70,7 @@ class ArchiveApiMixin:
             fmt=fmt,
             compression_level=compression_level,
         )
-        return ok(output_path=created)
+        return ok(output_path=created, sha256=compute_file_sha256(created), size_bytes=os.path.getsize(created))
 
     @api_method
     def archive_extract(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -77,6 +80,11 @@ class ArchiveApiMixin:
         target_dir = str(params.get("target_dir", "")).strip()
         if not target_dir:
             target_dir = _strip_archive_suffix(arch_path) + "_extracted"
+        expected_sha = str(params.get("expected_sha256", "")).strip()
+        if expected_sha:
+            check = verify_archive_sha256(arch_path, expected_sha)
+            if not check["valid"]:
+                raise ValueError(f"SHA-256 mismatch: expected {check['expected']}, actual {check['actual']}")
         extracted = extract_archive(arch_path, target_dir)
         return ok(extracted=extracted, target_dir=target_dir)
 
@@ -119,6 +127,21 @@ class ArchiveApiMixin:
         arch_path = str(params["archive_path"])
         res = test_archive(arch_path)
         return ok(valid=res.get("valid", False), message=res.get("error", "Integrity check passed."), details=res)
+
+    @api_method
+    def archive_checksums(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Return the archive SHA-256 digest and per-member SHA-256 digests.
+        require(params, "archive_path")
+        arch_path = str(params["archive_path"])
+        members = hash_archive_members(arch_path)
+        return ok(archive_sha256=compute_file_sha256(arch_path), members=members, count=len(members))
+
+    @api_method
+    def archive_verify_sha256(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Verify the archive file against an expected SHA-256 hex digest.
+        require(params, "archive_path", "expected_sha256")
+        res = verify_archive_sha256(str(params["archive_path"]), str(params["expected_sha256"]))
+        return ok(valid=res["valid"], actual=res["actual"], expected=res["expected"])
 
     @api_method
     def archive_convert(self, params: dict[str, Any]) -> dict[str, Any]:

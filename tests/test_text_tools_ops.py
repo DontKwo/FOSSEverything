@@ -189,3 +189,33 @@ def test_diff_texts() -> None:
     assert same["changed"] is False
     assert same["added"] == 0
     assert same["removed"] == 0
+
+
+def test_normalize_for_diff_flags() -> None:
+    assert text_tools_ops.normalize_for_diff("A   b\nC", True, True) == "a b\nc"
+    assert text_tools_ops.normalize_for_diff("A   b", False, False) == "A   b"
+
+
+def test_diff_side_by_side_markers() -> None:
+    result = text_tools_ops.diff_side_by_side("a\nb\nc", "a\nx\nc\nd")
+    rows = result["diff"].splitlines()
+    assert rows[0].strip() == "a   a"
+    assert rows[1].strip() == "b | x"
+    assert rows[3].strip() == "> d"
+    assert result["added"] == 2
+    assert result["removed"] == 1
+    assert text_tools_ops.diff_side_by_side("a", "a")["changed"] is False
+
+
+def test_text_tools_diff_api_views_and_ignore_flags() -> None:
+    from app.web.api import WebApi
+
+    api = WebApi()
+    unified = api.text_tools_diff({"text1": "Hello  World", "text2": "hello world", "ignore_case": True, "ignore_whitespace": True})
+    assert unified["ok"] is True
+    assert unified["additions"] == 0
+    assert unified["view"] == "unified"
+    side = api.text_tools_diff({"text1": "a\nb", "text2": "a\nc", "view": "side_by_side"})
+    assert side["ok"] is True
+    assert "|" in side["diff"]
+    assert api.text_tools_diff({"text1": "a", "text2": "b", "view": "bogus"})["ok"] is False

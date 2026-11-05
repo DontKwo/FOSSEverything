@@ -35,8 +35,8 @@ class QrOpsTests(unittest.TestCase):
 
     def test_save_qr_code(self) -> None:
         img = qr_ops.generate_qr_code("Test Save")
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            tmp_path = tmp.name
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
+            tmp_path = tmp_file.name
         try:
             saved = qr_ops.save_qr_code(img, tmp_path, format="PNG")
             self.assertTrue(os.path.exists(saved))
@@ -106,8 +106,83 @@ class QrOpsTests(unittest.TestCase):
         self.assertTrue(results)
         self.assertIn("https://FOSSEverything.local/qrcode-array", results[0]["payload"])
 
+    def test_calendar_payload_uses_ical_datetime(self) -> None:
+        event = qr_ops.make_calendar_payload("Sync", "2026-11-01T12:00", "2026-11-01T13:30:00Z")
+        self.assertIn("DTSTART:20261101T120000", event)
+        self.assertIn("DTEND:20261101T133000Z", event)
+
+    def test_save_barcode_svg(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            out = os.path.join(directory, "code.svg")
+            qr_ops.save_barcode_svg("123456789012", "ean13", out)
+            with open(out, "r", encoding="utf-8") as handle:
+                self.assertIn("<svg", handle.read())
+
+
+class QrApiTests(unittest.TestCase):
+    def setUp(self) -> None:
+        from app.web.api import WebApi
+
+        self.api = WebApi()
+
+    def test_generate_from_schema_fields_and_size(self) -> None:
+        res = self.api.qr_generate({
+            "schema": "wifi",
+            "fields": {"ssid": "Cafe", "password": "pw", "security": "WPA", "hidden": False},
+            "size_px": 256,
+            "error_correction": "H",
+        })
+        self.assertTrue(res["ok"])
+        self.assertEqual((res["width"], res["height"]), (256, 256))
+        self.assertTrue(res["payload"].startswith("WIFI:"))
+
+    def test_generate_each_payload_schema(self) -> None:
+        schemas = {
+            "url": {"text": "https://example.com"},
+            "text": {"text": "hello"},
+            "vcard": {"name": "Ada Lovelace", "phone": "555"},
+            "sms": {"phone": "+15550100", "message": "hi"},
+            "whatsapp": {"phone": "+15550100", "message": "hi"},
+            "geo": {"lat": 40.7, "lon": -74.0},
+            "calendar": {"title": "Sync", "start_time": "2026-11-01T12:00"},
+            "asset": {"asset_id": "abc123"},
+        }
+        for schema, fields in schemas.items():
+            res = self.api.qr_generate({"schema": schema, "fields": fields})
+            self.assertTrue(res["ok"], schema)
+            self.assertTrue(res["payload"], schema)
+
+    def test_save_png_and_svg_follow_extension(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            png = os.path.join(directory, "barcode.png")
+            res = self.api.qr_generate({"payload": "hello", "output_path": png, "size_px": 128})
+            self.assertTrue(res["ok"])
+            with Image.open(png) as saved:
+                self.assertEqual(saved.size, (128, 128))
+            svg = os.path.join(directory, "barcode.svg")
+            res = self.api.qr_generate_svg({"payload": "hello", "output_path": svg, "fill_color": "#112233"})
+            self.assertTrue(res["ok"])
+            with open(svg, "r", encoding="utf-8") as handle:
+                self.assertIn("#112233", handle.read())
+
+    def test_barcode_png_and_svg_and_decode_data_url(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            for name, kind in (("c128.png", "code128"), ("c128.svg", "code128"), ("ean.svg", "ean13")):
+                out = os.path.join(directory, name)
+                value = "123456789012" if kind == "ean13" else "ABC-123"
+                res = self.api.qr_generate_barcode({"payload": value, "barcode_type": kind, "output_path": out})
+                self.assertTrue(res["ok"], name)
+                self.assertTrue(os.path.getsize(out) > 0)
+        qr = self.api.qr_generate({"payload": "https://example.org/decode-me", "box_size": 8})
+        decoded = self.api.qr_decode_data_url({"data_url": qr["data_url"]})
+        self.assertTrue(decoded["ok"])
+        self.assertEqual(decoded["results"][0]["payload"], "https://example.org/decode-me")
+
+    def test_empty_params_do_not_raise(self) -> None:
+        self.assertFalse(self.api.qr_generate({})["ok"])
+        self.assertFalse(self.api.qr_generate_barcode({})["ok"])
+        self.assertFalse(self.api.qr_decode_data_url({})["ok"])
+
 
 if __name__ == "__main__":
     unittest.main()
-
-

@@ -2,6 +2,10 @@
 window.FOSS = window.FOSS || {};
 
 (function () {
+  function mdDefault(key, fallback) {
+    return window.FOSS.toolDefaults.get("markdown", key, fallback);
+  }
+
   function calcPreviewDoc(bodyHtml) {
     var isDark = document.documentElement.getAttribute("data-theme") === "dark";
     var bg = isDark ? "#0d1322" : "#ffffff";
@@ -53,7 +57,7 @@ window.FOSS = window.FOSS || {};
   function renderMain(panel, ctx) {
     panel.innerHTML = "";
 
-    var activeFlavor = window.FOSS.store.get("markdown_flavor", "github");
+    var activeFlavor = mdDefault("flavor", "gfm");
 
     var errorBanner = window.FOSS.dom.el("div", {
       className: "banner danger hidden",
@@ -109,6 +113,42 @@ window.FOSS = window.FOSS || {};
       title: "Markdown live preview"
     });
 
+    function toggleTaskAt(index, checked) {
+      var lines = editor.getValue().split("\n");
+      var inFence = false;
+      var seen = 0;
+      for (var li = 0; li < lines.length; li++) {
+        if (/^\s*(```|~~~)/.test(lines[li])) {
+          inFence = !inFence;
+          continue;
+        }
+        if (inFence) continue;
+        var m = lines[li].match(/^(\s*(?:[-*+]|\d+[.)])\s+)\[[ xX]\](\s.*|)$/);
+        if (!m) continue;
+        if (seen === index) {
+          lines[li] = m[1] + "[" + (checked ? "x" : " ") + "]" + m[2];
+          editor.textarea.value = lines.join("\n");
+          updateStats();
+          return;
+        }
+        seen++;
+      }
+    }
+
+    function wireTaskCheckboxes() {
+      var frameDoc = previewIframe.contentDocument;
+      if (!frameDoc) return;
+      var boxes = frameDoc.querySelectorAll(".task-list-item input[type='checkbox']");
+      Array.prototype.forEach.call(boxes, function (box, idx) {
+        box.removeAttribute("disabled");
+        box.addEventListener("change", function () {
+          toggleTaskAt(idx, box.checked);
+        });
+      });
+    }
+
+    previewIframe.addEventListener("load", wireTaskCheckboxes);
+
     var previewTimer = null;
     function schedulePreview() {
       clearTimeout(previewTimer);
@@ -142,9 +182,10 @@ window.FOSS = window.FOSS || {};
       "data-testid": "markdown-open",
       title: "Open Markdown File",
       onClick: function () {
-        window.FOSS.api("select_file", { file_types: ["Markdown Files (*.md;*.markdown;*.txt)", "All Files (*.*)"] }).then(function (res) {
-          if (res && res.path) {
-            window.FOSS.api("read_text_file", { path: res.path }).then(function (readRes) {
+        window.FOSS.api("select_file", { title: "Open Markdown File", file_types: ["md", "markdown", "txt"] }).then(function (res) {
+          var openPath = res && res.paths && res.paths[0];
+          if (openPath) {
+            window.FOSS.api("read_text_file", { path: openPath }).then(function (readRes) {
               if (readRes && readRes.content !== undefined) {
                 editor.setValue(readRes.content);
                 updateStats();
@@ -159,28 +200,33 @@ window.FOSS = window.FOSS || {};
     var saveBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "markdown-save",
-      title: "Save Markdown File (Ctrl+S)",
+      title: "Save Document (Ctrl+S)",
       onClick: function () {
-        saveMarkdownFile();
+        saveDocument("md");
       }
-    }, [window.FOSS.icons.el("save", 16), window.FOSS.dom.el("span", { text: "Save .md" })]);
+    }, [window.FOSS.icons.el("save", 16), window.FOSS.dom.el("span", { text: "Save..." })]);
 
-    function saveMarkdownFile() {
-      var text = editor.getValue();
+    function saveDocument(preferred) {
+      var fileTypes = [
+        { name: "Markdown (*.md)", extensions: ["md"] },
+        { name: "HTML Document (*.html)", extensions: ["html"] }
+      ];
+      if (preferred === "html") fileTypes.reverse();
       window.FOSS.api("select_save_path", {
-        title: "Save Markdown Document",
-        default_name: "document.md",
-        file_types: [{ name: "Markdown Files", extensions: ["md"] }]
+        title: "Save Document",
+        default_name: "document",
+        file_types: fileTypes
       }).then(function (res) {
         var chosenPath = (res && (res.path || res.file_path || res.output_path)) || "";
         if (!chosenPath) return;
-        if (!chosenPath.toLowerCase().endsWith(".md")) {
-          chosenPath = chosenPath + ".md";
+        if (chosenPath.toLowerCase().endsWith(".html")) {
+          exportHtmlTo(chosenPath);
+          return;
         }
-        window.FOSS.api("write_text_file", { path: chosenPath, content: text }).then(function (wRes) {
-          if (wRes && wRes.ok) {
-            window.FOSS.toast.show("Saved to " + chosenPath, "success");
-          }
+        window.FOSS.api("write_text_file", { path: chosenPath, content: editor.getValue() }).then(function () {
+          window.FOSS.toast.show("Saved to " + chosenPath, "success");
+        }).catch(function (err) {
+          showError("Save failed: " + (err.message || err));
         });
       });
     }
@@ -190,53 +236,46 @@ window.FOSS = window.FOSS || {};
       "data-dense": "true",
       "data-testid": "markdown-flavor-select",
       "aria-label": "Select Markdown flavor parser",
+      title: "Markdown parser flavor",
       onChange: function (e) {
         activeFlavor = e.target.value;
-        window.FOSS.store.set("markdown_flavor", activeFlavor);
         updatePreview();
       }
     }, [
-      window.FOSS.dom.el("option", { value: "gfm", text: "GFM", selected: activeFlavor === "gfm" || activeFlavor === "github" }),
+      window.FOSS.dom.el("option", { value: "gfm", text: "GFM", selected: activeFlavor === "gfm" }),
       window.FOSS.dom.el("option", { value: "commonmark", text: "CommonMark", selected: activeFlavor === "commonmark" }),
       window.FOSS.dom.el("option", { value: "strict", text: "Strict", selected: activeFlavor === "strict" })
     ]);
 
-    function exportHtml() {
+    function exportHtmlTo(chosenPath) {
       clearError();
       var mdText = editor.getValue();
       if (!mdText.trim()) {
         showError("Cannot export empty document");
         return;
       }
-      window.FOSS.api("select_save_path", {
-        title: "Export HTML Document",
-        default_name: "document.html",
-        file_types: [{ name: "HTML Documents", extensions: ["html"] }]
-      }).then(function (dlg) {
-        var chosenPath = (dlg && (dlg.path || dlg.file_path || dlg.output_path)) || "";
-        if (!chosenPath) return;
-        if (!chosenPath.toLowerCase().endsWith(".html")) {
-          chosenPath = chosenPath + ".html";
+      window.FOSS.api("markdown_export_html", { markdown: mdText, output_path: chosenPath, flavor: activeFlavor }).then(function (res) {
+        if (res && res.output_path) {
+          renderExportSuccess(res.output_path);
         }
-        window.FOSS.api("markdown_export_html", { markdown: mdText, output_path: chosenPath, flavor: activeFlavor }).then(function (res) {
-          if (res && res.output_path) {
-            renderExportSuccess(res.output_path);
-          }
-        });
+      }).catch(function (err) {
+        showError("HTML export failed: " + (err.message || err));
       });
     }
 
     var exportHtmlBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
-      "data-testid": "markdown-export-html-btn",
-      onClick: exportHtml
-    }, [window.FOSS.icons.el("external", 16), window.FOSS.dom.el("span", { text: "Export HTML" })]);
-
-    var exportHtmlCompactBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
       "data-testid": "markdown-export-html",
-      onClick: exportHtml
-    }, [window.FOSS.icons.el("external", 16), window.FOSS.dom.el("span", { text: "HTML" })]);
+      title: "Export HTML Document",
+      onClick: function () {
+        clearError();
+        if (!editor.getValue().trim()) {
+          showError("Cannot export empty document");
+          return;
+        }
+        saveDocument("html");
+      }
+    }, [window.FOSS.icons.el("external", 16), window.FOSS.dom.el("span", { text: "Export HTML" })]);
 
     var exportPdfBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
@@ -250,18 +289,17 @@ window.FOSS = window.FOSS || {};
         }
         window.FOSS.api("select_save_path", {
           title: "Export PDF Document",
-          default_name: "document.pdf",
-          file_types: [{ name: "PDF Documents", extensions: ["pdf"] }]
+          default_name: "document",
+          file_types: [{ name: "PDF Document (*.pdf)", extensions: ["pdf"] }]
         }).then(function (dlg) {
           var chosenPath = (dlg && (dlg.path || dlg.file_path || dlg.output_path)) || "";
           if (!chosenPath) return;
-          if (!chosenPath.toLowerCase().endsWith(".pdf")) {
-            chosenPath = chosenPath + ".pdf";
-          }
           window.FOSS.api("markdown_export_pdf", { markdown: mdText, output_path: chosenPath, flavor: activeFlavor }).then(function (res) {
             if (res && res.output_path) {
               renderExportSuccess(res.output_path);
             }
+          }).catch(function (err) {
+            showError("PDF export failed: " + (err.message || err));
           });
         });
       }
@@ -279,22 +317,42 @@ window.FOSS = window.FOSS || {};
       resultHost.appendChild(card);
     }
 
-    var topBar = window.FOSS.dom.el("div", { className: "row-between" }, [
+    var wrapSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-dense": "true",
+      "data-testid": "markdown-wrap-select",
+      "aria-label": "Editor line wrap mode",
+      title: "Editor line wrap mode",
+      onChange: function (e) {
+        applyWrapMode(e.target.value);
+      }
+    }, [
+      window.FOSS.dom.el("option", { value: "soft", text: "Wrap" }),
+      window.FOSS.dom.el("option", { value: "off", text: "No wrap" })
+    ]);
+
+    function applyWrapMode(mode) {
+      var wrapOff = mode === "off";
+      editor.textarea.setAttribute("wrap", wrapOff ? "off" : "soft");
+      editor.el.classList.toggle("markdown-editor-wrap-off", wrapOff);
+      wrapSelect.value = wrapOff ? "off" : "soft";
+    }
+
+    var topBar = window.FOSS.dom.el("div", { className: "row markdown-topbar" }, [
       window.FOSS.dom.el("div", { className: "row gap-2" }, [
         openBtn,
         saveBtn,
-        window.FOSS.dom.el("label", { className: "row gap-1 text-xs text-muted" }, [
-          window.FOSS.dom.el("span", { text: "Parser:" }),
-          flavorSelect
-        ])
+        flavorSelect,
+        wrapSelect
       ]),
       window.FOSS.dom.el("div", { className: "row gap-2" }, [
         statsBadge,
         exportHtmlBtn,
-        exportHtmlCompactBtn,
         exportPdfBtn
       ])
     ]);
+
+    applyWrapMode(mdDefault("line_wrap", "soft"));
 
     // Formatting Toolbar Helpers
     function insertSnippet(type, params) {
@@ -400,7 +458,7 @@ window.FOSS = window.FOSS || {};
           insertSnippet("link", { label: "link text" });
         } else if (e.key === "s" || e.key === "S") {
           e.preventDefault();
-          saveMarkdownFile();
+          saveDocument("md");
         }
       }
     });
@@ -572,7 +630,6 @@ window.FOSS = window.FOSS || {};
       className: "card stack-sm grow code-editor-fill",
       "data-testid": "markdown-card-editor"
     }, [
-      toolbar,
       editor.el
     ]);
 
@@ -597,10 +654,10 @@ window.FOSS = window.FOSS || {};
     ]);
 
     panel.appendChild(window.FOSS.dom.el("div", {
-      className: "stack grow",
-      style: "height: 100%; min-height: 0;"
+      className: "stack grow markdown-panel-stack"
     }, [
       topBar,
+      toolbar,
       errorBanner,
       resultHost,
       splitArea
@@ -627,8 +684,31 @@ window.FOSS = window.FOSS || {};
     title: "Markdown Studio",
     navName: "Markdown",
     category: "Documents",
-    icon: "file",
+    icon: "markdown",
     workbench: true,
+    defaults: [
+      {
+        key: "flavor",
+        label: "Parser flavor",
+        type: "select",
+        options: [
+          { value: "gfm", label: "GFM" },
+          { value: "commonmark", label: "CommonMark" },
+          { value: "strict", label: "Strict" }
+        ],
+        default: "gfm"
+      },
+      {
+        key: "line_wrap",
+        label: "Editor line wrap",
+        type: "select",
+        options: [
+          { value: "soft", label: "Wrap long lines" },
+          { value: "off", label: "No wrap (scroll horizontally)" }
+        ],
+        default: "soft"
+      }
+    ],
     description: "Side-by-side Markdown editor and live renderer with GitHub GFM, CommonMark, and HTML/PDF export.",
     tabs: [
       { id: "main", label: "Markdown Studio", render: renderMain }

@@ -108,3 +108,25 @@ class TestMarkdownFlavors(unittest.TestCase):
         self.assertIn("<style>", doc_html)
         self.assertIn("markdown-body", doc_html)
         self.assertIn("<h1>Heading</h1>", doc_html)
+
+
+class TestMarkdownTaskLists(unittest.TestCase):
+    # Verify task list checkboxes render for tight and loose lists.
+
+    def test_tight_task_list_checkboxes(self) -> None:
+        # Tight task items become checkbox list items.
+        html_out = render_markdown_to_html("- [ ] open\n- [x] done", flavor="gfm")
+        self.assertEqual(html_out.count('class="task-list-item"'), 2)
+        self.assertIn('<input type="checkbox" disabled checked>', html_out)
+
+    def test_loose_task_list_checkboxes(self) -> None:
+        # Loose task items keep their paragraph wrapper and still get a checkbox.
+        html_out = render_markdown_to_html("- [ ] first\n\n- [x] second", flavor="gfm")
+        self.assertEqual(html_out.count('class="task-list-item"'), 2)
+        self.assertIn('<p><input type="checkbox" disabled> first</p>', html_out)
+
+    def test_math_markup(self) -> None:
+        # Inline and display math produce KaTeX-ready containers.
+        html_out = render_markdown_to_html("Inline $x^2$ and\n\n$$a+b$$", flavor="gfm")
+        self.assertIn("katex-inline-math", html_out)
+        self.assertIn("katex-display-math", html_out)

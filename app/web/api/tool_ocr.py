@@ -1,6 +1,10 @@
 # OCR API mixin for text recognition, searchable PDF creation, and batch jobs.
+import base64
+import io
 from pathlib import Path
 from typing import Any
+
+from PIL import Image
 
 from app.features.ocr.ops import (
     SUPPORTED_LANGUAGES,
@@ -16,6 +20,11 @@ from app.features.ocr.ops import (
     save_ocr_text,
 )
 from app.web.api.result import api_method, ok, require
+
+
+def _force_reocr(params: dict[str, Any]) -> bool:
+    # Read the force re-OCR flag from either accepted parameter name.
+    return bool(params.get("force_reocr", params.get("force_overwrite", False)))
 
 
 class OcrApiMixin:
@@ -48,7 +57,7 @@ class OcrApiMixin:
         file_path = str(params["file_path"])
         lang = str(params.get("language", "eng"))
         dpi = int(params.get("dpi", 150))
-        force_ow = bool(params.get("force_overwrite", False))
+        force_ow = _force_reocr(params)
 
         page_spec = params.get("page_range")
         parsed_pages = None
@@ -109,6 +118,19 @@ class OcrApiMixin:
         )
 
     @api_method
+    def ocr_preview_image(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Render the first frame of an image file as a bounded PNG data URL.
+        require(params, "file_path")
+        max_dim = int(params.get("max_dim", 1600))
+        with Image.open(str(params["file_path"])) as img:
+            frame = img.convert("RGB")
+        frame.thumbnail((max_dim, max_dim))
+        buffer = io.BytesIO()
+        frame.save(buffer, format="PNG")
+        encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+        return ok(data_url=f"data:image/png;base64,{encoded}", width=frame.width, height=frame.height)
+
+    @api_method
     def ocr_languages(self, params: dict[str, Any]) -> dict[str, Any]:
         # Query installed and supported Tesseract language packs.
         _ = params
@@ -133,7 +155,7 @@ class OcrApiMixin:
         out_p = str(params["output_path"])
         lang = str(params.get("language", "eng"))
         dpi = int(params.get("dpi", 150))
-        force_ow = bool(params.get("force_reocr", params.get("force_overwrite", False)))
+        force_ow = _force_reocr(params)
 
         page_spec = params.get("pages") or params.get("page_range")
         parsed_pages = None
@@ -173,7 +195,7 @@ class OcrApiMixin:
         dpi = int(params.get("dpi", 150))
         out_format = str(params.get("format", "pdf")).lower()
         make_pdf = bool(params.get("searchable_pdf", False)) or out_format == "pdf"
-        force_ow = bool(params.get("force_overwrite", False))
+        force_ow = _force_reocr(params)
         out_dir = params.get("output_dir")
 
         results: list[dict[str, Any]] = []

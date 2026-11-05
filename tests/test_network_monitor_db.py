@@ -1,7 +1,11 @@
 """Unit tests for the network monitor's SQLite storage layer."""
+import os
+import tempfile
 import unittest
+from unittest.mock import patch
 
 from app.features.network_monitor import db
+from app.web.api.tool_network_monitor import NetworkMonitorApiMixin
 from tests._network_monitor_helpers import NetworkMonitorSqliteMemoryTestCase
 
 
@@ -121,6 +125,62 @@ class NetworkMonitorDbTests(NetworkMonitorSqliteMemoryTestCase):
             bytes_recv=0,
             is_new_destination=False,
         )
+
+
+class DestinationClassificationTests(NetworkMonitorSqliteMemoryTestCase):
+    def test_mark_unknown_after_known_persists(self) -> None:
+        db.record_destination(self.conn, "9.9.9.9", "quad9.net")
+        db.mark_destination_known(self.conn, "9.9.9.9", known=True)
+        self.assertEqual(db.destination_status(self.conn, "9.9.9.9"), "known")
+        db.mark_destination_known(self.conn, "9.9.9.9", known=False)
+        self.assertEqual(db.destination_status(self.conn, "9.9.9.9"), "unknown")
+        self.assertEqual([row["ip"] for row in db.unknown_destinations(self.conn)], ["9.9.9.9"])
+
+    def test_mark_by_domain_updates_matching_row(self) -> None:
+        db.record_destination(self.conn, "5.5.5.5", "example.org")
+        changed = db.mark_destination_known(self.conn, "example.org", known=True)
+        self.assertEqual(changed, 1)
+        self.assertTrue(db.is_known(self.conn, "5.5.5.5"))
+        self.assertEqual([row["ip"] for row in db.known_destinations(self.conn)], ["5.5.5.5"])
+
+    def test_mark_unseen_ip_inserts_row_but_unseen_domain_does_not(self) -> None:
+        self.assertEqual(db.mark_destination_known(self.conn, "7.7.7.7:443", known=True), 1)
+        self.assertEqual(db.destination_status(self.conn, "7.7.7.7"), "known")
+        self.assertEqual(db.mark_destination_known(self.conn, "never-seen.example", known=True), 0)
+        self.assertEqual(db.destination_status(self.conn, "never-seen.example"), "untracked")
+
+    def test_classification_survives_reconnect(self) -> None:
+        path = os.path.join(tempfile.mkdtemp(), "nm.db")
+        first = db.connect(path)
+        db.record_destination(first, "4.4.4.4", None)
+        db.mark_destination_known(first, "4.4.4.4", known=True)
+        first.close()
+        second = db.connect(path)
+        try:
+            self.assertEqual(db.destination_status(second, "4.4.4.4"), "known")
+        finally:
+            second.close()
+
+
+class DestinationApiTests(unittest.TestCase):
+    def test_manage_destinations_roundtrip(self) -> None:
+        path = os.path.join(tempfile.mkdtemp(), "nm_api.db")
+        api = NetworkMonitorApiMixin()
+        with patch("app.features.network_monitor.db.db_path", return_value=path):
+            known = api.network_manage_destinations({"destination": "3.3.3.3:443", "known": True})
+            self.assertTrue(known["ok"])
+            self.assertEqual(known["destination"], "3.3.3.3")
+            self.assertEqual(known["status"], "known")
+            self.assertEqual(api.network_destination_status({"destination": "3.3.3.3"})["status"], "known")
+
+            unknown = api.network_manage_destinations({"destination": "3.3.3.3", "known": False})
+            self.assertEqual(unknown["status"], "unknown")
+            self.assertEqual(unknown["remaining_unknowns"], 1)
+            self.assertFalse(api.network_destination_status({"destination": "3.3.3.3"})["known"])
+
+    def test_manage_destinations_requires_destination(self) -> None:
+        result = NetworkMonitorApiMixin().network_manage_destinations({})
+        self.assertFalse(result["ok"])
 
 
 if __name__ == "__main__":

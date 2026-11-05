@@ -100,6 +100,43 @@ class TestResumeOps(unittest.TestCase):
         self.assertIn(bullet.id, diff["bullets"])
         self.assertIn("note", history)
 
+    def test_date_format_conversion(self) -> None:
+        numeric = resume_ops.apply_date_format(self.resume, "MM/YYYY")
+        dates = [e.date_range for s in numeric.sections for e in s.entries]
+        self.assertTrue(any("/" in d for d in dates))
+        named = resume_ops.apply_date_format(numeric, "Month YYYY")
+        self.assertIn("May 2025", resume_ops._convert_dates("05/2025 - 08/2025", "Month YYYY"))
+        self.assertEqual(resume_ops._convert_dates("May 2025 - Aug 2025", "MM/YYYY"), "05/2025 - 08/2025")
+        self.assertEqual(resume_ops._convert_dates("Present", "MM/YYYY"), "Present")
+        self.assertEqual(len(named.sections), len(self.resume.sections))
+
+    def test_docx_fits_one_page_for_long_resume(self) -> None:
+        long_resume = resume_ops.create_sample_master_resume()
+        for _ in range(4):
+            for entry in long_resume.sections[1].entries[:]:
+                clone = resume_ops.ResumeEntry(title=entry.title, subtitle=entry.subtitle, date_range=entry.date_range)
+                clone.bullets = [resume_ops.BulletPoint(text=b.text * 2) for b in entry.bullets]
+                long_resume.sections[1].entries.append(clone)
+        limit = resume_ops._DOCX_TEXT_HEIGHT_PT * resume_ops._DOCX_FIT_MARGIN
+        self.assertGreater(resume_ops.estimate_docx_height_pt(long_resume, 10.5), limit)
+        fitted = resume_ops.fit_docx_font_pt(long_resume)
+        self.assertLess(fitted, 10.5)
+        if fitted > resume_ops._DOCX_MIN_PT:
+            self.assertLessEqual(resume_ops.estimate_docx_height_pt(long_resume, fitted), limit)
+        self.assertEqual(resume_ops.fit_docx_font_pt(self.resume), 10.5)
+
+    def test_export_resume_file_follows_extension(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            for ext in resume_ops.EXPORT_FORMATS:
+                path = os.path.join(td, f"resume.{ext}")
+                info = resume_ops.export_resume_file(self.resume, path)
+                self.assertEqual(info["format"], ext)
+                self.assertGreater(os.path.getsize(path), 100)
+            with open(os.path.join(td, "resume.txt"), encoding="utf-8") as handle:
+                self.assertIn("WORK EXPERIENCE", handle.read())
+            with self.assertRaises(ValueError):
+                resume_ops.export_resume_file(self.resume, os.path.join(td, "resume.xyz"))
+
 
 if __name__ == "__main__":
     unittest.main()

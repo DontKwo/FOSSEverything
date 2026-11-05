@@ -1,7 +1,165 @@
-// QR Codes and Barcodes workspace: generator, scanner, custom styles, logos, vector SVG, and label sheets.
+// QR Codes and Barcodes workspace: generator, 1D barcodes, file and webcam decoding, SVG, and label sheets.
 window.FOSS = window.FOSS || {};
 
 (function () {
+  var activeCleanup = null;
+
+  var RASTER_TYPES = [
+    { name: "PNG Image (*.png)", extensions: ["png"] },
+    { name: "SVG Vector Image (*.svg)", extensions: ["svg"] },
+    { name: "JPEG Image (*.jpg)", extensions: ["jpg", "jpeg"] },
+    { name: "WebP Image (*.webp)", extensions: ["webp"] },
+    { name: "PDF Document (*.pdf)", extensions: ["pdf"] }
+  ];
+  var BARCODE_TYPES = [
+    { name: "PNG Image (*.png)", extensions: ["png"] },
+    { name: "SVG Vector Image (*.svg)", extensions: ["svg"] },
+    { name: "JPEG Image (*.jpg)", extensions: ["jpg", "jpeg"] }
+  ];
+  var SVG_TYPES = [{ name: "SVG Vector Image (*.svg)", extensions: ["svg"] }];
+  var PDF_TYPES = [{ name: "PDF Document (*.pdf)", extensions: ["pdf"] }];
+  var ICS_TYPES = [{ name: "iCalendar File (*.ics)", extensions: ["ics"] }];
+
+  var QUICK_TYPES = [
+    { id: "url", label: "URL" },
+    { id: "text", label: "Plain Text" },
+    { id: "vcard", label: "Contact vCard" },
+    { id: "wifi", label: "Wi-Fi Network" }
+  ];
+
+  var PAYLOAD_TYPES = [
+    { id: "url", label: "URL / Web Link" },
+    { id: "text", label: "Plain Text" },
+    { id: "vcard", label: "Contact Card (vCard)" },
+    { id: "wifi", label: "Wi-Fi Network" },
+    { id: "mecard", label: "Business Card (MeCard)" },
+    { id: "email", label: "Email Address" },
+    { id: "phone", label: "Phone Number" },
+    { id: "sms", label: "SMS Message" },
+    { id: "whatsapp", label: "WhatsApp Message" },
+    { id: "geo", label: "Geo Location" },
+    { id: "calendar", label: "Calendar Event" },
+    { id: "asset", label: "Asset / Inventory Tag" }
+  ];
+
+  var ECC_OPTIONS = [
+    { value: "L", label: "L - Low (~7% recovery)" },
+    { value: "M", label: "M - Standard (~15% recovery)" },
+    { value: "Q", label: "Q - Medium-High (~25% recovery)" },
+    { value: "H", label: "H - Highest (~30% recovery, best with logos)" }
+  ];
+
+  var FIELD_DEFS = {
+    url: [{ key: "text", label: "Web URL", value: "https://github.com/fosseverything", placeholder: "https://example.com", testid: "qr-text-input" }],
+    text: [{ key: "text", label: "Plain Text", kind: "textarea", placeholder: "Enter arbitrary text or notes", testid: "qr-text-input" }],
+    vcard: [
+      { key: "name", label: "Full Name", placeholder: "Full Name" },
+      { key: "org", label: "Organization", placeholder: "Organization / Company" },
+      { key: "title", label: "Job Title", placeholder: "Job Title" },
+      { key: "phone", label: "Phone", placeholder: "Phone Number" },
+      { key: "email", label: "Email", placeholder: "Email Address" },
+      { key: "url", label: "Website", placeholder: "https://example.com" }
+    ],
+    wifi: [
+      { key: "ssid", label: "SSID", placeholder: "Network SSID" },
+      { key: "password", label: "Password", placeholder: "Wi-Fi Password" },
+      {
+        key: "security",
+        label: "Security",
+        kind: "select",
+        options: [["WPA", "WPA/WPA2/WPA3"], ["WEP", "WEP"], ["nopass", "Open (No Password)"]]
+      },
+      { key: "hidden", label: "Hidden Network", kind: "checkbox" }
+    ],
+    mecard: [
+      { key: "name", label: "Full Name", placeholder: "Full Name" },
+      { key: "phone", label: "Phone", placeholder: "Phone Number" },
+      { key: "email", label: "Email", placeholder: "Email Address" },
+      { key: "org", label: "Organization", placeholder: "Organization / Company" },
+      { key: "url", label: "Website", placeholder: "https://example.com" },
+      { key: "address", label: "Address", placeholder: "Street, City" }
+    ],
+    email: [
+      { key: "email", label: "Email Address", placeholder: "name@example.com" },
+      { key: "subject", label: "Subject", placeholder: "Subject" },
+      { key: "body", label: "Message", kind: "textarea", placeholder: "Message body" }
+    ],
+    phone: [{ key: "phone", label: "Phone Number", placeholder: "+1 555 0100" }],
+    sms: [
+      { key: "phone", label: "Phone Number", placeholder: "+1 555 0100" },
+      { key: "message", label: "Message", kind: "textarea", placeholder: "Message text" }
+    ],
+    whatsapp: [
+      { key: "phone", label: "Phone Number", placeholder: "+1 555 0100" },
+      { key: "message", label: "Message", kind: "textarea", placeholder: "Message text" }
+    ],
+    geo: [
+      { key: "lat", label: "Latitude", value: "40.7128", placeholder: "40.7128" },
+      { key: "lon", label: "Longitude", value: "-74.0060", placeholder: "-74.0060" }
+    ],
+    calendar: [
+      { key: "title", label: "Event Title", placeholder: "Team sync" },
+      { key: "start_time", label: "Starts", kind: "datetime" },
+      { key: "end_time", label: "Ends", kind: "datetime" },
+      { key: "location", label: "Location", placeholder: "Room or address" },
+      { key: "description", label: "Description", kind: "textarea", placeholder: "Details" }
+    ],
+    asset: [
+      { key: "asset_id", label: "Asset ID", placeholder: "abc123" },
+      { key: "category", label: "Category", placeholder: "Laptop" },
+      { key: "location", label: "Location", placeholder: "Building A" },
+      { key: "owner", label: "Owner", placeholder: "Owner name" },
+      { key: "notes", label: "Notes", kind: "textarea", placeholder: "Notes" }
+    ]
+  };
+
+  var sharedState = {
+    payloadType: "url",
+    fgColor: "#000000",
+    bgColor: "#ffffff",
+    logoPath: "",
+    lastDecodedItems: []
+  };
+
+  function runCleanup() {
+    if (activeCleanup) {
+      var fn = activeCleanup;
+      activeCleanup = null;
+      fn();
+    }
+  }
+
+  function callApi(method, params) {
+    return window.FOSS.api(method, params).then(function (res) {
+      if (res && res.ok === false) throw new Error(res.error || "Request failed");
+      return res;
+    });
+  }
+
+  function errText(err) {
+    return err && err.message ? err.message : String(err);
+  }
+
+  function toolDefault(key, fallback) {
+    return window.FOSS.toolDefaults.get("qr", key, fallback);
+  }
+
+  function savePath(title, baseName, fileTypes) {
+    return window.FOSS.api("select_save_path", {
+      title: title,
+      default_name: baseName,
+      file_types: fileTypes
+    }).then(function (res) {
+      if (!res || res.cancelled) return "";
+      return res.path || (res.paths && res.paths[0]) || "";
+    });
+  }
+
+  function extOf(path) {
+    var dot = String(path).lastIndexOf(".");
+    return dot === -1 ? "" : String(path).substring(dot + 1).toLowerCase();
+  }
+
   function copyTextToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(function () {});
@@ -36,28 +194,12 @@ window.FOSS = window.FOSS || {};
     return Promise.resolve();
   }
 
-  // Shared state across tabs if needed
-  var sharedState = {
-    payloadType: "url",
-    fgColor: "#000000",
-    bgColor: "#ffffff",
-    logoPath: "",
-    lastDecodedItems: []
-  };
-
-  function renderQRTab(panel) {
-    panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-qr");
-
-    var currentPayload = "https://github.com/fosseverything";
-    var currentImageDataUrl = "";
-
+  function makeChrome() {
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted",
       "data-testid": "qr-status",
       text: "Ready"
     });
-
     var errorBanner = window.FOSS.dom.el("div", {
       className: "banner danger",
       "data-testid": "qr-error-banner",
@@ -66,768 +208,506 @@ window.FOSS = window.FOSS || {};
       window.FOSS.icons.el("alert", 18),
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
     ]);
+    var resultHost = window.FOSS.dom.el("div", { "data-testid": "qr-result", hidden: true });
 
-    function showError(msg) {
-      var span = errorBanner.querySelector(".banner-msg");
-      if (span) span.textContent = msg;
-      errorBanner.removeAttribute("hidden");
-      statusBar.textContent = "Error: " + msg;
-    }
+    return {
+      statusBar: statusBar,
+      errorBanner: errorBanner,
+      resultHost: resultHost,
+      showError: function (msg) {
+        var span = errorBanner.querySelector(".banner-msg");
+        if (span) span.textContent = msg;
+        errorBanner.removeAttribute("hidden");
+        statusBar.textContent = "Error: " + msg;
+      },
+      clearError: function () {
+        errorBanner.setAttribute("hidden", "true");
+      },
+      showResult: function (path, titleText) {
+        resultHost.innerHTML = "";
+        resultHost.appendChild(window.FOSS.components.resultCard({
+          testid: "qr-result-card",
+          title: titleText || "Export Complete",
+          outputPath: path
+        }));
+        resultHost.removeAttribute("hidden");
+      }
+    };
+  }
 
-    function clearError() {
-      errorBanner.setAttribute("hidden", "true");
-    }
+  function makeWorkbench(sidebar, stage) {
+    return window.FOSS.dom.el("div", { className: "split resizable qr-workbench" }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stage
+    ]);
+  }
 
-    var resultHost = window.FOSS.dom.el("div", {
-      "data-testid": "qr-result",
-      hidden: true
+  function makePreviewBox(testid, altText) {
+    var img = window.FOSS.dom.el("img", {
+      className: "qr-preview-img hidden",
+      "data-testid": testid,
+      alt: altText
     });
+    var empty = window.FOSS.dom.el("div", { className: "text-muted text-sm text-center", text: "Generating preview..." });
+    var box = window.FOSS.dom.el("div", { className: "qr-preview-box" }, [img, empty]);
+    return {
+      box: box,
+      show: function (dataUrl) {
+        img.src = dataUrl;
+        img.classList.remove("hidden");
+        empty.classList.add("hidden");
+      }
+    };
+  }
 
-    function showResult(path, titleText) {
-      resultHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({
-        testid: "qr-result-card",
-        title: titleText || "Export Complete",
-        outputPath: path
+  function colorRow(initial, label, onValue) {
+    var textInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input qr-input-narrow",
+      value: initial,
+      "aria-label": label + " hex",
+      title: label + " hex",
+      onInput: function () {
+        picker.value = textInput.value;
+        onValue(textInput.value);
+      }
+    });
+    var picker = window.FOSS.dom.el("input", {
+      type: "color",
+      value: initial,
+      className: "qr-color-picker",
+      "aria-label": "Pick " + label,
+      title: "Pick " + label,
+      onInput: function () {
+        textInput.value = picker.value;
+        onValue(picker.value);
+      }
+    });
+    return window.FOSS.dom.el("div", { className: "row items-center gap-2" }, [textInput, picker]);
+  }
+
+  function renderQRTab(panel) {
+    runCleanup();
+    panel.innerHTML = "";
+    panel.setAttribute("data-testid", "qr-page");
+
+    var chrome = makeChrome();
+    var currentPayload = "";
+    var currentImageDataUrl = "";
+    var refreshTimer = null;
+    var refreshSeq = 0;
+
+    var fieldInputs = {};
+    Object.keys(FIELD_DEFS).forEach(function (typeId) {
+      fieldInputs[typeId] = {};
+      FIELD_DEFS[typeId].forEach(function (def) {
+        fieldInputs[typeId][def.key] = buildFieldInput(def);
       });
-      resultHost.appendChild(card);
-      resultHost.removeAttribute("hidden");
-    }
-
-    // Left Column: Configuration Forms
-    var sidebarCol = window.FOSS.dom.el("div", {
-      className: "qr-sidebar-pane"
     });
 
-    // Group 1: Payload Type
+    function buildFieldInput(def) {
+      var attrs = { "aria-label": def.label, title: def.label };
+      if (def.testid) attrs["data-testid"] = def.testid;
+      if (def.placeholder) attrs.placeholder = def.placeholder;
+      var input;
+      if (def.kind === "textarea") {
+        attrs.className = "input";
+        attrs.rows = "3";
+        attrs.onInput = scheduleRefresh;
+        input = window.FOSS.dom.el("textarea", attrs);
+      } else if (def.kind === "select") {
+        attrs.className = "input";
+        attrs.onChange = scheduleRefresh;
+        input = window.FOSS.dom.el("select", attrs, def.options.map(function (opt) {
+          return window.FOSS.dom.el("option", { value: opt[0], text: opt[1] });
+        }));
+      } else if (def.kind === "checkbox") {
+        attrs.type = "checkbox";
+        attrs.onChange = scheduleRefresh;
+        input = window.FOSS.dom.el("input", attrs);
+      } else {
+        attrs.className = "input";
+        attrs.type = def.kind === "datetime" ? "datetime-local" : "text";
+        attrs.onInput = scheduleRefresh;
+        input = window.FOSS.dom.el("input", attrs);
+      }
+      if (def.value && def.kind !== "checkbox") input.value = def.value;
+      return input;
+    }
+
+    function collectFields(typeId) {
+      var values = {};
+      FIELD_DEFS[typeId].forEach(function (def) {
+        var input = fieldInputs[typeId][def.key];
+        values[def.key] = def.kind === "checkbox" ? input.checked : input.value;
+      });
+      if (typeId === "geo") {
+        values.lat = parseFloat(values.lat) || 0;
+        values.lon = parseFloat(values.lon) || 0;
+      }
+      return values;
+    }
+
     var typeCard = window.FOSS.dom.el("div", {
       className: "card flex-col gap-2",
       "data-testid": "qr-templates-group"
     });
     var typeTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Payload Type" });
+    var quickRow = window.FOSS.dom.el("div", { className: "qr-type-row", "data-testid": "qr-segmented-types" });
+    var quickButtons = {};
 
-    var segmentedRow = window.FOSS.dom.el("div", {
-      className: "row",
-      style: { display: "flex", gap: "var(--space-2)", flexWrap: "wrap", marginBottom: "var(--space-2)" },
-      "data-testid": "qr-segmented-types"
-    });
+    var typeSelect = window.FOSS.dom.el("select", {
+      className: "input",
+      "data-testid": "qr-type-select",
+      "aria-label": "Payload type",
+      title: "Payload type",
+      onChange: function () { setPayloadType(typeSelect.value); }
+    }, PAYLOAD_TYPES.map(function (pt) {
+      return window.FOSS.dom.el("option", { value: pt.id, text: pt.label });
+    }));
 
-    var segTypes = [
-      { id: "url", label: "URL" },
-      { id: "text", label: "Plain Text" },
-      { id: "vcard", label: "Contact vCard" },
-      { id: "wifi", label: "Wi-Fi Network" }
-    ];
-
-    var segButtons = {};
-    function updateSegmentButtons() {
-      var current = sharedState.payloadType || "url";
-      segTypes.forEach(function (st) {
-        var btn = segButtons[st.id];
-        if (btn) {
-          if (current === st.id) {
-            btn.className = "btn btn-sm btn-primary";
-          } else {
-            btn.className = "btn btn-sm btn-secondary";
-          }
-        }
-      });
-    }
-
-    segTypes.forEach(function (st) {
+    QUICK_TYPES.forEach(function (qt) {
       var btn = window.FOSS.dom.el("button", {
-        className: st.id === sharedState.payloadType ? "btn btn-sm btn-primary" : "btn btn-sm btn-secondary",
-        "data-testid": "qr-type-" + st.id,
-        text: st.label,
-        onClick: function () {
-          sharedState.payloadType = st.id;
-          updateSegmentButtons();
-          updateContentFields();
-          refreshCode();
-        }
+        className: "btn btn-sm btn-secondary",
+        type: "button",
+        "data-testid": "qr-type-" + qt.id,
+        text: qt.label,
+        onClick: function () { setPayloadType(qt.id); }
       });
-      segButtons[st.id] = btn;
-      segmentedRow.appendChild(btn);
+      quickButtons[qt.id] = btn;
+      quickRow.appendChild(btn);
     });
 
     typeCard.appendChild(typeTitle);
-    typeCard.appendChild(segmentedRow);
+    typeCard.appendChild(quickRow);
+    typeCard.appendChild(window.FOSS.components.field("All payload types", typeSelect));
 
-    // Group 2: Content Details
     var contentCard = window.FOSS.dom.el("div", {
       className: "card flex-col gap-3",
       "data-testid": "qr-content-details"
     });
-    var contentTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Content Details" });
-    var contentBody = window.FOSS.dom.el("div", {
-      className: "flex-col gap-2"
-    });
-    contentCard.appendChild(contentTitle);
+    var contentBody = window.FOSS.dom.el("div", { className: "flex-col gap-2" });
+    contentCard.appendChild(window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Content Details" }));
     contentCard.appendChild(contentBody);
-
-    // Inputs
-    var urlInput = window.FOSS.dom.el("input", {
-      className: "input",
-      type: "text",
-      value: "https://github.com/fosseverything",
-      placeholder: "https://example.com",
-      "data-testid": "qr-text-input",
-      "aria-label": "URL web address",
-      title: "URL web address",
-      onInput: refreshCode
-    });
-
-    var wifiSsid = window.FOSS.dom.el("input", {
-      className: "input",
-      type: "text",
-      placeholder: "Network SSID",
-      "aria-label": "Network SSID",
-      title: "Network SSID",
-      onInput: refreshCode
-    });
-    var wifiPass = window.FOSS.dom.el("input", {
-      className: "input",
-      type: "text",
-      placeholder: "Wi-Fi Password",
-      "aria-label": "Wi-Fi Password",
-      title: "Wi-Fi Password",
-      onInput: refreshCode
-    });
-    var wifiSec = window.FOSS.dom.el("select", {
-      className: "input",
-      "aria-label": "Wi-Fi Security",
-      title: "Wi-Fi Security",
-      onChange: refreshCode
-    }, [
-      window.FOSS.dom.el("option", { value: "WPA", text: "WPA/WPA2/WPA3" }),
-      window.FOSS.dom.el("option", { value: "WEP", text: "WEP" }),
-      window.FOSS.dom.el("option", { value: "nopass", text: "Open (No Password)" })
-    ]);
-    var wifiHidden = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      "aria-label": "Hidden network",
-      title: "Hidden network",
-      onChange: refreshCode
-    });
-
-    var textInput = window.FOSS.dom.el("textarea", {
-      className: "input",
-      rows: "3",
-      placeholder: "Enter arbitrary text or notes",
-      "data-testid": "qr-text-input",
-      "aria-label": "Arbitrary text notes",
-      title: "Arbitrary text notes",
-      onInput: refreshCode
-    });
-
-    var vcardName = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Full Name", "aria-label": "Full Name", title: "Full Name", onInput: refreshCode });
-    var vcardOrg = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Organization / Company", "aria-label": "Organization", title: "Organization", onInput: refreshCode });
-    var vcardTitle = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Job Title", "aria-label": "Job Title", title: "Job Title", onInput: refreshCode });
-    var vcardPhone = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Phone Number", "aria-label": "Phone Number", title: "Phone Number", onInput: refreshCode });
-    var vcardEmail = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Email Address", "aria-label": "Email Address", title: "Email Address", onInput: refreshCode });
 
     function updateContentFields() {
       contentBody.innerHTML = "";
-      var t = sharedState.payloadType;
-      if (t === "url") {
-        contentBody.appendChild(window.FOSS.components.field("Web URL", urlInput));
-      } else if (t === "wifi") {
-        contentBody.appendChild(window.FOSS.components.field("SSID", wifiSsid));
-        contentBody.appendChild(window.FOSS.components.field("Password", wifiPass));
-        contentBody.appendChild(window.FOSS.components.field("Security", wifiSec));
-        var hidRow = window.FOSS.dom.el("label", { className: "row items-center", style: { gap: "var(--space-2)", cursor: "pointer" } }, [
-          wifiHidden,
-          window.FOSS.dom.el("span", { text: "Hidden Network" })
-        ]);
-        contentBody.appendChild(hidRow);
-      } else if (t === "text") {
-        contentBody.appendChild(window.FOSS.components.field("Plain Text", textInput));
-      } else if (t === "vcard") {
-        contentBody.appendChild(window.FOSS.components.field("Full Name", vcardName));
-        contentBody.appendChild(window.FOSS.components.field("Organization", vcardOrg));
-        contentBody.appendChild(window.FOSS.components.field("Job Title", vcardTitle));
-        contentBody.appendChild(window.FOSS.components.field("Phone", vcardPhone));
-        contentBody.appendChild(window.FOSS.components.field("Email", vcardEmail));
-      } else {
-        contentBody.appendChild(window.FOSS.components.field("Value", urlInput));
-      }
+      var typeId = sharedState.payloadType;
+      FIELD_DEFS[typeId].forEach(function (def) {
+        var input = fieldInputs[typeId][def.key];
+        if (def.kind === "checkbox") {
+          contentBody.appendChild(window.FOSS.dom.el("label", { className: "row items-center gap-2" }, [
+            input,
+            window.FOSS.dom.el("span", { text: def.label })
+          ]));
+        } else {
+          contentBody.appendChild(window.FOSS.components.field(def.label, input));
+        }
+      });
     }
 
-    // Group 3: Styling & Resolution
+    function setPayloadType(typeId) {
+      sharedState.payloadType = typeId;
+      typeSelect.value = typeId;
+      QUICK_TYPES.forEach(function (qt) {
+        quickButtons[qt.id].className = "btn btn-sm " + (qt.id === typeId ? "btn-primary" : "btn-secondary");
+      });
+      icsBtn.classList.toggle("hidden", typeId !== "calendar");
+      updateContentFields();
+      scheduleRefresh();
+    }
+
     var styleCard = window.FOSS.dom.el("div", {
       className: "card flex-col gap-3",
       "data-testid": "qr-styling-group"
     });
-    var styleTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Colors & Quiet Zone" });
-
-    var fgInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      value: sharedState.fgColor,
-      style: { width: "100px" },
-      "aria-label": "Foreground color hex",
-      title: "Foreground color hex",
-      onInput: function () {
-        sharedState.fgColor = fgInput.value;
-        fgColorPicker.value = sharedState.fgColor;
-        refreshCode();
-      }
-    });
-    var fgColorPicker = window.FOSS.dom.el("input", {
-      type: "color",
-      value: sharedState.fgColor,
-      hidden: true,
-      onChange: function () {
-        sharedState.fgColor = fgColorPicker.value;
-        fgInput.value = sharedState.fgColor;
-        refreshCode();
-      }
-    });
-    var fgBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-icon btn-sm",
-      "aria-label": "Pick foreground color",
-      title: "Pick color",
-      onClick: function () { fgColorPicker.click(); }
-    }, [window.FOSS.icons.el("palette", 14)]);
-    var fgRow = window.FOSS.dom.el("div", { className: "row items-center", style: { gap: "var(--space-2)" } }, [
-      fgInput, fgColorPicker, fgBtn
-    ]);
-
-    var bgInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      value: sharedState.bgColor,
-      style: { width: "100px" },
-      "aria-label": "Background color hex",
-      title: "Background color hex",
-      onInput: function () {
-        sharedState.bgColor = bgInput.value;
-        bgColorPicker.value = sharedState.bgColor;
-        refreshCode();
-      }
-    });
-    var bgColorPicker = window.FOSS.dom.el("input", {
-      type: "color",
-      value: sharedState.bgColor,
-      hidden: true,
-      onChange: function () {
-        sharedState.bgColor = bgColorPicker.value;
-        bgInput.value = sharedState.bgColor;
-        refreshCode();
-      }
-    });
-    var bgBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-icon btn-sm",
-      "aria-label": "Pick background color",
-      title: "Pick color",
-      onClick: function () { bgColorPicker.click(); }
-    }, [window.FOSS.icons.el("palette", 14)]);
-    var bgRow = window.FOSS.dom.el("div", { className: "row items-center", style: { gap: "var(--space-2)" } }, [
-      bgInput, bgColorPicker, bgBtn
-    ]);
-
     var eccSelect = window.FOSS.dom.el("select", {
       className: "input",
+      "data-testid": "qr-ecc-select",
       "aria-label": "Error Correction",
       title: "Error Correction",
-      onChange: refreshCode
-    }, [
-      window.FOSS.dom.el("option", { value: "L", text: "L (Low - 7% damage recovery)" }),
-      window.FOSS.dom.el("option", { value: "M", text: "M (Medium - 15% recovery)", selected: true }),
-      window.FOSS.dom.el("option", { value: "Q", text: "Q (Quartile - 25% recovery)" }),
-      window.FOSS.dom.el("option", { value: "H", text: "H (High - 30% recovery)" })
-    ]);
+      onChange: scheduleRefresh
+    }, ECC_OPTIONS.map(function (opt) {
+      return window.FOSS.dom.el("option", { value: opt.value, text: opt.label });
+    }));
+    eccSelect.value = String(toolDefault("error_correction", "M"));
 
-    var boxSizeInput = window.FOSS.dom.el("input", {
+    var exportSizeInput = window.FOSS.dom.el("input", {
       type: "number",
-      className: "input",
-      value: "10",
-      min: "2",
-      max: "30",
-      style: { width: "80px" },
-      "aria-label": "Box Size",
-      title: "Box Size",
-      onInput: refreshCode
+      className: "input qr-input-narrow",
+      min: "64",
+      max: "4096",
+      step: "64",
+      value: String(toolDefault("export_resolution", 512)),
+      "data-testid": "qr-export-size",
+      "aria-label": "Export size in pixels",
+      title: "Export size in pixels",
+      onInput: updateInfoLabel
     });
 
-    var styleGrid = window.FOSS.dom.el("div", {
-      className: "flex-col gap-2"
-    }, [
-      window.FOSS.components.field("Foreground Color", fgRow),
-      window.FOSS.components.field("Background Color", bgRow),
-      window.FOSS.components.field("Error Correction", eccSelect),
-      window.FOSS.components.field("Module Size", boxSizeInput)
-    ]);
-    styleCard.appendChild(styleTitle);
-    styleCard.appendChild(styleGrid);
+    styleCard.appendChild(window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Styling & Resolution" }));
+    styleCard.appendChild(window.FOSS.components.field("Foreground Color", colorRow(sharedState.fgColor, "foreground color", function (v) {
+      sharedState.fgColor = v;
+      scheduleRefresh();
+    })));
+    styleCard.appendChild(window.FOSS.components.field("Background Color", colorRow(sharedState.bgColor, "background color", function (v) {
+      sharedState.bgColor = v;
+      scheduleRefresh();
+    })));
+    styleCard.appendChild(window.FOSS.components.field("Error Correction", eccSelect));
+    styleCard.appendChild(window.FOSS.components.field("Export Size (px)", exportSizeInput));
 
-    // Group 4: Center Logo
-    var logoCard = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-2",
-      "data-testid": "qr-logo-group"
-    });
-    var logoTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Center Logo / Icon" });
     var logoStatusLabel = window.FOSS.dom.el("span", {
       className: "text-sm text-muted",
+      "data-truncate-ok": "true",
       text: sharedState.logoPath ? sharedState.logoPath.split(/[/\\]/).pop() : "No logo selected"
     });
-
     var chooseLogoBtn = window.FOSS.dom.el("button", {
       className: "btn btn-sm",
+      type: "button",
+      "data-testid": "qr-choose-logo-btn",
       "aria-label": "Choose Logo",
       title: "Choose Logo",
       onClick: function () {
         window.FOSS.api("select_file", {
           title: "Select Logo Image",
-          file_types: ["png", "jpg", "jpeg", "webp", "svg"]
+          file_types: ["png", "jpg", "jpeg", "webp"]
         }).then(function (res) {
           if (res && res.paths && res.paths.length > 0) {
             sharedState.logoPath = res.paths[0];
             logoStatusLabel.textContent = sharedState.logoPath.split(/[/\\]/).pop();
-            refreshCode();
+            scheduleRefresh();
           }
         }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
+          chrome.showError(errText(err));
         });
       }
     }, [
       window.FOSS.icons.el("image", 14),
       window.FOSS.dom.el("span", { text: "Choose Logo" })
     ]);
-
     var clearLogoBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
+      type: "button",
+      "data-testid": "qr-clear-logo-btn",
       "aria-label": "Clear logo",
       title: "Clear",
       onClick: function () {
         sharedState.logoPath = "";
         logoStatusLabel.textContent = "No logo selected";
-        refreshCode();
+        scheduleRefresh();
       }
     }, [
-      window.FOSS.icons.el("trash-2", 14),
+      window.FOSS.icons.el("trash", 14),
       window.FOSS.dom.el("span", { text: "Clear" })
     ]);
-
-    var logoRow = window.FOSS.dom.el("div", {
-      className: "row items-center",
-      style: { gap: "var(--space-2)" }
-    }, [chooseLogoBtn, clearLogoBtn, logoStatusLabel]);
-    logoCard.appendChild(logoTitle);
-    logoCard.appendChild(logoRow);
-
-    sidebarCol.appendChild(typeCard);
-    sidebarCol.appendChild(contentCard);
-    sidebarCol.appendChild(styleCard);
-    sidebarCol.appendChild(logoCard);
-
-    // Right Column: Live Preview & Export
-    var stageCol = window.FOSS.dom.el("div", {
-      className: "qr-stage-pane"
-    });
-
-    var previewCard = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-3 items-center"
-    });
-    var previewTitle = window.FOSS.dom.el("h3", { className: "card-title text-base self-start", text: "Live Preview" });
-
-    var previewDisplay = window.FOSS.dom.el("div", {
-      style: {
-        width: "100%",
-        minHeight: "260px",
-        background: "var(--color-bg-base)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-md)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "var(--space-3)"
-      }
-    });
-
-    var previewImg = window.FOSS.dom.el("img", {
-      "data-testid": "qr-preview-img",
-      alt: "Generated QR Code",
-      style: {
-        maxWidth: "100%",
-        maxHeight: "330px",
-        objectFit: "contain",
-        display: "none"
-      }
-    });
-
-    var previewEmpty = window.FOSS.dom.el("div", {
-      className: "text-muted text-sm text-center",
-      text: "Generating preview..."
-    });
-
-    previewDisplay.appendChild(previewImg);
-    previewDisplay.appendChild(previewEmpty);
-
-    var infoLabel = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted font-mono",
-      text: "QR Code - Export Size: 512 x 512 px"
-    });
-
-    previewCard.appendChild(previewTitle);
-    previewCard.appendChild(previewDisplay);
-    previewCard.appendChild(infoLabel);
-
-    // Export Card
-    var exportCard = window.FOSS.dom.el("div", {
-      className: "card flex-col gap-3"
-    });
-    var exportTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Export & Share" });
-
-    var formatSelect = window.FOSS.dom.el("select", {
-      className: "input",
-      style: { width: "100px" },
-      "aria-label": "Export Format",
-      title: "Export Format"
+    var logoCard = window.FOSS.dom.el("div", {
+      className: "card flex-col gap-2",
+      "data-testid": "qr-logo-group"
     }, [
-      window.FOSS.dom.el("option", { value: "png", text: "PNG" }),
-      window.FOSS.dom.el("option", { value: "svg", text: "SVG" }),
-      window.FOSS.dom.el("option", { value: "pdf", text: "PDF" }),
-      window.FOSS.dom.el("option", { value: "webp", text: "WEBP" }),
-      window.FOSS.dom.el("option", { value: "jpeg", text: "JPEG" })
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Center Logo / Icon Embedding" }),
+      window.FOSS.dom.el("div", { className: "row items-center gap-2" }, [chooseLogoBtn, clearLogoBtn]),
+      logoStatusLabel
     ]);
 
-    var savePngBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "qr-save-png-btn",
-      "aria-label": "Save PNG",
-      title: "Save PNG",
-      onClick: function () {
-        saveCodeFile("png");
-      }
-    }, [
-      window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "Save PNG" })
+    var sidebarCol = window.FOSS.dom.el("div", { className: "qr-sidebar-pane" }, [typeCard, contentCard, styleCard, logoCard]);
+
+    var preview = makePreviewBox("qr-preview-img", "Generated QR Code");
+    var infoLabel = window.FOSS.dom.el("div", { className: "text-xs text-muted font-mono", text: "" });
+    var previewCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3 items-center" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base self-start", text: "Live Preview" }),
+      preview.box,
+      infoLabel
     ]);
 
-    var saveImageBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "qr-save-image-btn",
-      "aria-label": "Save Code Image",
-      title: "Save Code Image",
-      onClick: function () {
-        saveCodeFile(formatSelect.value);
-      }
-    }, [
-      window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "Save Other..." })
-    ]);
+    function exportSize() {
+      var size = parseInt(exportSizeInput.value, 10);
+      return size > 0 ? size : 512;
+    }
 
-    var copyBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "qr-copy-btn",
-      "aria-label": "Copy Image to Clipboard",
-      title: "Copy Image to Clipboard",
-      onClick: function () {
-        if (!currentImageDataUrl) {
-          showError("No image available to copy.");
-          return;
-        }
-        copyImageToClipboard(currentImageDataUrl).then(function () {
-          statusBar.textContent = "Copied QR code image to clipboard.";
-          if (window.FOSS.toast) window.FOSS.toast("Copied QR code image to clipboard.", "success");
-        }).catch(function (err) {
-          showError("Copy failed: " + (err && err.message ? err.message : String(err)));
-        });
-      }
-    }, [
-      window.FOSS.icons.el("copy", 16),
-      window.FOSS.dom.el("span", { text: "Copy Image" })
-    ]);
+    function updateInfoLabel() {
+      infoLabel.textContent = "QR Code - Export Size: " + exportSize() + " x " + exportSize() + " px | Error Correction: " + eccSelect.value;
+    }
 
-    var exportSvgBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "qr-export-svg-btn",
-      "aria-label": "Export Vector SVG",
-      title: "Export Vector SVG",
-      onClick: function () {
-        saveCodeFile("svg");
-      }
-    }, [
-      window.FOSS.icons.el("file-text", 16),
-      window.FOSS.dom.el("span", { text: "Export Vector SVG" })
-    ]);
+    function styleParams() {
+      return {
+        schema: sharedState.payloadType,
+        fields: collectFields(sharedState.payloadType),
+        fill_color: sharedState.fgColor,
+        back_color: sharedState.bgColor,
+        error_correction: eccSelect.value || "M",
+        logo_path: sharedState.logoPath || null
+      };
+    }
 
-    var exportLabelsBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "qr-export-labels-btn",
-      "aria-label": "Print Label Sheet (PDF)...",
-      title: "Print Label Sheet (PDF)...",
-      onClick: function () {
-        exportLabelSheetPdf();
-      }
-    }, [
-      window.FOSS.icons.el("printer", 16),
-      window.FOSS.dom.el("span", { text: "Print Label Sheet (PDF)..." })
-    ]);
-
-    var exportActionsRow = window.FOSS.dom.el("div", {
-      className: "row items-center",
-      style: { display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }
-    }, [
-      savePngBtn,
-      formatSelect,
-      saveImageBtn,
-      copyBtn,
-      exportSvgBtn,
-      exportLabelsBtn
-    ]);
-
-    exportCard.appendChild(exportTitle);
-    exportCard.appendChild(exportActionsRow);
-
-    stageCol.appendChild(previewCard);
-    stageCol.appendChild(exportCard);
-
-    // Workbench layout
-    var workbench = window.FOSS.dom.el("div", {
-      className: "qr-workbench",
-      style: { width: "100%", height: "100%" }
-    }, [
-      sidebarCol,
-      window.FOSS.dom.el("div", { className: "split-divider", "data-decorative": "true" }),
-      stageCol
-    ]);
-
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(resultHost);
-    panel.appendChild(workbench);
-
-    function buildPayload() {
-      var t = sharedState.payloadType;
-      if (t === "url") {
-        return urlInput.value || "https://github.com/fosseverything";
-      } else if (t === "wifi") {
-        return "WIFI:S:" + (wifiSsid.value || "Network") + ";T:" + wifiSec.value + ";P:" + (wifiPass.value || "") + ";H:" + (wifiHidden.checked ? "true" : "false") + ";;";
-      } else if (t === "text") {
-        return textInput.value || "Plain text notes";
-      } else if (t === "vcard") {
-        var lines = [
-          "BEGIN:VCARD",
-          "VERSION:3.0",
-          "FN:" + (vcardName.value || "User"),
-          "ORG:" + (vcardOrg.value || ""),
-          "TITLE:" + (vcardTitle.value || ""),
-          "TEL:" + (vcardPhone.value || ""),
-          "EMAIL:" + (vcardEmail.value || ""),
-          "END:VCARD"
-        ];
-        return lines.join("\n");
-      }
-      return urlInput.value || "https://example.com";
+    function scheduleRefresh() {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(refreshCode, 120);
     }
 
     function refreshCode() {
-      clearError();
-      currentPayload = buildPayload();
-
-      var boxSize = parseInt(boxSizeInput.value, 10) || 10;
-      var ecc = eccSelect.value || "M";
-      window.FOSS.api("qr_generate", {
-        payload: currentPayload,
-        box_size: boxSize,
-        fill_color: sharedState.fgColor,
-        back_color: sharedState.bgColor,
-        error_correction: ecc,
-        logo_path: sharedState.logoPath || null
-      }).then(function (res) {
+      refreshTimer = null;
+      chrome.clearError();
+      updateInfoLabel();
+      var seq = ++refreshSeq;
+      var params = styleParams();
+      params.box_size = 10;
+      callApi("qr_generate", params).then(function (res) {
+        if (seq !== refreshSeq) return;
         if (res && res.data_url) {
           currentImageDataUrl = res.data_url;
-          previewImg.src = res.data_url;
-          previewImg.style.setProperty("display", "block");
-          previewEmpty.style.setProperty("display", "none");
-          infoLabel.textContent = "QR Code - Export Size: " + res.width + " x " + res.height + " px | Error Correction: " + ecc;
+          currentPayload = res.payload || "";
+          preview.show(res.data_url);
         }
       }).catch(function (err) {
-        showError(err && err.message ? err.message : String(err));
+        if (seq === refreshSeq) chrome.showError(errText(err));
       });
     }
 
-    function saveCodeFile(format) {
-      clearError();
-      currentPayload = buildPayload();
-      var ext = (format || "png").toLowerCase();
-      var filters = ext === "svg" ? [{ name: "SVG Vector", extensions: ["svg"] }] : [{ name: ext.toUpperCase() + " Image", extensions: [ext] }];
-
-      window.FOSS.api("select_save_path", {
-        title: "Save " + ext.toUpperCase() + " File",
-        default_name: "code." + ext,
-        filters: filters
-      }).then(function (res) {
-        var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
-        if (!outPath) return;
-
-        if (ext === "svg") {
-          window.FOSS.api("qr_generate_svg", {
-            payload: currentPayload,
-            output_path: outPath
-          }).then(function (saveRes) {
-            var finalPath = saveRes && saveRes.output_path ? saveRes.output_path : outPath;
-            showResult(finalPath, "SVG Vector Exported");
-            statusBar.textContent = "Saved SVG to " + finalPath;
-          }).catch(function (err) {
-            showError(err && err.message ? err.message : String(err));
-          });
-        } else {
-          var t = typeSelect.value;
-          var apiMethod = t === "barcode" ? "qr_generate_barcode" : "qr_generate";
-          var params = {
-            payload: currentPayload,
-            output_path: outPath
-          };
-          if (t === "barcode") {
-            params.barcode_type = barcodeSymbology.value || "code128";
-            params.include_label = barcodeLabelToggle.checked;
-          } else {
-            params.box_size = parseInt(boxSizeInput.value, 10) || 10;
-            params.fill_color = sharedState.fgColor;
-            params.back_color = sharedState.bgColor;
-            params.error_correction = eccSelect.value || "M";
-            params.logo_path = sharedState.logoPath || null;
-          }
-
-          window.FOSS.api(apiMethod, params).then(function (saveRes) {
-            var finalPath = saveRes && saveRes.output_path ? saveRes.output_path : outPath;
-            showResult(finalPath, "Image Saved");
-            statusBar.textContent = "Saved to " + finalPath;
-          }).catch(function (err) {
-            showError(err && err.message ? err.message : String(err));
+    function saveImage() {
+      chrome.clearError();
+      savePath("Save QR Code Image", "barcode", RASTER_TYPES).then(function (outPath) {
+        if (!outPath) return null;
+        var params = styleParams();
+        params.output_path = outPath;
+        if (extOf(outPath) === "svg") {
+          return callApi("qr_generate_svg", params).then(function (res) {
+            chrome.showResult(res.output_path || outPath, "SVG Vector Exported");
+            chrome.statusBar.textContent = "Saved SVG to " + (res.output_path || outPath);
           });
         }
+        params.box_size = 10;
+        params.size_px = exportSize();
+        return callApi("qr_generate", params).then(function (res) {
+          chrome.showResult(res.output_path || outPath, "Image Saved");
+          chrome.statusBar.textContent = "Saved to " + (res.output_path || outPath);
+        });
       }).catch(function (err) {
-        showError(err && err.message ? err.message : String(err));
+        chrome.showError(errText(err));
+      });
+    }
+
+    function exportSvg() {
+      chrome.clearError();
+      savePath("Export Vector SVG", "barcode", SVG_TYPES).then(function (outPath) {
+        if (!outPath) return null;
+        var params = styleParams();
+        params.output_path = outPath;
+        return callApi("qr_generate_svg", params).then(function (res) {
+          chrome.showResult(res.output_path || outPath, "SVG Vector Exported");
+          chrome.statusBar.textContent = "Saved SVG to " + (res.output_path || outPath);
+        });
+      }).catch(function (err) {
+        chrome.showError(errText(err));
       });
     }
 
     function exportCalendarIcs() {
-      clearError();
-      var sm = calTitle.value || "Event";
-      var st = calStart.value || "20261101T120000Z";
-
-      window.FOSS.api("select_save_path", {
-        title: "Save as .ics File",
-        default_name: "event.ics",
-        filters: [{ name: "iCalendar File", extensions: ["ics"] }]
-      }).then(function (res) {
-        var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
-        if (!outPath) return;
-
-        window.FOSS.api("qr_export_ics", {
-          title: sm,
-          start_time: st,
+      chrome.clearError();
+      var values = collectFields("calendar");
+      if (!values.title || !values.start_time) {
+        chrome.showError("Enter an event title and start time first.");
+        return;
+      }
+      savePath("Save as .ics File", "event", ICS_TYPES).then(function (outPath) {
+        if (!outPath) return null;
+        return callApi("qr_export_ics", {
+          title: values.title,
+          start_time: values.start_time,
+          end_time: values.end_time,
+          location: values.location,
+          description: values.description,
           output_path: outPath
-        }).then(function (saveRes) {
-          var finalPath = saveRes && saveRes.output_path ? saveRes.output_path : outPath;
-          showResult(finalPath, "Calendar .ICS File Saved");
-          statusBar.textContent = "Saved .ics to " + finalPath;
-        }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
+        }).then(function (res) {
+          chrome.showResult(res.output_path || outPath, "Calendar .ICS File Saved");
+          chrome.statusBar.textContent = "Saved .ics to " + (res.output_path || outPath);
         });
       }).catch(function (err) {
-        showError(err && err.message ? err.message : String(err));
+        chrome.showError(errText(err));
       });
     }
 
     function exportLabelSheetPdf() {
-      clearError();
-      window.FOSS.api("qr_label_presets", {}).then(function (presetsRes) {
+      chrome.clearError();
+      callApi("qr_label_presets", {}).then(function (presetsRes) {
         var presets = (presetsRes && presetsRes.presets) || ["Avery 5160"];
-        var presetToUse = presets[0] || "Avery 5160";
-
-        window.FOSS.api("select_save_path", {
-          title: "Save Printable Label Sheet (PDF)",
-          default_name: "label_sheet.pdf",
-          filters: [{ name: "PDF Document", extensions: ["pdf"] }]
-        }).then(function (res) {
-          var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
-          if (!outPath) return;
-
-          var params = {
+        return savePath("Save Printable Label Sheet (PDF)", "labels", PDF_TYPES).then(function (outPath) {
+          if (!outPath) return null;
+          return callApi("qr_label_sheet", {
             payload: currentPayload,
             output_path: outPath,
-            preset: presetToUse,
+            preset: presets[0] || "Avery 5160",
             count: 30
-          };
-          if (typeSelect.value === "barcode") {
-            params.barcode_type = barcodeSymbology.value || "code128";
-          }
-
-          window.FOSS.api("qr_label_sheet", params).then(function (saveRes) {
-            var finalPath = saveRes && saveRes.output_path ? saveRes.output_path : outPath;
-            showResult(finalPath, "Label Sheet PDF Saved");
-            statusBar.textContent = "Saved label sheet to " + finalPath;
-          }).catch(function (err) {
-            showError(err && err.message ? err.message : String(err));
+          }).then(function (res) {
+            chrome.showResult(res.output_path || outPath, "Label Sheet PDF Saved");
+            chrome.statusBar.textContent = "Saved label sheet to " + (res.output_path || outPath);
           });
         });
       }).catch(function (err) {
-        showError(err && err.message ? err.message : String(err));
+        chrome.showError(errText(err));
       });
     }
 
-    updateContentFields();
-    refreshCode();
+    function actionButton(testid, label, iconName, variant, handler) {
+      return window.FOSS.dom.el("button", {
+        className: "btn " + variant,
+        type: "button",
+        "data-testid": testid,
+        "aria-label": label,
+        title: label,
+        onClick: handler
+      }, [
+        window.FOSS.icons.el(iconName, 16),
+        window.FOSS.dom.el("span", { text: label })
+      ]);
+    }
+
+    var saveImageBtn = actionButton("qr-save-image-btn", "Save Image...", "download", "btn-primary", saveImage);
+    var copyBtn = actionButton("qr-copy-btn", "Copy Image to Clipboard", "copy", "btn-secondary", function () {
+      if (!currentImageDataUrl) {
+        chrome.showError("No image available to copy.");
+        return;
+      }
+      copyImageToClipboard(currentImageDataUrl).then(function () {
+        chrome.statusBar.textContent = "Copied QR code image to clipboard.";
+      }).catch(function (err) {
+        chrome.showError("Copy failed: " + errText(err));
+      });
+    });
+    var exportSvgBtn = actionButton("qr-export-svg-btn", "Export Vector SVG", "file-text", "btn-secondary", exportSvg);
+    var exportLabelsBtn = actionButton("qr-export-labels-btn", "Print Label Sheet (PDF)...", "printer", "btn-secondary", exportLabelSheetPdf);
+    var icsBtn = actionButton("qr-save-ics-btn", "Save as .ics file", "file-text", "btn-secondary hidden", exportCalendarIcs);
+
+    var exportCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Export & Share" }),
+      window.FOSS.dom.el("div", { className: "qr-actions-row" }, [saveImageBtn, copyBtn, exportSvgBtn, exportLabelsBtn, icsBtn])
+    ]);
+
+    var stageCol = window.FOSS.dom.el("div", { className: "qr-stage-pane" }, [previewCard, exportCard]);
+
+    panel.appendChild(chrome.statusBar);
+    panel.appendChild(chrome.errorBanner);
+    panel.appendChild(chrome.resultHost);
+    panel.appendChild(makeWorkbench(sidebarCol, stageCol));
+
+    activeCleanup = function () {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshSeq += 1;
+    };
+
+    setPayloadType(sharedState.payloadType);
   }
 
   function renderBarcodeTab(panel) {
+    runCleanup();
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-qr-barcode");
+    panel.setAttribute("data-testid", "qr-barcode-page");
 
+    var chrome = makeChrome();
     var currentPayload = "123456789012";
     var currentImageDataUrl = "";
-
-    var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
-      "data-testid": "qr-status",
-      text: "Ready"
-    });
-
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger",
-      "data-testid": "qr-error-banner",
-      hidden: true
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
-
-    function showError(msg) {
-      var span = errorBanner.querySelector(".banner-msg");
-      if (span) span.textContent = msg;
-      errorBanner.removeAttribute("hidden");
-      statusBar.textContent = "Error: " + msg;
-    }
-
-    function clearError() {
-      errorBanner.setAttribute("hidden", "true");
-    }
-
-    var resultHost = window.FOSS.dom.el("div", {
-      "data-testid": "qr-result",
-      hidden: true
-    });
-
-    function showResult(path, titleText) {
-      resultHost.innerHTML = "";
-      var card = window.FOSS.components.resultCard({
-        testid: "qr-result-card",
-        title: titleText || "Export Complete",
-        outputPath: path
-      });
-      resultHost.appendChild(card);
-      resultHost.removeAttribute("hidden");
-    }
-
-    var sidebarCol = window.FOSS.dom.el("div", { className: "qr-sidebar-pane" });
-
-    var configCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    var configTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "1D Barcode Configuration" });
+    var refreshSeq = 0;
 
     var symbologySelect = window.FOSS.dom.el("select", {
       className: "input",
@@ -840,43 +720,33 @@ window.FOSS = window.FOSS || {};
       }
     }, [
       window.FOSS.dom.el("option", { value: "code128", text: "Code 128 (General Purpose ASCII)" }),
-      window.FOSS.dom.el("option", { value: "code39", text: "Code 39 (Alphanumeric)" }),
       window.FOSS.dom.el("option", { value: "ean13", text: "EAN-13 (13 Digits Retail)" }),
+      window.FOSS.dom.el("option", { value: "code39", text: "Code 39 (Alphanumeric)" }),
       window.FOSS.dom.el("option", { value: "ean8", text: "EAN-8 (8 Digits Retail)" }),
       window.FOSS.dom.el("option", { value: "upca", text: "UPC-A (12 Digits Retail)" }),
-      window.FOSS.dom.el("option", { value: "isbn13", text: "ISBN-13 (Books)" }),
       window.FOSS.dom.el("option", { value: "itf", text: "ITF (Interleaved 2 of 5)" })
     ]);
 
-    var hintLabel = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
-      text: "Supports all standard ASCII characters"
-    });
+    var hintLabel = window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "" });
+    var hints = {
+      ean13: "Requires 12 or 13 digits (numeric)",
+      ean8: "Requires 7 or 8 digits (numeric)",
+      upca: "Requires 11 or 12 digits (numeric)",
+      itf: "Requires an even number of numeric digits",
+      code39: "Supports uppercase letters, numbers, and - . $ / + % space",
+      code128: "Supports all standard ASCII characters"
+    };
 
     function updateValidationHint() {
-      var sym = symbologySelect.value;
-      if (sym === "ean13") {
-        hintLabel.textContent = "Requires 12 or 13 digits (numeric)";
-      } else if (sym === "ean8") {
-        hintLabel.textContent = "Requires 7 or 8 digits (numeric)";
-      } else if (sym === "upca") {
-        hintLabel.textContent = "Requires 11 or 12 digits (numeric)";
-      } else if (sym === "isbn13") {
-        hintLabel.textContent = "Requires 12 or 13 digits (typically begins with 978 or 979)";
-      } else if (sym === "itf") {
-        hintLabel.textContent = "Requires an even number of numeric digits";
-      } else if (sym === "code39") {
-        hintLabel.textContent = "Supports uppercase letters, numbers, and - . $ / + % space";
-      } else {
-        hintLabel.textContent = "Supports all standard ASCII characters";
-      }
+      hintLabel.textContent = hints[symbologySelect.value] || hints.code128;
     }
 
     var valueInput = window.FOSS.dom.el("input", {
       type: "text",
       className: "input",
-      value: "123456789012",
+      value: currentPayload,
       placeholder: "Barcode value",
+      "data-testid": "qr-barcode-value",
       "aria-label": "Barcode value",
       title: "Barcode value",
       onInput: refreshBarcode
@@ -891,364 +761,310 @@ window.FOSS = window.FOSS || {};
       onChange: refreshBarcode
     });
 
-    var labelToggleRow = window.FOSS.dom.el("label", {
-      className: "row items-center",
-      style: { gap: "var(--space-2)", cursor: "pointer" }
-    }, [
-      labelToggle,
-      window.FOSS.dom.el("span", { text: "Show Human-Readable Text Below Bars" })
-    ]);
-
     var heightInput = window.FOSS.dom.el("input", {
       type: "number",
-      className: "input",
+      className: "input qr-input-narrow",
       value: "100",
       min: "30",
       max: "400",
-      style: { width: "100px" },
       "aria-label": "Bar Height",
       title: "Bar Height",
       onInput: refreshBarcode
     });
 
-    configCard.appendChild(configTitle);
-    configCard.appendChild(window.FOSS.components.field("Symbology", symbologySelect));
-    configCard.appendChild(hintLabel);
-    configCard.appendChild(window.FOSS.components.field("Payload Value", valueInput));
-    configCard.appendChild(labelToggleRow);
-    configCard.appendChild(window.FOSS.components.field("Bar Height (px)", heightInput));
+    var configCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "1D Barcode Configuration" }),
+      window.FOSS.components.field("Symbology", symbologySelect),
+      hintLabel,
+      window.FOSS.components.field("Payload Value", valueInput),
+      window.FOSS.dom.el("label", { className: "row items-center gap-2" }, [
+        labelToggle,
+        window.FOSS.dom.el("span", { text: "Show Value Label" })
+      ]),
+      window.FOSS.components.field("Bar Height (px)", heightInput)
+    ]);
+    var sidebarCol = window.FOSS.dom.el("div", { className: "qr-sidebar-pane" }, [configCard]);
 
-    sidebarCol.appendChild(configCard);
-
-    var stageCol = window.FOSS.dom.el("div", { className: "qr-stage-pane" });
-
-    var previewCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3 items-center" });
-    var previewTitle = window.FOSS.dom.el("h3", { className: "card-title text-base self-start", text: "Barcode Preview" });
-
-    var previewDisplay = window.FOSS.dom.el("div", {
-      style: {
-        width: "100%",
-        minHeight: "220px",
-        background: "var(--color-bg-base)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-md)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "var(--space-3)"
-      }
-    });
-
-    var previewImg = window.FOSS.dom.el("img", {
-      "data-testid": "qr-preview-img",
-      alt: "Generated Barcode",
-      style: {
-        maxWidth: "100%",
-        maxHeight: "260px",
-        objectFit: "contain",
-        display: "none"
-      }
-    });
-
-    var previewEmpty = window.FOSS.dom.el("div", {
-      className: "text-muted text-sm text-center",
-      text: "Generating barcode..."
-    });
-
-    previewDisplay.appendChild(previewImg);
-    previewDisplay.appendChild(previewEmpty);
-
-    var infoLabel = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted font-mono",
-      text: "1D Barcode - Ready"
-    });
-
-    previewCard.appendChild(previewTitle);
-    previewCard.appendChild(previewDisplay);
-    previewCard.appendChild(infoLabel);
-
-    var exportCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    var exportTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Export Barcode" });
-
-    var saveBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "qr-save-image-btn",
-      "aria-label": "Save Barcode Image",
-      title: "Save Barcode Image",
-      onClick: function () {
-        saveBarcodeFile("png");
-      }
-    }, [
-      window.FOSS.icons.el("download", 16),
-      window.FOSS.dom.el("span", { text: "Save PNG..." })
+    var preview = makePreviewBox("qr-preview-img", "Generated Barcode");
+    var infoLabel = window.FOSS.dom.el("div", { className: "text-xs text-muted font-mono", text: "1D Barcode - Ready" });
+    var previewCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3 items-center" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base self-start", text: "Barcode Preview" }),
+      preview.box,
+      infoLabel
     ]);
 
-    var copyBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "qr-copy-btn",
-      "aria-label": "Copy Image",
-      title: "Copy Image",
-      onClick: function () {
-        if (!currentImageDataUrl) return;
-        copyImageToClipboard(currentImageDataUrl).then(function () {
-          statusBar.textContent = "Copied barcode image to clipboard.";
-          if (window.FOSS.toast) window.FOSS.toast("Copied barcode image to clipboard.", "success");
-        });
-      }
-    }, [
-      window.FOSS.icons.el("copy", 16),
-      window.FOSS.dom.el("span", { text: "Copy Image" })
-    ]);
-
-    var labelsBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "qr-export-labels-btn",
-      "aria-label": "Print Label Sheet",
-      title: "Print Label Sheet",
-      onClick: function () {
-        exportBarcodeLabels();
-      }
-    }, [
-      window.FOSS.icons.el("printer", 16),
-      window.FOSS.dom.el("span", { text: "Print Label Sheet (PDF)..." })
-    ]);
-
-    var actionsRow = window.FOSS.dom.el("div", {
-      className: "row items-center",
-      style: { display: "flex", flexWrap: "wrap", gap: "var(--space-2)" }
-    }, [saveBtn, copyBtn, labelsBtn]);
-
-    exportCard.appendChild(exportTitle);
-    exportCard.appendChild(actionsRow);
-
-    stageCol.appendChild(previewCard);
-    stageCol.appendChild(exportCard);
-
-    var workbench = window.FOSS.dom.el("div", {
-      className: "qr-workbench",
-      style: { width: "100%", height: "100%" }
-    }, [
-      sidebarCol,
-      window.FOSS.dom.el("div", { className: "split-divider", "data-decorative": "true" }),
-      stageCol
-    ]);
-
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(resultHost);
-    panel.appendChild(workbench);
+    function barcodeParams() {
+      return {
+        payload: valueInput.value || "12345678",
+        barcode_type: symbologySelect.value || "code128",
+        include_label: labelToggle.checked,
+        height: parseInt(heightInput.value, 10) || 100
+      };
+    }
 
     function refreshBarcode() {
-      clearError();
-      currentPayload = valueInput.value || "12345678";
-      var sym = symbologySelect.value || "code128";
-      var h = parseInt(heightInput.value, 10) || 100;
-
-      window.FOSS.api("qr_generate_barcode", {
-        payload: currentPayload,
-        barcode_type: sym,
-        include_label: labelToggle.checked,
-        height: h
-      }).then(function (res) {
+      chrome.clearError();
+      var seq = ++refreshSeq;
+      var params = barcodeParams();
+      currentPayload = params.payload;
+      callApi("qr_generate_barcode", params).then(function (res) {
+        if (seq !== refreshSeq) return;
         if (res && res.data_url) {
           currentImageDataUrl = res.data_url;
-          previewImg.src = res.data_url;
-          previewImg.style.setProperty("display", "block");
-          previewEmpty.style.setProperty("display", "none");
-          infoLabel.textContent = "1D Barcode: " + sym.toUpperCase() + " - " + res.width + " x " + res.height + " px";
+          preview.show(res.data_url);
+          infoLabel.textContent = "1D Barcode: " + params.barcode_type.toUpperCase() + " - " + res.width + " x " + res.height + " px";
         }
       }).catch(function (err) {
-        showError(err && err.message ? err.message : String(err));
+        if (seq === refreshSeq) chrome.showError(errText(err));
       });
     }
 
-    function saveBarcodeFile(ext) {
-      clearError();
-      window.FOSS.api("select_save_path", {
-        title: "Save Barcode Image",
-        default_name: "barcode." + ext,
-        filters: [{ name: "PNG Image", extensions: ["png"] }]
-      }).then(function (res) {
-        var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
-        if (!outPath) return;
-
-        window.FOSS.api("qr_generate_barcode", {
-          payload: currentPayload,
-          barcode_type: symbologySelect.value || "code128",
-          include_label: labelToggle.checked,
-          height: parseInt(heightInput.value, 10) || 100,
-          output_path: outPath
-        }).then(function (saveRes) {
-          var finalPath = saveRes && saveRes.output_path ? saveRes.output_path : outPath;
-          showResult(finalPath, "Barcode Saved");
-          statusBar.textContent = "Saved to " + finalPath;
-        }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
+    function saveBarcodeFile() {
+      chrome.clearError();
+      savePath("Save Barcode Image", "barcode", BARCODE_TYPES).then(function (outPath) {
+        if (!outPath) return null;
+        var params = barcodeParams();
+        params.output_path = outPath;
+        return callApi("qr_generate_barcode", params).then(function (res) {
+          chrome.showResult(res.output_path || outPath, "Barcode Saved");
+          chrome.statusBar.textContent = "Saved to " + (res.output_path || outPath);
         });
+      }).catch(function (err) {
+        chrome.showError(errText(err));
       });
     }
 
     function exportBarcodeLabels() {
-      clearError();
-      window.FOSS.api("select_save_path", {
-        title: "Save Barcode Label Sheet (PDF)",
-        default_name: "barcode_labels.pdf",
-        filters: [{ name: "PDF Document", extensions: ["pdf"] }]
-      }).then(function (res) {
-        var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
-        if (!outPath) return;
-
-        window.FOSS.api("qr_label_sheet", {
+      chrome.clearError();
+      savePath("Save Barcode Label Sheet (PDF)", "labels", PDF_TYPES).then(function (outPath) {
+        if (!outPath) return null;
+        return callApi("qr_label_sheet", {
           payload: currentPayload,
           output_path: outPath,
           preset: "Avery 5160",
           barcode_type: symbologySelect.value || "code128",
           count: 30
-        }).then(function (saveRes) {
-          var finalPath = saveRes && saveRes.output_path ? saveRes.output_path : outPath;
-          showResult(finalPath, "Label Sheet Saved");
-          statusBar.textContent = "Saved to " + finalPath;
-        }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
+        }).then(function (res) {
+          chrome.showResult(res.output_path || outPath, "Label Sheet Saved");
+          chrome.statusBar.textContent = "Saved to " + (res.output_path || outPath);
         });
+      }).catch(function (err) {
+        chrome.showError(errText(err));
       });
     }
+
+    function actionButton(testid, label, iconName, variant, handler) {
+      return window.FOSS.dom.el("button", {
+        className: "btn " + variant,
+        type: "button",
+        "data-testid": testid,
+        "aria-label": label,
+        title: label,
+        onClick: handler
+      }, [
+        window.FOSS.icons.el(iconName, 16),
+        window.FOSS.dom.el("span", { text: label })
+      ]);
+    }
+
+    var saveBtn = actionButton("qr-save-image-btn", "Save Barcode...", "download", "btn-primary", saveBarcodeFile);
+    var copyBtn = actionButton("qr-copy-btn", "Copy Image", "copy", "btn-secondary", function () {
+      if (!currentImageDataUrl) return;
+      copyImageToClipboard(currentImageDataUrl).then(function () {
+        chrome.statusBar.textContent = "Copied barcode image to clipboard.";
+      });
+    });
+    var labelsBtn = actionButton("qr-export-labels-btn", "Print Label Sheet (PDF)...", "printer", "btn-secondary", exportBarcodeLabels);
+
+    var exportCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Export Barcode" }),
+      window.FOSS.dom.el("div", { className: "qr-actions-row" }, [saveBtn, copyBtn, labelsBtn])
+    ]);
+    var stageCol = window.FOSS.dom.el("div", { className: "qr-stage-pane" }, [previewCard, exportCard]);
+
+    panel.appendChild(chrome.statusBar);
+    panel.appendChild(chrome.errorBanner);
+    panel.appendChild(chrome.resultHost);
+    panel.appendChild(makeWorkbench(sidebarCol, stageCol));
+
+    activeCleanup = function () {
+      refreshSeq += 1;
+    };
 
     updateValidationHint();
     refreshBarcode();
   }
 
   function renderScanTab(panel) {
+    runCleanup();
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-qr-scan");
+    panel.setAttribute("data-testid", "qr-scan-page");
 
-    var currentScanImagePath = "";
-
-    var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
-      "data-testid": "qr-status",
-      text: "Ready"
-    });
-
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger",
-      "data-testid": "qr-error-banner",
-      hidden: true
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
-
-    function showError(msg) {
-      var span = errorBanner.querySelector(".banner-msg");
-      if (span) span.textContent = msg;
-      errorBanner.removeAttribute("hidden");
-      statusBar.textContent = "Error: " + msg;
-    }
-
-    function clearError() {
-      errorBanner.setAttribute("hidden", "true");
-    }
-
-    var sidebarCol = window.FOSS.dom.el("div", { className: "qr-sidebar-pane" });
-
-    var inputCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    var inputTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Choose or Paste Image" });
+    var chrome = makeChrome();
+    var webcamStream = null;
+    var webcamTimer = null;
+    var webcamBusy = false;
 
     var scanPicker = window.FOSS.components.filePicker({
       testid: "qr-scan-file-picker",
       title: "Select Image or PDF to Scan",
       fileTypes: ["png", "jpg", "jpeg", "webp", "pdf", "bmp"],
       onSelect: function (val) {
-        currentScanImagePath = val;
-        clearError();
+        chrome.clearError();
         if (val) executeScan(val);
       },
       onClear: function () {
-        currentScanImagePath = "";
         sharedState.lastDecodedItems = [];
         renderDecodedResults();
       }
     });
 
     var pasteBanner = window.FOSS.dom.el("div", {
-      className: "p-3 rounded text-center text-sm text-muted",
-      style: {
-        border: "1px dashed var(--color-border)",
-        background: "var(--color-bg-subtle)",
-        cursor: "pointer"
-      },
+      className: "qr-paste-zone text-sm text-muted",
       text: "Paste screenshot from clipboard (Ctrl+V) anywhere on this screen"
     });
 
-    inputCard.appendChild(inputTitle);
-    inputCard.appendChild(scanPicker.el);
-    inputCard.appendChild(pasteBanner);
+    var inputCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Input Image Preview" }),
+      scanPicker.el,
+      pasteBanner
+    ]);
 
-    var detailsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-2" });
-    var detailsTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Payload Details" });
+    var video = window.FOSS.dom.el("video", {
+      className: "qr-webcam-video hidden",
+      "data-testid": "qr-webcam-video",
+      muted: true,
+      playsinline: true,
+      "aria-label": "Webcam preview"
+    });
+    video.muted = true;
+    var canvas = document.createElement("canvas");
+
+    function webcamButton(testid, label, variant, handler) {
+      return window.FOSS.dom.el("button", {
+        className: "btn btn-sm " + variant,
+        type: "button",
+        "data-testid": testid,
+        "aria-label": label,
+        title: label,
+        onClick: handler
+      }, [window.FOSS.dom.el("span", { text: label })]);
+    }
+
+    var webcamStartBtn = webcamButton("qr-webcam-start-btn", "Start Webcam", "btn-secondary", startWebcam);
+    var webcamStopBtn = webcamButton("qr-webcam-stop-btn", "Stop Webcam", "btn-secondary hidden", stopWebcam);
+    var webcamCaptureBtn = webcamButton("qr-webcam-capture-btn", "Capture and Decode", "btn-primary hidden", function () {
+      decodeWebcamFrame(true);
+    });
+    var webcamCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Webcam Scan" }),
+      video,
+      window.FOSS.dom.el("div", { className: "row items-center gap-2" }, [webcamStartBtn, webcamCaptureBtn, webcamStopBtn])
+    ]);
+
     var detailsContent = window.FOSS.dom.el("div", {
-      className: "text-sm text-muted font-mono p-2 rounded",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", minHeight: "60px", wordBreak: "break-all" },
+      className: "qr-detail-box text-sm text-muted font-mono",
       text: "No code selected"
     });
-    detailsCard.appendChild(detailsTitle);
-    detailsCard.appendChild(detailsContent);
+    var detailsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-2" }, [
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Payload Details" }),
+      detailsContent
+    ]);
 
-    sidebarCol.appendChild(inputCard);
-    sidebarCol.appendChild(detailsCard);
+    var sidebarCol = window.FOSS.dom.el("div", { className: "qr-sidebar-pane" }, [inputCard, webcamCard, detailsCard]);
 
-    var stageCol = window.FOSS.dom.el("div", { className: "qr-stage-pane" });
-
+    var resultsList = window.FOSS.dom.el("div", { className: "flex-col gap-2 qr-results-list" });
     var resultsCard = window.FOSS.dom.el("div", {
       className: "card flex-col gap-3",
       "data-testid": "qr-scan-results"
-    });
-    var resultsTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Decoded Results" });
-
-    var resultsList = window.FOSS.dom.el("div", {
-      className: "flex-col gap-2 scroll-y",
-      style: { maxHeight: "500px", width: "100%" }
-    });
-
-    resultsCard.appendChild(resultsTitle);
-    resultsCard.appendChild(resultsList);
-    stageCol.appendChild(resultsCard);
-
-    var workbench = window.FOSS.dom.el("div", {
-      className: "qr-workbench",
-      style: { width: "100%", height: "100%" }
     }, [
-      sidebarCol,
-      window.FOSS.dom.el("div", { className: "split-divider", "data-decorative": "true" }),
-      stageCol
+      window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Decoded Results" }),
+      resultsList
     ]);
+    var stageCol = window.FOSS.dom.el("div", { className: "qr-stage-pane" }, [resultsCard]);
 
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(workbench);
+    panel.appendChild(chrome.statusBar);
+    panel.appendChild(chrome.errorBanner);
+    panel.appendChild(makeWorkbench(sidebarCol, stageCol));
+
+    function applyResults(res, label) {
+      sharedState.lastDecodedItems = (res && res.results) || [];
+      renderDecodedResults();
+      chrome.statusBar.textContent = label + ": Found " + sharedState.lastDecodedItems.length + " code(s).";
+    }
 
     function executeScan(imgPath) {
-      clearError();
-      statusBar.textContent = "Scanning image for QR and barcodes...";
-      window.FOSS.api("qr_decode", { image_path: imgPath }).then(function (res) {
-        sharedState.lastDecodedItems = (res && res.results) || [];
-        renderDecodedResults();
-        statusBar.textContent = "Scan complete: Found " + sharedState.lastDecodedItems.length + " code(s).";
+      chrome.clearError();
+      chrome.statusBar.textContent = "Scanning image for QR and barcodes...";
+      callApi("qr_decode", { image_path: imgPath }).then(function (res) {
+        applyResults(res, "Scan complete");
       }).catch(function (err) {
-        showError(err && err.message ? err.message : String(err));
+        chrome.showError(errText(err));
       });
     }
 
-    function executeDecodeDataUrl(dataUrl) {
-      clearError();
-      statusBar.textContent = "Decoding pasted screenshot...";
-      window.FOSS.api("qr_decode_data_url", { data_url: dataUrl }).then(function (res) {
-        sharedState.lastDecodedItems = (res && res.results) || [];
-        renderDecodedResults();
-        statusBar.textContent = "Pasted scan complete: Found " + sharedState.lastDecodedItems.length + " code(s).";
+    function executeDecodeDataUrl(dataUrl, label) {
+      chrome.clearError();
+      return callApi("qr_decode_data_url", { data_url: dataUrl }).then(function (res) {
+        applyResults(res, label);
+        return res;
       }).catch(function (err) {
-        showError(err && err.message ? err.message : String(err));
+        chrome.showError(errText(err));
+      });
+    }
+
+    function startWebcam() {
+      chrome.clearError();
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        chrome.showError("Webcam access is not available in this environment.");
+        return;
+      }
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false }).then(function (stream) {
+        webcamStream = stream;
+        video.srcObject = stream;
+        video.classList.remove("hidden");
+        webcamStartBtn.classList.add("hidden");
+        webcamStopBtn.classList.remove("hidden");
+        webcamCaptureBtn.classList.remove("hidden");
+        var playing = video.play();
+        if (playing && playing.catch) playing.catch(function () {});
+        chrome.statusBar.textContent = "Webcam running. Hold a code in view to scan it.";
+        webcamTimer = setInterval(function () { decodeWebcamFrame(false); }, 900);
+      }).catch(function (err) {
+        chrome.showError("Could not open webcam: " + errText(err));
+      });
+    }
+
+    function stopWebcam() {
+      if (webcamTimer) {
+        clearInterval(webcamTimer);
+        webcamTimer = null;
+      }
+      if (webcamStream) {
+        webcamStream.getTracks().forEach(function (track) { track.stop(); });
+        webcamStream = null;
+      }
+      video.srcObject = null;
+      video.classList.add("hidden");
+      webcamStartBtn.classList.remove("hidden");
+      webcamStopBtn.classList.add("hidden");
+      webcamCaptureBtn.classList.add("hidden");
+    }
+
+    function decodeWebcamFrame(manual) {
+      if (!webcamStream || webcamBusy || !video.videoWidth) return;
+      var scale = Math.min(1, 1280 / video.videoWidth);
+      canvas.width = Math.round(video.videoWidth * scale);
+      canvas.height = Math.round(video.videoHeight * scale);
+      canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+      webcamBusy = true;
+      callApi("qr_decode_data_url", { data_url: canvas.toDataURL("image/png") }).then(function (res) {
+        var found = (res && res.results) || [];
+        if (found.length || manual) applyResults(res, "Webcam scan");
+      }).catch(function (err) {
+        if (manual) chrome.showError(errText(err));
+      }).then(function () {
+        webcamBusy = false;
       });
     }
 
@@ -1262,7 +1078,8 @@ window.FOSS = window.FOSS || {};
             var reader = new FileReader();
             reader.onload = function (evt) {
               if (evt.target && evt.target.result) {
-                executeDecodeDataUrl(evt.target.result);
+                chrome.statusBar.textContent = "Decoding pasted screenshot...";
+                executeDecodeDataUrl(evt.target.result, "Pasted scan complete");
               }
             };
             reader.readAsDataURL(blob);
@@ -1274,87 +1091,74 @@ window.FOSS = window.FOSS || {};
     }
 
     window.addEventListener("paste", onPaste);
-    panel._cleanup = function () {
+    activeCleanup = function () {
       window.removeEventListener("paste", onPaste);
+      stopWebcam();
     };
+
+    function describe(item) {
+      return (item.type || "Code") + ": " + (item.payload || item.data || "");
+    }
 
     function renderDecodedResults() {
       resultsList.innerHTML = "";
-      if (sharedState.lastDecodedItems.length === 0) {
-        resultsList.innerHTML = '<div class="text-sm text-muted p-4 text-center">No QR codes or barcodes detected yet. Select an image or paste a screenshot.</div>';
+      var items = sharedState.lastDecodedItems;
+      if (items.length === 0) {
+        resultsList.appendChild(window.FOSS.dom.el("div", {
+          className: "text-sm text-muted p-4 text-center",
+          text: "No QR codes or barcodes detected yet. Open an image or paste a screenshot, or start the webcam."
+        }));
         detailsContent.textContent = "No code selected";
         return;
       }
 
-      for (var i = 0; i < sharedState.lastDecodedItems.length; i++) {
-        var item = sharedState.lastDecodedItems[i];
-        var itemData = item.data || item.payload || "";
-        var itemType = item.type || "QR Code";
-
-        var copyBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-sm",
-          "aria-label": "Copy payload: " + itemData,
-          title: "Copy text",
-          onClick: (function (d) {
-            return function (ev) {
+      items.forEach(function (item) {
+        var itemData = item.payload || item.data || "";
+        var actionBtns = [
+          window.FOSS.dom.el("button", {
+            className: "btn btn-sm",
+            type: "button",
+            "aria-label": "Copy payload",
+            title: "Copy text",
+            onClick: function (ev) {
               ev.stopPropagation();
-              copyTextToClipboard(d);
-              statusBar.textContent = "Copied code data to clipboard.";
-              if (window.FOSS.toast) window.FOSS.toast("Copied code data to clipboard.", "success");
-            };
-          })(itemData)
-        }, [
-          window.FOSS.icons.el("copy", 14),
-          window.FOSS.dom.el("span", { text: "Copy" })
-        ]);
-
-        var actionBtns = [copyBtn];
-        if (itemData.startsWith("http://") || itemData.startsWith("https://")) {
-          var openBtn = window.FOSS.dom.el("button", {
+              copyTextToClipboard(itemData);
+              chrome.statusBar.textContent = "Copied code data to clipboard.";
+            }
+          }, [
+            window.FOSS.icons.el("copy", 14),
+            window.FOSS.dom.el("span", { text: "Copy" })
+          ])
+        ];
+        if (itemData.indexOf("http://") === 0 || itemData.indexOf("https://") === 0) {
+          actionBtns.push(window.FOSS.dom.el("button", {
             className: "btn btn-sm btn-secondary",
+            type: "button",
             "aria-label": "Open link in browser",
             title: "Open URL",
-            onClick: (function (u) {
-              return function (ev) {
-                ev.stopPropagation();
-                window.FOSS.api("open_url", { url: u });
-              };
-            })(itemData)
+            onClick: function (ev) {
+              ev.stopPropagation();
+              window.FOSS.api("open_url", { url: itemData });
+            }
           }, [
             window.FOSS.icons.el("external-link", 14),
             window.FOSS.dom.el("span", { text: "Open URL" })
-          ]);
-          actionBtns.push(openBtn);
+          ]));
         }
 
-        var row = window.FOSS.dom.el("div", {
-          className: "row items-center justify-between p-3 rounded",
-          style: {
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "var(--space-2)",
-            background: "var(--color-bg-muted)",
-            border: "1px solid var(--color-border)",
-            width: "100%",
-            cursor: "pointer"
-          }
-        }, [
-          window.FOSS.dom.el("div", { className: "flex-col flex-1", style: { minWidth: "140px" } }, [
-            window.FOSS.dom.el("span", { className: "font-bold text-sm", text: itemType }),
-            window.FOSS.dom.el("span", { className: "font-mono text-xs text-muted", text: itemData })
+        var row = window.FOSS.dom.el("div", { className: "qr-result-row" }, [
+          window.FOSS.dom.el("div", { className: "flex-col flex-1 qr-result-text" }, [
+            window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: item.type || "QR Code" }),
+            window.FOSS.dom.el("span", { className: "font-mono text-xs text-muted qr-result-payload", text: itemData })
           ]),
-          window.FOSS.dom.el("div", { className: "row", style: { gap: "var(--space-2)" } }, actionBtns)
+          window.FOSS.dom.el("div", { className: "row gap-2" }, actionBtns)
         ]);
-
-        row.addEventListener("click", (function (it) {
-          return function () {
-            detailsContent.textContent = (it.type || "Code") + ": " + (it.data || it.payload || "");
-          };
-        })(item));
-
+        row.addEventListener("click", function () {
+          detailsContent.textContent = describe(item);
+        });
         resultsList.appendChild(row);
-      }
-      detailsContent.textContent = (sharedState.lastDecodedItems[0].type || "Code") + ": " + (sharedState.lastDecodedItems[0].data || sharedState.lastDecodedItems[0].payload || "");
+      });
+      detailsContent.textContent = describe(items[0]);
     }
 
     renderDecodedResults();
@@ -1365,18 +1169,28 @@ window.FOSS = window.FOSS || {};
     title: "QR Code Generator",
     navName: "QR & Barcodes",
     category: "Utilities",
-    icon: "grid",
+    icon: "qr",
     workbench: true,
+    defaults: [
+      {
+        key: "error_correction",
+        label: "Default error correction level",
+        type: "select",
+        default: "M",
+        options: [
+          { value: "L", label: "L - Low (~7% recovery)" },
+          { value: "M", label: "M - Standard (~15% recovery)" },
+          { value: "Q", label: "Q - Medium-High (~25% recovery)" },
+          { value: "H", label: "H - Highest (~30% recovery)" }
+        ]
+      },
+      { key: "export_resolution", label: "Default export resolution (px)", type: "number", default: 512, min: 64, max: 4096, step: 64 }
+    ],
     tabs: [
       { id: "qr", label: "QR Generator", aliases: ["main", "generate"], render: renderQRTab },
       { id: "barcode", label: "1D Barcodes", render: renderBarcodeTab },
       { id: "scan", label: "Scan & Decode", render: renderScanTab }
     ],
-    onHide: function () {
-      var panel = document.getElementById("view-root");
-      if (panel && panel._cleanup) {
-        panel._cleanup();
-      }
-    }
+    onHide: runCleanup
   });
 })();

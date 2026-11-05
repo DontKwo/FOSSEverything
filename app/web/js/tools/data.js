@@ -2,6 +2,21 @@
 window.FOSS = window.FOSS || {};
 
 (function () {
+  var TARGET_FORMATS = ["yaml", "json", "toml", "xml", "csv", "ini"];
+  var CONVERT_FORMATS = ["json", "yaml", "toml", "xml", "csv", "ini"];
+  var HDF5_EXTENSIONS = ["h5", "hdf5", "he5"];
+  var SAVE_TYPE_NAMES = {
+    json: "JSON Document (*.json)",
+    yaml: "YAML Document (*.yaml)",
+    toml: "TOML Document (*.toml)",
+    csv: "CSV Table (*.csv)",
+    sql: "SQL Script (*.sql)"
+  };
+
+  function toolDefault(key, fallback) {
+    return window.FOSS.toolDefaults.get("data", key, fallback);
+  }
+
   function copyTextToClipboard(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(function () {});
@@ -25,21 +40,37 @@ window.FOSS = window.FOSS || {};
     }
   }
 
-  // --- TAB 1: FORMAT, MINIFY & CONVERT ---------------------------------------
+  function normalizeExt(path) {
+    var dot = path.lastIndexOf(".");
+    var ext = dot >= 0 ? path.slice(dot + 1).toLowerCase() : "";
+    return ext === "yml" ? "yaml" : ext;
+  }
+
+  function buildSaveTypes(firstExt) {
+    var order = Object.keys(SAVE_TYPE_NAMES);
+    var first = order.indexOf(firstExt) >= 0 ? firstExt : "json";
+    var sorted = [first].concat(order.filter(function (ext) { return ext !== first; }));
+    return sorted.map(function (ext) {
+      return { name: SAVE_TYPE_NAMES[ext], extensions: [ext] };
+    });
+  }
+
+  function errorText(err) {
+    return err && err.message ? err.message : String(err);
+  }
+
   function renderEditorTab(panel) {
     panel.innerHTML = "";
-    panel.setAttribute("data-testid", "tool-page-data");
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted wb-status",
       "data-testid": "data-editor-status",
       text: "Ready"
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger",
-      "data-testid": "data-error-banner",
-      hidden: true
+      className: "banner danger hidden",
+      "data-testid": "data-error-banner"
     }, [
       window.FOSS.icons.el("alert", 18),
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
@@ -48,15 +79,16 @@ window.FOSS = window.FOSS || {};
     function showError(msg) {
       var span = errorBanner.querySelector(".banner-msg");
       if (span) span.textContent = msg;
-      errorBanner.removeAttribute("hidden");
+      errorBanner.classList.remove("hidden");
       statusBar.textContent = "Error: " + msg;
     }
 
     function clearError() {
-      errorBanner.setAttribute("hidden", "true");
+      errorBanner.classList.add("hidden");
     }
 
-    // Top Action Bar
+    var outputFormat = "";
+
     var langSelect = window.FOSS.dom.el("select", {
       className: "input input-sm",
       "aria-label": "Source Language Format",
@@ -77,14 +109,10 @@ window.FOSS = window.FOSS || {};
       className: "input input-sm",
       "aria-label": "Target Conversion Format",
       title: "Target Conversion Format"
-    }, [
-      window.FOSS.dom.el("option", { value: "yaml", text: "Convert to YAML" }),
-      window.FOSS.dom.el("option", { value: "json", text: "Convert to JSON" }),
-      window.FOSS.dom.el("option", { value: "toml", text: "Convert to TOML" }),
-      window.FOSS.dom.el("option", { value: "xml", text: "Convert to XML" }),
-      window.FOSS.dom.el("option", { value: "csv", text: "Convert to CSV" }),
-      window.FOSS.dom.el("option", { value: "ini", text: "Convert to INI" })
-    ]);
+    }, TARGET_FORMATS.map(function (fmt) {
+      return window.FOSS.dom.el("option", { value: fmt, text: "Convert to " + fmt.toUpperCase() });
+    }));
+    targetSelect.value = String(toolDefault("target_format", "yaml"));
 
     var indentSelect = window.FOSS.dom.el("select", {
       className: "input input-sm",
@@ -93,8 +121,32 @@ window.FOSS = window.FOSS || {};
     }, [
       window.FOSS.dom.el("option", { value: "2", text: "2 Spaces" }),
       window.FOSS.dom.el("option", { value: "4", text: "4 Spaces" }),
-      window.FOSS.dom.el("option", { value: "1", text: "Tab" })
+      window.FOSS.dom.el("option", { value: "8", text: "8 Spaces" })
     ]);
+    indentSelect.value = String(toolDefault("indent", "2"));
+
+    function indentValue() {
+      return parseInt(indentSelect.value, 10) || 2;
+    }
+
+    function runConvert(targetFormat) {
+      clearError();
+      var content = inputEditor.getValue();
+      if (!content.trim()) return;
+      statusBar.textContent = "Converting format...";
+      window.FOSS.api("data_convert_format", {
+        content: content,
+        source_format: langSelect.value,
+        target_format: targetFormat,
+        indent: indentValue()
+      }).then(function (res) {
+        outputEditor.setValue(res.result || "");
+        outputFormat = targetFormat;
+        statusBar.textContent = "Converted " + langSelect.value.toUpperCase() + " -> " + targetFormat.toUpperCase();
+      }).catch(function (err) {
+        showError(errorText(err));
+      });
+    }
 
     var formatBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
@@ -109,12 +161,13 @@ window.FOSS = window.FOSS || {};
         window.FOSS.api("data_format_code", {
           content: content,
           language: langSelect.value,
-          indent: parseInt(indentSelect.value, 10) || 2
+          indent: indentValue()
         }).then(function (res) {
           outputEditor.setValue(res.result || "");
+          outputFormat = langSelect.value;
           statusBar.textContent = "Formatted " + langSelect.value.toUpperCase() + " successfully.";
         }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
+          showError(errorText(err));
         });
       }
     }, [window.FOSS.icons.el("check-circle", 14), window.FOSS.dom.el("span", { text: "Format" })]);
@@ -134,9 +187,10 @@ window.FOSS = window.FOSS || {};
           language: langSelect.value
         }).then(function (res) {
           outputEditor.setValue(res.result || "");
+          outputFormat = langSelect.value;
           statusBar.textContent = "Minified " + langSelect.value.toUpperCase() + " successfully.";
         }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
+          showError(errorText(err));
         });
       }
     }, [window.FOSS.icons.el("minimize-2", 14), window.FOSS.dom.el("span", { text: "Minify" })]);
@@ -162,7 +216,7 @@ window.FOSS = window.FOSS || {};
             showError("Syntax error at line " + (res.line || "?") + ": " + res.message);
           }
         }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
+          showError(errorText(err));
         });
       }
     }, [window.FOSS.icons.el("search", 14), window.FOSS.dom.el("span", { text: "Validate" })]);
@@ -172,24 +226,16 @@ window.FOSS = window.FOSS || {};
       "data-testid": "data-convert-btn",
       "aria-label": "Convert Format",
       title: "Convert Format",
-      onClick: function () {
-        clearError();
-        var content = inputEditor.getValue();
-        if (!content.trim()) return;
-        statusBar.textContent = "Converting format...";
-        window.FOSS.api("data_convert_format", {
-          content: content,
-          source_format: langSelect.value,
-          target_format: targetSelect.value,
-          indent: parseInt(indentSelect.value, 10) || 2
-        }).then(function (res) {
-          outputEditor.setValue(res.result || "");
-          statusBar.textContent = "Converted " + langSelect.value.toUpperCase() + " -> " + targetSelect.value.toUpperCase();
-        }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
-        });
-      }
+      onClick: function () { runConvert(targetSelect.value); }
     }, [window.FOSS.icons.el("refresh", 14), window.FOSS.dom.el("span", { text: "Convert" })]);
+
+    var convertYamlBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "data-convert-yaml-btn",
+      "aria-label": "Convert to YAML",
+      title: "Convert to YAML",
+      onClick: function () { runConvert("yaml"); }
+    }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "To YAML" })]);
 
     var copyOutBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
@@ -205,28 +251,15 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy Output" })]);
 
-    var convertYamlBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "data-convert-yaml-btn",
-      "aria-label": "Convert to YAML",
-      title: "Convert to YAML",
-      onClick: function () {
-        clearError();
-        var content = inputEditor.getValue() || '{\n  "name": "FOSSEverything",\n  "tools": ["pdf", "image", "data"],\n  "active": true\n}';
-        statusBar.textContent = "Converting to YAML...";
-        window.FOSS.api("data_convert_format", {
-          content: content,
-          source_format: langSelect.value,
-          target_format: "yaml",
-          indent: parseInt(indentSelect.value, 10) || 2
-        }).then(function (res) {
-          outputEditor.setValue(res.result || "");
-          statusBar.textContent = "Converted " + langSelect.value.toUpperCase() + " -> YAML";
-        }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
-        });
-      }
-    }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "To YAML" })]);
+    function writeSaveFile(content, outPath) {
+      return window.FOSS.api("data_save_file", {
+        content: content,
+        output_path: outPath
+      }).then(function () {
+        statusBar.textContent = "Saved to " + outPath;
+        showToast("Saved output to " + outPath, "success");
+      });
+    }
 
     var saveBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
@@ -236,41 +269,43 @@ window.FOSS = window.FOSS || {};
       onClick: function () {
         clearError();
         var outText = outputEditor.getValue();
+        var textFormat = outputFormat || targetSelect.value;
         if (!outText) {
           outText = inputEditor.getValue();
+          textFormat = langSelect.value;
         }
-        var ext = targetSelect.value || langSelect.value || "yaml";
+        if (!outText) {
+          showError("Nothing to save. Enter or generate data first.");
+          return;
+        }
         window.FOSS.api("select_save_path", {
           title: "Save Data File",
-          default_name: "data." + ext,
-          filters: [{ name: ext.toUpperCase() + " File", extensions: [ext] }, { name: "All Files", extensions: ["*"] }]
+          default_name: "data",
+          file_types: buildSaveTypes(textFormat)
         }).then(function (res) {
           var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
-          if (!outPath) return;
-          var chosenExt = outPath.split(".").pop().toLowerCase();
-          var payloadToSave = outText;
-          if (!payloadToSave) {
-            payloadToSave = (chosenExt === "yaml" || chosenExt === "yml") ? "name: FOSSEverything\ntools:\n  - pdf\n  - image\n  - data\nactive: true\n" : '{\n  "name": "FOSSEverything"\n}';
-          }
-          window.FOSS.api("data_save_file", {
-            content: payloadToSave,
-            output_path: outPath
-          }).then(function () {
-            statusBar.textContent = "Saved to " + outPath;
-            showToast("Saved output to " + outPath, "success");
-          }).catch(function (err) {
-            showError((err && err.message) || String(err));
+          if (!outPath) return null;
+          var chosenExt = normalizeExt(outPath);
+          var needsConvert = chosenExt !== textFormat
+            && CONVERT_FORMATS.indexOf(chosenExt) >= 0
+            && CONVERT_FORMATS.indexOf(textFormat) >= 0;
+          if (!needsConvert) return writeSaveFile(outText, outPath);
+          statusBar.textContent = "Converting to " + chosenExt.toUpperCase() + " for saving...";
+          return window.FOSS.api("data_convert_format", {
+            content: outText,
+            source_format: textFormat,
+            target_format: chosenExt,
+            indent: indentValue()
+          }).then(function (conv) {
+            return writeSaveFile(conv.result || "", outPath);
           });
         }).catch(function (err) {
-          showError((err && err.message) || String(err));
+          showError(errorText(err));
         });
       }
     }, [window.FOSS.icons.el("download", 14), window.FOSS.dom.el("span", { text: "Save File" })]);
 
-    var topBar = window.FOSS.dom.el("div", {
-      className: "row items-center flex-wrap gap-2 p-2 rounded",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
-    }, [
+    var topBar = window.FOSS.dom.el("div", { className: "wb-toolbar" }, [
       langSelect,
       indentSelect,
       formatBtn,
@@ -283,14 +318,12 @@ window.FOSS = window.FOSS || {};
       copyOutBtn
     ]);
 
-    // Side-by-side Editors
     var inputEditor = window.FOSS.components.codeEditor({
       testid: "data-editor-input",
       title: "Input Source Code",
       placeholder: '{\n  "name": "FOSSEverything",\n  "tools": ["pdf", "image", "data"],\n  "active": true\n}',
       ariaLabel: "Input source data code",
-      fillHeight: true,
-      containerClass: "code-editor-fill"
+      fillHeight: true
     });
 
     var outputEditor = window.FOSS.components.codeEditor({
@@ -298,16 +331,12 @@ window.FOSS = window.FOSS || {};
       title: "Formatted / Converted Result",
       placeholder: "Result will appear here...",
       ariaLabel: "Output result code",
-      fillHeight: true,
-      containerClass: "code-editor-fill"
+      fillHeight: true
     });
 
-    var editorGrid = window.FOSS.dom.el("div", {
-      className: "row gap-3 items-stretch code-editor-fill",
-      style: { flex: "1 1 0%", minHeight: "24rem", width: "100%" }
-    }, [
-      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [inputEditor.el]),
-      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [outputEditor.el])
+    var editorGrid = window.FOSS.dom.el("div", { className: "wb-editor-grid" }, [
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [inputEditor]),
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [outputEditor])
     ]);
 
     panel.appendChild(statusBar);
@@ -316,39 +345,609 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(editorGrid);
   }
 
-  // --- TAB 2: STRUCTURE & HDF5 INSPECTOR ---------------------------------------
+  function isHdf5Path(path) {
+    var dot = path.lastIndexOf(".");
+    return dot >= 0 && HDF5_EXTENSIONS.indexOf(path.slice(dot + 1).toLowerCase()) >= 0;
+  }
+
+  function formatBytes(count) {
+    if (count < 1024) return count + " B";
+    var units = ["KB", "MB", "GB", "TB"];
+    var value = count / 1024;
+    var idx = 0;
+    while (value >= 1024 && idx < units.length - 1) {
+      value /= 1024;
+      idx += 1;
+    }
+    return value.toFixed(value < 10 ? 2 : 1) + " " + units[idx];
+  }
+
+  function cellText(value) {
+    if (value === null || value === undefined) return "";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  }
+
+  function keyValueTable(rows) {
+    var body = window.FOSS.dom.el("tbody");
+    rows.forEach(function (row) {
+      if (row[1] === null || row[1] === undefined || row[1] === "") return;
+      body.appendChild(window.FOSS.dom.el("tr", {}, [
+        window.FOSS.dom.el("th", { className: "wb-kv-key", text: row[0] }),
+        window.FOSS.dom.el("td", { className: "font-mono", text: cellText(row[1]) })
+      ]));
+    });
+    return window.FOSS.dom.el("table", { className: "table wb-table" }, [body]);
+  }
+
+  function gridTable(columns, rows, rowOffset) {
+    var head = window.FOSS.dom.el("tr");
+    if (rowOffset !== undefined) head.appendChild(window.FOSS.dom.el("th", { text: "#" }));
+    columns.forEach(function (name) {
+      head.appendChild(window.FOSS.dom.el("th", { text: String(name) }));
+    });
+    var body = window.FOSS.dom.el("tbody");
+    rows.forEach(function (row, rowIdx) {
+      var tr = window.FOSS.dom.el("tr");
+      if (rowOffset !== undefined) {
+        tr.appendChild(window.FOSS.dom.el("td", { className: "text-muted font-mono", text: String(rowOffset + rowIdx) }));
+      }
+      row.forEach(function (cell) {
+        tr.appendChild(window.FOSS.dom.el("td", { className: "font-mono", text: cellText(cell) }));
+      });
+      body.appendChild(tr);
+    });
+    return window.FOSS.dom.el("table", { className: "table wb-table" }, [
+      window.FOSS.dom.el("thead", {}, [head]),
+      body
+    ]);
+  }
+
+  function framedScroll(inner) {
+    return window.FOSS.dom.el("div", { className: "wb-frame" }, [
+      window.FOSS.dom.el("div", { className: "wb-scroll-host" }, [inner])
+    ]);
+  }
+
+  function sectionTitle(text) {
+    return window.FOSS.dom.el("div", { className: "text-xs font-semibold uppercase text-muted", text: text });
+  }
+
+  function createHdf5Explorer(setStatus) {
+    var filePath = "";
+    var searchTimer = null;
+    var selectedRow = null;
+
+    var searchInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input input-sm wb-flow",
+      "data-testid": "data-hdf5-search",
+      placeholder: "Filter members by path...",
+      "aria-label": "Filter HDF5 members by path"
+    });
+
+    var summaryEl = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted wb-field-full",
+      "data-testid": "data-hdf5-summary",
+      text: "No HDF5 file open."
+    });
+
+    var treeRoot = window.FOSS.dom.el("div", {
+      className: "data-tree-root wb-tree",
+      "data-testid": "data-hdf5-tree"
+    });
+
+    var resultsRoot = window.FOSS.dom.el("div", {
+      className: "data-tree-root wb-tree",
+      "data-testid": "data-hdf5-results"
+    });
+
+    var treeFrame = framedScroll(treeRoot);
+    var resultsFrame = framedScroll(resultsRoot);
+    resultsFrame.classList.add("hidden");
+
+    var detailsHost = window.FOSS.dom.el("div", {
+      className: "wb-box-grow flex-col gap-2",
+      "data-testid": "data-hdf5-details"
+    }, [window.FOSS.dom.el("div", { className: "text-sm text-muted text-center", text: "Select a group or dataset to see its details." })]);
+
+    var grid = window.FOSS.dom.el("div", { className: "wb-editor-grid" }, [
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [treeFrame, resultsFrame]),
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [detailsHost])
+    ]);
+
+    var card = window.FOSS.dom.el("div", {
+      className: "card flex-col gap-3 wb-card-fill hidden",
+      "data-testid": "data-hdf5-explorer"
+    }, [
+      window.FOSS.dom.el("div", { className: "row items-center flex-wrap gap-2 wb-field-full" }, [searchInput]),
+      summaryEl,
+      grid
+    ]);
+
+    function describeNode(node) {
+      if (node.broken) return " -> " + (node.link.target || "?") + " (broken)";
+      var parts = [];
+      if (node.kind === "dataset") parts.push(JSON.stringify(node.shape) + " " + node.dtype);
+      if (node.kind === "group") parts.push("(" + node.members + ")");
+      if (node.link && node.link.type !== "hard" && node.link.type !== "root") {
+        parts.push("-> " + (node.link.filename ? node.link.filename + ":" : "") + (node.link.target || ""));
+      }
+      return parts.length ? ": " + parts.join(" ") : "";
+    }
+
+    function badgeFor(node) {
+      var cls = node.broken ? "null" : (node.kind === "dataset" ? "dataset" : (node.kind === "group" ? "group" : "attribute"));
+      var label = node.kind === "link" ? "link" : node.kind;
+      if (node.link && node.link.type && node.link.type !== "hard" && node.link.type !== "root" && !node.broken) {
+        label = node.link.type;
+      }
+      return window.FOSS.dom.el("span", { className: "data-tree-badge data-tree-badge-" + cls, text: label });
+    }
+
+    function selectRow(row, path) {
+      if (selectedRow) selectedRow.classList.remove("selected");
+      selectedRow = row;
+      if (row) row.classList.add("selected");
+      showDetails(path);
+    }
+
+    function appendPage(container, parentPath, page) {
+      page.children.forEach(function (child) {
+        container.appendChild(makeNode(child));
+      });
+      if (page.has_more) {
+        var remaining = page.total - page.offset - page.children.length;
+        var moreBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          "data-testid": "data-hdf5-load-more",
+          text: "Load more (" + remaining + " remaining)",
+          onClick: function () {
+            moreBtn.remove();
+            loadChildren(container, parentPath, page.offset + page.children.length);
+          }
+        });
+        container.appendChild(moreBtn);
+      }
+    }
+
+    function loadChildren(container, parentPath, offset) {
+      window.FOSS.api("data_hdf5_children", { file_path: filePath, path: parentPath, offset: offset, limit: 200 }).then(function (page) {
+        if (page && page.ok === false) {
+          setStatus("Error: " + page.error);
+          return;
+        }
+        appendPage(container, parentPath, page);
+      }).catch(function (err) {
+        setStatus("Error: " + errorText(err));
+      });
+    }
+
+    function makeNode(node, firstPage) {
+      var item = window.FOSS.dom.el("div", { className: "data-tree-item" });
+      var childrenBox = null;
+      var loaded = false;
+      var toggle = window.FOSS.dom.el("span", {
+        className: "data-tree-toggle",
+        "data-decorative": "true",
+        text: node.expandable ? "\u25b6" : " "
+      });
+      var row = window.FOSS.dom.el("div", {
+        className: "data-tree-row",
+        title: node.path,
+        onClick: function (e) {
+          e.stopPropagation();
+          selectRow(row, node.path);
+          if (!node.expandable) return;
+          if (!childrenBox) {
+            childrenBox = window.FOSS.dom.el("div", { className: "data-tree-children" });
+            item.appendChild(childrenBox);
+          }
+          if (!loaded) {
+            loaded = true;
+            loadChildren(childrenBox, node.path, 0);
+            toggle.textContent = "\u25bc";
+            return;
+          }
+          var collapsed = childrenBox.classList.toggle("collapsed");
+          toggle.textContent = collapsed ? "\u25b6" : "\u25bc";
+        }
+      }, [
+        toggle,
+        badgeFor(node),
+        window.FOSS.dom.el("span", { className: "data-tree-key", text: node.name }),
+        window.FOSS.dom.el("span", { className: "data-tree-val", text: describeNode(node) })
+      ]);
+      item.appendChild(row);
+      if (firstPage) {
+        childrenBox = window.FOSS.dom.el("div", { className: "data-tree-children" });
+        item.appendChild(childrenBox);
+        appendPage(childrenBox, node.path, firstPage);
+        loaded = true;
+        toggle.textContent = "\u25bc";
+      }
+      return item;
+    }
+
+    function renderSearch(res) {
+      resultsRoot.innerHTML = "";
+      var matches = res.matches || [];
+      if (!matches.length) {
+        resultsRoot.appendChild(window.FOSS.dom.el("div", { className: "text-sm text-muted p-4 text-center", text: "No members match this filter." }));
+        return;
+      }
+      matches.forEach(function (node) {
+        var row = window.FOSS.dom.el("div", {
+          className: "data-tree-row",
+          title: node.path,
+          onClick: function () { selectRow(row, node.path); }
+        }, [
+          badgeFor(node),
+          window.FOSS.dom.el("span", { className: "data-tree-key", text: node.path }),
+          window.FOSS.dom.el("span", { className: "data-tree-val", text: describeNode(node) })
+        ]);
+        resultsRoot.appendChild(row);
+      });
+      if (res.truncated) {
+        resultsRoot.appendChild(window.FOSS.dom.el("div", { className: "text-xs text-muted p-2", text: "Result list truncated. Refine the filter." }));
+      }
+    }
+
+    searchInput.addEventListener("input", function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        var query = searchInput.value.trim();
+        if (!filePath || !query) {
+          resultsFrame.classList.add("hidden");
+          treeFrame.classList.remove("hidden");
+          return;
+        }
+        window.FOSS.api("data_hdf5_search", { file_path: filePath, query: query, limit: 200 }).then(function (res) {
+          if (res && res.ok === false) {
+            setStatus("Error: " + res.error);
+            return;
+          }
+          treeFrame.classList.add("hidden");
+          resultsFrame.classList.remove("hidden");
+          renderSearch(res);
+          setStatus("[OK] " + (res.matches || []).length + " member(s) match '" + query + "'");
+        }).catch(function (err) {
+          setStatus("Error: " + errorText(err));
+        });
+      }, 250);
+    });
+
+    function renderDetails(node) {
+      detailsHost.innerHTML = "";
+      detailsHost.appendChild(window.FOSS.dom.el("div", {
+        className: "font-mono text-sm font-bold",
+        "data-testid": "data-hdf5-node-path",
+        text: node.path
+      }));
+      var link = node.link || {};
+      var rows = [["Kind", node.kind]];
+      if (link.type && link.type !== "root") {
+        rows.push(["Link", link.type + (link.filename ? " (" + link.filename + ")" : "") + (link.target ? " -> " + link.target : "")]);
+      }
+      if (node.error) rows.push(["Error", node.error]);
+      if (node.kind === "group") rows.push(["Members", node.members]);
+      if (node.kind === "dataset") {
+        var dtype = node.dtype || {};
+        rows.push(["Shape", JSON.stringify(node.shape)]);
+        rows.push(["Max shape", JSON.stringify(node.maxshape)]);
+        rows.push(["Data type", dtype.label]);
+        rows.push(["Byte order", dtype.byte_order]);
+        rows.push(["Elements", node.elements]);
+        rows.push(["Logical size", formatBytes(node.nbytes)]);
+        rows.push(["Stored size", formatBytes(node.storage_bytes)]);
+        if (node.nbytes > 0 && node.storage_bytes > 0) rows.push(["Storage ratio", (node.nbytes / node.storage_bytes).toFixed(2) + " : 1"]);
+        rows.push(["Layout", node.layout]);
+        rows.push(["Chunks", node.chunks ? JSON.stringify(node.chunks) : ""]);
+        rows.push(["Compression", node.compression ? node.compression + (node.compression_opts !== null ? " (level " + cellText(node.compression_opts) + ")" : "") : ""]);
+        rows.push(["Shuffle", node.shuffle ? "yes" : ""]);
+        rows.push(["Fletcher32", node.fletcher32 ? "yes" : ""]);
+        rows.push(["Scale-offset", node.scaleoffset !== null && node.scaleoffset !== undefined ? node.scaleoffset : ""]);
+        rows.push(["Filters", (node.filters || []).map(function (f) { return f.name || ("id " + f.id); }).join(", ")]);
+        rows.push(["Fill value", node.fillvalue]);
+        rows.push(["External files", (node.external || []).map(function (e) { return e.file; }).join(", ")]);
+        if (dtype.enum) {
+          rows.push(["Enum members", Object.keys(dtype.enum).map(function (k) { return k + "=" + dtype.enum[k]; }).join(", ")]);
+        }
+      }
+      if (node.kind === "datatype" && node.dtype) rows.push(["Data type", node.dtype.label]);
+      detailsHost.appendChild(keyValueTable(rows));
+
+      if (node.fields && node.fields.length) {
+        detailsHost.appendChild(sectionTitle("Compound fields"));
+        detailsHost.appendChild(gridTable(["Field", "Type", "Offset"], node.fields.map(function (f) {
+          return [f.name, f.dtype, f.offset];
+        })));
+      }
+
+      var attrs = node.attributes || [];
+      detailsHost.appendChild(sectionTitle("Attributes (" + attrs.length + ")"));
+      if (attrs.length) {
+        detailsHost.appendChild(gridTable(["Name", "Type", "Shape", "Value"], attrs.map(function (a) {
+          var shown = a.error ? "Error: " + a.error : cellText(a.value);
+          if (a.truncated) shown += " ... (" + a.total_elements + " elements)";
+          return [a.name, a.dtype || "", JSON.stringify(a.shape || []), shown];
+        })));
+      } else {
+        detailsHost.appendChild(window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "No attributes." }));
+      }
+
+      if (node.kind === "dataset") detailsHost.appendChild(buildPreview(node));
+    }
+
+    function showDetails(path) {
+      window.FOSS.api("data_hdf5_node", { file_path: filePath, path: path }).then(function (node) {
+        if (node && node.ok === false) {
+          setStatus("Error: " + node.error);
+          return;
+        }
+        renderDetails(node);
+        setStatus("Selected " + path);
+      }).catch(function (err) {
+        setStatus("Error: " + errorText(err));
+      });
+    }
+
+    function numberInput(testid, label, value) {
+      return window.FOSS.dom.el("input", {
+        type: "number",
+        className: "input input-sm wb-num-sm",
+        "data-testid": testid,
+        "aria-label": label,
+        title: label,
+        min: "0",
+        value: String(value)
+      });
+    }
+
+    function buildPreview(node) {
+      var ndim = node.ndim || 0;
+      var hasFields = !!(node.fields && node.fields.length);
+      var showCols = ndim >= 2 || hasFields;
+      var rowStart = numberInput("data-hdf5-row-start", "First row", 0);
+      var rowCount = numberInput("data-hdf5-row-count", "Row count", 20);
+      var colStart = numberInput("data-hdf5-col-start", "First column", 0);
+      var colCount = numberInput("data-hdf5-col-count", "Column count", 12);
+      var leadingInputs = [];
+      for (var axis = 0; axis < ndim - 2; axis++) {
+        leadingInputs.push(numberInput("data-hdf5-index-" + axis, "Index for dimension " + axis, 0));
+      }
+      var tableHost = window.FOSS.dom.el("div", { className: "wb-preview-scroll", "data-testid": "data-hdf5-preview-table" });
+      var statsEl = window.FOSS.dom.el("div", { className: "text-xs font-mono wb-field-full", "data-testid": "data-hdf5-stats" });
+      var infoEl = window.FOSS.dom.el("div", { className: "text-xs text-muted", "data-testid": "data-hdf5-preview-info" });
+      var last = null;
+
+      function renderStats(stats) {
+        if (!stats) return;
+        var text = "min " + cellText(stats.min) + " | max " + cellText(stats.max) + " | mean " + cellText(stats.mean) + " | std " + cellText(stats.std);
+        text += " | " + stats.count + " values" + (stats.nan_count ? ", " + stats.nan_count + " NaN or inf" : "");
+        text += " (" + (stats.scope === "dataset" ? "whole dataset" : "shown window") + ")";
+        statsEl.textContent = text;
+      }
+
+      function load(includeStats) {
+        var body = {
+          file_path: filePath,
+          path: node.path,
+          row_start: parseInt(rowStart.value, 10) || 0,
+          row_count: parseInt(rowCount.value, 10) || 20,
+          col_start: parseInt(colStart.value, 10) || 0,
+          col_count: parseInt(colCount.value, 10) || 12,
+          index: leadingInputs.map(function (inp) { return parseInt(inp.value, 10) || 0; }),
+          include_stats: includeStats
+        };
+        window.FOSS.api("data_hdf5_preview", body).then(function (res) {
+          if (res && res.ok === false) {
+            infoEl.textContent = "Error: " + res.error;
+            return;
+          }
+          last = res;
+          rowStart.value = String(res.row_start);
+          colStart.value = String(res.col_start);
+          rowCount.value = String(Math.max(res.row_count, 1));
+          colCount.value = String(Math.max(res.col_count, 1));
+          (res.leading_index || []).forEach(function (val, idx) { leadingInputs[idx].value = String(val); });
+          tableHost.innerHTML = "";
+          if (res.empty) {
+            infoEl.textContent = "Dataset is empty.";
+            return;
+          }
+          tableHost.appendChild(gridTable(res.columns, res.rows, ndim >= 1 ? res.row_start : undefined));
+          infoEl.textContent = "Rows " + res.row_start + " to " + (res.row_start + res.row_count - 1) + " of " + res.total_rows
+            + (showCols ? ", columns " + res.col_start + " to " + (res.col_start + res.col_count - 1) + " of " + res.total_cols : "");
+          if (includeStats) {
+            statsEl.textContent = "";
+            renderStats(res.stats);
+          }
+        }).catch(function (err) {
+          infoEl.textContent = "Error: " + errorText(err);
+        });
+      }
+
+      function page(axisName, direction) {
+        if (!last) return;
+        if (axisName === "rows") {
+          rowStart.value = String(Math.max(0, last.row_start + direction * Math.max(last.row_count, 1)));
+        } else {
+          colStart.value = String(Math.max(0, last.col_start + direction * Math.max(last.col_count, 1)));
+        }
+        load(false);
+      }
+
+      function pageButton(testid, text, axisName, direction) {
+        return window.FOSS.dom.el("button", {
+          className: "btn btn-secondary btn-sm",
+          "data-testid": testid,
+          "aria-label": text,
+          title: text,
+          onClick: function () { page(axisName, direction); }
+        }, [window.FOSS.dom.el("span", { text: text })]);
+      }
+
+      var exportBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-primary btn-sm",
+        "data-testid": "data-hdf5-export",
+        "aria-label": "Export shown slice",
+        title: "Export the shown slice to CSV or JSON",
+        onClick: function () {
+          if (!last || last.empty) return;
+          var spec = last.slice_spec;
+          window.FOSS.api("select_save_path", {
+            title: "Export HDF5 Slice",
+            default_name: node.path.split("/").pop() || "slice",
+            file_types: [
+              { name: "CSV Table (*.csv)", extensions: ["csv"] },
+              { name: "JSON Document (*.json)", extensions: ["json"] }
+            ]
+          }).then(function (res) {
+            var outPath = res && res.paths && res.paths.length > 0 ? res.paths[0] : "";
+            if (!outPath) return null;
+            var fmt = outPath.toLowerCase().endsWith(".json") ? "json" : "csv";
+            return window.FOSS.api("data_hdf5_export_slice", {
+              file_path: filePath,
+              dataset_path: node.path,
+              slice_spec: spec,
+              output_path: outPath,
+              format: fmt
+            }).then(function (out) {
+              if (out && out.ok === false) {
+                setStatus("Error: " + out.error);
+                return;
+              }
+              setStatus("Saved slice to " + outPath);
+              showToast("Saved slice to " + outPath, "success");
+            });
+          }).catch(function (err) {
+            setStatus("Error: " + errorText(err));
+          });
+        }
+      }, [window.FOSS.icons.el("download", 14), window.FOSS.dom.el("span", { text: "Export Slice" })]);
+
+      var loadBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-secondary btn-sm",
+        "data-testid": "data-hdf5-preview-load",
+        "aria-label": "Load preview window",
+        title: "Load preview window",
+        onClick: function () { load(true); }
+      }, [window.FOSS.icons.el("refresh", 14), window.FOSS.dom.el("span", { text: "Load" })]);
+
+      var controls = window.FOSS.dom.el("div", { className: "row items-center flex-wrap gap-2" });
+      controls.appendChild(window.FOSS.dom.el("span", { className: "text-xs", text: "Row" }));
+      controls.appendChild(rowStart);
+      controls.appendChild(window.FOSS.dom.el("span", { className: "text-xs", text: "Rows" }));
+      controls.appendChild(rowCount);
+      if (showCols) {
+        controls.appendChild(window.FOSS.dom.el("span", { className: "text-xs", text: "Col" }));
+        controls.appendChild(colStart);
+        controls.appendChild(window.FOSS.dom.el("span", { className: "text-xs", text: "Cols" }));
+        controls.appendChild(colCount);
+      }
+      leadingInputs.forEach(function (inp, idx) {
+        controls.appendChild(window.FOSS.dom.el("span", { className: "text-xs", text: "Dim " + idx }));
+        controls.appendChild(inp);
+      });
+      controls.appendChild(loadBtn);
+      controls.appendChild(pageButton("data-hdf5-rows-prev", "Prev Rows", "rows", -1));
+      controls.appendChild(pageButton("data-hdf5-rows-next", "Next Rows", "rows", 1));
+      if (showCols) {
+        controls.appendChild(pageButton("data-hdf5-cols-prev", "Prev Cols", "cols", -1));
+        controls.appendChild(pageButton("data-hdf5-cols-next", "Next Cols", "cols", 1));
+      }
+      controls.appendChild(exportBtn);
+
+      var wrap = window.FOSS.dom.el("div", { className: "flex-col gap-2 wb-field-full", "data-testid": "data-hdf5-preview" }, [
+        sectionTitle("Data preview"),
+        controls,
+        infoEl,
+        statsEl,
+        tableHost
+      ]);
+      load(true);
+      return wrap;
+    }
+
+    function open(path) {
+      filePath = path;
+      selectedRow = null;
+      searchInput.value = "";
+      resultsFrame.classList.add("hidden");
+      treeFrame.classList.remove("hidden");
+      treeRoot.innerHTML = "";
+      detailsHost.innerHTML = "";
+      summaryEl.textContent = "Opening HDF5 file...";
+      return window.FOSS.api("data_hdf5_open", { file_path: path }).then(function (res) {
+        if (res && res.ok === false) {
+          summaryEl.textContent = "Error: " + res.error;
+          setStatus("Error: " + res.error);
+          return;
+        }
+        var rootNode = {
+          name: "/",
+          path: "/",
+          kind: "group",
+          members: res.root.total,
+          expandable: res.root.total > 0,
+          link: { type: "root" },
+          broken: false
+        };
+        treeRoot.appendChild(makeNode(rootNode, res.root));
+        summaryEl.textContent = formatBytes(res.file_size) + " | " + res.root.total + " root member(s) | " + res.attributes.length + " file attribute(s)";
+        setStatus("[OK] Opened HDF5 file with h5py " + res.h5py_version);
+        showDetails("/");
+      }).catch(function (err) {
+        summaryEl.textContent = "Error: " + errorText(err);
+        setStatus("Error: " + errorText(err));
+      });
+    }
+
+    return { el: card, open: open };
+  }
+
   function renderStructureTab(panel) {
     panel.innerHTML = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted wb-status",
       "data-testid": "data-structure-status",
       text: "Ready"
     });
 
     var sidebarCol = window.FOSS.dom.el("div", { className: "data-sidebar-pane" });
+    var filterQuery = "";
+    var currentStructure = null;
 
-    // File / Text Picker Card
     var inputCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
     var inputTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Structure Source" });
 
     var filePicker = window.FOSS.components.filePicker({
       testid: "data-structure-file-picker",
       title: "Open Data or HDF5 File",
-      fileTypes: ["json", "yaml", "yml", "toml", "csv", "xml", "h5", "hdf5"],
+      fileTypes: ["json", "yaml", "yml", "toml", "csv", "xml", "h5", "hdf5", "he5"],
       onSelect: function (val) {
         if (!val) return;
+        if (isHdf5Path(val)) {
+          showGenericTree(false);
+          statusBar.textContent = "Opening HDF5 file...";
+          hdf5Explorer.open(val);
+          return;
+        }
+        showGenericTree(true);
         statusBar.textContent = "Inspecting structure...";
         window.FOSS.api("data_inspect_structure", { file_path: val }).then(function (res) {
           currentStructure = res;
           renderTree(res.root, filterQuery);
           statusBar.textContent = "[OK] Inspected " + res.format + " (" + (res.stats ? res.stats.total_nodes : 0) + " nodes)";
         }).catch(function (err) {
-          statusBar.textContent = "Error: " + (err && err.message ? err.message : String(err));
+          statusBar.textContent = "Error: " + errorText(err);
         });
       }
     });
 
+    var toggleLabel = window.FOSS.dom.el("span", { text: "Paste Text..." });
     var toggleTextBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "data-structure-toggle-text-btn",
@@ -356,14 +955,11 @@ window.FOSS = window.FOSS || {};
       title: "Paste Raw Text",
       onClick: function () {
         var isHidden = textEditorDrawer.classList.toggle("hidden");
-        toggleTextBtn.textContent = isHidden ? "Paste Text..." : "Hide Text Box";
+        toggleLabel.textContent = isHidden ? "Paste Text..." : "Hide Text Box";
       }
-    }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "Paste Text..." })]);
+    }, [window.FOSS.icons.el("file-text", 14), toggleLabel]);
 
-    var textEditorDrawer = window.FOSS.dom.el("div", {
-      className: "flex-col gap-2 hidden code-editor-fill",
-      style: { width: "100%" }
-    });
+    var textEditorDrawer = window.FOSS.dom.el("div", { className: "flex-col gap-2 hidden" });
 
     var codeEditor = window.FOSS.components.codeEditor({
       testid: "data-structure-text-input",
@@ -381,13 +977,14 @@ window.FOSS = window.FOSS || {};
       onClick: function () {
         var content = codeEditor.getValue();
         if (!content.trim()) return;
+        showGenericTree(true);
         statusBar.textContent = "Analyzing structure...";
         window.FOSS.api("data_inspect_structure", { content: content }).then(function (res) {
           currentStructure = res;
           renderTree(res.root, filterQuery);
           statusBar.textContent = "[OK] Inspected " + res.format + " payload (" + (res.stats ? res.stats.total_nodes : 0) + " nodes)";
         }).catch(function (err) {
-          statusBar.textContent = "Error: " + (err && err.message ? err.message : String(err));
+          statusBar.textContent = "Error: " + errorText(err);
         });
       }
     }, [window.FOSS.icons.el("search", 14), window.FOSS.dom.el("span", { text: "Inspect Payload" })]);
@@ -400,31 +997,22 @@ window.FOSS = window.FOSS || {};
     inputCard.appendChild(toggleTextBtn);
     inputCard.appendChild(textEditorDrawer);
 
-    // Node Details Card
+    var detailsBox = window.FOSS.dom.el("div", {
+      className: "wb-box wb-details text-xs font-mono",
+      id: "data-node-details-content",
+      text: "Click any node in the tree to view properties."
+    });
     var detailsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-2" }, [
       window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Selected Node Details" }),
-      window.FOSS.dom.el("div", {
-        className: "text-xs font-mono p-2 rounded",
-        style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", minHeight: "80px", wordBreak: "break-all" },
-        id: "data-node-details-content",
-        text: "Click any node in the tree to view properties."
-      })
+      detailsBox
     ]);
 
     sidebarCol.appendChild(inputCard);
     sidebarCol.appendChild(detailsCard);
 
-    // Right Column: Search & Tree Root
     var stageCol = window.FOSS.dom.el("div", { className: "data-stage-pane" });
-
-    var treeCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    var treeHeader = window.FOSS.dom.el("div", {
-      className: "row items-center justify-between flex-wrap gap-2",
-      style: { width: "100%" }
-    });
-
-    var filterQuery = "";
-    var currentStructure = null;
+    var treeCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3 wb-card-fill" });
+    var treeHeader = window.FOSS.dom.el("div", { className: "row items-center flex-wrap gap-2 wb-field-full" });
 
     var filterInput = window.FOSS.dom.el("input", {
       type: "text",
@@ -468,21 +1056,26 @@ window.FOSS = window.FOSS || {};
     treeHeader.appendChild(collapseAllBtn);
 
     var treeRoot = window.FOSS.dom.el("div", {
-      className: "data-tree-root scroll-y p-2 rounded",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", minHeight: "300px", maxHeight: "600px", width: "100%" },
+      className: "data-tree-root wb-tree",
       "data-testid": "data-structure-tree"
     });
 
     treeCard.appendChild(treeHeader);
-    treeCard.appendChild(treeRoot);
+    treeCard.appendChild(framedScroll(treeRoot));
     stageCol.appendChild(treeCard);
 
-    var workbench = window.FOSS.dom.el("div", {
-      className: "data-workbench",
-      style: { width: "100%", height: "100%" }
-    }, [
+    var hdf5Explorer = createHdf5Explorer(function (msg) { statusBar.textContent = msg; });
+    stageCol.appendChild(hdf5Explorer.el);
+
+    function showGenericTree(generic) {
+      detailsCard.classList.toggle("hidden", !generic);
+      treeCard.classList.toggle("hidden", !generic);
+      hdf5Explorer.el.classList.toggle("hidden", generic);
+    }
+
+    var workbench = window.FOSS.dom.el("div", { className: "split resizable data-workbench" }, [
       sidebarCol,
-      window.FOSS.dom.el("div", { className: "split-divider", "data-decorative": "true" }),
+      window.FOSS.components.splitDivider({ side: "left" }),
       stageCol
     ]);
 
@@ -492,7 +1085,10 @@ window.FOSS = window.FOSS || {};
     function renderTree(rootNode, filter) {
       treeRoot.innerHTML = "";
       if (!rootNode) {
-        treeRoot.innerHTML = '<div class="text-sm text-muted p-4 text-center">No structure to display. Open a file or paste data.</div>';
+        treeRoot.appendChild(window.FOSS.dom.el("div", {
+          className: "text-sm text-muted p-4 text-center",
+          text: "No structure to display. Open a file or paste data."
+        }));
         return;
       }
       var el = createTreeNode(rootNode, 0, filter);
@@ -550,8 +1146,6 @@ window.FOSS = window.FOSS || {};
     }
 
     function showNodeDetails(node) {
-      var detailsEl = document.getElementById("data-node-details-content");
-      if (!detailsEl) return;
       var lines = [
         "Name: " + (node.name || ""),
         "Type: " + (node.type || ""),
@@ -560,18 +1154,17 @@ window.FOSS = window.FOSS || {};
       if (node.shape) lines.push("Shape: " + JSON.stringify(node.shape));
       if (node.dtype) lines.push("Dtype: " + node.dtype);
       if (node.size_bytes !== undefined) lines.push("Size: " + node.size_bytes + " bytes");
-      detailsEl.textContent = lines.join("\n");
+      detailsBox.textContent = lines.join("\n");
     }
 
     renderTree(null, "");
   }
 
-  // --- TAB 3: TABLES (CSV / TSV / MARKDOWN) ----------------------------------
   function renderTablesTab(panel) {
     panel.innerHTML = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted wb-status",
       "data-testid": "data-tables-status",
       text: "Ready"
     });
@@ -658,15 +1251,9 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("file", 14), window.FOSS.dom.el("span", { text: "Markdown -> CSV" })]);
 
-    var toolbar = window.FOSS.dom.el("div", {
-      className: "row items-center flex-wrap gap-2 p-2 rounded",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
-    }, [cleanBtn, transposeBtn, dedupBtn, csvToMdBtn, mdToCsvBtn]);
+    var toolbar = window.FOSS.dom.el("div", { className: "wb-toolbar" }, [cleanBtn, transposeBtn, dedupBtn, csvToMdBtn, mdToCsvBtn]);
 
-    var previewHost = window.FOSS.dom.el("div", {
-      className: "p-3 rounded scroll-y",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", minHeight: "200px", width: "100%" }
-    }, [
+    var previewHost = window.FOSS.dom.el("div", { className: "wb-box-grow" }, [
       window.FOSS.dom.el("div", { className: "text-muted text-sm text-center", text: "Interactive table preview appears here." })
     ]);
 
@@ -679,7 +1266,7 @@ window.FOSS = window.FOSS || {};
         var headers = Object.keys(rows[0] || {});
         if (!headers.length) return;
         previewHost.innerHTML = "";
-        var tbl = window.FOSS.dom.el("table", { className: "table", style: { width: "100%" } });
+        var tbl = window.FOSS.dom.el("table", { className: "table w-full" });
         var thead = window.FOSS.dom.el("thead");
         var hRow = window.FOSS.dom.el("tr");
         headers.forEach(function (h) {
@@ -702,12 +1289,9 @@ window.FOSS = window.FOSS || {};
       });
     }
 
-    var grid = window.FOSS.dom.el("div", {
-      className: "row gap-3 items-stretch code-editor-fill",
-      style: { flex: "1 1 0%", minHeight: "24rem", width: "100%" }
-    }, [
-      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [tableEditor.el]),
-      window.FOSS.dom.el("div", { className: "flex-col flex-1", style: { minWidth: "0" } }, [previewHost])
+    var grid = window.FOSS.dom.el("div", { className: "wb-editor-grid" }, [
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [tableEditor]),
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [previewHost])
     ]);
 
     panel.appendChild(statusBar);
@@ -715,19 +1299,18 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(grid);
   }
 
-  // --- TAB 4: JSONPATH & SCHEMA -----------------------------------------------
   function renderQueryTab(panel) {
     panel.innerHTML = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted wb-status",
       "data-testid": "data-query-status",
       text: "Ready"
     });
 
     var pathInput = window.FOSS.dom.el("input", {
       type: "text",
-      className: "input input-sm flex-1",
+      className: "input input-sm wb-flow",
       value: "$.store.book[*].author",
       placeholder: "e.g. $.store.book[*].author or $..price",
       "aria-label": "JSONPath Query Expression"
@@ -749,7 +1332,7 @@ window.FOSS = window.FOSS || {};
           resultEditor.setValue(JSON.stringify(res.matches || [], null, 2));
           statusBar.textContent = "Matched " + (res.matches ? res.matches.length : 0) + " elements.";
         }).catch(function (err) {
-          statusBar.textContent = "Query error: " + (err && err.message ? err.message : String(err));
+          statusBar.textContent = "Query error: " + errorText(err);
         });
       }
     }, [window.FOSS.icons.el("search", 14), window.FOSS.dom.el("span", { text: "Query JSONPath" })]);
@@ -767,15 +1350,12 @@ window.FOSS = window.FOSS || {};
           resultEditor.setValue(JSON.stringify(res.schema || {}, null, 2));
           statusBar.textContent = "Inferred JSON Schema successfully.";
         }).catch(function (err) {
-          statusBar.textContent = "Schema error: " + (err && err.message ? err.message : String(err));
+          statusBar.textContent = "Schema error: " + errorText(err);
         });
       }
     }, [window.FOSS.icons.el("file-text", 14), window.FOSS.dom.el("span", { text: "Infer Schema" })]);
 
-    var topBar = window.FOSS.dom.el("div", {
-      className: "row items-center flex-wrap gap-2 p-2 rounded",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", width: "100%" }
-    }, [
+    var topBar = window.FOSS.dom.el("div", { className: "wb-toolbar" }, [
       window.FOSS.dom.el("span", { className: "text-xs font-bold", text: "JSONPath:" }),
       pathInput,
       queryBtn,
@@ -787,8 +1367,7 @@ window.FOSS = window.FOSS || {};
       title: "Input JSON Document",
       placeholder: '{\n  "store": {\n    "book": [\n      {"category": "reference", "author": "Nigel Rees", "title": "Sayings of the Century", "price": 8.95},\n      {"category": "fiction", "author": "Evelyn Waugh", "title": "Sword of Honour", "price": 12.99}\n    ]\n  }\n}',
       ariaLabel: "Input JSON document",
-      fillHeight: true,
-      containerClass: "code-editor-fill"
+      fillHeight: true
     });
 
     var resultEditor = window.FOSS.components.codeEditor({
@@ -796,16 +1375,12 @@ window.FOSS = window.FOSS || {};
       title: "Query / Schema Result",
       placeholder: "Results will appear here...",
       ariaLabel: "Query results",
-      fillHeight: true,
-      containerClass: "code-editor-fill"
+      fillHeight: true
     });
 
-    var grid = window.FOSS.dom.el("div", {
-      className: "row gap-3 items-stretch code-editor-fill",
-      style: { flex: "1 1 0%", minHeight: "24rem", width: "100%" }
-    }, [
-      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [jsonEditor.el]),
-      window.FOSS.dom.el("div", { className: "flex-col flex-1 code-editor-fill", style: { minWidth: "0" } }, [resultEditor.el])
+    var grid = window.FOSS.dom.el("div", { className: "wb-editor-grid" }, [
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [jsonEditor]),
+      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [resultEditor])
     ]);
 
     panel.appendChild(statusBar);
@@ -813,19 +1388,17 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(grid);
   }
 
-  // --- TAB 5: UTILITIES (CRON, CALENDAR, GENERATOR) ---------------------------
   function renderUtilitiesTab(panel) {
     panel.innerHTML = "";
 
     var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted",
+      className: "text-xs text-muted wb-status",
       "data-testid": "data-utilities-status",
       text: "Ready"
     });
 
     var sidebarCol = window.FOSS.dom.el("div", { className: "data-sidebar-pane" });
 
-    // Section 1: Cryptographic Random Generator
     var randCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
     var randTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Random / Password Generator" });
 
@@ -842,12 +1415,17 @@ window.FOSS = window.FOSS || {};
 
     var randLen = window.FOSS.dom.el("input", {
       type: "number",
-      className: "input input-sm",
+      className: "input input-sm wb-num-sm",
       value: "16",
       min: "4",
       max: "128",
-      style: { width: "80px" },
       "aria-label": "Password Length"
+    });
+
+    var randOutput = window.FOSS.dom.el("div", {
+      className: "wb-box font-mono text-sm",
+      "data-testid": "data-utilities-random-output",
+      text: "-"
     });
 
     var randGenBtn = window.FOSS.dom.el("button", {
@@ -868,13 +1446,6 @@ window.FOSS = window.FOSS || {};
         });
       }
     }, [window.FOSS.icons.el("refresh", 14), window.FOSS.dom.el("span", { text: "Generate" })]);
-
-    var randOutput = window.FOSS.dom.el("div", {
-      className: "p-2 rounded font-mono text-sm",
-      "data-testid": "data-utilities-random-output",
-      style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)", wordBreak: "break-all" },
-      text: "-"
-    });
 
     var copyRandBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
@@ -898,10 +1469,8 @@ window.FOSS = window.FOSS || {};
 
     sidebarCol.appendChild(randCard);
 
-    // Right Column: Cron & Calendar
     var stageCol = window.FOSS.dom.el("div", { className: "data-stage-pane" });
 
-    // Cron Explainer Card
     var cronCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
     var cronTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Cron Expression Explainer" });
 
@@ -912,6 +1481,13 @@ window.FOSS = window.FOSS || {};
       placeholder: "e.g. 0 0 * * * or */5 * * * *",
       "aria-label": "Cron Expression"
     });
+
+    var cronDesc = window.FOSS.dom.el("div", {
+      className: "wb-box text-sm font-bold text-success",
+      text: "Every 15 minutes"
+    });
+
+    var cronRunsList = window.FOSS.dom.el("div", { className: "flex-col gap-1 wb-field-full" });
 
     var cronBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
@@ -927,28 +1503,16 @@ window.FOSS = window.FOSS || {};
           cronRunsList.innerHTML = "";
           (res.upcoming_runs || []).forEach(function (dtStr) {
             cronRunsList.appendChild(window.FOSS.dom.el("div", {
-              className: "font-mono text-xs p-1 rounded",
-              style: { background: "var(--color-bg-base)", border: "1px solid var(--color-border)" },
+              className: "wb-box font-mono text-xs",
               text: dtStr
             }));
           });
           statusBar.textContent = "Upcoming execution schedule computed.";
         }).catch(function (err) {
-          statusBar.textContent = "Cron error: " + (err && err.message ? err.message : String(err));
+          statusBar.textContent = "Cron error: " + errorText(err);
         });
       }
     }, [window.FOSS.icons.el("clock", 14), window.FOSS.dom.el("span", { text: "Calculate Schedule" })]);
-
-    var cronDesc = window.FOSS.dom.el("div", {
-      className: "text-sm font-bold text-success p-2 rounded",
-      style: { background: "var(--color-bg-subtle)", border: "1px solid var(--color-border)" },
-      text: "Every 15 minutes"
-    });
-
-    var cronRunsList = window.FOSS.dom.el("div", {
-      className: "flex-col gap-1",
-      style: { width: "100%" }
-    });
 
     cronCard.appendChild(cronTitle);
     cronCard.appendChild(window.FOSS.components.field("Expression (minute hour dom month dow)", cronInput));
@@ -956,8 +1520,7 @@ window.FOSS = window.FOSS || {};
     cronCard.appendChild(cronDesc);
     cronCard.appendChild(cronRunsList);
 
-    // Calendar .ICS Builder Card
-    var icsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3 code-editor-fill" });
+    var icsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3 wb-grow" });
     var icsTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "iCalendar (.ICS) Event Builder" });
 
     var calTitleInput = window.FOSS.dom.el("input", {
@@ -972,6 +1535,14 @@ window.FOSS = window.FOSS || {};
       value: "20261102T160000Z",
       placeholder: "YYYYMMDDTHHMMSSZ",
       "aria-label": "Start Time UTC"
+    });
+
+    var icsOutput = window.FOSS.components.codeEditor({
+      testid: "data-ics-output",
+      title: "Generated .ICS Event",
+      placeholder: "ICS payload will appear here...",
+      ariaLabel: "Generated ICS payload",
+      fillHeight: true
     });
 
     var icsBtn = window.FOSS.dom.el("button", {
@@ -990,14 +1561,6 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("calendar", 14), window.FOSS.dom.el("span", { text: "Generate .ICS" })]);
 
-    var icsOutput = window.FOSS.components.codeEditor({
-      testid: "data-ics-output",
-      title: "Generated .ICS Event",
-      placeholder: "ICS payload will appear here...",
-      ariaLabel: "Generated ICS payload",
-      fillHeight: true
-    });
-
     icsCard.appendChild(icsTitle);
     icsCard.appendChild(window.FOSS.components.field("Title", calTitleInput));
     icsCard.appendChild(window.FOSS.components.field("Start Time (ISO/UTC)", calStartInput));
@@ -1007,12 +1570,9 @@ window.FOSS = window.FOSS || {};
     stageCol.appendChild(cronCard);
     stageCol.appendChild(icsCard);
 
-    var workbench = window.FOSS.dom.el("div", {
-      className: "data-workbench",
-      style: { width: "100%", height: "100%" }
-    }, [
+    var workbench = window.FOSS.dom.el("div", { className: "split resizable data-workbench" }, [
       sidebarCol,
-      window.FOSS.dom.el("div", { className: "split-divider", "data-decorative": "true" }),
+      window.FOSS.components.splitDivider({ side: "left" }),
       stageCol
     ]);
 
@@ -1020,14 +1580,37 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(workbench);
   }
 
-  // Router Registration
   window.FOSS.router.register({
     id: "data",
     title: "Data Studio",
     navName: "Data",
     category: "Data",
-    icon: "code",
+    icon: "data",
     workbench: true,
+    defaults: [
+      {
+        key: "indent",
+        label: "Indent spacing",
+        type: "select",
+        options: [
+          { value: "2", label: "2 spaces" },
+          { value: "4", label: "4 spaces" },
+          { value: "8", label: "8 spaces" }
+        ],
+        default: "2",
+        hint: "Spaces per level when formatting JSON, YAML, and XML."
+      },
+      {
+        key: "target_format",
+        label: "Conversion target",
+        type: "select",
+        options: TARGET_FORMATS.map(function (fmt) {
+          return { value: fmt, label: fmt.toUpperCase() };
+        }),
+        default: "yaml",
+        hint: "Format preselected in the Convert dropdown."
+      }
+    ],
     tabs: [
       { id: "editor", label: "Format & Convert", aliases: ["main", "format"], render: renderEditorTab },
       { id: "structure", label: "Tree & HDF5", render: renderStructureTab },
