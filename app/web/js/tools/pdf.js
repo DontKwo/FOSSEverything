@@ -100,51 +100,60 @@ window.FOSS = window.FOSS || {};
               window.FOSS.dialogs.toast("Select one or more pages to group.");
               return;
             }
-            pushUndo();
-            var extracted = [];
-            var firstIndex = -1;
-            workspaceItems.forEach(function (item, idx) {
-              if (item.kind === "page" && selectedPageIds.has(item.id)) {
-                if (firstIndex === -1) firstIndex = idx;
-                extracted.push(item);
-              } else if (item.kind === "group") {
-                var remaining = [];
-                (item.pages || []).forEach(function (page) {
-                  if (selectedPageIds.has(page.id)) {
-                    if (firstIndex === -1) firstIndex = idx;
-                    extracted.push(page);
-                  } else {
-                    remaining.push(page);
-                  }
-                });
-                item.pages = remaining;
-              }
-            });
+            window.FOSS.dialogs.prompt({
+              title: "Name Document Group",
+              message: "Enter a name for the new document group:",
+              defaultValue: "Group " + (workspaceItems.filter(function(i){return i.kind === 'group'}).length + 1)
+            }).then(function(groupName) {
+              if (groupName === null) return; // User cancelled
+              if (!groupName.trim()) groupName = "Group " + (workspaceItems.filter(function(i){return i.kind === 'group'}).length + 1);
 
-            // Filter out empty groups or selected pages
-            var newItems = [];
-            workspaceItems.forEach(function (item) {
-              if (item.kind === "page" && selectedPageIds.has(item.id)) {
-                return;
-              }
-              if (item.kind === "group" && (!item.pages || item.pages.length === 0)) {
-                return;
-              }
-              newItems.push(item);
-            });
+              pushUndo();
+              var extracted = [];
+              var firstIndex = -1;
+              workspaceItems.forEach(function (item, idx) {
+                if (item.kind === "page" && selectedPageIds.has(item.id)) {
+                  if (firstIndex === -1) firstIndex = idx;
+                  extracted.push(item);
+                } else if (item.kind === "group") {
+                  var remaining = [];
+                  (item.pages || []).forEach(function (page) {
+                    if (selectedPageIds.has(page.id)) {
+                      if (firstIndex === -1) firstIndex = idx;
+                      extracted.push(page);
+                    } else {
+                      remaining.push(page);
+                    }
+                  });
+                  item.pages = remaining;
+                }
+              });
 
-            var newGroup = {
-              kind: "group",
-              id: "grp_" + (idCounter++),
-              name: "Group " + (newItems.length + 1),
-              collapsed: false,
-              pages: extracted
-            };
-            var insertPos = firstIndex >= 0 ? Math.min(firstIndex, newItems.length) : newItems.length;
-            newItems.splice(insertPos, 0, newGroup);
-            workspaceItems = newItems;
-            selectedPageIds.clear();
-            renderWorkspace();
+              // Filter out empty groups or selected pages
+              var newItems = [];
+              workspaceItems.forEach(function (item) {
+                if (item.kind === "page" && selectedPageIds.has(item.id)) {
+                  return;
+                }
+                if (item.kind === "group" && (!item.pages || item.pages.length === 0)) {
+                  return;
+                }
+                newItems.push(item);
+              });
+
+              var newGroup = {
+                kind: "group",
+                id: "grp_" + (idCounter++),
+                name: groupName.trim(),
+                collapsed: false,
+                pages: extracted
+              };
+              var insertPos = firstIndex >= 0 ? Math.min(firstIndex, newItems.length) : newItems.length;
+              newItems.splice(insertPos, 0, newGroup);
+              workspaceItems = newItems;
+              selectedPageIds.clear();
+              renderWorkspace();
+            });
           }
         }, [
           window.FOSS.icons.el("folder", 14),

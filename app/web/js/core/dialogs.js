@@ -177,9 +177,106 @@ window.FOSS = window.FOSS || {};
     });
   }
 
+
+  function prompt(options) {
+    var opts = typeof options === "string" ? { message: options } : (options || {});
+    var title = opts.title || "Input Required";
+    var message = opts.message || "";
+    var defaultValue = opts.defaultValue || "";
+    var confirmText = opts.confirmText || "OK";
+    var cancelText = opts.cancelText || "Cancel";
+
+    return new Promise(function (resolve) {
+      var h = getHost();
+      if (!h) {
+        resolve(null);
+        return;
+      }
+
+      var scrim = window.FOSS.dom.el("div", { className: "scrim", "data-overlay": "true" });
+      var titleEl = window.FOSS.dom.el("h3", { className: "card-title", text: title });
+      var msgEl = window.FOSS.dom.el("p", { className: "desc", text: message });
+
+      var inputEl = window.FOSS.dom.el("input", {
+        type: "text",
+        className: "input",
+        value: defaultValue,
+        "data-testid": "modal-prompt-input"
+      });
+      inputEl.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+          e.stopPropagation();
+          cleanup();
+          resolve(inputEl.value);
+        } else if (e.key === "Escape") {
+          e.stopPropagation();
+          cleanup();
+          resolve(null);
+        } else {
+          e.stopPropagation();
+        }
+      });
+
+      var confirmBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-primary",
+        text: confirmText,
+        "data-testid": "modal-prompt-confirm-btn",
+        onClick: function () {
+          cleanup();
+          resolve(inputEl.value);
+        }
+      });
+
+      var cancelBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-secondary",
+        text: cancelText,
+        "data-testid": "modal-prompt-cancel-btn",
+        onClick: function () {
+          cleanup();
+          resolve(null);
+        }
+      });
+
+      var actionsEl = window.FOSS.dom.el("div", { className: "row end" }, [cancelBtn, confirmBtn]);
+      var modalEl = window.FOSS.dom.el("div", {
+        className: "modal",
+        role: "dialog",
+        "aria-modal": "true",
+        "data-testid": "prompt-modal"
+      }, [titleEl, msgEl, inputEl, actionsEl]);
+
+      function cleanup() {
+        var idx = activeCleanups.indexOf(cleanup);
+        if (idx >= 0) activeCleanups.splice(idx, 1);
+        if (activeCleanups.length === 0) h.classList.remove("active");
+        if (scrim.parentElement) scrim.parentElement.removeChild(scrim);
+        if (modalEl.parentElement) modalEl.parentElement.removeChild(modalEl);
+        document.removeEventListener("keydown", onKeyDown);
+      }
+
+      function onKeyDown(e) {
+        if (e.key === "Escape") {
+          cleanup();
+          resolve(null);
+        } else if (e.key === "Enter") {
+          cleanup();
+          resolve(inputEl.value);
+        }
+      }
+
+      activeCleanups.push(cleanup);
+      document.addEventListener("keydown", onKeyDown);
+      h.appendChild(scrim);
+      h.appendChild(modalEl);
+      h.classList.add("active");
+      inputEl.focus();
+    });
+  }
+
   window.FOSS.dialogs = {
     confirm: confirm,
     alert: alert,
+    prompt: prompt,
     toast: function (msg, type) {
       if (window.FOSS.toast && window.FOSS.toast.show) {
         window.FOSS.toast.show(msg, type);
