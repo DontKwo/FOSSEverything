@@ -121,7 +121,7 @@ window.FOSS = window.FOSS || {};
 
     var segButtons = {};
     function updateSegmentButtons() {
-      var current = typeSelect ? typeSelect.value : "url";
+      var current = sharedState.payloadType || "url";
       segTypes.forEach(function (st) {
         var btn = segButtons[st.id];
         if (btn) {
@@ -136,11 +136,11 @@ window.FOSS = window.FOSS || {};
 
     segTypes.forEach(function (st) {
       var btn = window.FOSS.dom.el("button", {
-        className: st.id === "url" ? "btn btn-sm btn-primary" : "btn btn-sm btn-secondary",
+        className: st.id === sharedState.payloadType ? "btn btn-sm btn-primary" : "btn btn-sm btn-secondary",
         "data-testid": "qr-type-" + st.id,
         text: st.label,
         onClick: function () {
-          typeSelect.value = st.id;
+          sharedState.payloadType = st.id;
           updateSegmentButtons();
           updateContentFields();
           refreshCode();
@@ -150,39 +150,8 @@ window.FOSS = window.FOSS || {};
       segmentedRow.appendChild(btn);
     });
 
-    var typeSelect = window.FOSS.dom.el("select", {
-      className: "input",
-      "data-testid": "qr-payload-type",
-      "aria-label": "Payload Type",
-      title: "Payload Type",
-      style: { width: "100%" },
-      onChange: function () {
-        updateSegmentButtons();
-        if (typeSelect.value === "barcode") {
-          window.FOSS.router.open("qr", "barcode");
-          return;
-        }
-        updateContentFields();
-        refreshCode();
-      }
-    }, [
-      window.FOSS.dom.el("option", { value: "url", text: "URL / Web Link" }),
-      window.FOSS.dom.el("option", { value: "wifi", text: "Wi-Fi Network" }),
-      window.FOSS.dom.el("option", { value: "text", text: "Plain Text" }),
-      window.FOSS.dom.el("option", { value: "vcard", text: "Contact Card (vCard)" }),
-      window.FOSS.dom.el("option", { value: "email", text: "Email Address" }),
-      window.FOSS.dom.el("option", { value: "phone", text: "Phone Number" }),
-      window.FOSS.dom.el("option", { value: "sms", text: "SMS Message" }),
-      window.FOSS.dom.el("option", { value: "whatsapp", text: "WhatsApp Message" }),
-      window.FOSS.dom.el("option", { value: "geo", text: "Geo Location" }),
-      window.FOSS.dom.el("option", { value: "calendar", text: "Calendar Event" }),
-      window.FOSS.dom.el("option", { value: "asset", text: "Asset / Inventory Tag" }),
-      window.FOSS.dom.el("option", { value: "barcode", text: "1D Barcode" })
-    ]);
-
     typeCard.appendChild(typeTitle);
     typeCard.appendChild(segmentedRow);
-    typeCard.appendChild(typeSelect);
 
     // Group 2: Content Details
     var contentCard = window.FOSS.dom.el("div", {
@@ -257,66 +226,9 @@ window.FOSS = window.FOSS || {};
     var vcardPhone = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Phone Number", "aria-label": "Phone Number", title: "Phone Number", onInput: refreshCode });
     var vcardEmail = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Email Address", "aria-label": "Email Address", title: "Email Address", onInput: refreshCode });
 
-    var emailTo = window.FOSS.dom.el("input", { type: "email", className: "input", placeholder: "recipient@example.com", "aria-label": "Email Recipient", title: "Email Recipient", onInput: refreshCode });
-    var emailSubject = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Email Subject", "aria-label": "Email Subject", title: "Email Subject", onInput: refreshCode });
-    var emailBody = window.FOSS.dom.el("textarea", { className: "input", rows: "2", placeholder: "Email message body", "aria-label": "Email Body", title: "Email Body", onInput: refreshCode });
-
-    var phoneInput = window.FOSS.dom.el("input", { type: "tel", className: "input", placeholder: "+1-555-0199", "aria-label": "Phone Number", title: "Phone Number", onInput: refreshCode });
-
-    var smsPhone = window.FOSS.dom.el("input", { type: "tel", className: "input", placeholder: "+1-555-0199", "aria-label": "SMS Phone Number", title: "SMS Phone Number", onInput: refreshCode });
-    var smsMsg = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Prefilled text message", "aria-label": "SMS Message", title: "SMS Message", onInput: refreshCode });
-
-    var waPhone = window.FOSS.dom.el("input", { type: "tel", className: "input", placeholder: "+15550199 (with country code)", "aria-label": "WhatsApp Phone", title: "WhatsApp Phone", onInput: refreshCode });
-    var waMsg = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Prefilled message", "aria-label": "WhatsApp Message", title: "WhatsApp Message", onInput: refreshCode });
-
-    var geoLat = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "37.7749", "aria-label": "Latitude", title: "Latitude", onInput: refreshCode });
-    var geoLon = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "-122.4194", "aria-label": "Longitude", title: "Longitude", onInput: refreshCode });
-
-    var calTitle = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Event Title", "aria-label": "Event Title", title: "Event Title", onInput: refreshCode });
-    var calStart = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "20261101T120000Z", value: "20261101T120000Z", "aria-label": "Start Time", title: "Start Time", onInput: refreshCode });
-    var calEnd = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "20261101T130000Z", "aria-label": "End Time", title: "End Time", onInput: refreshCode });
-    var calLoc = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Location / Room", "aria-label": "Location", title: "Location", onInput: refreshCode });
-
-    var assetId = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "ASSET-1001", "aria-label": "Asset ID", title: "Asset ID", onInput: refreshCode });
-    var assetLocation = window.FOSS.dom.el("input", { type: "text", className: "input", placeholder: "Server Room B", "aria-label": "Location", title: "Location", onInput: refreshCode });
-
-    // Barcode fallback in QR tab
-    var barcodeSymbology = window.FOSS.dom.el("select", {
-      className: "input",
-      "data-testid": "qr-barcode-symbology",
-      "aria-label": "Barcode Symbology",
-      title: "Barcode Symbology",
-      onChange: refreshCode
-    }, [
-      window.FOSS.dom.el("option", { value: "code128", text: "Code 128" }),
-      window.FOSS.dom.el("option", { value: "code39", text: "Code 39" }),
-      window.FOSS.dom.el("option", { value: "ean13", text: "EAN-13" }),
-      window.FOSS.dom.el("option", { value: "ean8", text: "EAN-8" }),
-      window.FOSS.dom.el("option", { value: "upca", text: "UPC-A" }),
-      window.FOSS.dom.el("option", { value: "isbn13", text: "ISBN-13" }),
-      window.FOSS.dom.el("option", { value: "itf", text: "ITF" })
-    ]);
-    var barcodeVal = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input",
-      value: "12345678",
-      placeholder: "Barcode value",
-      "aria-label": "Barcode value",
-      title: "Barcode value",
-      onInput: refreshCode
-    });
-    var barcodeLabelToggle = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      checked: true,
-      "data-testid": "qr-barcode-toggle",
-      "aria-label": "Show Value Label",
-      title: "Show Value Label",
-      onChange: refreshCode
-    });
-
     function updateContentFields() {
       contentBody.innerHTML = "";
-      var t = typeSelect.value;
+      var t = sharedState.payloadType;
       if (t === "url") {
         contentBody.appendChild(window.FOSS.components.field("Web URL", urlInput));
       } else if (t === "wifi") {
@@ -336,49 +248,8 @@ window.FOSS = window.FOSS || {};
         contentBody.appendChild(window.FOSS.components.field("Job Title", vcardTitle));
         contentBody.appendChild(window.FOSS.components.field("Phone", vcardPhone));
         contentBody.appendChild(window.FOSS.components.field("Email", vcardEmail));
-      } else if (t === "email") {
-        contentBody.appendChild(window.FOSS.components.field("Recipient Email", emailTo));
-        contentBody.appendChild(window.FOSS.components.field("Subject", emailSubject));
-        contentBody.appendChild(window.FOSS.components.field("Message Body", emailBody));
-      } else if (t === "phone") {
-        contentBody.appendChild(window.FOSS.components.field("Phone Number", phoneInput));
-      } else if (t === "sms") {
-        contentBody.appendChild(window.FOSS.components.field("Phone Number", smsPhone));
-        contentBody.appendChild(window.FOSS.components.field("Prefilled Message", smsMsg));
-      } else if (t === "whatsapp") {
-        contentBody.appendChild(window.FOSS.components.field("Phone Number (with Country Code)", waPhone));
-        contentBody.appendChild(window.FOSS.components.field("Prefilled Message", waMsg));
-      } else if (t === "geo") {
-        contentBody.appendChild(window.FOSS.components.field("Latitude", geoLat));
-        contentBody.appendChild(window.FOSS.components.field("Longitude", geoLon));
-      } else if (t === "calendar") {
-        contentBody.appendChild(window.FOSS.components.field("Event Title", calTitle));
-        contentBody.appendChild(window.FOSS.components.field("Start Time (ISO/UTC)", calStart));
-        contentBody.appendChild(window.FOSS.components.field("End Time (Optional)", calEnd));
-        contentBody.appendChild(window.FOSS.components.field("Location", calLoc));
-      } else if (t === "asset") {
-        contentBody.appendChild(window.FOSS.components.field("Asset ID", assetId));
-        contentBody.appendChild(window.FOSS.components.field("Location / Room", assetLocation));
-      } else if (t === "barcode") {
-        contentBody.appendChild(window.FOSS.components.field("Symbology", barcodeSymbology));
-        contentBody.appendChild(window.FOSS.components.field("Value", barcodeVal));
-        var chkRow = window.FOSS.dom.el("label", {
-          className: "row items-center",
-          style: { gap: "var(--space-2)", cursor: "pointer" }
-        }, [
-          barcodeLabelToggle,
-          window.FOSS.dom.el("span", { text: "Show Value Label" })
-        ]);
-        contentBody.appendChild(chkRow);
       } else {
         contentBody.appendChild(window.FOSS.components.field("Value", urlInput));
-      }
-
-      // Show Save as .ics only when calendar payload
-      if (t === "calendar") {
-        exportIcsBtn.style.setProperty("display", "inline-flex");
-      } else {
-        exportIcsBtn.style.setProperty("display", "none");
       }
     }
 
@@ -682,20 +553,6 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("span", { text: "Export Vector SVG" })
     ]);
 
-    var exportIcsBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary",
-      "data-testid": "qr-export-ics-btn",
-      "aria-label": "Save as .ics Event...",
-      title: "Save as .ics Event...",
-      style: { display: "none" },
-      onClick: function () {
-        exportCalendarIcs();
-      }
-    }, [
-      window.FOSS.icons.el("calendar", 16),
-      window.FOSS.dom.el("span", { text: "Save as .ics Event..." })
-    ]);
-
     var exportLabelsBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary",
       "data-testid": "qr-export-labels-btn",
@@ -718,7 +575,6 @@ window.FOSS = window.FOSS || {};
       saveImageBtn,
       copyBtn,
       exportSvgBtn,
-      exportIcsBtn,
       exportLabelsBtn
     ]);
 
@@ -744,7 +600,7 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(workbench);
 
     function buildPayload() {
-      var t = typeSelect.value;
+      var t = sharedState.payloadType;
       if (t === "url") {
         return urlInput.value || "https://github.com/fosseverything";
       } else if (t === "wifi") {
@@ -763,28 +619,6 @@ window.FOSS = window.FOSS || {};
           "END:VCARD"
         ];
         return lines.join("\n");
-      } else if (t === "email") {
-        var to = emailTo.value || "user@example.com";
-        var q = [];
-        if (emailSubject.value) q.push("subject=" + encodeURIComponent(emailSubject.value));
-        if (emailBody.value) q.push("body=" + encodeURIComponent(emailBody.value));
-        return "mailto:" + to + (q.length > 0 ? "?" + q.join("&") : "");
-      } else if (t === "phone") {
-        return "tel:" + (phoneInput.value || "+15550199");
-      } else if (t === "sms") {
-        return "SMSTO:" + (smsPhone.value || "+15550199") + ":" + (smsMsg.value || "");
-      } else if (t === "whatsapp") {
-        var digits = (waPhone.value || "").replace(/[^0-9]/g, "");
-        var msg = encodeURIComponent(waMsg.value || "");
-        return "https://wa.me/" + digits + (msg ? "?text=" + msg : "");
-      } else if (t === "geo") {
-        return "geo:" + (geoLat.value || "37.7749") + "," + (geoLon.value || "-122.4194");
-      } else if (t === "calendar") {
-        return "BEGIN:VEVENT\nSUMMARY:" + (calTitle.value || "Event") + "\nDTSTART:" + (calStart.value || "20261101T120000Z") + "\nEND:VEVENT";
-      } else if (t === "asset") {
-        return "ASSET:" + (assetId.value || "ASSET-1001") + ";LOC:" + (assetLocation.value || "HQ") + ";;";
-      } else if (t === "barcode") {
-        return barcodeVal.value || "12345678";
       }
       return urlInput.value || "https://example.com";
     }
@@ -792,47 +626,27 @@ window.FOSS = window.FOSS || {};
     function refreshCode() {
       clearError();
       currentPayload = buildPayload();
-      var t = typeSelect.value;
 
-      if (t === "barcode") {
-        var sym = barcodeSymbology.value || "code128";
-        window.FOSS.api("qr_generate_barcode", {
-          payload: currentPayload,
-          barcode_type: sym,
-          include_label: barcodeLabelToggle.checked
-        }).then(function (res) {
-          if (res && res.data_url) {
-            currentImageDataUrl = res.data_url;
-            previewImg.src = res.data_url;
-            previewImg.style.setProperty("display", "block");
-            previewEmpty.style.setProperty("display", "none");
-            infoLabel.textContent = "Barcode: " + sym.toUpperCase() + " - Export Size: " + res.width + " x " + res.height + " px";
-          }
-        }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
-        });
-      } else {
-        var boxSize = parseInt(boxSizeInput.value, 10) || 10;
-        var ecc = eccSelect.value || "M";
-        window.FOSS.api("qr_generate", {
-          payload: currentPayload,
-          box_size: boxSize,
-          fill_color: sharedState.fgColor,
-          back_color: sharedState.bgColor,
-          error_correction: ecc,
-          logo_path: sharedState.logoPath || null
-        }).then(function (res) {
-          if (res && res.data_url) {
-            currentImageDataUrl = res.data_url;
-            previewImg.src = res.data_url;
-            previewImg.style.setProperty("display", "block");
-            previewEmpty.style.setProperty("display", "none");
-            infoLabel.textContent = "QR Code - Export Size: " + res.width + " x " + res.height + " px | Error Correction: " + ecc;
-          }
-        }).catch(function (err) {
-          showError(err && err.message ? err.message : String(err));
-        });
-      }
+      var boxSize = parseInt(boxSizeInput.value, 10) || 10;
+      var ecc = eccSelect.value || "M";
+      window.FOSS.api("qr_generate", {
+        payload: currentPayload,
+        box_size: boxSize,
+        fill_color: sharedState.fgColor,
+        back_color: sharedState.bgColor,
+        error_correction: ecc,
+        logo_path: sharedState.logoPath || null
+      }).then(function (res) {
+        if (res && res.data_url) {
+          currentImageDataUrl = res.data_url;
+          previewImg.src = res.data_url;
+          previewImg.style.setProperty("display", "block");
+          previewEmpty.style.setProperty("display", "none");
+          infoLabel.textContent = "QR Code - Export Size: " + res.width + " x " + res.height + " px | Error Correction: " + ecc;
+        }
+      }).catch(function (err) {
+        showError(err && err.message ? err.message : String(err));
+      });
     }
 
     function saveCodeFile(format) {
