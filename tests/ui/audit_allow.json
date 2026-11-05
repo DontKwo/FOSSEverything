@@ -1,5 +1,10 @@
 [
   { "check": "A2", "view": "network_monitor", "selector": "table.table.w-full" },
   { "check": "A2", "view": "network_monitor", "selector": "[data-testid=\"network-apps-table\"]" },
-  { "check": "A2", "view": "network_monitor", "selector": "[data-testid=\"network-live-table\"]" }
+  { "check": "A2", "view": "network_monitor", "selector": "[data-testid=\"network-live-table\"]" },
+  { "check": "A6", "view": "text_tools", "selector": "[data-testid=\"text_tools-diff-left-input\"]" },
+  { "check": "A6", "view": "text_tools", "selector": "[data-testid=\"text_tools-diff-right-input\"]" },
+  { "check": "A6", "view": "text_tools", "selector": "[data-testid=\"text_tools-input-input\"]" },
+  { "check": "A2", "view": "text_tools", "selector": "div.tool-panel-container" },
+  { "check": "A9", "view": "text_tools", "selector": "#text_tools-page" }
 ]
