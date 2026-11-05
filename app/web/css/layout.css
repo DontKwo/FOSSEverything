@@ -1,4 +1,12 @@
 /* Layout primitives and app grid */
+html,
+body {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
 .app {
   display: grid;
   grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
