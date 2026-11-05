@@ -44,8 +44,7 @@ window.FOSS = window.FOSS || {};
     var map = getKeymap();
     for (var action in map) {
       var b = map[action];
-      if (b && b.key &&
-          b.key.toLowerCase() === e.key.toLowerCase() &&
+      if (b.key.toLowerCase() === e.key.toLowerCase() &&
           !!b.ctrl === (e.ctrlKey || e.metaKey) &&
           !!b.alt === e.altKey &&
           !!b.shift === e.shiftKey) {
