@@ -302,8 +302,23 @@ window.FOSS = window.FOSS || {};
 
     var workspaceArea = window.FOSS.dom.el("div", { className: "pdf-workspace", "data-testid": "pdf-workspace" });
 
+    var autoScrollTimer = null;
+    function handleAutoScroll(e, container) {
+      var rect = container.getBoundingClientRect();
+      var edgeZone = 60;
+      var scrollSpeed = 15;
+      if (e.clientY < rect.top + edgeZone) {
+        container.scrollTop -= scrollSpeed;
+      } else if (e.clientY > rect.bottom - edgeZone) {
+        container.scrollTop += scrollSpeed;
+      }
+    }
+
     workspaceArea.ondragover = function (e) {
-      if (dragState) e.preventDefault();
+      if (dragState) {
+        e.preventDefault();
+        handleAutoScroll(e, workspaceArea);
+      }
     };
     workspaceArea.ondrop = function (e) {
       e.preventDefault();

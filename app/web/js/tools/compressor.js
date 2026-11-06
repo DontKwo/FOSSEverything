@@ -154,6 +154,70 @@ window.FOSS = window.FOSS || {};
       title: "Target Video Size MB"
     });
 
+    var pngColorsInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input font-mono text-xs",
+      "data-testid": "compressor-png-colors",
+      placeholder: "128 (16-256)",
+      value: "128",
+      min: "16",
+      max: "256",
+      "aria-label": "PNG Palette Colors",
+      title: "PNG Palette Colors"
+    });
+
+    var jpegQualityInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input font-mono text-xs",
+      "data-testid": "compressor-jpeg-quality",
+      placeholder: "75 (10-100)",
+      value: "75",
+      min: "10",
+      max: "100",
+      "aria-label": "JPEG / WebP Quality",
+      title: "JPEG / WebP Quality"
+    });
+
+    var audioBitrateInput = window.FOSS.dom.el("select", {
+      className: "select select-sm text-xs font-mono",
+      "data-testid": "compressor-audio-bitrate",
+      "aria-label": "Audio Bitrate",
+      title: "Audio Bitrate"
+    }, [
+      window.FOSS.dom.el("option", { value: "auto", text: "Default (Auto Profile)" }),
+      window.FOSS.dom.el("option", { value: "96k", text: "96 kbps (Voice/Compact)" }),
+      window.FOSS.dom.el("option", { value: "128k", text: "128 kbps (Standard)" }),
+      window.FOSS.dom.el("option", { value: "192k", text: "192 kbps (High Quality)" })
+    ]);
+
+    var advancedDetails = window.FOSS.dom.el("div", {
+      className: "flex-col gap-2 pt-2 border-t border-border hidden",
+      "data-testid": "compressor-advanced-panel"
+    }, [
+      window.FOSS.components.field("PNG Palette Colors (16 - 256)", pngColorsInput),
+      window.FOSS.components.field("JPEG / WebP Quality %", jpegQualityInput),
+      window.FOSS.components.field("Audio Re-encode Bitrate", audioBitrateInput)
+    ]);
+
+    var toggleAdvancedBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-ghost btn-sm text-xs row gap-1 items-center justify-between w-full",
+      "data-testid": "compressor-advanced-toggle",
+      type: "button",
+      onClick: function () {
+        var isHidden = advancedDetails.classList.contains("hidden");
+        advancedDetails.classList.toggle("hidden", !isHidden);
+        toggleAdvancedBtn.textContent = isHidden ? "[-] Hide Advanced Options" : "[+] Show Advanced Options";
+      }
+    }, [window.FOSS.dom.el("span", { text: "[+] Show Advanced Options" })]);
+
+    var advancedContainer = window.FOSS.dom.el("div", {
+      className: "flex-col gap-1",
+      "data-testid": "compressor-advanced-group"
+    }, [
+      toggleAdvancedBtn,
+      advancedDetails
+    ]);
+
     var outputDirInput = window.FOSS.dom.el("input", {
       type: "text",
       className: "input font-mono text-xs grow",
@@ -199,6 +263,7 @@ window.FOSS = window.FOSS || {};
       ]),
       window.FOSS.components.field("Max Image Dimension (px)", maxDimInput),
       window.FOSS.components.field("Target Video Size (MB)", targetMbInput),
+      advancedContainer,
       window.FOSS.dom.el("div", { className: "flex-col gap-1" }, [
         window.FOSS.dom.el("label", { className: "text-xs font-semibold text-muted", text: "Output Folder" }),
         window.FOSS.dom.el("div", { className: "row gap-2" }, [outputDirInput, browseDirBtn])
@@ -435,6 +500,9 @@ window.FOSS = window.FOSS || {};
       var qPng = pngQuantizeCheck.checked;
       var maxDim = parseInt(maxDimInput.value, 10) || undefined;
       var targetMb = parseInt(targetMbInput.value, 10) || undefined;
+      var pColors = parseInt(pngColorsInput.value, 10) || 128;
+      var jQuality = parseInt(jpegQualityInput.value, 10) || undefined;
+      var aBitrate = audioBitrateInput.value !== "auto" ? audioBitrateInput.value : undefined;
       var outDir = outputDirInput.value.trim();
 
       function runBatchWithCustomPath(customPath) {
@@ -448,6 +516,9 @@ window.FOSS = window.FOSS || {};
           }),
           preset: pset,
           lossy_png: qPng,
+          png_colors: pColors,
+          quality: jQuality,
+          audio_bitrate: aBitrate,
           max_dimension: maxDim,
           target_size_mb: targetMb,
           output_dir: outDir || undefined

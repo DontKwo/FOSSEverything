@@ -98,6 +98,12 @@ window.FOSS = window.FOSS || {};
       if (type === "change_case") {
         return { id: id, type: type, enabled: true, case_mode: window.FOSS.toolDefaults.get("renamer", "case_mode", "title") };
       }
+      if (type === "insert_text") {
+        return { id: id, type: type, enabled: true, text: "", index: 0 };
+      }
+      if (type === "regex_replace") {
+        return { id: id, type: type, enabled: true, pattern: "", replacement: "" };
+      }
       if (type === "change_extension") {
         return { id: id, type: type, enabled: true, extension: "" };
       }
@@ -128,6 +134,8 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "", text: "+ Add Renaming Step..." }),
       window.FOSS.dom.el("option", { value: "replace_text", text: "Replace Text" }),
       window.FOSS.dom.el("option", { value: "add_text", text: "Add Prefix / Suffix" }),
+      window.FOSS.dom.el("option", { value: "insert_text", text: "Insert Text at Position" }),
+      window.FOSS.dom.el("option", { value: "regex_replace", text: "Regular Expression (RegEx)" }),
       window.FOSS.dom.el("option", { value: "number_sequence", text: "Number Sequence" }),
       window.FOSS.dom.el("option", { value: "add_date", text: "Date Stamp" }),
       window.FOSS.dom.el("option", { value: "clean_name", text: "Clean Up Characters" }),
@@ -675,6 +683,60 @@ window.FOSS = window.FOSS || {};
           ]);
           caseSel.value = step.case_mode || "title";
           bodyControls.appendChild(window.FOSS.components.field("Capitalization Style", caseSel));
+        } else if (step.type === "insert_text") {
+          var insInp = window.FOSS.dom.el("input", {
+            type: "text",
+            className: "input input-sm font-mono text-xs",
+            placeholder: "Text to insert",
+            value: step.text || "",
+            "aria-label": "Text to insert",
+            title: "Text to insert",
+            onInput: function () {
+              step.text = insInp.value;
+              schedulePreviewUpdate();
+            }
+          });
+          var posInp = window.FOSS.dom.el("input", {
+            type: "number",
+            className: "input input-sm font-mono text-xs",
+            placeholder: "0",
+            value: String(step.index || 0),
+            "aria-label": "Character index",
+            title: "Character index",
+            onInput: function () {
+              step.index = parseInt(posInp.value, 10) || 0;
+              schedulePreviewUpdate();
+            }
+          });
+          bodyControls.appendChild(window.FOSS.components.field("Insert Text", insInp));
+          bodyControls.appendChild(window.FOSS.components.field("At Position (0 = start)", posInp));
+        } else if (step.type === "regex_replace") {
+          var patInp = window.FOSS.dom.el("input", {
+            type: "text",
+            className: "input input-sm font-mono text-xs",
+            placeholder: "RegEx Pattern (e.g. ^\\d+\\s*)",
+            value: step.pattern || "",
+            "aria-label": "RegEx Pattern",
+            title: "RegEx Pattern",
+            onInput: function () {
+              step.pattern = patInp.value;
+              schedulePreviewUpdate();
+            }
+          });
+          var repInp = window.FOSS.dom.el("input", {
+            type: "text",
+            className: "input input-sm font-mono text-xs",
+            placeholder: "Replacement",
+            value: step.replacement || "",
+            "aria-label": "Replacement",
+            title: "Replacement",
+            onInput: function () {
+              step.replacement = repInp.value;
+              schedulePreviewUpdate();
+            }
+          });
+          bodyControls.appendChild(window.FOSS.components.field("Search RegEx Pattern", patInp));
+          bodyControls.appendChild(window.FOSS.components.field("Replacement", repInp));
         } else if (step.type === "change_extension") {
           var extInp = window.FOSS.dom.el("input", {
             type: "text",

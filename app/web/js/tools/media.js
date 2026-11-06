@@ -19,6 +19,7 @@ window.FOSS = window.FOSS || {};
     opus: { name: "Opus Audio (*.opus)", extensions: ["opus"] },
     srt: { name: "SubRip Subtitles (*.srt)", extensions: ["srt"] },
     vtt: { name: "WebVTT Subtitles (*.vtt)", extensions: ["vtt"] },
+    txt: { name: "Text File (*.txt)", extensions: ["txt"] },
     jpg: { name: "JPEG Image (*.jpg)", extensions: ["jpg"] },
     png: { name: "PNG Image (*.png)", extensions: ["png"] }
   };
@@ -417,6 +418,19 @@ window.FOSS = window.FOSS || {};
       var startInput = numberInput("media-trim-start", "Trim Start Time (seconds)", "0.0", { step: "0.1", min: "0", "data-truncate-ok": "true" });
       var endInput = numberInput("media-trim-end", "Trim End Time (seconds)", "10.0", { step: "0.1", min: "0", "data-truncate-ok": "true" });
 
+      startInput.addEventListener("input", function () {
+        var s = parseFloat(startInput.value);
+        if (!isNaN(s) && ui.stage && ui.stage.video) {
+          ui.stage.video.currentTime = Math.max(0, s);
+        }
+      });
+      endInput.addEventListener("input", function () {
+        var e = parseFloat(endInput.value);
+        if (!isNaN(e) && ui.stage && ui.stage.video) {
+          ui.stage.video.currentTime = Math.max(0, e);
+        }
+      });
+
       function syncEndToDuration() {
         var dur = ui.stage.getDuration();
         if (dur > 0) endInput.value = dur.toFixed(1);
@@ -569,10 +583,20 @@ window.FOSS = window.FOSS || {};
         title: "Speech Language Code"
       });
 
-      var subFormatSelect = selectInput("media-transcribe-format", "Subtitle Format", [
+      var subFormatSelect = selectInput("media-transcribe-format", "Transcription Output", [
         ["srt", "SubRip Subtitle (.srt)"],
-        ["vtt", "WebVTT (.vtt)"]
+        ["vtt", "WebVTT (.vtt)"],
+        ["txt", "Plain Text File (.txt)"],
+        ["app", "Direct In-App Transcript Display"]
       ], "srt");
+
+      var inAppTranscriptEl = D.el("textarea", {
+        className: "input font-mono text-xs w-full hidden",
+        "data-testid": "media-transcript-inapp",
+        rows: "6",
+        readonly: true,
+        placeholder: "Transcription text will appear here..."
+      });
 
       var transcribeBtn = D.el("button", {
         className: "btn btn-primary",
@@ -580,10 +604,28 @@ window.FOSS = window.FOSS || {};
         type: "button",
         onClick: function () {
           if (!ui.requireFile()) return;
-          var order = subFormatSelect.value === "vtt" ? ["vtt", "srt"] : ["srt", "vtt"];
-          pickSavePath("Save Subtitle File", order).then(function (outPath) {
+          var chosenFmt = subFormatSelect.value;
+          if (chosenFmt === "app") {
+            ui.setStatus("Transcribing audio via local Whisper...");
+            window.FOSS.job("media_transcribe", {
+              input_path: state.file,
+              language: langInput.value.trim() || "en"
+            }).then(function (res) {
+              if (!res || res.ok === false) {
+                ui.setStatus("Error: " + errorText(res));
+                toastError("Transcription failed: " + errorText(res));
+                return;
+              }
+              inAppTranscriptEl.value = res.text || "(No transcription text captured)";
+              inAppTranscriptEl.classList.remove("hidden");
+              ui.setStatus(res.warning ? "Warning: " + res.warning : "Transcription complete (displayed in app)");
+            });
+            return;
+          }
+          var order = chosenFmt === "vtt" ? ["vtt", "srt", "txt"] : (chosenFmt === "txt" ? ["txt", "srt", "vtt"] : ["srt", "vtt", "txt"]);
+          pickSavePath("Save Transcription / Subtitles", order).then(function (outPath) {
             if (!outPath) return;
-            var fmt = extOf(outPath) === "vtt" ? "vtt" : "srt";
+            var fmt = extOf(outPath) === "txt" ? "txt" : (extOf(outPath) === "vtt" ? "vtt" : "srt");
             ui.setStatus("Transcribing audio via local Whisper...");
             window.FOSS.job("media_transcribe", {
               input_path: state.file,
@@ -596,12 +638,16 @@ window.FOSS = window.FOSS || {};
                 toastError("Transcription failed: " + errorText(res));
                 return;
               }
+              if (res.text) {
+                inAppTranscriptEl.value = res.text;
+                inAppTranscriptEl.classList.remove("hidden");
+              }
               ui.setStatus(res.warning ? "Warning: " + res.warning : "Transcription complete: " + outPath);
-              ui.host.show(outPath, "Subtitles Generated");
+              ui.host.show(outPath, "Transcription Saved");
             });
           });
         }
-      }, [window.FOSS.icons.el("file-text", 16), D.el("span", { text: "Generate Subtitles (Whisper)..." })]);
+      }, [window.FOSS.icons.el("file-text", 16), D.el("span", { text: "Transcribe Speech (Whisper)..." })]);
 
       return [
         D.el("div", { className: "card card-compact" }, [
@@ -616,9 +662,10 @@ window.FOSS = window.FOSS || {};
           D.el("div", { className: "card-title text-sm font-semibold", text: "Offline Speech Transcription" }),
           D.el("div", { className: "grid grid-cols-2 gap-2" }, [
             window.FOSS.components.field("Language Code", langInput),
-            window.FOSS.components.field("Subtitle Format", subFormatSelect)
+            window.FOSS.components.field("Transcription Output", subFormatSelect)
           ]),
-          transcribeBtn
+          transcribeBtn,
+          inAppTranscriptEl
         ])
       ];
     });
@@ -663,7 +710,13 @@ window.FOSS = window.FOSS || {};
         ["4.0", "4.0x (Hyper Speed)"]
       ], "1.0");
 
-      var defaultReverse = !!window.FOSS.toolDefaults.get(TOOL_ID, "reverse", false);
+      speedSelect.addEventListener("change", function () {
+        var sp = parseFloat(speedSelect.value) || 1.0;
+        if (ui.stage && ui.stage.video) {
+          ui.stage.video.playbackRate = sp;
+        }
+      });
+
       var reverseSwitch = window.FOSS.components.switch({
         testid: "media-speed-reverse",
         label: "Reverse Playback (Backwards)",

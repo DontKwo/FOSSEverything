@@ -624,6 +624,8 @@ window.FOSS = window.FOSS || {};
         "data-testid": "data-hdf5-node-path",
         text: node.path
       }));
+
+      var metaContainer = window.FOSS.dom.el("div", { className: "flex-col gap-2" });
       var link = node.link || {};
       var rows = [["Kind", node.kind]];
       if (link.type && link.type !== "root") {
@@ -655,28 +657,45 @@ window.FOSS = window.FOSS || {};
         }
       }
       if (node.kind === "datatype" && node.dtype) rows.push(["Data type", node.dtype.label]);
-      detailsHost.appendChild(keyValueTable(rows));
+      metaContainer.appendChild(keyValueTable(rows));
 
       if (node.fields && node.fields.length) {
-        detailsHost.appendChild(sectionTitle("Compound fields"));
-        detailsHost.appendChild(gridTable(["Field", "Type", "Offset"], node.fields.map(function (f) {
+        metaContainer.appendChild(sectionTitle("Compound fields"));
+        metaContainer.appendChild(gridTable(["Field", "Type", "Offset"], node.fields.map(function (f) {
           return [f.name, f.dtype, f.offset];
         })));
       }
 
       var attrs = node.attributes || [];
-      detailsHost.appendChild(sectionTitle("Attributes (" + attrs.length + ")"));
+      metaContainer.appendChild(sectionTitle("Attributes (" + attrs.length + ")"));
       if (attrs.length) {
-        detailsHost.appendChild(gridTable(["Name", "Type", "Shape", "Value"], attrs.map(function (a) {
+        metaContainer.appendChild(gridTable(["Name", "Type", "Shape", "Value"], attrs.map(function (a) {
           var shown = a.error ? "Error: " + a.error : cellText(a.value);
           if (a.truncated) shown += " ... (" + a.total_elements + " elements)";
           return [a.name, a.dtype || "", JSON.stringify(a.shape || []), shown];
         })));
       } else {
-        detailsHost.appendChild(window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "No attributes." }));
+        metaContainer.appendChild(window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "No attributes." }));
       }
 
-      if (node.kind === "dataset") detailsHost.appendChild(buildPreview(node));
+      if (node.kind === "dataset") {
+        detailsHost.appendChild(buildPreview(node));
+        var toggleDetailsBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-secondary btn-sm text-xs mt-2 self-start",
+          "data-testid": "data-hdf5-toggle-details",
+          type: "button",
+          onClick: function () {
+            var hidden = metaContainer.classList.contains("hidden");
+            metaContainer.classList.toggle("hidden", !hidden);
+            toggleDetailsBtn.textContent = hidden ? "[-] Hide Dataset Details & Attributes" : "[+] View Dataset Details & Attributes";
+          }
+        }, [window.FOSS.dom.el("span", { text: "[+] View Dataset Details & Attributes" })]);
+        metaContainer.classList.add("hidden");
+        detailsHost.appendChild(toggleDetailsBtn);
+        detailsHost.appendChild(metaContainer);
+      } else {
+        detailsHost.appendChild(metaContainer);
+      }
     }
 
     function showDetails(path) {

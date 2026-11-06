@@ -75,6 +75,7 @@ def _compress_image_file(
     lossy_png: bool = True,
     png_colors: int = 128,
     max_dimension: int | None = None,
+    quality: int | None = None,
 ) -> str:
     # Compress image with quality optimization and optional PNG quantization.
     img = Image.open(in_path)
@@ -96,18 +97,18 @@ def _compress_image_file(
         else:
             img.save(out_path, format="PNG", optimize=True, compress_level=9)
     elif ext in (".jpg", ".jpeg"):
-        quality = 65 if preset == "aggressive" else (85 if preset == "light" else 75)
+        q_val = quality if quality is not None else (65 if preset == "aggressive" else (85 if preset == "light" else 75))
         if img.mode != "RGB":
             img = img.convert("RGB")
-        img.save(out_path, format="JPEG", quality=quality, optimize=True)
+        img.save(out_path, format="JPEG", quality=q_val, optimize=True)
     elif ext == ".webp":
-        quality = 60 if preset == "aggressive" else (85 if preset == "light" else 75)
-        img.save(out_path, format="WEBP", quality=quality, method=6)
+        q_val = quality if quality is not None else (60 if preset == "aggressive" else (85 if preset == "light" else 75))
+        img.save(out_path, format="WEBP", quality=q_val, method=6)
     else:
         # Default fallback to WebP or optimized PNG
         if img.mode != "RGB":
             img = img.convert("RGB")
-        img.save(out_path, format="JPEG", quality=75, optimize=True)
+        img.save(out_path, format="JPEG", quality=quality or 75, optimize=True)
     return out_path
 
 
@@ -222,6 +223,8 @@ class CompressorApiMixin:
         preset = str(params.get("preset", "balanced")).lower()
         lossy_png = bool(params.get("lossy_png", True))
         png_colors = int(params.get("png_colors", 128))
+        custom_quality = int(params.get("quality", 0)) or None
+        audio_bitrate = str(params.get("audio_bitrate", "")).strip() or None
         max_dim = int(params.get("max_dimension", 0)) or None
         target_mb = int(params.get("target_size_mb", 0)) or None
         out_dir = str(params.get("output_dir", "")).strip()
@@ -262,13 +265,14 @@ class CompressorApiMixin:
                         lossy_png=lossy_png,
                         png_colors=png_colors,
                         max_dimension=max_dim,
+                        quality=custom_quality,
                     )
                 elif cat == "PDF":
                     lvl = "screen" if preset == "aggressive" else ("printer" if preset == "light" else "ebook")
                     compress_pdf(in_p, out_p, quality=lvl)
                 elif cat == "Media":
                     p_val = "small_file" if preset == "aggressive" else ("high_quality" if preset == "light" else "balanced")
-                    compress_media(in_p, out_p, preset=p_val)
+                    compress_media(in_p, out_p, preset=p_val, audio_bitrate=audio_bitrate or "128k")
                 else:
                     _repack_or_compress_archive(in_p, out_p)
 

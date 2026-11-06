@@ -521,6 +521,35 @@ STARTER_RECIPES: list[dict[str, Any]] = [
             },
         ],
     },
+    {
+        "name": "Finance: Q1-Q4 Statements",
+        "steps": [
+            {
+                "type": "add_date",
+                "enabled": True,
+                "date_source": "best_date",
+                "date_format": "YYYY-MM",
+                "position": "prefix",
+                "separator": " - ",
+            },
+            {
+                "type": "add_text",
+                "enabled": True,
+                "prefix": "",
+                "suffix": " - Financial_Report",
+            },
+        ],
+    },
+    {
+        "name": "CamelCase to snake_case",
+        "steps": [
+            {
+                "type": "change_case",
+                "enabled": True,
+                "case_mode": "snake",
+            },
+        ],
+    },
 ]
 
 
@@ -680,6 +709,23 @@ def preview_step_pipeline(
             elif step_type == "change_case":
                 case_mode = str(step.get("case_mode", "title"))
                 stem = apply_case_transform(stem, case_mode)
+
+            elif step_type == "insert_text":
+                ins_text = str(step.get("text", ""))
+                ins_idx = int(step.get("index", 0))
+                if ins_idx < 0:
+                    ins_idx = max(0, len(stem) + ins_idx)
+                ins_idx = min(len(stem), ins_idx)
+                stem = stem[:ins_idx] + ins_text + stem[ins_idx:]
+
+            elif step_type == "regex_replace":
+                pattern_str = str(step.get("pattern", ""))
+                replacement_str = str(step.get("replacement", ""))
+                if pattern_str:
+                    try:
+                        stem = re.sub(pattern_str, replacement_str, stem)
+                    except re.error:
+                        pass
 
             elif step_type == "change_extension":
                 new_ext = str(step.get("extension", "")).strip()

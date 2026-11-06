@@ -1466,12 +1466,83 @@ window.FOSS = window.FOSS || {};
       }
     });
 
+    var planesListEl = window.FOSS.dom.el("div", {
+      className: "flex-col gap-1",
+      "data-testid": "model3d-planes-list"
+    });
+
+    function updatePlanesUI() {
+      planesListEl.innerHTML = "";
+      cuttingPlanes.forEach(function (pl, idx) {
+        var isSel = idx === selectedPlaneIdx;
+        var pItem = window.FOSS.dom.el("div", {
+          className: "row justify-between items-center p-1 cursor-pointer rounded border border-border" + (isSel ? " bg-raised border-accent" : ""),
+          "data-testid": "model3d-plane-item-" + idx,
+          onClick: function () {
+            selectedPlaneIdx = idx;
+            syncInputsWithCurrentPlane();
+            updatePlanesUI();
+            viewport.render();
+          }
+        }, [
+          window.FOSS.dom.el("span", { className: "text-xs font-semibold", text: "Plane " + (idx + 1) }),
+          window.FOSS.dom.el("span", {
+            className: "text-xs text-muted font-mono",
+            text: "O:[" + pl.origin.join(",") + "] N:[" + pl.normal.join(",") + "]"
+          })
+        ]);
+        if (cuttingPlanes.length > 1) {
+          var delBtn = window.FOSS.dom.el("button", {
+            className: "btn btn-ghost btn-xs text-danger",
+            title: "Delete Plane",
+            onClick: function (ev) {
+              ev.stopPropagation();
+              cuttingPlanes.splice(idx, 1);
+              if (selectedPlaneIdx >= cuttingPlanes.length) selectedPlaneIdx = cuttingPlanes.length - 1;
+              syncInputsWithCurrentPlane();
+              updatePlanesUI();
+              viewport.render();
+            }
+          }, [window.FOSS.icons.el("trash", 12)]);
+          pItem.appendChild(delBtn);
+        }
+        planesListEl.appendChild(pItem);
+      });
+    }
+
+    var addPlaneBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "model3d-add-plane-btn",
+      text: "+ Add Plane",
+      onClick: function () {
+        var defaultNorm = cuttingPlanes.length === 1 ? [0, 1, 0] : (cuttingPlanes.length === 2 ? [1, 0, 0] : [0, 0, 1]);
+        cuttingPlanes.push({ origin: [0, 0, 0], normal: defaultNorm });
+        selectedPlaneIdx = cuttingPlanes.length - 1;
+        syncInputsWithCurrentPlane();
+        updatePlanesUI();
+        viewport.render();
+      }
+    });
+
+    var planesCard = window.FOSS.dom.el("div", {
+      className: "card card-compact",
+      "data-testid": "model3d-planes-card"
+    }, [
+      window.FOSS.dom.el("div", { className: "row justify-between items-center mb-1" }, [
+        window.FOSS.dom.el("span", { className: "card-title text-sm font-semibold", text: "Cutting Planes (" + cuttingPlanes.length + ")" }),
+        addPlaneBtn
+      ]),
+      planesListEl
+    ]);
+
+    updatePlanesUI();
+
     var originCard = window.FOSS.dom.el("div", {
       className: "card card-compact",
       "data-testid": "model3d-origin-card"
     }, [
       window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
-        window.FOSS.dom.el("span", { className: "card-title text-sm font-semibold", text: "Plane Origin" }),
+        window.FOSS.dom.el("span", { className: "card-title text-sm font-semibold", text: "Active Plane Origin" }),
         pickOriginBtn
       ]),
       window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [origX, origY, origZ])
@@ -1482,7 +1553,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "model3d-normal-card"
     }, [
       window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
-        window.FOSS.dom.el("span", { className: "card-title text-sm font-semibold", text: "Plane Normal" }),
+        window.FOSS.dom.el("span", { className: "card-title text-sm font-semibold", text: "Active Plane Normal" }),
         viewDirBtn
       ]),
       window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [normX, normY, normZ])
@@ -1632,6 +1703,7 @@ window.FOSS = window.FOSS || {};
       className: "model3d-sidebar-pane stack",
       "data-testid": "model3d-cut-sidebar"
     }, [
+      planesCard,
       originCard,
       normalCard,
       solidCapLabel,
