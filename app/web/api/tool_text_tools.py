@@ -190,9 +190,10 @@ class TextToolsApiMixin:
     @api_method
     def text_tools_diff(self, params: dict[str, Any]) -> dict[str, Any]:
         # Compute differences between two strings.
-        require(params, "text1", "text2")
-        text1 = normalize_for_diff(str(params["text1"]), bool(params.get("ignore_whitespace")), bool(params.get("ignore_case")))
-        text2 = normalize_for_diff(str(params["text2"]), bool(params.get("ignore_whitespace")), bool(params.get("ignore_case")))
+        t1_raw = params.get("text1", params.get("left", params.get("original", "")))
+        t2_raw = params.get("text2", params.get("right", params.get("modified", "")))
+        text1 = normalize_for_diff(str(t1_raw or ""), bool(params.get("ignore_whitespace")), bool(params.get("ignore_case")))
+        text2 = normalize_for_diff(str(t2_raw or ""), bool(params.get("ignore_whitespace")), bool(params.get("ignore_case")))
         view = str(params.get("view", "unified")).lower()
         if view == "unified":
             diff_res = diff_texts(text1, text2)
