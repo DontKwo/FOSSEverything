@@ -44,10 +44,16 @@ def browser() -> Generator[Browser, None, None]:
 @pytest.fixture
 def page(browser: Browser, api: Any) -> Generator[Page, None, None]:
     # Per-test page fixture for walkthrough and scenario execution.
+    if hasattr(api, "_dialog_answers"):
+        api._dialog_answers.clear()
     session = make_page(browser, api, VIEWPORTS[0], theme="dark", ui_scale=1.0)
     p = session["page"]
-    yield p
-    p.close()
+    try:
+        yield p
+    finally:
+        if hasattr(api, "_dialog_answers"):
+            api._dialog_answers.clear()
+        p.close()
 
 
 @pytest.fixture(scope="session")

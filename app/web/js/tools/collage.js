@@ -744,16 +744,7 @@ window.FOSS = window.FOSS || {};
       flatFormatSelect,
       layeredFormatSelect
     ]));
-    var collageDefaultsBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-ghost btn-sm btn-icon",
-      "data-testid": "collage-defaults-btn",
-      "aria-label": "Collage defaults",
-      title: "Edit defaults",
-      type: "button",
-      onClick: function () { window.FOSS.toolDefaults.openEditor("collage", "Photo Collage"); }
-    }, [window.FOSS.icons.el("settings", 14)]);
-
-    exportCard.appendChild(window.FOSS.dom.el("div", { className: "row mt-1 items-center gap-2" }, [saveBtn, exportLayersBtn, collageDefaultsBtn]));
+    exportCard.appendChild(window.FOSS.dom.el("div", { className: "row mt-1" }, [saveBtn, exportLayersBtn]));
 
     sidebarPane.appendChild(importCard);
     sidebarPane.appendChild(controlsCard);
