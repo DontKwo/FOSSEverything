@@ -12,6 +12,7 @@ from webview.dom import DOMEventHandler
 
 from app.system.settings import get_setting
 from app.system.shell_integration import (
+    app_icon_path,
     register_shell_context_menu,
     start_ipc_server,
     try_forward_to_running_instance,
@@ -154,7 +155,9 @@ def main() -> None:
             t = threading.Thread(target=run_selftest, args=(win,), daemon=True)
             t.start()
 
-    webview.start(on_app_ready, window, debug=False)
+    icon_file = app_icon_path()
+    webview_icon = icon_file if os.path.isfile(icon_file) else None
+    webview.start(on_app_ready, window, debug=False, icon=webview_icon)
 
 
 if __name__ == "__main__":
