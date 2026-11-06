@@ -4,15 +4,19 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  max-height: 100vh;
+  max-width: 100vw;
   overflow: hidden;
 }
 
 .app {
   display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
-  grid-template-rows: var(--topbar-h) minmax(0, 1fr);
+  grid-template-columns: min(var(--sidebar-w), 40vw) minmax(0, 1fr);
+  grid-template-rows: min(var(--topbar-h), 20vh) minmax(0, 1fr);
   height: 100vh;
   height: 100dvh;
+  max-height: 100vh;
+  max-width: 100vw;
   min-height: 0;
   min-width: 0;
   overflow-y: auto;
@@ -212,6 +216,7 @@ body {
 .page {
   max-width: var(--page-max);
   width: 100%;
+  box-sizing: border-box;
   margin-inline: auto;
   padding: calc(var(--page-pad) * 1.5) var(--page-pad);
   display: flex;
@@ -219,6 +224,27 @@ body {
   gap: var(--space-6);
   container-type: inline-size;
   min-width: 0;
+}
+
+.zoom-hud {
+  position: fixed;
+  bottom: var(--space-4);
+  right: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  z-index: 9999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-fast) ease-in-out;
+}
+
+.zoom-hud.visible {
+  opacity: 1;
 }
 
 .page.wide {

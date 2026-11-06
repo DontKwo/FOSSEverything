@@ -799,13 +799,25 @@ def grammar_check_text(text: str) -> dict:
         issues.append({"type": "repeated_word", "message": "Repeated word detected. Remove the duplicate."})
     if re.search(r"[.!][A-Za-z]", text):
         # Sentence spacing check: punctuation should usually be followed by a space.
-        # This catches common punctuation mistakes without being overly strict.
         issues.append({"type": "sentence_spacing", "message": "Check sentence spacing after punctuation."})
     if re.search(r"\b[A-Z]{3,}\b", text) and "".join(text.split()):
         # Heuristic: a very long uppercase sequence usually suggests accidental caps lock.
         issues.append({"type": "caps_lock", "message": "Avoid long all-caps sequences unless intentionally formatting a title or acronym."})
     if re.search(r"\b(?:it is|this is|that is)\s+[a-z]", text, re.IGNORECASE) and len(stripped.split()) > 7:
         issues.append({"type": "wordiness", "message": "Consider tightening wordy phrases for clearer writing."})
+
+    # Spelling check using spellchecker
+    try:
+        from spellchecker import SpellChecker
+        spell = SpellChecker()
+        words = re.findall(r"\b[a-zA-Z]{3,}\b", text)
+        misspelled = spell.unknown([w.lower() for w in words])
+        for w in list(misspelled)[:10]:
+            cand = spell.candidates(w)
+            cand_str = f" Did you mean: {', '.join(list(cand)[:3])}?" if cand else ""
+            issues.append({"type": "spelling", "message": f"Possible spelling error: '{w}'.{cand_str}"})
+    except Exception:
+        pass
 
     score = max(0, 100 - (len(issues) * 12))
     summary = "Looks clean." if not issues else f"{len(issues)} possible grammar or style issue(s) found."

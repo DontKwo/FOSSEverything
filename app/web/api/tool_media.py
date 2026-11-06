@@ -199,9 +199,14 @@ class MediaApiMixin:
         res_dict = transcribe_audio(in_p, language=lang)
         segments = res_dict.get("segments", [])
         out_p = params.get("output_path")
-        if out_p and segments:
-            fmt = str(params.get("subtitle_format", "srt"))
-            generate_subtitles_from_transcription(res_dict, str(out_p), subtitle_format=fmt)
+        if out_p:
+            fmt = str(params.get("subtitle_format", "srt")).lower()
+            if fmt == "txt" or str(out_p).lower().endswith(".txt"):
+                os.makedirs(os.path.dirname(os.path.abspath(str(out_p))), exist_ok=True)
+                with open(str(out_p), "w", encoding="utf-8") as f:
+                    f.write(res_dict.get("text", ""))
+            elif segments:
+                generate_subtitles_from_transcription(res_dict, str(out_p), subtitle_format=fmt)
         parsed = parse_subtitle_cues(res_dict.get("text", "")) if not segments else segments
         return ok(
             text=res_dict.get("text", ""),

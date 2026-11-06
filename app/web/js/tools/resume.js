@@ -5,11 +5,11 @@ window.FOSS = window.FOSS || {};
   var masterResume = {
     contact: {
       name: "Alex Morgan",
-      title: "Guidance, Navigation, and Control Engineer",
+      title: "Quantitative Finance & Systems Engineering",
       email: "alex.morgan@utexas.edu",
       phone: "(512) 555-0199",
       location: "Austin, TX",
-      linkedin: "linkedin.com/in/alexmorgan-aero",
+      linkedin: "linkedin.com/in/alexmorgan-finance",
       github: "github.com/alexmorgan",
       website: "alexmorgan.space"
     },
@@ -24,11 +24,11 @@ window.FOSS = window.FOSS || {};
         entries: [
           {
             id: "edu_1",
-            title: "Bachelor of Science, Aerospace Engineering Honors",
+            title: "Bachelor of Science, Computational Engineering & Finance Honors",
             subtitle: "The University of Texas at Austin",
             date_range: "December 2026",
             gpa: "3.94 / 4.00",
-            coursework: "Orbital Mechanics, Spacecraft Dynamics & Control, Flight Mechanics, Numerical Methods",
+            coursework: "Stochastic Calculus, Quantitative Risk, Numerical Analysis, Derivative Pricing, Financial Modeling, Algorithms",
             enabled: true,
             bullets: []
           }
@@ -42,13 +42,43 @@ window.FOSS = window.FOSS || {};
         entries: [
           {
             id: "exp_1",
-            title: "Guidance, Navigation, and Control Intern",
-            subtitle: "Space Exploration Technologies (SpaceX)",
+            title: "Quantitative Trading & Risk Intern",
+            subtitle: "Apex Capital & Trading",
             date_range: "May 2025 - August 2025",
             enabled: true,
             bullets: [
-              { id: "b1", text: "Designed and validated 6-DOF entry guidance Monte Carlo simulations in C++ and Python.", enabled: true },
-              { id: "b2", text: "Implemented quaternion-based attitude estimation filters integrating IMU and star tracker telemetry.", enabled: true }
+              { id: "b1", text: "Built ultra-low latency statistical arbitrage backtesting pipelines in Python and C++, evaluating signals across 500M+ order book updates.", enabled: true },
+              { id: "b2", text: "Engineered automated Monte Carlo value-at-risk (VaR) framework reducing intra-day risk calculation latency by 45%.", enabled: true }
+            ]
+          },
+          {
+            id: "exp_2",
+            title: "Financial Systems Software Intern",
+            subtitle: "Texas Investment Management",
+            date_range: "June 2024 - August 2024",
+            enabled: true,
+            bullets: [
+              { id: "b3", text: "Automated regression analytics on macro factor models across $2B portfolio, decreasing quarterly audit turnaround from 4 days to 2 hours.", enabled: true },
+              { id: "b4", text: "Constructed real-time options Greeks dashboard with interactive volatility surface visualizations.", enabled: true }
+            ]
+          }
+        ]
+      },
+      {
+        id: "sec_proj",
+        type: "projects",
+        title: "PROJECTS",
+        enabled: true,
+        entries: [
+          {
+            id: "proj_1",
+            title: "Longhorn Algorithmic Trading Group",
+            subtitle: "Head of Quantitative Strategies",
+            date_range: "2023 - Present",
+            enabled: true,
+            bullets: [
+              { id: "b5", text: "Led engineering of high-throughput market data feed parser supporting FIX protocol and binary exchange formats.", enabled: true },
+              { id: "b6", text: "Trained LSTM neural network models for predictive volatility estimation achieving 14% Sharpe improvement over baseline.", enabled: true }
             ]
           }
         ]
@@ -56,13 +86,20 @@ window.FOSS = window.FOSS || {};
       {
         id: "sec_skills",
         type: "skills",
-        title: "ADDITIONAL SKILLS AND LANGUAGES",
+        title: "SKILLS & EXPERTISE",
         enabled: true,
         entries: [
           {
             id: "sk_1",
-            title: "Simulation & Analysis",
-            skills_text: "C++, Python, MATLAB, Simulink, ROS 2, PyMuPDF, Linux/POSIX",
+            title: "Quantitative & Programming",
+            skills_text: "Python, C++, SQL, R, MATLAB, Pandas, NumPy, Scikit-learn, Git, Linux/POSIX",
+            enabled: true,
+            bullets: []
+          },
+          {
+            id: "sk_2",
+            title: "Financial Knowledge",
+            skills_text: "Fixed Income, Equity Derivatives, Portfolio Optimization, Monte Carlo Simulation, Black-Scholes, Risk Parity",
             enabled: true,
             bullets: []
           }
@@ -270,7 +307,7 @@ window.FOSS = window.FOSS || {};
                   masterResume = res.resume;
                   renderLeftPane();
                   schedulePreviewUpdate();
-                  window.FOSS.dialogs.toast("SpaceX GNC sample loaded.");
+                  window.FOSS.dialogs.toast("UT Austin Engineering sample loaded.");
                 }
               });
           }
@@ -952,7 +989,7 @@ window.FOSS = window.FOSS || {};
           currentTheme = e.target.value;
           schedulePreviewUpdate();
         }
-      }, [window.FOSS.dom.el("option", { value: "gnc", text: "SpaceX GNC", selected: currentTheme === "gnc" })]);
+      }, [window.FOSS.dom.el("option", { value: "gnc", text: "UT Austin Engineering Theme", selected: currentTheme === "gnc" })]);
       var dateSelect = window.FOSS.dom.el("select", {
         className: "select",
         "data-testid": "resume-date-format-select",
@@ -1023,7 +1060,7 @@ window.FOSS = window.FOSS || {};
     icon: "resume",
     workbench: true,
     defaults: [
-      { key: "theme", label: "Default theme", type: "select", options: [{ value: "gnc", label: "SpaceX GNC" }], default: "gnc" },
+      { key: "theme", label: "Default theme", type: "select", options: [{ value: "gnc", label: "UT Austin Engineering Theme" }], default: "gnc" },
       { key: "date_format", label: "Default date format", type: "select", options: ["MM/YYYY", "Month YYYY"], default: "Month YYYY" },
       {
         key: "font_scale",
@@ -1033,7 +1070,7 @@ window.FOSS = window.FOSS || {};
         default: "11.0"
       }
     ],
-    description: "SpaceX GNC format resume builder with live document preview and multi-format export.",
+    description: "UT Austin Engineering Theme resume builder with live document preview and multi-format export.",
     tabs: [
       { id: "personal", label: "Contact & Bio", render: function (p) { renderResumeWorkbench(p, "personal"); } },
       { id: "sections", label: "Sections", render: function (p) { renderResumeWorkbench(p, "sections"); } },

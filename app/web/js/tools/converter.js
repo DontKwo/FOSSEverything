@@ -699,7 +699,36 @@ window.FOSS = window.FOSS || {};
       });
     }
 
-    var card = window.FOSS.dom.el("div", {
+    var settingsCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3",
+      style: "width: 100%; box-sizing: border-box;"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Batch Options" }),
+      window.FOSS.components.field("Filter Family", familyFilterSelect),
+      window.FOSS.components.field("Apply Format to All", targetAllSelect),
+      window.FOSS.dom.el("div", { className: "flex-col gap-2 pt-1" }, [
+        window.FOSS.dom.el("label", { className: "row gap-2 items-center text-xs cursor-pointer" }, [
+          recursiveCheck,
+          window.FOSS.dom.el("span", { text: "Include Subfolders Recursively" })
+        ]),
+        window.FOSS.dom.el("label", { className: "row gap-2 items-center text-xs cursor-pointer" }, [
+          preserveTreeCheck,
+          window.FOSS.dom.el("span", { text: "Preserve Folder Hierarchy" })
+        ])
+      ]),
+      window.FOSS.dom.el("div", { className: "flex-col gap-1 pt-1" }, [
+        window.FOSS.dom.el("label", { className: "text-xs font-semibold text-muted", text: "Output Folder" }),
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [outputDirInput, browseBatchDirBtn])
+      ]),
+      runBtn
+    ]);
+
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "converter-sidebar-pane",
+      style: "width: 100%; min-width: 0;"
+    }, [settingsCard]);
+
+    var stageCard = window.FOSS.dom.el("div", {
       className: "card card-compact flex-col gap-3 grow",
       style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
     }, [
@@ -708,36 +737,27 @@ window.FOSS = window.FOSS || {};
           addFilesBtn,
           addFolderBtn
         ]),
-        window.FOSS.dom.el("div", { className: "row gap-3 items-center flex-wrap" }, [
-          window.FOSS.dom.el("label", { className: "row gap-1 items-center text-xs text-muted cursor-pointer" }, [
-            recursiveCheck,
-            window.FOSS.dom.el("span", { text: "Include Subfolders" })
-          ]),
-          window.FOSS.dom.el("label", { className: "row gap-1 items-center text-xs text-muted cursor-pointer" }, [
-            preserveTreeCheck,
-            window.FOSS.dom.el("span", { text: "Preserve Structure" })
-          ]),
-          familyFilterSelect,
-          targetAllSelect,
-          clearCompletedBtn
-        ])
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [clearCompletedBtn])
       ]),
-      tableHost,
-      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap pt-2 border-t" }, [
-        window.FOSS.dom.el("div", { className: "row gap-2 items-center grow", style: "min-width: 16rem;" }, [
-          window.FOSS.dom.el("span", { className: "text-xs font-semibold text-muted shrink-0", text: "Output Folder:" }),
-          outputDirInput,
-          browseBatchDirBtn
-        ]),
-        window.FOSS.dom.el("div", { className: "row gap-2" }, [
-          runBtn
-        ])
-      ])
+      tableHost
+    ]);
+
+    var stageWrapper = window.FOSS.dom.el("div", {
+      className: "converter-stage-pane grow",
+      style: "width: 100%; min-width: 0;"
+    }, [stageCard]);
+
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable converter-workbench"
+    }, [
+      sidebar,
+      window.FOSS.components.splitDivider({ vertical: true }),
+      stageWrapper
     ]);
 
     panel.appendChild(statusBar);
     panel.appendChild(errorBanner);
-    panel.appendChild(card);
+    panel.appendChild(split);
 
     renderQueueTable();
 

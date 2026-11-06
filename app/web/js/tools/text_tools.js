@@ -516,10 +516,18 @@ window.FOSS = window.FOSS || {};
           ignore_case: ignoreCaseCheck.checked,
           view: diffViewSelect.value
         }).then(function (res) {
-          var added = res.added !== undefined ? res.added : (res.additions || 0);
-          var removed = res.removed !== undefined ? res.removed : (res.deletions || 0);
+          if (!res || res.ok === false) {
+            statusBar.textContent = "Error: " + (res && res.error ? res.error : "Diff failed");
+            return;
+          }
+          var added = res.additions !== undefined ? res.additions : (res.added || 0);
+          var removed = res.deletions !== undefined ? res.deletions : (res.removed || 0);
           statsBadge.textContent = "+" + added + " additions, -" + removed + " deletions";
-          diffOutput.setValue(res.diff || res.unified_diff || "Documents are identical.");
+          var diffText = res.diff || res.unified_diff;
+          if (!diffText && added === 0 && removed === 0) {
+            diffText = "Documents are identical.";
+          }
+          diffOutput.setValue(diffText || "Documents are identical.");
           statusBar.textContent = "[OK] Diff computed: +" + added + " / -" + removed;
         }).catch(function (err) {
           statusBar.textContent = "Error: " + (err.message || String(err));

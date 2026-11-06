@@ -249,6 +249,8 @@ window.FOSS = window.FOSS || {};
       "data-testid": "metadata-diff-table"
     });
 
+    editCard.classList.add("hidden");
+
     var sidebar = window.FOSS.dom.el("div", {
       className: "metadata-sidebar-pane"
     }, [
@@ -282,13 +284,38 @@ window.FOSS = window.FOSS || {};
       renderInspectTable(currentMetadata);
     });
 
+    var saveTableEditsBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "metadata-save-table-btn",
+      type: "button",
+      onClick: function () {
+        saveEditsAction();
+      }
+    }, [window.FOSS.icons.el("save", 14), window.FOSS.dom.el("span", { text: "Save All Changes" })]);
+
+    var addTagBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "metadata-add-tag-btn",
+      type: "button",
+      onClick: function () {
+        var key = window.prompt("Enter new metadata tag name:");
+        if (!key || !key.trim()) return;
+        currentMetadata[key.trim()] = "";
+        renderInspectTable(currentMetadata);
+      }
+    }, [window.FOSS.icons.el("plus", 14), window.FOSS.dom.el("span", { text: "Add Tag" })]);
+
     var stageCard = window.FOSS.dom.el("div", {
       className: "card card-compact flex-col gap-3 grow",
       style: "box-sizing: border-box; min-width: 0;"
     }, [
-      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between" }, [
-        window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: "Inspected Metadata Fields" }),
-        tableFilterInput
+      window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
+        window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: "Editable Metadata Fields" }),
+        window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
+          tableFilterInput,
+          addTagBtn,
+          saveTableEditsBtn
+        ])
       ]),
       inspectTableHost
     ]);
@@ -361,6 +388,30 @@ window.FOSS = window.FOSS || {};
       }
 
       var rows = entries.map(function (e) {
+        var key = e[0];
+        var valInput = window.FOSS.dom.el("input", {
+          type: "text",
+          className: "input input-sm text-xs font-mono w-full",
+          value: String(e[1]),
+          "aria-label": "Value for " + key,
+          onInput: function () {
+            currentMetadata[key] = valInput.value;
+            syncInputsFromMetadata(currentMetadata);
+          }
+        });
+
+        var deleteBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm text-danger",
+          type: "button",
+          title: "Delete Tag",
+          "aria-label": "Delete tag " + key,
+          onClick: function () {
+            delete currentMetadata[key];
+            renderInspectTable(currentMetadata);
+            syncInputsFromMetadata(currentMetadata);
+          }
+        }, [window.FOSS.icons.el("trash", 12)]);
+
         var copyBtn = window.FOSS.dom.el("button", {
           className: "btn btn-ghost btn-sm",
           type: "button",
@@ -368,7 +419,7 @@ window.FOSS = window.FOSS || {};
           "aria-label": "Copy tag value",
           onClick: function () {
             if (navigator.clipboard) {
-              navigator.clipboard.writeText(String(e[1])).then(function () {
+              navigator.clipboard.writeText(String(currentMetadata[key] || "")).then(function () {
                 if (window.FOSS.toast) window.FOSS.toast.show("Copied value", "info");
               });
             }
@@ -379,15 +430,14 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("td", {
             className: "font-mono text-xs font-semibold",
             "data-truncate-ok": "true",
-            title: String(e[0]),
-            text: String(e[0])
+            title: String(key),
+            text: String(key)
           }),
           window.FOSS.dom.el("td", {
             className: "text-xs font-mono",
-            style: "word-break: break-all;",
-            text: String(e[1])
-          }),
-          window.FOSS.dom.el("td", { style: "width: 2.5rem; text-align: right;" }, [copyBtn])
+            style: "padding: 0.25rem 0.5rem;"
+          }, [valInput]),
+          window.FOSS.dom.el("td", { style: "width: 5rem; text-align: right; white-space: nowrap;" }, [copyBtn, deleteBtn])
         ]);
       });
 
@@ -405,6 +455,10 @@ window.FOSS = window.FOSS || {};
     }
 
     function populateEditForm(meta) {
+      syncInputsFromMetadata(meta);
+    }
+
+    function syncInputsFromMetadata(meta) {
       titleInput.value = meta.Title || meta.title || meta["PDF:Title"] || "";
       authorInput.value = meta["Author / Creator"] || meta.Author || meta.author || meta.Artist || "";
       subjectInput.value = meta.Subject || meta.subject || meta["PDF:Subject"] || "";
