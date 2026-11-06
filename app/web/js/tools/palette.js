@@ -255,6 +255,7 @@ window.FOSS = window.FOSS || {};
       renderActiveSwatches();
     };
 
+    var defaultMethod = String(toolDefaults.extraction_method || "kmeans");
     var methodSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "palette-method-select",
@@ -264,6 +265,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "median-cut", text: "Median-Cut" }),
       window.FOSS.dom.el("option", { value: "kmeans", text: "K-Means Clustering" })
     ]);
+    methodSelect.value = defaultMethod;
 
     var extractBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
@@ -600,6 +602,7 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.icons.el("copy", 14), window.FOSS.dom.el("span", { text: "Copy All" })]);
     copyAllBtn.setAttribute("data-testid", "palette-copy-all-btn");
 
+    var defaultExportFormat = String(toolDefaults.export_format || "json");
     var formatSelect = window.FOSS.dom.el("select", {
       className: "input btn-sm",
       "data-testid": "palette-export-format-select",
@@ -614,6 +617,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "gpl", text: "GIMP Palette (.gpl)" }),
       window.FOSS.dom.el("option", { value: "aco", text: "Adobe Swatch (.aco)" })
     ]);
+    formatSelect.value = defaultExportFormat;
 
     var exportBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
@@ -1112,7 +1116,12 @@ window.FOSS = window.FOSS || {};
     workbench: true,
     defaults: [
       { key: "swatch_count", label: "Default swatch count", type: "number", min: 2, max: 24, step: 1, default: 6 },
-      { key: "copy_format", label: "Primary copy format", type: "select", options: ["hex", "rgb", "hsl"], default: "hex" }
+      { key: "copy_format", label: "Primary copy format", type: "select", options: ["hex", "rgb", "hsl"], default: "hex" },
+      { key: "extraction_method", label: "Default extraction algorithm", type: "select", options: [
+        { value: "kmeans", label: "K-Means Clustering" },
+        { value: "median-cut", label: "Median-Cut" }
+      ], default: "kmeans" },
+      { key: "export_format", label: "Default palette export format", type: "select", options: ["json", "css", "ase", "png", "gpl", "aco"], default: "json" }
     ],
     onFiles: function (files) {
       if (files && files.length > 0) {

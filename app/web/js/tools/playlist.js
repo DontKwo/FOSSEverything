@@ -5,6 +5,9 @@ window.FOSS = window.FOSS || {};
   var TOOL_ID = "playlist";
   var currentTracks = [];
   var currentDirection = "spotify -> youtube / youtube music";
+  function defaultDirection() {
+    return String(window.FOSS.toolDefaults.get(TOOL_ID, "direction", "spotify -> youtube / youtube music"));
+  }
 
   var EXPORT_TYPES = {
     m3u8: { label: "M3U8", method: "playlist_export_m3u8", type: { name: "M3U8 Playlist (*.m3u8)", extensions: ["m3u8"] } },
@@ -346,6 +349,7 @@ window.FOSS = window.FOSS || {};
       D.el("option", { value: "spotify -> youtube / youtube music", text: "Spotify -> YouTube / YouTube Music" }),
       D.el("option", { value: "youtube -> spotify", text: "YouTube -> Spotify" })
     ]);
+    currentDirection = defaultDirection();
     directionSelect.value = currentDirection;
 
     var textarea = D.el("textarea", {
@@ -564,7 +568,11 @@ window.FOSS = window.FOSS || {};
     category: "Media",
     icon: "playlist",
     defaults: [
-      { key: "export_format", label: "Default export format", type: "select", options: [{ value: "m3u8", label: "M3U8" }, { value: "csv", label: "CSV" }, { value: "json", label: "JSON" }], default: "m3u8" }
+      { key: "export_format", label: "Default export format", type: "select", options: [{ value: "m3u8", label: "M3U8" }, { value: "csv", label: "CSV" }, { value: "json", label: "JSON" }], default: "m3u8" },
+      { key: "direction", label: "Default conversion direction", type: "select", options: [
+        { value: "spotify -> youtube / youtube music", label: "Spotify -> YouTube / YouTube Music" },
+        { value: "youtube -> spotify", label: "YouTube -> Spotify" }
+      ], default: "spotify -> youtube / youtube music" }
     ],
     tabs: [
       { id: "import", label: "Import / Fetch", aliases: ["fetch"], render: renderFetch },

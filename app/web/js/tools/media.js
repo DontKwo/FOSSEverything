@@ -720,7 +720,7 @@ window.FOSS = window.FOSS || {};
       var reverseSwitch = window.FOSS.components.switch({
         testid: "media-speed-reverse",
         label: "Reverse Playback (Backwards)",
-        checked: false
+        checked: defaultReverse
       });
 
       var speedRunBtn = D.el("button", {
@@ -742,7 +742,8 @@ window.FOSS = window.FOSS || {};
         }
       }, [window.FOSS.icons.el("play", 16), D.el("span", { text: "Apply Speed & Reverse..." })]);
 
-      var gifFpsInput = numberInput("media-gif-fps", "GIF Frame Rate", "15", { min: "5", max: "30" });
+      var defaultGifFps = String(window.FOSS.toolDefaults.get(TOOL_ID, "gif_fps", 15));
+      var gifFpsInput = numberInput("media-gif-fps", "GIF Frame Rate", defaultGifFps, { min: "5", max: "30" });
       var gifWidthInput = numberInput("media-gif-width", "GIF Width (px)", "480", { min: "160", max: "1280" });
 
       var handleCreateGif = function () {
@@ -940,7 +941,9 @@ window.FOSS = window.FOSS || {};
     defaults: [
       { key: "audio_format", label: "Default audio export format", type: "select", options: ["mp3", "wav", "flac", "aac", "opus"], default: "mp3" },
       { key: "bitrate", label: "Default audio bitrate", type: "select", options: ["128k", "192k", "256k", "320k"], default: "192k" },
-      { key: "fast_copy", label: "Fast stream copy when trimming", type: "toggle", default: true, hint: "Trim without re-encoding when possible." }
+      { key: "fast_copy", label: "Fast stream copy when trimming", type: "toggle", default: true, hint: "Trim without re-encoding when possible." },
+      { key: "reverse", label: "Reverse playback by default in effects", type: "toggle", default: false },
+      { key: "gif_fps", label: "Default animated GIF frame rate", type: "number", min: 5, max: 30, step: 1, default: 15 }
     ],
     onFiles: function (paths) {
       if (!paths || paths.length === 0) return;

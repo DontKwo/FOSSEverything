@@ -313,6 +313,7 @@ window.FOSS = window.FOSS || {};
     });
 
     // Backdrop controls
+    var defaultBackdrop = String(window.FOSS.toolDefaults.get("images", "backdrop", "transparent"));
     var backdropSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "images-backdrop-select",
@@ -324,6 +325,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "solid", text: "Solid Color" }),
       window.FOSS.dom.el("option", { value: "blur", text: "Blurred Original Backdrop" })
     ]);
+    backdropSelect.value = defaultBackdrop;
 
     var colorPicker = window.FOSS.dom.el("input", {
       type: "color",
@@ -779,6 +781,7 @@ window.FOSS = window.FOSS || {};
     });
 
     // Filter presets
+    var defaultFilter = String(window.FOSS.toolDefaults.get("images", "filter_preset", "Auto Enhance"));
     var filterSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "images-filter-select",
@@ -792,6 +795,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "Cool Tone", text: "Cool Tone" }),
       window.FOSS.dom.el("option", { value: "Grayscale", text: "Grayscale" })
     ]);
+    filterSelect.value = defaultFilter;
 
     var applyFilterBtn = window.FOSS.dom.el("button", {
       className: "btn btn-sm",
@@ -918,6 +922,7 @@ window.FOSS = window.FOSS || {};
       style: "font-family: monospace; white-space: pre; overflow: auto; max-height: 24rem; font-size: 0.5rem; line-height: 1;"
     });
 
+    var defaultCharset = String(window.FOSS.toolDefaults.get("images", "ascii_charset", "standard"));
     var charsetSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "images-ascii-charset",
@@ -930,6 +935,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "blocks", text: "Blocks" }),
       window.FOSS.dom.el("option", { value: "minimal", text: "Minimal" })
     ]);
+    charsetSelect.value = defaultCharset;
 
     var widthInput = window.FOSS.dom.el("input", {
       type: "number",
@@ -1099,6 +1105,19 @@ window.FOSS = window.FOSS || {};
         options: ["u2net", "u2netp", "silueta", "isnet-general-use", "u2net_human_seg", "birefnet-general-lite", "bria-rmbg"],
         default: "u2net"
       },
+      { key: "backdrop", label: "Default cutout backdrop", type: "select", options: [
+        { value: "transparent", label: "Transparent (PNG)" },
+        { value: "solid", label: "Solid Color" },
+        { value: "blur", label: "Blurred Original Backdrop" }
+      ], default: "transparent" },
+      { key: "filter_preset", label: "Default filter preset", type: "select", options: [
+        { value: "Auto Enhance", label: "Auto Enhance" },
+        { value: "Vivid", label: "Vivid" },
+        { value: "Warm Tone", label: "Warm Tone" },
+        { value: "Cool Tone", label: "Cool Tone" },
+        { value: "Grayscale", label: "Grayscale" }
+      ], default: "Auto Enhance" },
+      { key: "ascii_charset", label: "Default ASCII charset", type: "select", options: ["standard", "detailed", "blocks", "minimal"], default: "standard" },
       { key: "export_format", label: "Default export format", type: "select", options: ["png", "webp", "jpeg"], default: "webp" },
       { key: "jpeg_quality", label: "Default JPEG quality", type: "number", min: 1, max: 100, step: 1, default: 85 }
     ],

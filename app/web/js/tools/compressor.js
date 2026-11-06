@@ -123,13 +123,14 @@ window.FOSS = window.FOSS || {};
       });
     }
 
+    var defaultQuantize = !!window.FOSS.toolDefaults.get("compressor", "png_quantize", true);
     var pngQuantizeCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
       className: "checkbox checkbox-sm",
       "data-testid": "compressor-png-quantize",
       "aria-label": "Quantize PNG Palette",
       title: "Quantize PNG Palette",
-      checked: true,
+      checked: defaultQuantize,
       onChange: function () {
         refreshEstimates();
       }
@@ -642,7 +643,8 @@ window.FOSS = window.FOSS || {};
           { value: "aggressive", label: "High (Maximum)" }
         ],
         default: "balanced"
-      }
+      },
+      { key: "png_quantize", label: "Quantize PNG palette by default", type: "toggle", default: true }
     ],
     tabs: [
       { id: "main", label: "File Compressor", aliases: ["single"], render: renderCompressor }

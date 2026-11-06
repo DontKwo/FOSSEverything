@@ -1421,6 +1421,7 @@ window.FOSS = window.FOSS || {};
     var randCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
     var randTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Random / Password Generator" });
 
+    var defaultGeneratorType = String(lookupDefault("generator_type", "password"));
     var randKind = window.FOSS.dom.el("select", {
       className: "input input-sm",
       "aria-label": "Generator Type"
@@ -1431,6 +1432,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "number", text: "Random Integer" }),
       window.FOSS.dom.el("option", { value: "name", text: "Full Name" })
     ]);
+    randKind.value = defaultGeneratorType;
 
     var randLen = window.FOSS.dom.el("input", {
       type: "number",
@@ -1628,6 +1630,19 @@ window.FOSS = window.FOSS || {};
         }),
         default: "yaml",
         hint: "Format preselected in the Convert dropdown."
+      },
+      {
+        key: "generator_type",
+        label: "Default random generator type",
+        type: "select",
+        options: [
+          { value: "password", label: "Cryptographic Password" },
+          { value: "uuid", label: "UUID v4" },
+          { value: "token", label: "Hex Auth Token" },
+          { value: "number", label: "Random Integer" },
+          { value: "name", label: "Full Name" }
+        ],
+        default: "password"
       }
     ],
     tabs: [

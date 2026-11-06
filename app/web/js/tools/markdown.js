@@ -277,6 +277,8 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("external", 16), window.FOSS.dom.el("span", { text: "Export HTML" })]);
 
+    var defaultExportFormat = mdDefault("export_format", "pdf");
+
     var exportPdfBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
       "data-testid": "markdown-export-pdf",
@@ -707,6 +709,17 @@ window.FOSS = window.FOSS || {};
           { value: "off", label: "No wrap (scroll horizontally)" }
         ],
         default: "soft"
+      },
+      {
+        key: "export_format",
+        label: "Default export format",
+        type: "select",
+        options: [
+          { value: "pdf", label: "PDF Document (*.pdf)" },
+          { value: "html", label: "HTML Document (*.html)" },
+          { value: "md", label: "Markdown Document (*.md)" }
+        ],
+        default: "pdf"
       }
     ],
     description: "Side-by-side Markdown editor and live renderer with GitHub GFM, CommonMark, and HTML/PDF export.",

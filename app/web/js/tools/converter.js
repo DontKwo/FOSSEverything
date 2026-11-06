@@ -353,13 +353,16 @@ window.FOSS = window.FOSS || {};
     }
 
     // Top Controls Bar
+    var defaultBatchRecursive = !!window.FOSS.toolDefaults.get("converter", "batch_recursive", true);
+    var defaultPreserveTree = !!window.FOSS.toolDefaults.get("converter", "preserve_tree", true);
+
     var recursiveCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
       className: "checkbox checkbox-sm",
       "data-testid": "converter-batch-recursive",
       "aria-label": "Include Subfolders",
       title: "Include Subfolders",
-      checked: true
+      checked: defaultBatchRecursive
     });
 
     var preserveTreeCheck = window.FOSS.dom.el("input", {
@@ -368,7 +371,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "converter-batch-preserve-tree",
       "aria-label": "Preserve Folder Structure",
       title: "Preserve Folder Structure",
-      checked: true
+      checked: defaultPreserveTree
     });
 
     var familyFilterSelect = window.FOSS.dom.el("select", {
@@ -778,7 +781,9 @@ window.FOSS = window.FOSS || {};
     defaults: [
       { key: "image_format", label: "Default image target format", type: "select", options: ["png", "jpeg", "webp", "bmp", "tiff"], default: "png" },
       { key: "document_format", label: "Default document target format", type: "select", options: ["pdf", "txt", "md", "html", "csv"], default: "pdf" },
-      { key: "quality", label: "Default quality", type: "number", min: 10, max: 100, step: 5, default: 90, hint: "Applies to JPEG and WebP output." }
+      { key: "quality", label: "Default quality", type: "number", min: 10, max: 100, step: 5, default: 90, hint: "Applies to JPEG and WebP output." },
+      { key: "batch_recursive", label: "Scan subfolders recursively in batch converter", type: "toggle", default: true },
+      { key: "preserve_tree", label: "Preserve folder structure when converting batch", type: "toggle", default: true }
     ],
     tabs: [
       { id: "single", label: "Single File", render: renderSingle },

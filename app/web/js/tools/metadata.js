@@ -655,10 +655,11 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("span", { text: "Choose Folder" })
     ]);
 
+    var defaultBatchRecursive = !!window.FOSS.toolDefaults.get("metadata", "batch_recursive", true);
     var recursiveCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
       "data-testid": "metadata-batch-recursive",
-      checked: true,
+      checked: defaultBatchRecursive,
       id: "metadata-batch-rec-check"
     });
 
@@ -801,7 +802,8 @@ window.FOSS = window.FOSS || {};
     icon: "metadata",
     workbench: true,
     defaults: [
-      { key: "create_backup", label: "Create backup of original file when stripping", type: "toggle", default: false }
+      { key: "create_backup", label: "Create backup of original file when stripping", type: "toggle", default: false },
+      { key: "batch_recursive", label: "Include subfolders by default in batch scrub", type: "toggle", default: true }
     ],
     onFiles: function (paths) {
       if (!paths || !paths.length) return;

@@ -25,6 +25,11 @@ window.FOSS = window.FOSS || {};
     var toolDefaults = window.FOSS.toolDefaults.all("collage");
     var defaultColumns = Math.min(5, Math.max(1, parseInt(toolDefaults.columns, 10) || 2));
     var defaultPadding = Math.min(60, Math.max(0, parseInt(toolDefaults.padding, 10)));
+    var defaultPreset = String(toolDefaults.preset || "2col-side");
+    var defaultFit = String(toolDefaults.fit_mode || "cover");
+    var defaultCaptions = !!toolDefaults.captions;
+    var defaultFlatFormat = String(toolDefaults.flat_format || "png");
+    var defaultLayeredFormat = String(toolDefaults.layered_format || "psd");
 
     var activeMode = "grid"; // "grid" or "freeform"
     var exportMode = "flattened"; // "flattened" or "layered"
@@ -570,6 +575,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "1col-story", text: "Story strip (1 column)" }),
       window.FOSS.dom.el("option", { value: "2x1-wide", text: "Wide panel (2x1)" })
     ]);
+    presetSelect.value = defaultPreset;
 
     var colsSelect = window.FOSS.dom.el("select", {
       className: "select w-24",
@@ -597,6 +603,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "contain", text: "Contain" }),
       window.FOSS.dom.el("option", { value: "stretch", text: "Stretch" })
     ]);
+    fitSelect.value = defaultFit;
 
     var paddingInput = window.FOSS.dom.el("input", {
       type: "number",
@@ -626,6 +633,7 @@ window.FOSS = window.FOSS || {};
       type: "checkbox",
       id: "collage-captions-check-id",
       className: "checkbox",
+      checked: defaultCaptions,
       "data-testid": "collage-captions-check",
       "aria-label": "Add filenames as captions",
       title: "Add filenames as captions",
@@ -707,6 +715,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "png", text: "PNG (Lossless)" }),
       window.FOSS.dom.el("option", { value: "jpeg", text: "JPEG (Compressed)" })
     ]);
+    flatFormatSelect.value = defaultFlatFormat;
 
     var layeredFormatSelect = window.FOSS.dom.el("select", {
       className: "select text-xs hidden",
@@ -719,6 +728,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "zip", text: "Transparent PNG Stack (.zip)" }),
       window.FOSS.dom.el("option", { value: "tiff", text: "Multi-Layer TIFF (.tiff)" })
     ]);
+    layeredFormatSelect.value = defaultLayeredFormat;
 
     var saveBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary btn-sm",
@@ -1652,7 +1662,23 @@ window.FOSS = window.FOSS || {};
       { key: "transparent_bg", label: "Transparent background by default", type: "toggle", default: false },
       { key: "bg_color", label: "Default background color", type: "color", default: "#ffffff" },
       { key: "columns", label: "Default grid columns", type: "number", min: 1, max: 5, step: 1, default: 2 },
-      { key: "padding", label: "Default cell padding", type: "number", min: 0, max: 60, step: 1, default: 12 }
+      { key: "padding", label: "Default cell padding", type: "number", min: 0, max: 60, step: 1, default: 12 },
+      { key: "preset", label: "Default grid preset", type: "select", options: [
+        { value: "2col-side", label: "Side-by-side (2 cols)" },
+        { value: "3col-trip", label: "Triptych (3 cols)" },
+        { value: "3x3-insta", label: "Instagram grid (3x3)" },
+        { value: "2x2-quad", label: "Product grid (2x2)" },
+        { value: "1col-story", label: "Story strip (1 col)" },
+        { value: "2x1-wide", label: "Wide panel (2x1)" }
+      ], default: "2col-side" },
+      { key: "fit_mode", label: "Default image fit mode", type: "select", options: [
+        { value: "cover", label: "Cover" },
+        { value: "contain", label: "Contain" },
+        { value: "stretch", label: "Stretch" }
+      ], default: "cover" },
+      { key: "captions", label: "Add filenames as captions by default", type: "toggle", default: false },
+      { key: "flat_format", label: "Default flattened export format", type: "select", options: ["png", "jpeg"], default: "png" },
+      { key: "layered_format", label: "Default layered export format", type: "select", options: ["psd", "ora", "zip", "tiff"], default: "psd" }
     ],
     description: "Freeform multi-layer canvas with Z-ordering, transforms, grid collages, and layered PSD/ORA/ZIP export.",
     onFiles: function (paths) {

@@ -30,6 +30,29 @@ window.FOSS = window.FOSS || {};
           { value: "scientific", label: "Scientific Notation" },
           { value: "engineering", label: "Engineering Notation" }
         ]
+      },
+      {
+        key: "prefix",
+        label: "Default unit prefix multiplier",
+        type: "select",
+        default: "1",
+        options: [
+          { value: "1", label: "Prefix: None (1x)" },
+          { value: "1e3", label: "kilo (k) - 10^3" },
+          { value: "1e6", label: "mega (M) - 10^6" },
+          { value: "1e9", label: "giga (G) - 10^9" },
+          { value: "1e-3", label: "milli (m) - 10^-3" },
+          { value: "1e-6", label: "micro (\u03bc) - 10^-6" },
+          { value: "1e-9", label: "nano (n) - 10^-9" },
+          { value: "1024", label: "kibi (Ki) - 1,024" },
+          { value: "1048576", label: "mebi (Mi) - 1,048,576" }
+        ]
+      },
+      {
+        key: "include_all",
+        label: "Include all available units by default",
+        type: "toggle",
+        default: false
       }
     ];
   }
@@ -59,6 +82,8 @@ window.FOSS = window.FOSS || {};
     var defaultCategory = String(toolDefaults.get("unit_converter", "category", "length"));
     var defaultPrecision = String(toolDefaults.get("unit_converter", "precision", 4));
     var defaultNotation = String(toolDefaults.get("unit_converter", "notation", "standard"));
+    var defaultPrefix = String(toolDefaults.get("unit_converter", "prefix", "1"));
+    var defaultIncludeAll = !!toolDefaults.get("unit_converter", "include_all", false);
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted mb-sm",
@@ -127,6 +152,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "1024", text: "kibi (Ki) - 1,024" }),
       window.FOSS.dom.el("option", { value: "1048576", text: "mebi (Mi) - 1,048,576" })
     ]);
+    prefixSelect.value = defaultPrefix;
 
     var notationSelect = window.FOSS.dom.el("select", {
       className: "select select-sm text-xs",
@@ -145,6 +171,7 @@ window.FOSS = window.FOSS || {};
 
     var includeAllCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
+      checked: defaultIncludeAll,
       "data-testid": "unit_converter-include-all",
       "aria-label": "Include all available units",
       title: "Include all available units",

@@ -851,6 +851,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "tar.xz", text: "To TAR.XZ (.tar.xz)" }),
       window.FOSS.dom.el("option", { value: "tar.bz2", text: "To TAR.BZ2 (.tar.bz2)" })
     ]);
+    convertTargetSelect.value = window.FOSS.toolDefaults.get("archive", "convert_format", "zip");
 
     var convertBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
@@ -929,7 +930,8 @@ window.FOSS = window.FOSS || {};
     workbench: true,
     defaults: [
       { key: "format", label: "Default archive format", type: "select", options: ["zip", "tar.gz"], default: "zip" },
-      { key: "level", label: "Default compression level", type: "number", min: 0, max: 9, step: 1, default: 6 }
+      { key: "level", label: "Default compression level", type: "number", min: 0, max: 9, step: 1, default: 6 },
+      { key: "convert_format", label: "Default inspect convert format", type: "select", options: ["zip", "tar.gz", "tar.xz", "tar.bz2"], default: "zip" }
     ],
     onFiles: function (paths) {
       if (!paths || paths.length === 0) return;

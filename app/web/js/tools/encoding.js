@@ -369,8 +369,8 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "Hex", text: "Hexadecimal" }),
       window.FOSS.dom.el("option", { value: "Binary", text: "Binary (8-bit)" })
     ]);
-    var defaultScheme = String(toolDefault("scheme", "Base64"));
-    schemeSelect.value = ["Base64", "Hex", "Binary"].indexOf(defaultScheme) >= 0 ? defaultScheme : "Base64";
+    var defaultFileScheme = String(toolDefault("file_scheme", "Base64"));
+    schemeSelect.value = ["Base64", "Hex", "Binary"].indexOf(defaultFileScheme) >= 0 ? defaultFileScheme : "Base64";
 
     var filePicker = window.FOSS.components.filePicker({
       testid: "encoding-file-picker",
@@ -522,11 +522,23 @@ window.FOSS = window.FOSS || {};
     defaults: [
       {
         key: "scheme",
-        label: "Default scheme",
+        label: "Default text scheme",
         type: "select",
         options: TEXT_SCHEMES,
         default: "Base64",
-        hint: "Scheme preselected for text and file encoding."
+        hint: "Scheme preselected for text encoding."
+      },
+      {
+        key: "file_scheme",
+        label: "Default file scheme",
+        type: "select",
+        options: [
+          { value: "Base64", label: "Base64" },
+          { value: "Hex", label: "Hexadecimal" },
+          { value: "Binary", label: "Binary (8-bit)" }
+        ],
+        default: "Base64",
+        hint: "Scheme preselected for file encoding."
       },
       {
         key: "spaced",
