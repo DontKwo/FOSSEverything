@@ -7,6 +7,12 @@ import time
 from pathlib import Path
 from typing import Any
 
+if sys.platform == "win32":
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("FOSSEverything.DesktopApp")
+    except Exception:  # noqa: 10
+        pass
+
 import webview
 from webview.dom import DOMEventHandler
 
@@ -104,7 +110,10 @@ def main() -> None:
         sys.exit(0)
 
     if sys.platform == "win32":
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("FOSSEverything.DesktopApp")
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("FOSSEverything.DesktopApp")
+        except Exception:  # noqa: 10
+            pass
 
     api = WebApi()
     html_path = str(calc_app_base_dir() / "app" / "web" / "index.html")
@@ -145,12 +154,46 @@ def main() -> None:
         except Exception as exc:
             _ = exc
 
+    def set_win32_window_icons(icon_path: str) -> None:
+        # Set taskbar and titlebar icon handles via Win32 SendMessage.
+        if sys.platform != "win32" or not os.path.isfile(icon_path):
+            return
+        try:
+            from ctypes import wintypes  # noqa: 22
+
+            user32 = ctypes.windll.user32
+            kernel32 = ctypes.windll.kernel32
+            sm_x = user32.GetSystemMetrics(49)
+            sm_y = user32.GetSystemMetrics(50)
+            lg_x = user32.GetSystemMetrics(11)
+            lg_y = user32.GetSystemMetrics(12)
+            h_sm = user32.LoadImageW(None, icon_path, 1, sm_x, sm_y, 0x00000010)
+            h_lg = user32.LoadImageW(None, icon_path, 1, lg_x, lg_y, 0x00000010)
+            pid = kernel32.GetCurrentProcessId()
+            wnd_proc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+
+            def _enum(hwnd: Any, _lparam: Any) -> bool:
+                wpid = wintypes.DWORD()
+                user32.GetWindowThreadProcessId(hwnd, ctypes.byref(wpid))
+                if wpid.value == pid and user32.IsWindowVisible(hwnd):
+                    if h_sm:
+                        user32.SendMessageW(hwnd, 0x0080, 0, h_sm)
+                    if h_lg:
+                        user32.SendMessageW(hwnd, 0x0080, 1, h_lg)
+                return True
+
+            user32.EnumWindows(wnd_proc(_enum), 0)
+        except Exception:  # noqa: 10
+            pass
+
     def on_app_ready(win: Any) -> None:
         # Register window drop handler after GUI loop start.
         try:
             win.dom.document.events.drop += DOMEventHandler(on_window_drop, True, True)
         except Exception as exc:
             _ = exc
+        if icon_file and os.path.isfile(icon_file):
+            set_win32_window_icons(icon_file)
         if is_selftest:
             t = threading.Thread(target=run_selftest, args=(win,), daemon=True)
             t.start()
