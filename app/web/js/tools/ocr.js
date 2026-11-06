@@ -671,9 +671,10 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("file", 16), window.FOSS.dom.el("span", { text: "Add Files" })]);
 
+    var defaultRecursive = ocrDefault("batch_recursive", true) !== false;
     var recursiveCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
-      checked: true,
+      checked: defaultRecursive,
       "data-testid": "ocr-batch-recursive",
       "aria-label": "Include subfolders when scanning folders"
     });
@@ -971,7 +972,8 @@ window.FOSS = window.FOSS || {};
         ],
         default: "txt"
       },
-      { key: "force_reocr", label: "Force re-OCR existing text", type: "toggle", default: false }
+      { key: "force_reocr", label: "Force re-OCR existing text", type: "toggle", default: false },
+      { key: "batch_recursive", label: "Include subfolders when scanning folders in batch", type: "toggle", default: true }
     ],
     description: "Extract text from scans and images; create searchable PDFs completely offline.",
     tabs: [

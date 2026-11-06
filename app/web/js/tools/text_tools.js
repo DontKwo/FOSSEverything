@@ -913,6 +913,7 @@ window.FOSS = window.FOSS || {};
       "aria-label": "DOI or URL"
     });
 
+    var defaultCitStyle = String(toolDefault("citation_style", "apa"));
     var citStyle = window.FOSS.dom.el("select", {
       className: "input input-sm wb-flow",
       "data-testid": "text_tools-cit-style",
@@ -924,6 +925,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "ieee", text: "IEEE Standard" }),
       window.FOSS.dom.el("option", { value: "bibtex", text: "BibTeX Entry" })
     ]);
+    citStyle.value = defaultCitStyle;
 
     var citOutput = window.FOSS.dom.el("div", {
       className: "wb-box wb-details font-mono text-sm",
@@ -1015,6 +1017,19 @@ window.FOSS = window.FOSS || {};
         ],
         default: "unified",
         hint: "View used when comparing texts."
+      },
+      {
+        key: "citation_style",
+        label: "Default citation style",
+        type: "select",
+        options: [
+          { value: "apa", label: "APA 7th Edition" },
+          { value: "mla", label: "MLA 9th Edition" },
+          { value: "chicago", label: "Chicago 17th" },
+          { value: "ieee", label: "IEEE Standard" },
+          { value: "bibtex", label: "BibTeX Entry" }
+        ],
+        default: "apa"
       }
     ],
     tabs: [

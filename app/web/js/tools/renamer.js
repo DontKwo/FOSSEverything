@@ -765,13 +765,16 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
 
+    var defaultRecursive = !!window.FOSS.toolDefaults.get("renamer", "recursive", false);
     var recursiveCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
+      checked: defaultRecursive,
       "data-testid": "renamer-recursive",
       "aria-label": "Include Subfolders",
       title: "Include Subfolders"
     });
 
+    var defaultSortOrder = String(window.FOSS.toolDefaults.get("renamer", "sort_order", "name_asc"));
     var sortSelect = window.FOSS.dom.el("select", {
       className: "select select-sm text-xs font-semibold",
       "data-testid": "renamer-sort-select",
@@ -788,6 +791,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "size_asc", text: "Sort: Size (Smallest)" }),
       window.FOSS.dom.el("option", { value: "size_desc", text: "Sort: Size (Largest)" })
     ]);
+    sortSelect.value = defaultSortOrder;
 
     // Timeline checkbox alias for automated scenarios
     var timelineCheck = window.FOSS.dom.el("input", {
@@ -843,9 +847,10 @@ window.FOSS = window.FOSS || {};
       text: "0 files ready"
     });
 
+    var defaultAutoResolve = window.FOSS.toolDefaults.get("renamer", "auto_resolve", true) !== false;
     var autoResolveCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
-      checked: true,
+      checked: defaultAutoResolve,
       "data-testid": "renamer-auto-resolve-conflicts",
       "aria-label": "Auto-resolve duplicate names with (2), (3)",
       title: "Auto-resolve duplicate names with (2), (3)",
@@ -1212,7 +1217,23 @@ window.FOSS = window.FOSS || {};
           { value: "kebab", label: "kebab-case" }
         ],
         default: "title"
-      }
+      },
+      { key: "recursive", label: "Include subfolders by default", type: "toggle", default: false },
+      {
+        key: "sort_order",
+        label: "Default file list sort order",
+        type: "select",
+        options: [
+          { value: "name_asc", label: "Name (A to Z)" },
+          { value: "name_desc", label: "Name (Z to A)" },
+          { value: "date_asc", label: "Date (Oldest First)" },
+          { value: "date_desc", label: "Date (Newest First)" },
+          { value: "size_asc", label: "Size (Smallest)" },
+          { value: "size_desc", label: "Size (Largest)" }
+        ],
+        default: "name_asc"
+      },
+      { key: "auto_resolve", label: "Auto-resolve name collisions by default", type: "toggle", default: true }
     ],
     tabs: [
       { id: "rules", label: "Rules & Preview", aliases: ["main"], render: renderMain }

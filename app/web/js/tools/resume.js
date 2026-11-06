@@ -96,6 +96,9 @@ window.FOSS = window.FOSS || {};
     currentTheme = String(values.theme);
     currentDateFormat = String(values.date_format);
     currentFontPt = parseFloat(values.font_scale) || 11.0;
+    if (values.include_summary !== undefined) {
+      masterResume.summary_enabled = !!values.include_summary;
+    }
     defaultsLoaded = true;
   }
 
@@ -1031,7 +1034,8 @@ window.FOSS = window.FOSS || {};
         type: "select",
         options: [{ value: "11.0", label: "11.0 pt (Standard)" }, { value: "10.5", label: "10.5 pt (Compact)" }, { value: "10.0", label: "10.0 pt (Dense)" }],
         default: "11.0"
-      }
+      },
+      { key: "include_summary", label: "Include professional summary by default", type: "toggle", default: true }
     ],
     description: "SpaceX GNC format resume builder with live document preview and multi-format export.",
     tabs: [

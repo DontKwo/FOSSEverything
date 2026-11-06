@@ -696,7 +696,8 @@ window.FOSS = window.FOSS || {};
       refreshSeq += 1;
     };
 
-    setPayloadType(sharedState.payloadType);
+    var defaultType = String(toolDefault("default_type", "url"));
+    setPayloadType(defaultType);
   }
 
   function renderBarcodeTab(panel) {
@@ -709,6 +710,7 @@ window.FOSS = window.FOSS || {};
     var currentImageDataUrl = "";
     var refreshSeq = 0;
 
+    var defaultSymbology = String(toolDefault("barcode_symbology", "code128"));
     var symbologySelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "qr-barcode-symbology",
@@ -726,6 +728,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "upca", text: "UPC-A (12 Digits Retail)" }),
       window.FOSS.dom.el("option", { value: "itf", text: "ITF (Interleaved 2 of 5)" })
     ]);
+    symbologySelect.value = defaultSymbology;
 
     var hintLabel = window.FOSS.dom.el("div", { className: "text-xs text-muted", text: "" });
     var hints = {
@@ -752,9 +755,10 @@ window.FOSS = window.FOSS || {};
       onInput: refreshBarcode
     });
 
+    var defaultBarcodeLabel = toolDefault("barcode_show_label", true) !== false;
     var labelToggle = window.FOSS.dom.el("input", {
       type: "checkbox",
-      checked: true,
+      checked: defaultBarcodeLabel,
       "data-testid": "qr-barcode-toggle",
       "aria-label": "Show Value Label",
       title: "Show Value Label",
@@ -1173,6 +1177,13 @@ window.FOSS = window.FOSS || {};
     workbench: true,
     defaults: [
       {
+        key: "default_type",
+        label: "Default QR payload type",
+        type: "select",
+        default: "url",
+        options: PAYLOAD_TYPES.map(function (p) { return { value: p.id, label: p.label }; })
+      },
+      {
         key: "error_correction",
         label: "Default error correction level",
         type: "select",
@@ -1184,7 +1195,22 @@ window.FOSS = window.FOSS || {};
           { value: "H", label: "H - Highest (~30% recovery)" }
         ]
       },
-      { key: "export_resolution", label: "Default export resolution (px)", type: "number", default: 512, min: 64, max: 4096, step: 64 }
+      { key: "export_resolution", label: "Default export resolution (px)", type: "number", default: 512, min: 64, max: 4096, step: 64 },
+      {
+        key: "barcode_symbology",
+        label: "Default 1D barcode symbology",
+        type: "select",
+        default: "code128",
+        options: [
+          { value: "code128", label: "Code 128 (General Purpose ASCII)" },
+          { value: "ean13", label: "EAN-13 (13 Digits Retail)" },
+          { value: "code39", label: "Code 39 (Alphanumeric)" },
+          { value: "ean8", label: "EAN-8 (8 Digits Retail)" },
+          { value: "upca", label: "UPC-A (12 Digits Retail)" },
+          { value: "itf", label: "ITF (Interleaved 2 of 5)" }
+        ]
+      },
+      { key: "barcode_show_label", label: "Show value label on barcodes by default", type: "toggle", default: true }
     ],
     tabs: [
       { id: "qr", label: "QR Generator", aliases: ["main", "generate"], render: renderQRTab },

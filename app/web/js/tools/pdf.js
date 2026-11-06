@@ -959,6 +959,7 @@ window.FOSS = window.FOSS || {};
       }
     });
 
+    var defaultStampFormat = String(pdfDefault("stamp_format", "Page {n} of {total}"));
     var formatSelect = window.FOSS.dom.el("select", {
       className: "select",
       "data-testid": "pdf-stamp-format",
@@ -969,7 +970,9 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "{n} / {total}", text: "{n} / {total}" }),
       window.FOSS.dom.el("option", { value: "{n}", text: "{n}" })
     ]);
+    formatSelect.value = defaultStampFormat;
 
+    var defaultStampPosition = String(pdfDefault("stamp_position", "bottom_center"));
     var positionSelect = window.FOSS.dom.el("select", {
       className: "select",
       "data-testid": "pdf-stamp-position",
@@ -983,6 +986,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "top_right", text: "Top Right" }),
       window.FOSS.dom.el("option", { value: "top_left", text: "Top Left" })
     ]);
+    positionSelect.value = defaultStampPosition;
 
     var startNumInput = window.FOSS.dom.el("input", {
       type: "number",
@@ -1527,6 +1531,31 @@ window.FOSS = window.FOSS || {};
         step: 1,
         default: 150,
         hint: "Resolution used when rendering a page in the viewer."
+      },
+      {
+        key: "stamp_format",
+        label: "Default page number stamp format",
+        type: "select",
+        options: [
+          { value: "Page {n} of {total}", label: "Page {n} of {total}" },
+          { value: "{n} / {total}", label: "{n} / {total}" },
+          { value: "{n}", label: "{n}" }
+        ],
+        default: "Page {n} of {total}"
+      },
+      {
+        key: "stamp_position",
+        label: "Default page number stamp position",
+        type: "select",
+        options: [
+          { value: "bottom_center", label: "Bottom Center" },
+          { value: "bottom_right", label: "Bottom Right" },
+          { value: "bottom_left", label: "Bottom Left" },
+          { value: "top_center", label: "Top Center" },
+          { value: "top_right", label: "Top Right" },
+          { value: "top_left", label: "Top Left" }
+        ],
+        default: "bottom_center"
       }
     ],
     description: "Combine, organize, split, and protect PDF documents with visual page grid.",

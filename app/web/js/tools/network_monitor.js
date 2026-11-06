@@ -384,6 +384,11 @@ window.FOSS = window.FOSS || {};
     livePollIntervalMs = pollSeconds * 1000;
 
     var filterPills = window.FOSS.dom.el("div", { className: "row gap-xs items-center" });
+    var defaultStatusFilter = String(defaults.get("network_monitor", "status_filter", "ALL"));
+    if (["ALL", "ESTABLISHED", "LISTEN", "UDP", "NEW"].indexOf(defaultStatusFilter) !== -1) {
+      currentLiveFilterStatus = defaultStatusFilter;
+    }
+
     var pillStatuses = [
       { id: "ALL", label: "All" },
       { id: "ESTABLISHED", label: "Established" },
@@ -911,6 +916,19 @@ window.FOSS = window.FOSS || {};
           { value: "local", label: "Local" },
           { value: "remote", label: "Remote" },
           { value: "host", label: "Host" }
+        ]
+      },
+      {
+        key: "status_filter",
+        label: "Default connection state filter",
+        type: "select",
+        default: "ALL",
+        options: [
+          { value: "ALL", label: "All Connections" },
+          { value: "ESTABLISHED", label: "Established" },
+          { value: "LISTEN", label: "Listening" },
+          { value: "UDP", label: "UDP" },
+          { value: "NEW", label: "New Destinations" }
         ]
       }
     ],

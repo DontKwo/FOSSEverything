@@ -44,6 +44,8 @@ window.FOSS = window.FOSS || {};
     renderMode = defs.render_mode || "shaded";
     showScales = defs.show_grid !== false;
     displayUnit = defs.unit === "inch" ? "inch" : "mm";
+    showAxes = defs.show_axes !== false;
+    showBoundingBox = !!defs.show_bbox;
   }
 
   function unitLabel() {
@@ -328,6 +330,8 @@ window.FOSS = window.FOSS || {};
     function syncControls() {
       renderModeSelect.value = renderMode;
       scalesCheckbox.checked = showScales;
+      axesCheckbox.checked = showAxes;
+      bboxCheckbox.checked = showBoundingBox;
     }
     syncControls();
 
@@ -1109,9 +1113,10 @@ window.FOSS = window.FOSS || {};
     });
     var dimZReadout = window.FOSS.dom.el("div", { className: "text-xs text-muted font-mono mt-1", "data-testid": "model3d-dim-z", text: "Z: --" });
 
+    var defaultUniformScale = window.FOSS.toolDefaults.get("model3d", "uniform_scale", true) !== false;
     var uniformCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
-      checked: true,
+      checked: defaultUniformScale,
       "data-testid": "model3d-uniform-scale-check",
       "aria-label": "Uniform scale across axes",
       title: "Uniform scale across axes"
@@ -1483,9 +1488,10 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [normX, normY, normZ])
     ]);
 
+    var defaultCapCut = window.FOSS.toolDefaults.get("model3d", "cap_cut", true) !== false;
     var solidCapCheck = window.FOSS.dom.el("input", {
       type: "checkbox",
-      checked: true,
+      checked: defaultCapCut,
       "data-testid": "model3d-cap-check",
       "aria-label": "Cap Cut Faces (Watertight Solid)",
       title: "Cap Cut Faces (Watertight Solid)"
@@ -1679,6 +1685,7 @@ window.FOSS = window.FOSS || {};
 
     var topbarObj = createModelToolbar();
 
+    var defaultExportFormat = String(window.FOSS.toolDefaults.get("model3d", "export_format", "stl"));
     var formatSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "model3d-export-format",
@@ -1693,6 +1700,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("option", { value: "step", text: "STEP (CAD Solid)" }),
       window.FOSS.dom.el("option", { value: "iges", text: "IGES (CAD Surface)" })
     ]);
+    formatSelect.value = defaultExportFormat;
 
     var exportBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
@@ -1773,7 +1781,12 @@ window.FOSS = window.FOSS || {};
     defaults: [
       { key: "render_mode", label: "Default render mode", type: "select", options: [{ value: "shaded", label: "Shaded" }, { value: "wireframe", label: "Wireframe" }, { value: "normal", label: "Normals" }], default: "shaded" },
       { key: "show_grid", label: "Show reference grid", type: "toggle", default: true },
-      { key: "unit", label: "Default unit", type: "select", options: [{ value: "mm", label: "Millimeters (mm)" }, { value: "inch", label: "Inches (in)" }], default: "mm" }
+      { key: "show_axes", label: "Show coordinate axes", type: "toggle", default: true },
+      { key: "show_bbox", label: "Show bounding box by default", type: "toggle", default: false },
+      { key: "unit", label: "Default unit", type: "select", options: [{ value: "mm", label: "Millimeters (mm)" }, { value: "inch", label: "Inches (in)" }], default: "mm" },
+      { key: "export_format", label: "Default export format", type: "select", options: ["stl", "obj", "gltf", "ply", "step", "iges"], default: "stl" },
+      { key: "cap_cut", label: "Cap cut cross-sections (watertight solid)", type: "toggle", default: true },
+      { key: "uniform_scale", label: "Uniform scale across axes by default", type: "toggle", default: true }
     ],
     tabs: [
       { id: "inspector", label: "Inspector & Tools", render: renderUnifiedInspector },
