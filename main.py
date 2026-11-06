@@ -194,6 +194,13 @@ def main() -> None:
             _ = exc
         if icon_file and os.path.isfile(icon_file):
             set_win32_window_icons(icon_file)
+
+            def delayed_set_icon() -> None:
+                for delay in (0.2, 0.5, 1.0):
+                    time.sleep(delay)
+                    set_win32_window_icons(icon_file)
+
+            threading.Thread(target=delayed_set_icon, daemon=True).start()
         if is_selftest:
             t = threading.Thread(target=run_selftest, args=(win,), daemon=True)
             t.start()
