@@ -323,9 +323,14 @@ window.FOSS = window.FOSS || {};
       ])
     ]);
 
+    var privacyNotice = D.el("div", {
+      className: "text-xs text-muted p-2 rounded bg-surface border border-border",
+      text: "Privacy & Offline Note: FOSSEverything is completely offline by default. Connecting accounts or fetching remote playlists is strictly optional and only initiates requests when you click Fetch or Log In."
+    });
+
     D.append(panel, statusBar);
     D.append(panel, banner.el);
-    D.append(panel, D.el("div", { className: "flex-col gap-3" }, [fileCard, fetchCard, spotifyCard, ytCard]));
+    D.append(panel, D.el("div", { className: "flex-col gap-3" }, [fileCard, fetchCard, privacyNotice, spotifyCard, ytCard]));
   }
 
   function renderPaste(panel) {

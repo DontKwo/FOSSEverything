@@ -555,3 +555,12 @@ Conversions between inherently incompatible or lossy formats (such as flattening
   (`uv.lock`-pinned, documented in README's "building standalone executables"
   section), and dependency/model license notices ([NOTICES.md](NOTICES.md))
   are all published ahead of public GitHub release.
+
+
+## Recent Media & Visual Suite UX Improvements (`ai/ux-media`)
+- **Images**: Added AI model download size disclosures and user notification on first rembg execution; added non-destructive transform undo history stack and original state reset button.
+- **Media**: Implemented job cancellation action button, live percentage progress indicators, and completion toast notifications.
+- **Collage**: Added layered export and flattened save feedback toasts and status updates.
+- **Color Palette**: Added copy-to-clipboard success toast notifications across swatches and harmonizer chips.
+- **QR & Barcodes**: Added user fallback guidance for missing or inaccessible webcams suggesting image drag-and-drop or clipboard paste.
+- **Playlist Porter**: Added explicit offline privacy and connection notice to clarify that all local features operate offline by default.
