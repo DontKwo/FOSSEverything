@@ -71,10 +71,21 @@ def scenario_counter(page: Page, fixtures: dict[str, str], api: Any) -> None:
     calc_clear_overlays(page)
 
 
+def scenario_clipboard_regression(page: Page, fixtures: dict[str, str], api: Any) -> None:
+    # Verify copy button triggers bridge copy_to_clipboard without clipboard permissions error.
+    page.evaluate("window.FOSS.router.open('text_tools', 'main')")
+    in_box = page.locator("[data-testid='text_tools-input-input']")
+    in_box.fill("clipboard text regression check")
+    page.click("[data-testid='text_tools-case-upper']")
+    page.click("[data-testid='text_tools-copy']")
+    calc_clear_overlays(page)
+
+
 SCENARIOS: list[tuple[str, Callable[[Page, dict[str, str], Any], None]]] = [
     ("loaded", scenario_loaded),
     ("result", scenario_result),
     ("error", scenario_error),
     ("diff", scenario_diff),
     ("counter", scenario_counter),
+    ("clipboard_regression", scenario_clipboard_regression),
 ]

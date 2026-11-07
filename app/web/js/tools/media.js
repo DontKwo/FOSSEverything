@@ -781,6 +781,7 @@ window.FOSS = window.FOSS || {};
         }
       });
 
+      var defaultReverse = Boolean(window.FOSS.toolDefaults.get(TOOL_ID, "reverse", false));
       var reverseSwitch = window.FOSS.components.switch({
         testid: "media-speed-reverse",
         label: "Reverse Playback (Backwards)",
