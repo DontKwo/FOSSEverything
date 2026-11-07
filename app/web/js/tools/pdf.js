@@ -101,15 +101,14 @@ window.FOSS = window.FOSS || {};
 
     var startNumInput = window.FOSS.dom.el("input", {
       type: "number",
-      className: "input input-sm text-xs",
+      className: "input input-sm text-xs pdf-stamp-start-input",
       value: "1",
       min: "1",
-      style: "width: 4rem;",
       "aria-label": "Starting Page Number",
       title: "Starting Page Number"
     });
 
-    var numberConfigWrap = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-1);", hidden: true }, [
+    var numberConfigWrap = window.FOSS.dom.el("div", { className: "row pdf-stamp-config-wrap", hidden: true }, [
       formatSelect,
       positionSelect,
       startNumInput
@@ -142,18 +141,18 @@ window.FOSS = window.FOSS || {};
     var exportCombinedBtnAlias = window.FOSS.dom.el("button", {
       className: "btn btn-success btn-sm",
       "data-testid": "pdf-merge-save-btn",
+      className: "btn btn-success btn-sm hidden",
+      "data-testid": "pdf-merge-save-btn",
       title: "Export Combined PDF",
-      style: "display: none;",
       onclick: function () {
         exportCombined();
       }
     });
 
     var exportPanelRight = window.FOSS.dom.el("div", {
-      className: "row items-center",
-      style: "gap: var(--space-2); margin-left: auto; flex-wrap: wrap;"
+      className: "row items-center pdf-header-controls"
     }, [
-      window.FOSS.dom.el("label", { className: "row items-center text-xs", style: "gap: var(--space-1); cursor: pointer;" }, [
+      window.FOSS.dom.el("label", { className: "row items-center text-xs pdf-header-label" }, [
         stampNumbersCheck,
         window.FOSS.dom.el("span", { text: "Page #s" })
       ]),
@@ -163,8 +162,8 @@ window.FOSS = window.FOSS || {};
       exportCombinedBtnAlias
     ]);
 
-    var headerRow = window.FOSS.dom.el("div", { className: "row-between", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
-      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
+    var headerRow = window.FOSS.dom.el("div", { className: "row-between pdf-header-row" }, [
+      window.FOSS.dom.el("div", { className: "row pdf-header-row" }, [
         window.FOSS.dom.el("button", {
           className: "btn btn-primary btn-sm",
           "data-testid": "pdf-add-files-btn",
@@ -527,8 +526,7 @@ window.FOSS = window.FOSS || {};
       workspaceArea.innerHTML = "";
       if (workspaceItems.length === 0) {
         var empty = window.FOSS.dom.el("div", {
-          className: "dropzone",
-          style: "min-height: 20rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3);",
+          className: "dropzone card empty-state pdf-empty-state-box",
           onclick: function () {
             window.FOSS.api("select_files", { title: "Select PDF Documents", file_types: ["pdf"] })
               .then(function (res) {
@@ -662,7 +660,7 @@ window.FOSS = window.FOSS || {};
       titleWrap.appendChild(nameInput);
       titleWrap.appendChild(countBadge);
 
-      var actionsWrap = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+      var actionsWrap = window.FOSS.dom.el("div", { className: "row pdf-actions-wrap" }, [
         window.FOSS.dom.el("button", {
           className: "btn btn-ghost btn-sm btn-icon",
           "data-testid": "pdf-group-rot-ccw-" + groupIndex,
@@ -802,7 +800,7 @@ window.FOSS = window.FOSS || {};
         onclick: cleanup
       }, [window.FOSS.dom.el("span", { text: "Close" })]);
 
-      var actionsEl = window.FOSS.dom.el("div", { className: "row end", style: "gap: var(--space-2); margin-top: var(--space-3);" }, [
+      var actionsEl = window.FOSS.dom.el("div", { className: "row end pdf-modal-actions" }, [
         rotateBtn, duplicateBtn, deleteBtn, closeBtn
       ]);
 
@@ -909,8 +907,7 @@ window.FOSS = window.FOSS || {};
       previewBox.appendChild(img);
 
       var label = window.FOSS.dom.el("div", {
-        className: "text-xs text-muted truncate text-center",
-        style: "width: 100%; max-width: 8rem;",
+        className: "col center p-2 pdf-page-thumb-box text-xs text-muted truncate text-center",
         title: page.sourceName + " (p." + page.pageNum + ")",
         text: page.sourceName + " p." + page.pageNum + (page.rotation ? " (" + page.rotation + " deg)" : "")
       });
@@ -1283,7 +1280,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.dom.el("span", { text: "Browse..." })]);
 
-    var dirRow = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+    var dirRow = window.FOSS.dom.el("div", { className: "row pdf-actions-wrap" }, [
       outDirInput,
       browseDirBtn
     ]);
@@ -1346,7 +1343,7 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(rangesField);
     panel.appendChild(everyNField);
     panel.appendChild(dirField);
-    panel.appendChild(window.FOSS.dom.el("div", { className: "row", style: "margin-top: var(--space-3);" }, [splitBtn]));
+    panel.appendChild(window.FOSS.dom.el("div", { className: "row pdf-margin-top-3" }, [splitBtn]));
     panel.appendChild(resultHost);
   }
 
@@ -1355,7 +1352,7 @@ window.FOSS = window.FOSS || {};
     panel.innerHTML = "";
     panel.classList.add("scroll-y");
 
-    var resultHost = window.FOSS.dom.el("div", { "data-testid": "pdf-security-result", hidden: true, style: "flex-shrink: 0;" });
+    var resultHost = window.FOSS.dom.el("div", { "data-testid": "pdf-security-result", className: "pdf-split-flex", hidden: true });
 
     // Left card: Protect
     var protectFile = "";
@@ -1431,16 +1428,16 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("span", { text: "Encrypt PDF" })
     ]);
 
-    var protectCard = window.FOSS.dom.el("div", { className: "card", style: "display: flex; flex-direction: column; gap: var(--space-3);" }, [
+    var protectCard = window.FOSS.dom.el("div", { className: "card pdf-card-flex" }, [
       window.FOSS.dom.el("h3", { className: "card-title", text: "Encrypt PDF with Password" }),
       protectPicker.el,
       window.FOSS.components.field({ label: "Password", testid: "pdf-protect-pw-field", control: protectPw }),
       window.FOSS.components.field({ label: "Confirm Password", testid: "pdf-repeat-pw-field", control: repeatPw }),
-      window.FOSS.dom.el("label", { className: "row", style: "gap: var(--space-2); cursor: pointer;" }, [
+      window.FOSS.dom.el("label", { className: "row pdf-header-label" }, [
         allowPrintCheck,
         window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Allow Printing" })
       ]),
-      window.FOSS.dom.el("div", { className: "row", style: "margin-top: var(--space-2);" }, [protectBtn])
+      window.FOSS.dom.el("div", { className: "row pdf-margin-top-2" }, [protectBtn])
     ]);
 
     // Right card: Unlock
@@ -1496,14 +1493,14 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("span", { text: "Remove PDF Password" })
     ]);
 
-    var unlockCard = window.FOSS.dom.el("div", { className: "card", style: "display: flex; flex-direction: column; gap: var(--space-3);" }, [
+    var unlockCard = window.FOSS.dom.el("div", { className: "card pdf-card-flex" }, [
       window.FOSS.dom.el("h3", { className: "card-title", text: "Remove PDF Password" }),
       unlockPicker.el,
       window.FOSS.components.field({ label: "Password", testid: "pdf-unlock-pw-field", control: unlockPw }),
-      window.FOSS.dom.el("div", { className: "row", style: "margin-top: var(--space-2);" }, [unlockBtn])
+      window.FOSS.dom.el("div", { className: "row pdf-margin-top-2" }, [unlockBtn])
     ]);
 
-    var splitGrid = window.FOSS.dom.el("div", { className: "split even", style: "min-height: 0; flex-shrink: 0;" }, [
+    var splitGrid = window.FOSS.dom.el("div", { className: "split even pdf-split-flex" }, [
       protectCard,
       unlockCard
     ]);

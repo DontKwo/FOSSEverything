@@ -51,7 +51,8 @@ window.FOSS = window.FOSS || {};
       ".footnotes { font-size: 12px; border-top: 1px solid " + border + "; padding-top: 14px; color: #888; margin-top: 24px; } " +
       ".katex-display-math { text-align: center; margin: 16px 0; font-family: 'KaTeX_Math', 'Cambria Math', 'Times New Roman', serif; font-size: 1.15em; } " +
       ".katex-inline-math { font-family: 'KaTeX_Math', 'Cambria Math', 'Times New Roman', serif; font-size: 1.05em; } " +
-      "</style></head><body>" + (bodyHtml || "<p style=\"color:#888;font-style:italic;\">Preview is empty</p>") + "</body></html>";
+      ".empty-preview-note { color: #888; font-style: italic; } " +
+      "</style></head><body>" + (bodyHtml || "<p class=\"empty-preview-note\">Preview is empty</p>") + "</body></html>";
   }
 
   function renderMain(panel, ctx) {

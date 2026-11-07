@@ -250,10 +250,9 @@ window.FOSS = window.FOSS || {};
 
     // Top action bar
     var topBar = window.FOSS.dom.el("div", {
-      className: "row-between",
-      style: "margin-bottom: var(--space-2); flex-wrap: wrap; gap: var(--space-2); flex-shrink: 0;"
+      className: "row-between resume-btn-row"
     }, [
-      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
+      window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
         window.FOSS.dom.el("span", {
           className: "badge badge-neutral",
           "data-testid": "resume-offline-badge",
@@ -316,7 +315,7 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.icons.el("refresh-cw", 12), window.FOSS.dom.el("span", { text: "Load Sample" })])
       ]),
-      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+      window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
         pageBadgeEl = window.FOSS.dom.el("span", {
           className: "badge success text-xs",
           "data-testid": "resume-page-badge",
@@ -334,7 +333,7 @@ window.FOSS = window.FOSS || {};
     var leftPane = window.FOSS.dom.el("div", { className: "resume-editor-pane" });
     var rightPane = window.FOSS.dom.el("div", { className: "resume-preview-pane" });
 
-    var editorContent = window.FOSS.dom.el("div", { style: "display: flex; flex-direction: column; gap: var(--space-3);" });
+    var editorContent = window.FOSS.dom.el("div", { className: "resume-flex-col-gap-3" });
     leftPane.appendChild(editorContent);
 
     function renderLeftPane() {
@@ -353,10 +352,9 @@ window.FOSS = window.FOSS || {};
 
     // Right Pane Toolbar & Stage
     var fontSelect = window.FOSS.dom.el("select", {
-      className: "select",
+      className: "select resume-input-width-11",
       "data-testid": "resume-font-pt-select",
       "aria-label": "Font size",
-      style: "width: 11rem;",
       onchange: function (e) {
         currentFontPt = parseFloat(e.target.value) || 11.0;
         schedulePreviewUpdate();
@@ -384,15 +382,14 @@ window.FOSS = window.FOSS || {};
     }));
 
     var previewToolbar = window.FOSS.dom.el("div", {
-      className: "row-between resume-preview-toolbar",
-      "data-testid": "resume-preview-toolbar",
-      style: "gap: var(--space-2); flex-wrap: wrap;"
+      className: "row-between resume-preview-toolbar resume-row-gap-2",
+      "data-testid": "resume-preview-toolbar"
     }, [
-      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); align-items: center; flex-wrap: wrap;" }, [
+      window.FOSS.dom.el("div", { className: "row items-center resume-row-gap-2" }, [
         window.FOSS.dom.el("span", { className: "text-xs font-semibold text-muted", text: "Font:" }),
         fontSelect
       ].concat(modeButtons)),
-      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+      window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
         window.FOSS.dom.el("button", {
           className: "btn btn-primary btn-sm",
           "data-testid": "resume-export-btn",
@@ -428,7 +425,7 @@ window.FOSS = window.FOSS || {};
 
     function renderPersonalView(container) {
       var contactCard = window.FOSS.dom.el("div", { className: "card", "data-testid": "resume-contact-card" }, [
-        window.FOSS.dom.el("h3", { className: "card-title", text: "Contact Details", style: "margin-bottom: var(--space-2);" }),
+        window.FOSS.dom.el("h3", { className: "card-title resume-card-title-mb", text: "Contact Details" }),
         window.FOSS.components.field({
           label: "Full Name",
           testid: "resume-name-field",
@@ -461,7 +458,7 @@ window.FOSS = window.FOSS || {};
             }
           })
         }),
-        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+        window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
           window.FOSS.components.field({
             label: "Email",
             control: window.FOSS.dom.el("input", {
@@ -493,7 +490,7 @@ window.FOSS = window.FOSS || {};
             })
           })
         ]),
-        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+        window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
           window.FOSS.components.field({
             label: "Location",
             control: window.FOSS.dom.el("input", {
@@ -525,7 +522,7 @@ window.FOSS = window.FOSS || {};
             })
           })
         ]),
-        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+        window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
           window.FOSS.components.field({
             label: "GitHub",
             control: window.FOSS.dom.el("input", {
@@ -588,9 +585,9 @@ window.FOSS = window.FOSS || {};
       });
 
       var summaryCard = window.FOSS.dom.el("div", { className: "card", "data-testid": "resume-summary-card" }, [
-        window.FOSS.dom.el("div", { className: "row-between", style: "margin-bottom: var(--space-2);" }, [
+        window.FOSS.dom.el("div", { className: "row-between resume-card-title-mb" }, [
           window.FOSS.dom.el("h3", { className: "card-title", text: "Professional Summary" }),
-          window.FOSS.dom.el("label", { className: "row", style: "gap: var(--space-1); cursor: pointer;" }, [
+          window.FOSS.dom.el("label", { className: "row resume-bullet-row" }, [
             sumToggle,
             window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Include Summary" })
           ])
@@ -604,9 +601,8 @@ window.FOSS = window.FOSS || {};
 
     function renderSectionsView(container) {
       var topBarSec = window.FOSS.dom.el("div", {
-        className: "row-between card",
-        "data-testid": "resume-master-mgmt",
-        style: "padding: var(--space-2) var(--space-3);"
+        className: "row-between card card-compact resume-padding-2-3",
+        "data-testid": "resume-master-mgmt"
       }, [
         window.FOSS.dom.el("span", { className: "text-xs text-muted", text: (masterResume.sections || []).length + " Section(s)" }),
         window.FOSS.dom.el("button", {
@@ -642,28 +638,25 @@ window.FOSS = window.FOSS || {};
 
       (masterResume.sections || []).forEach(function (sec, sIdx) {
         var secCard = window.FOSS.dom.el("div", {
-          className: "card",
-          style: "display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3);"
+          className: "card card-compact resume-section-item"
         });
 
-        var secHeader = window.FOSS.dom.el("div", { className: "row-between", style: "gap: var(--space-2);" });
+        var secHeader = window.FOSS.dom.el("div", { className: "row-between resume-row-gap-2" });
         var secTitleInput = window.FOSS.dom.el("input", {
-          className: "input font-semibold",
+          className: "input font-semibold text-base resume-flex-auto",
           "data-truncate-ok": "true",
           "aria-label": "Section Title",
           title: "Section Title",
           value: sec.title,
-          style: "flex: 1 1 auto;",
           oninput: function (e) {
             sec.title = e.target.value;
             schedulePreviewUpdate();
           }
         });
         var secTypeSelect = window.FOSS.dom.el("select", {
-          className: "select",
+          className: "select select-sm text-xs resume-input-width-10",
           "aria-label": "Section Type",
           title: "Section Type",
-          style: "width: 10rem;",
           onchange: function (e) {
             sec.type = e.target.value;
             renderLeftPane();
@@ -730,10 +723,10 @@ window.FOSS = window.FOSS || {};
 
     function renderEntryEditor(sec, entry, onDeleteEntry) {
       var box = window.FOSS.dom.el("div", {
-        style: "border: 1px solid var(--border); border-radius: var(--radius-sm); padding: var(--space-2); background: var(--bg-sunken); display: flex; flex-direction: column; gap: var(--space-2);"
+        className: "card card-compact resume-item-card"
       });
 
-      var topRow = window.FOSS.dom.el("div", { className: "row-between", style: "gap: var(--space-2);" });
+      var topRow = window.FOSS.dom.el("div", { className: "row-between resume-row-gap-2" });
       var enableCheck = window.FOSS.dom.el("input", {
         type: "checkbox",
         "aria-label": "Enable entry",
@@ -745,8 +738,7 @@ window.FOSS = window.FOSS || {};
         }
       });
       var entryTitle = window.FOSS.dom.el("input", {
-        className: "input font-semibold",
-        style: "flex: 1 1 auto;",
+        className: "input font-semibold resume-flex-auto",
         "data-truncate-ok": "true",
         "aria-label": "Entry Title",
         title: "Entry Title",
@@ -770,7 +762,7 @@ window.FOSS = window.FOSS || {};
       box.appendChild(topRow);
 
       if (sec.type === "education") {
-        var eduRow = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+        var eduRow = window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
           window.FOSS.dom.el("input", {
             className: "input",
             "data-truncate-ok": "true",
@@ -781,8 +773,7 @@ window.FOSS = window.FOSS || {};
             oninput: function (e) { entry.subtitle = e.target.value; schedulePreviewUpdate(); }
           }),
           window.FOSS.dom.el("input", {
-            className: "input",
-            style: "width: 10rem;",
+            className: "input resume-input-width-10",
             "data-truncate-ok": "true",
             "aria-label": "Graduation Date",
             title: "Graduation Date",
@@ -791,10 +782,9 @@ window.FOSS = window.FOSS || {};
             oninput: function (e) { entry.date_range = e.target.value; schedulePreviewUpdate(); }
           })
         ]);
-        var gpaRow = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+        var gpaRow = window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
           window.FOSS.dom.el("input", {
-            className: "input",
-            style: "width: 10rem;",
+            className: "input resume-input-width-10",
             "data-truncate-ok": "true",
             "aria-label": "GPA",
             title: "GPA",
@@ -826,7 +816,7 @@ window.FOSS = window.FOSS || {};
         });
         box.appendChild(skInput);
       } else {
-        var metaRow = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
+        var metaRow = window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
           window.FOSS.dom.el("input", {
             className: "input",
             "data-truncate-ok": "true",
@@ -837,8 +827,7 @@ window.FOSS = window.FOSS || {};
             oninput: function (e) { entry.subtitle = e.target.value; schedulePreviewUpdate(); }
           }),
           window.FOSS.dom.el("input", {
-            className: "input",
-            style: "width: 12rem;",
+            className: "input resume-input-width-12",
             "data-truncate-ok": "true",
             "aria-label": "Dates",
             title: "Dates",
@@ -852,9 +841,9 @@ window.FOSS = window.FOSS || {};
 
       // Bullets (for non-skills sections)
       if (sec.type !== "skills") {
-        var bulletWrap = window.FOSS.dom.el("div", { style: "display: flex; flex-direction: column; gap: var(--space-1);" });
+        var bulletWrap = window.FOSS.dom.el("div", { className: "resume-bullet-wrap" });
         (entry.bullets || []).forEach(function (b, bIdx) {
-          var bRow = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-1);" }, [
+          var bRow = window.FOSS.dom.el("div", { className: "row resume-bullet-row" }, [
             window.FOSS.dom.el("input", {
               type: "checkbox",
               "data-testid": "resume-bullet-toggle",
@@ -867,8 +856,7 @@ window.FOSS = window.FOSS || {};
               }
             }),
             window.FOSS.dom.el("input", {
-              className: "input",
-              style: "flex: 1 1 auto;",
+              className: "input resume-flex-auto",
               "data-truncate-ok": "true",
               "aria-label": "Bullet text",
               title: "Bullet text",
@@ -893,8 +881,7 @@ window.FOSS = window.FOSS || {};
         });
 
         var addBBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-ghost btn-xs",
-          style: "align-self: flex-start;",
+          className: "btn btn-ghost btn-xs resume-self-start",
           onclick: function () {
             entry.bullets.push({ id: "b_" + (idCounter++), text: "", enabled: true });
             renderLeftPane();
@@ -909,7 +896,7 @@ window.FOSS = window.FOSS || {};
     }
 
     function renderProfilesView(container) {
-      var profileCard = window.FOSS.dom.el("div", { className: "card", style: "display: flex; flex-direction: column; gap: var(--space-3);" }, [
+      var profileCard = window.FOSS.dom.el("div", { className: "card resume-flex-col-gap-3" }, [
         window.FOSS.dom.el("h3", { className: "card-title", text: "Tailor for Job Posting" }),
         window.FOSS.components.field({
           label: "Active Profile",
@@ -972,9 +959,8 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.icons.el("activity", 14), window.FOSS.dom.el("span", { text: "Analyze ATS Match" })]),
         window.FOSS.dom.el("div", {
-          className: "card card-compact",
+          className: "card card-compact stack resume-section-item",
           "data-testid": "resume-ats-results",
-          style: "display: flex; flex-direction: column; gap: var(--space-2);",
           hidden: true
         })
       ]);
@@ -1005,12 +991,12 @@ window.FOSS = window.FOSS || {};
       }, ["MM/YYYY", "Month YYYY"].map(function (fmt) {
         return window.FOSS.dom.el("option", { value: fmt, text: fmt, selected: currentDateFormat === fmt });
       }));
-      var expCard = window.FOSS.dom.el("div", { className: "card", style: "display: flex; flex-direction: column; gap: var(--space-3);" }, [
+      var expCard = window.FOSS.dom.el("div", { className: "card resume-flex-col-gap-3" }, [
         window.FOSS.dom.el("h3", { className: "card-title", text: "Export Resume" }),
         window.FOSS.dom.el("p", { className: "text-xs text-muted", text: "Word exports shrink the font until the document fits on one page. The saved file type follows the extension you choose." }),
         window.FOSS.components.field({ label: "Theme", control: themeSelect }),
         window.FOSS.components.field({ label: "Date format", control: dateSelect }),
-        window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
+        window.FOSS.dom.el("div", { className: "row resume-row-gap-2" }, [
           window.FOSS.dom.el("button", {
             className: "btn btn-primary",
             "data-testid": "resume-export-pdf-btn",

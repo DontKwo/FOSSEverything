@@ -277,8 +277,7 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.icons.el("refresh", 16), window.FOSS.dom.el("span", { text: "Convert Single File" })]);
 
     var singleOptionsCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-3",
-      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
+      className: "card card-compact flex-col gap-3 converter-card-bound"
     }, [
       window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Single File Options" }),
       window.FOSS.components.field("Target Format", targetSelect),
@@ -387,8 +386,7 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.icons.el("refresh", 16), window.FOSS.dom.el("span", { text: "Convert Queue" })]);
 
     var batchOptionsCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-3",
-      style: "width: 100%; box-sizing: border-box;"
+      className: "card card-compact flex-col gap-3 converter-full-width"
     }, [
       window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Batch Queue Settings" }),
       window.FOSS.components.field("Filter Family", familyFilterSelect),
@@ -411,8 +409,7 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var sidebar = window.FOSS.dom.el("div", {
-      className: "converter-sidebar-pane flex-col gap-3",
-      style: "width: 100%; min-width: 0;"
+      className: "converter-sidebar-pane flex-col gap-3 converter-full-width"
     }, [sourceCard, singleOptionsCard, batchOptionsCard]);
 
     // Batch Queue Table on Right Stage
@@ -485,9 +482,8 @@ window.FOSS = window.FOSS || {};
     }
 
     var tableHost = window.FOSS.dom.el("div", {
-      className: "grow flex-col gap-2 overflow-x-auto",
-      "data-testid": "converter-queue-table",
-      style: "min-width: 0; width: 100%; box-sizing: border-box;"
+      className: "grow flex-col gap-2 overflow-x-auto converter-card-bound",
+      "data-testid": "converter-queue-table"
     });
 
     function renderQueueTable() {
@@ -573,44 +569,40 @@ window.FOSS = window.FOSS || {};
 
         return window.FOSS.dom.el("tr", {}, [
           window.FOSS.dom.el("td", {
-            className: "font-mono text-xs font-semibold",
-            style: "width: 35%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            className: "font-mono text-xs font-semibold converter-col-file",
             text: nameText,
             "data-truncate-ok": "true",
             title: it.path
           }),
           window.FOSS.dom.el("td", {
-            className: "text-xs text-muted",
-            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            className: "text-xs text-muted converter-col-meta",
             text: it.family,
             "data-truncate-ok": "true",
             title: it.family
           }),
           window.FOSS.dom.el("td", {
-            className: "text-xs font-mono text-muted",
-            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            className: "text-xs font-mono text-muted converter-col-meta",
             text: formatBytes(it.size_bytes),
             "data-truncate-ok": "true",
             title: formatBytes(it.size_bytes)
           }),
-          window.FOSS.dom.el("td", { style: "width: 20%;" }, [targetSelectEl]),
-          window.FOSS.dom.el("td", { style: "width: 15%; text-align: center;" }, [statusEl]),
-          window.FOSS.dom.el("td", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;" }, [removeBtn])
+          window.FOSS.dom.el("td", { className: "converter-col-target" }, [targetSelectEl]),
+          window.FOSS.dom.el("td", { className: "converter-col-status" }, [statusEl]),
+          window.FOSS.dom.el("td", { className: "converter-col-action" }, [removeBtn])
         ]);
       });
 
       var table = window.FOSS.dom.el("table", {
-        className: "table w-full",
-        style: "table-layout: fixed; width: 100%; min-width: 0;"
+        className: "table w-full converter-table-fixed"
       }, [
         window.FOSS.dom.el("thead", {}, [
           window.FOSS.dom.el("tr", {}, [
-            window.FOSS.dom.el("th", { style: "width: 35%;", text: "Source File", "data-truncate-ok": "true", title: "Source File" }),
-            window.FOSS.dom.el("th", { style: "width: 15%;", text: "Family", "data-truncate-ok": "true", title: "Family" }),
-            window.FOSS.dom.el("th", { style: "width: 15%;", text: "Size", "data-truncate-ok": "true", title: "Size" }),
-            window.FOSS.dom.el("th", { style: "width: 20%;", text: "Target Format", "data-truncate-ok": "true", title: "Target Format" }),
-            window.FOSS.dom.el("th", { style: "width: 15%; text-align: center;", text: "Status", "data-truncate-ok": "true", title: "Status" }),
-            window.FOSS.dom.el("th", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;", text: "", "data-truncate-ok": "true", title: "Actions" })
+            window.FOSS.dom.el("th", { className: "converter-col-file", text: "Source File", "data-truncate-ok": "true", title: "Source File" }),
+            window.FOSS.dom.el("th", { className: "converter-col-meta", text: "Family", "data-truncate-ok": "true", title: "Family" }),
+            window.FOSS.dom.el("th", { className: "converter-col-meta", text: "Size", "data-truncate-ok": "true", title: "Size" }),
+            window.FOSS.dom.el("th", { className: "converter-col-target", text: "Target Format", "data-truncate-ok": "true", title: "Target Format" }),
+            window.FOSS.dom.el("th", { className: "converter-col-status", text: "Status", "data-truncate-ok": "true", title: "Status" }),
+            window.FOSS.dom.el("th", { className: "converter-col-action", text: "", "data-truncate-ok": "true", title: "Actions" })
           ])
         ]),
         window.FOSS.dom.el("tbody", {}, rows)
@@ -665,8 +657,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var stageCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-3 grow",
-      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
+      className: "card card-compact flex-col gap-3 grow converter-card-bound"
     }, [
       window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
         window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap" }, [
@@ -679,8 +670,7 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var stageWrapper = window.FOSS.dom.el("div", {
-      className: "converter-stage-pane grow",
-      style: "width: 100%; min-width: 0;"
+      className: "converter-stage-pane grow converter-full-width"
     }, [stageCard]);
 
     var split = window.FOSS.dom.el("div", {
