@@ -382,7 +382,7 @@ window.FOSS = window.FOSS || {};
       title: "Copy Output",
       onClick: function () {
         var outVal = outputEditor.getValue();
-        navigator.clipboard.writeText(outVal).then(function () {
+        window.FOSS.api("copy_to_clipboard", { text: outVal }).then(function () {
           showToast("Copied output to clipboard", "success");
         });
       }
@@ -756,7 +756,7 @@ window.FOSS = window.FOSS || {};
         var text = counterEditor.getValue();
         window.FOSS.api("word_counter_generate_report", { text: text }).then(function (res) {
           var rep = res.report || "";
-          navigator.clipboard.writeText(rep).then(function () {
+          window.FOSS.api("copy_to_clipboard", { text: rep }).then(function () {
             showToast("Report copied to clipboard", "success");
           });
         });
@@ -948,7 +948,7 @@ window.FOSS = window.FOSS || {};
       title: "Copy",
       onClick: function () {
         var val = citOutput.textContent;
-        navigator.clipboard.writeText(val).then(function () {
+        window.FOSS.api("copy_to_clipboard", { text: val }).then(function () {
           showToast("Citation copied to clipboard", "success");
         });
       }

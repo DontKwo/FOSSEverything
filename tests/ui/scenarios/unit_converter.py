@@ -70,9 +70,20 @@ def scenario_expression(page: Page, fixtures: dict[str, str], api: Any) -> None:
     calc_clear_overlays(page)
 
 
+def scenario_clipboard_regression(page: Page, fixtures: dict[str, str], api: Any) -> None:
+    # Verify copy buttons trigger bridge copy_to_clipboard safely.
+    page.evaluate("window.FOSS.router.open('unit_converter', 'standard')")
+    val_in = page.locator("[data-testid='unit_converter-input-value']")
+    val_in.fill("75")
+    page.click("[data-testid='unit_converter-copy-val-btn']")
+    page.click("[data-testid='unit_converter-copy-eq-btn']")
+    calc_clear_overlays(page)
+
+
 SCENARIOS: list[tuple[str, Callable[[Page, dict[str, str], Any], None]]] = [
     ("loaded", scenario_loaded),
     ("result", scenario_result),
     ("error", scenario_error),
     ("expression", scenario_expression),
+    ("clipboard_regression", scenario_clipboard_regression),
 ]
