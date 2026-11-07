@@ -1035,7 +1035,7 @@ window.FOSS = window.FOSS || {};
         chrome.statusBar.textContent = "Webcam running. Hold a code in view to scan it.";
         webcamTimer = setInterval(function () { decodeWebcamFrame(false); }, 900);
       }).catch(function (err) {
-        chrome.showError("Could not open webcam: " + errText(err));
+        chrome.showError("Webcam unavailable: " + errText(err) + ". Tip: You can drag and drop images or paste screenshots directly into this window.");
       });
     }
 

@@ -109,6 +109,9 @@ window.FOSS = window.FOSS || {};
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(function () {});
     }
+    if (window.FOSS.toast) {
+      window.FOSS.toast.show("Copied: " + (text.length > 30 ? text.slice(0, 30) + "..." : text), "success");
+    }
     var ta = document.createElement("textarea");
     ta.value = text;
     ta.style.setProperty("position", "fixed");

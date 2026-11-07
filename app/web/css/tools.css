@@ -115,6 +115,11 @@ html.is-resizing .model3d-canvas-container canvas,
   width: 100%;
 }
 
+.model3d-sidebar-pane [data-testid="model3d-info-grid"] .col-span-2 {
+  display: flex;
+  flex-direction: column;
+}
+
 /* Color Palette Studio Workbench */
 .split.resizable.palette-workbench,
 .palette-workbench {
@@ -385,7 +390,8 @@ html.is-resizing .model3d-canvas-container canvas,
 
 .media-action-title {
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .media-action-desc {
@@ -1628,6 +1634,14 @@ html.is-resizing .model3d-canvas-container canvas,
 }
 
 
+
+.images-sidebar-pane .file-picker {
+  min-height: auto;
+}
+
+.images-sidebar-pane .file-picker .stack {
+  gap: var(--space-1);
+}
 
 /* QR and Barcode Studio Workbench */
 .split.resizable.qr-workbench,

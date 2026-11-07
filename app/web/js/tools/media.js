@@ -765,6 +765,7 @@ window.FOSS = window.FOSS || {};
         }
       }, [window.FOSS.icons.el("camera", 16), D.el("span", { text: "Capture Frame at Current Playhead..." })]);
 
+      var defaultReverse = Boolean(window.FOSS.toolDefaults.get(TOOL_ID, "reverse", false));
       var speedSelect = selectInput("media-speed-select", "Playback Speed", [
         ["0.25", "0.25x (Super Slow)"],
         ["0.5", "0.5x (Slow Motion)"],
