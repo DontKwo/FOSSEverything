@@ -335,8 +335,8 @@ window.FOSS = window.FOSS || {};
       "data-testid": "unit_converter-copy-val-btn",
       type: "button",
       onClick: function () {
-        if (navigator.clipboard && currentHeroResult !== null) {
-          navigator.clipboard.writeText(String(currentHeroResult));
+        if (currentHeroResult !== null) {
+          window.FOSS.api("copy_to_clipboard", { text: String(currentHeroResult) });
           statusBar.textContent = "Copied value to clipboard.";
         }
       }
@@ -347,8 +347,8 @@ window.FOSS = window.FOSS || {};
       "data-testid": "unit_converter-copy-eq-btn",
       type: "button",
       onClick: function () {
-        if (navigator.clipboard && heroFormula.textContent) {
-          navigator.clipboard.writeText(heroFormula.textContent);
+        if (heroFormula.textContent) {
+          window.FOSS.api("copy_to_clipboard", { text: heroFormula.textContent });
           statusBar.textContent = "Copied equation to clipboard.";
         }
       }
@@ -503,10 +503,8 @@ window.FOSS = window.FOSS || {};
           title: "Copy " + it.label + " Value",
           type: "button",
           onClick: function () {
-            if (navigator.clipboard) {
-              navigator.clipboard.writeText(String(it.result));
-              statusBar.textContent = "Copied " + it.formatted + " " + it.symbol + " to clipboard.";
-            }
+            window.FOSS.api("copy_to_clipboard", { text: String(it.result) });
+            statusBar.textContent = "Copied " + it.formatted + " " + it.symbol + " to clipboard.";
           }
         }, [window.FOSS.icons.el("copy", 14)]);
 
