@@ -70,10 +70,11 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-m 'not ui_full and not native'"
+addopts = "-m 'not ui_full and not native and not matrix'"
 markers = [
     "ui_full: full viewport matrix (slow)",
     "native: boots the real pywebview window",
+    "matrix: automated large-scale API matrix tests",
 ]
 timeout = 300
 

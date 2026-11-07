@@ -1040,7 +1040,7 @@ _DOCX_BASE_PT = 10.5
 _DOCX_MIN_PT = 8.0
 _DOCX_LINE_FACTOR = 1.22
 _DOCX_TEXT_HEIGHT_PT = 698.4
-_DOCX_FIT_MARGIN = 0.97
+_DOCX_FIT_MARGIN = 0.975
 _DOCX_CONTENT_WIDTH_PT = 504.0
 _MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June", "July",

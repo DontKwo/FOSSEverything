@@ -1,0 +1,7307 @@
+{
+  "archive_checksums": {
+    "tool": "archive",
+    "method": "archive_checksums",
+    "keys": [
+      "archive_path"
+    ],
+    "roles": {
+      "archive_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "archive_compare_snapshots": {
+    "tool": "archive",
+    "method": "archive_compare_snapshots",
+    "keys": [
+      "new_snapshot",
+      "old_snapshot"
+    ],
+    "roles": {
+      "new_snapshot": "text",
+      "old_snapshot": "text"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "archive_convert": {
+    "tool": "archive",
+    "method": "archive_convert",
+    "keys": [
+      "archive_path",
+      "output_path",
+      "overwrite"
+    ],
+    "roles": {
+      "archive_path": "input_path",
+      "output_path": "output_path",
+      "overwrite": "bool"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "archive_create": {
+    "tool": "archive",
+    "method": "archive_create",
+    "keys": [
+      "compression_level",
+      "format",
+      "output_path",
+      "source_paths",
+      "sources"
+    ],
+    "roles": {
+      "compression_level": "text",
+      "format": "enum",
+      "output_path": "output_path",
+      "source_paths": "paths_list",
+      "sources": "text"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "archive_extract": {
+    "tool": "archive",
+    "method": "archive_extract",
+    "keys": [
+      "archive_path",
+      "expected_sha256",
+      "target_dir"
+    ],
+    "roles": {
+      "archive_path": "input_path",
+      "expected_sha256": "text",
+      "target_dir": "folder"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "archive_extract_selected": {
+    "tool": "archive",
+    "method": "archive_extract_selected",
+    "keys": [
+      "archive_path",
+      "members",
+      "target_dir"
+    ],
+    "roles": {
+      "archive_path": "input_path",
+      "members": "text",
+      "target_dir": "folder"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "archive_incremental_backup": {
+    "tool": "archive",
+    "method": "archive_incremental_backup",
+    "keys": [
+      "archive_name",
+      "backup_dir",
+      "directory_path",
+      "format",
+      "manifest_name"
+    ],
+    "roles": {
+      "archive_name": "text",
+      "backup_dir": "text",
+      "directory_path": "text",
+      "format": "enum",
+      "manifest_name": "text"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "archive_list": {
+    "tool": "archive",
+    "method": "archive_list",
+    "keys": [
+      "archive_path"
+    ],
+    "roles": {
+      "archive_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "archive_presets": {
+    "tool": "archive",
+    "method": "archive_presets",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "archive_protect": {
+    "tool": "archive",
+    "method": "archive_protect",
+    "keys": [
+      "format",
+      "output_path",
+      "password",
+      "source_paths",
+      "sources"
+    ],
+    "roles": {
+      "format": "enum",
+      "output_path": "output_path",
+      "password": "text",
+      "source_paths": "paths_list",
+      "sources": "text"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "archive_rotate_key": {
+    "tool": "archive",
+    "method": "archive_rotate_key",
+    "keys": [
+      "bundle_path",
+      "new_password",
+      "old_password",
+      "output_path"
+    ],
+    "roles": {
+      "bundle_path": "text",
+      "new_password": "text",
+      "old_password": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "archive_snapshot": {
+    "tool": "archive",
+    "method": "archive_snapshot",
+    "keys": [
+      "directory_path",
+      "manifest_path"
+    ],
+    "roles": {
+      "directory_path": "text",
+      "manifest_path": "text"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "archive_test": {
+    "tool": "archive",
+    "method": "archive_test",
+    "keys": [
+      "archive_path"
+    ],
+    "roles": {
+      "archive_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "archive_unprotect": {
+    "tool": "archive",
+    "method": "archive_unprotect",
+    "keys": [
+      "bundle_path",
+      "password",
+      "target_dir"
+    ],
+    "roles": {
+      "bundle_path": "text",
+      "password": "text",
+      "target_dir": "folder"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "archive_verify_integrity": {
+    "tool": "archive",
+    "method": "archive_verify_integrity",
+    "keys": [
+      "bundle_path",
+      "password"
+    ],
+    "roles": {
+      "bundle_path": "text",
+      "password": "text"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "archive_verify_sha256": {
+    "tool": "archive",
+    "method": "archive_verify_sha256",
+    "keys": [
+      "archive_path",
+      "expected_sha256"
+    ],
+    "roles": {
+      "archive_path": "input_path",
+      "expected_sha256": "text"
+    },
+    "accepted_file_kinds": [
+      "zip",
+      "tar",
+      "gz",
+      "7z"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "clear_recents": {
+    "tool": "shell",
+    "method": "clear_recents",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "collage_create": {
+    "tool": "collage",
+    "method": "collage_create",
+    "keys": [
+      "add_captions",
+      "bg_color",
+      "captions",
+      "cell_height",
+      "cell_width",
+      "cols",
+      "columns",
+      "corner_radius",
+      "fit_mode",
+      "image_paths",
+      "layout_name",
+      "output_path",
+      "padding",
+      "preset",
+      "transparent_bg",
+      "watermark_text"
+    ],
+    "roles": {
+      "add_captions": "text",
+      "bg_color": "text",
+      "captions": "text",
+      "cell_height": "text",
+      "cell_width": "text",
+      "cols": "text",
+      "columns": "int",
+      "corner_radius": "text",
+      "fit_mode": "text",
+      "image_paths": "text",
+      "layout_name": "text",
+      "output_path": "output_path",
+      "padding": "float",
+      "preset": "enum",
+      "transparent_bg": "text",
+      "watermark_text": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "collage_export_freeform": {
+    "tool": "collage",
+    "method": "collage_export_freeform",
+    "keys": [
+      "bg_color",
+      "canvas_height",
+      "canvas_width",
+      "format",
+      "layers",
+      "mode",
+      "output_path",
+      "transparent_bg"
+    ],
+    "roles": {
+      "bg_color": "text",
+      "canvas_height": "text",
+      "canvas_width": "text",
+      "format": "enum",
+      "layers": "json_blob",
+      "mode": "enum",
+      "output_path": "output_path",
+      "transparent_bg": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "collage_load_layer_asset": {
+    "tool": "collage",
+    "method": "collage_load_layer_asset",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "collage_presets": {
+    "tool": "collage",
+    "method": "collage_presets",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "collage_preview": {
+    "tool": "collage",
+    "method": "collage_preview",
+    "keys": [
+      "add_captions",
+      "bg_color",
+      "captions",
+      "cell_height",
+      "cell_width",
+      "cols",
+      "columns",
+      "corner_radius",
+      "fit_mode",
+      "image_paths",
+      "layout_name",
+      "padding",
+      "preset",
+      "transparent_bg",
+      "watermark_text"
+    ],
+    "roles": {
+      "add_captions": "text",
+      "bg_color": "text",
+      "captions": "text",
+      "cell_height": "text",
+      "cell_width": "text",
+      "cols": "text",
+      "columns": "int",
+      "corner_radius": "text",
+      "fit_mode": "text",
+      "image_paths": "text",
+      "layout_name": "text",
+      "padding": "float",
+      "preset": "enum",
+      "transparent_bg": "text",
+      "watermark_text": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "compressor_compress_items": {
+    "tool": "compressor",
+    "method": "compressor_compress_items",
+    "keys": [
+      "audio_bitrate",
+      "items",
+      "lossy_png",
+      "max_dimension",
+      "output_dir",
+      "png_colors",
+      "preserve_tree",
+      "preset",
+      "quality",
+      "target_size_mb"
+    ],
+    "roles": {
+      "audio_bitrate": "text",
+      "items": "paths_list",
+      "lossy_png": "text",
+      "max_dimension": "text",
+      "output_dir": "folder",
+      "png_colors": "text",
+      "preserve_tree": "text",
+      "preset": "enum",
+      "quality": "int",
+      "target_size_mb": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "pdf",
+      "mp4",
+      "mp3",
+      "zip"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "compressor_estimate_savings": {
+    "tool": "compressor",
+    "method": "compressor_estimate_savings",
+    "keys": [
+      "items",
+      "lossy_png",
+      "preset"
+    ],
+    "roles": {
+      "items": "paths_list",
+      "lossy_png": "text",
+      "preset": "enum"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "pdf",
+      "mp4",
+      "mp3",
+      "zip"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "compressor_scan_inputs": {
+    "tool": "compressor",
+    "method": "compressor_scan_inputs",
+    "keys": [
+      "paths",
+      "recursive"
+    ],
+    "roles": {
+      "paths": "paths_list",
+      "recursive": "bool"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "pdf",
+      "mp4",
+      "mp3",
+      "zip"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "conversion_summary": {
+    "tool": "converter",
+    "method": "conversion_summary",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "convert_data_format": {
+    "tool": "data",
+    "method": "convert_data_format",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "convert_file": {
+    "tool": "converter",
+    "method": "convert_file",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "converter_available_targets": {
+    "tool": "converter",
+    "method": "converter_available_targets",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "converter_batch": {
+    "tool": "converter",
+    "method": "converter_batch",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "converter_batch_convert": {
+    "tool": "converter",
+    "method": "converter_batch_convert",
+    "keys": [
+      "dpi",
+      "items",
+      "output_dir",
+      "preserve_tree",
+      "quality"
+    ],
+    "roles": {
+      "dpi": "int",
+      "items": "paths_list",
+      "output_dir": "folder",
+      "preserve_tree": "text",
+      "quality": "int"
+    },
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "converter_convert_file": {
+    "tool": "converter",
+    "method": "converter_convert_file",
+    "keys": [
+      "dpi",
+      "file_path",
+      "input_path",
+      "output_dir",
+      "output_path",
+      "output_stem",
+      "quality",
+      "target_format"
+    ],
+    "roles": {
+      "dpi": "int",
+      "file_path": "input_path",
+      "input_path": "input_path",
+      "output_dir": "folder",
+      "output_path": "output_path",
+      "output_stem": "text",
+      "quality": "int",
+      "target_format": "text"
+    },
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "converter_export_enex": {
+    "tool": "converter",
+    "method": "converter_export_enex",
+    "keys": [
+      "notes",
+      "output_path"
+    ],
+    "roles": {
+      "notes": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "converter_scan_inputs": {
+    "tool": "converter",
+    "method": "converter_scan_inputs",
+    "keys": [
+      "extension_filter",
+      "family_filter",
+      "paths",
+      "recursive"
+    ],
+    "roles": {
+      "extension_filter": "text",
+      "family_filter": "text",
+      "paths": "paths_list",
+      "recursive": "bool"
+    },
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "converter_source_family": {
+    "tool": "converter",
+    "method": "converter_source_family",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "converter_summary": {
+    "tool": "converter",
+    "method": "converter_summary",
+    "keys": [
+      "file_path",
+      "target_format"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "target_format": "text"
+    },
+    "accepted_file_kinds": [
+      "docx",
+      "pdf",
+      "txt",
+      "md",
+      "csv",
+      "xlsx",
+      "png",
+      "jpg",
+      "webp",
+      "mp4",
+      "mp3",
+      "wav",
+      "stl",
+      "obj"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "copy_image_to_clipboard": {
+    "tool": "shell",
+    "method": "copy_image_to_clipboard",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "copy_to_clipboard": {
+    "tool": "shell",
+    "method": "copy_to_clipboard",
+    "keys": [
+      "text"
+    ],
+    "roles": {
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_change_delimiter": {
+    "tool": "data",
+    "method": "data_change_delimiter",
+    "keys": [
+      "content",
+      "from_delimiter",
+      "quote_char",
+      "to_delimiter"
+    ],
+    "roles": {
+      "content": "text",
+      "from_delimiter": "text",
+      "quote_char": "text",
+      "to_delimiter": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_clean_table": {
+    "tool": "data",
+    "method": "data_clean_table",
+    "keys": [
+      "content",
+      "keep_empty_columns",
+      "trim_whitespace"
+    ],
+    "roles": {
+      "content": "text",
+      "keep_empty_columns": "text",
+      "trim_whitespace": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_convert_format": {
+    "tool": "data",
+    "method": "data_convert_format",
+    "keys": [
+      "content",
+      "output_path",
+      "source_format",
+      "target_format"
+    ],
+    "roles": {
+      "content": "text",
+      "output_path": "output_path",
+      "source_format": "text",
+      "target_format": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "data_convert_units": {
+    "tool": "data",
+    "method": "data_convert_units",
+    "keys": [
+      "source_unit",
+      "target_unit",
+      "value"
+    ],
+    "roles": {
+      "source_unit": "text",
+      "target_unit": "text",
+      "value": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "data_cron_describe": {
+    "tool": "data",
+    "method": "data_cron_describe",
+    "keys": [
+      "count",
+      "expression"
+    ],
+    "roles": {
+      "count": "int",
+      "expression": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_csv_to_table": {
+    "tool": "data",
+    "method": "data_csv_to_table",
+    "keys": [
+      "content",
+      "delimiter",
+      "include_header"
+    ],
+    "roles": {
+      "content": "text",
+      "delimiter": "enum",
+      "include_header": "text"
+    },
+    "accepted_file_kinds": [
+      "csv"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_diff_documents": {
+    "tool": "data",
+    "method": "data_diff_documents",
+    "keys": [
+      "doc1",
+      "doc2"
+    ],
+    "roles": {
+      "doc1": "text",
+      "doc2": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_diff_schema": {
+    "tool": "data",
+    "method": "data_diff_schema",
+    "keys": [
+      "base_schema",
+      "candidate_schema",
+      "overrides"
+    ],
+    "roles": {
+      "base_schema": "text",
+      "candidate_schema": "text",
+      "overrides": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_format_code": {
+    "tool": "data",
+    "method": "data_format_code",
+    "keys": [
+      "content",
+      "indent",
+      "language"
+    ],
+    "roles": {
+      "content": "text",
+      "indent": "text",
+      "language": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_generate_bibliography": {
+    "tool": "data",
+    "method": "data_generate_bibliography",
+    "keys": [
+      "entries",
+      "style"
+    ],
+    "roles": {
+      "entries": "text",
+      "style": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_generate_citation": {
+    "tool": "data",
+    "method": "data_generate_citation",
+    "keys": [
+      "metadata",
+      "style"
+    ],
+    "roles": {
+      "metadata": "json_blob",
+      "style": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_grammar_check": {
+    "tool": "data",
+    "method": "data_grammar_check",
+    "keys": [
+      "advanced",
+      "language",
+      "text"
+    ],
+    "roles": {
+      "advanced": "text",
+      "language": "text",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_hdf5_children": {
+    "tool": "data",
+    "method": "data_hdf5_children",
+    "keys": [
+      "file_path",
+      "limit",
+      "offset",
+      "path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "limit": "int",
+      "offset": "int",
+      "path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_hdf5_export_slice": {
+    "tool": "data",
+    "method": "data_hdf5_export_slice",
+    "keys": [
+      "dataset_path",
+      "file_path",
+      "format",
+      "output_path",
+      "slice_spec"
+    ],
+    "roles": {
+      "dataset_path": "text",
+      "file_path": "input_path",
+      "format": "enum",
+      "output_path": "output_path",
+      "slice_spec": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "data_hdf5_node": {
+    "tool": "data",
+    "method": "data_hdf5_node",
+    "keys": [
+      "file_path",
+      "path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_hdf5_open": {
+    "tool": "data",
+    "method": "data_hdf5_open",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_hdf5_preview": {
+    "tool": "data",
+    "method": "data_hdf5_preview",
+    "keys": [
+      "col_count",
+      "col_start",
+      "file_path",
+      "include_stats",
+      "index",
+      "path",
+      "row_count",
+      "row_start"
+    ],
+    "roles": {
+      "col_count": "text",
+      "col_start": "text",
+      "file_path": "input_path",
+      "include_stats": "text",
+      "index": "text",
+      "path": "input_path",
+      "row_count": "text",
+      "row_start": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_hdf5_search": {
+    "tool": "data",
+    "method": "data_hdf5_search",
+    "keys": [
+      "file_path",
+      "limit",
+      "query"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "limit": "int",
+      "query": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_ics_generate": {
+    "tool": "data",
+    "method": "data_ics_generate",
+    "keys": [
+      "description",
+      "end_time",
+      "location",
+      "start_time",
+      "title"
+    ],
+    "roles": {
+      "description": "text",
+      "end_time": "float",
+      "location": "text",
+      "start_time": "float",
+      "title": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_ics_parse": {
+    "tool": "data",
+    "method": "data_ics_parse",
+    "keys": [
+      "content"
+    ],
+    "roles": {
+      "content": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_infer_schema": {
+    "tool": "data",
+    "method": "data_infer_schema",
+    "keys": [
+      "content",
+      "title"
+    ],
+    "roles": {
+      "content": "text",
+      "title": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_inspect_structure": {
+    "tool": "data",
+    "method": "data_inspect_structure",
+    "keys": [
+      "content",
+      "file_path",
+      "format"
+    ],
+    "roles": {
+      "content": "text",
+      "file_path": "input_path",
+      "format": "enum"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_minify_code": {
+    "tool": "data",
+    "method": "data_minify_code",
+    "keys": [
+      "content",
+      "language"
+    ],
+    "roles": {
+      "content": "text",
+      "language": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_normalize_table": {
+    "tool": "data",
+    "method": "data_normalize_table",
+    "keys": [
+      "content",
+      "keep_empty_columns"
+    ],
+    "roles": {
+      "content": "text",
+      "keep_empty_columns": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_query_jsonpath": {
+    "tool": "data",
+    "method": "data_query_jsonpath",
+    "keys": [
+      "content",
+      "path"
+    ],
+    "roles": {
+      "content": "text",
+      "path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_random_value": {
+    "tool": "data",
+    "method": "data_random_value",
+    "keys": [
+      "category",
+      "count",
+      "custom_alphabet",
+      "include_digits",
+      "include_lowercase",
+      "include_symbols",
+      "include_uppercase",
+      "length",
+      "max_value",
+      "min_value"
+    ],
+    "roles": {
+      "category": "text",
+      "count": "int",
+      "custom_alphabet": "text",
+      "include_digits": "text",
+      "include_lowercase": "text",
+      "include_symbols": "text",
+      "include_uppercase": "text",
+      "length": "text",
+      "max_value": "text",
+      "min_value": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_render_preview": {
+    "tool": "data",
+    "method": "data_render_preview",
+    "keys": [
+      "markdown"
+    ],
+    "roles": {
+      "markdown": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "data_save_file": {
+    "tool": "data",
+    "method": "data_save_file",
+    "keys": [
+      "content",
+      "output_path"
+    ],
+    "roles": {
+      "content": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "data_table_to_csv": {
+    "tool": "data",
+    "method": "data_table_to_csv",
+    "keys": [
+      "content",
+      "delimiter",
+      "include_header",
+      "quote_char"
+    ],
+    "roles": {
+      "content": "text",
+      "delimiter": "enum",
+      "include_header": "text",
+      "quote_char": "text"
+    },
+    "accepted_file_kinds": [
+      "csv"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_table_to_rows": {
+    "tool": "data",
+    "method": "data_table_to_rows",
+    "keys": [
+      "content"
+    ],
+    "roles": {
+      "content": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_validate_against_schema": {
+    "tool": "data",
+    "method": "data_validate_against_schema",
+    "keys": [
+      "content",
+      "schema"
+    ],
+    "roles": {
+      "content": "text",
+      "schema": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "data_validate_syntax": {
+    "tool": "data",
+    "method": "data_validate_syntax",
+    "keys": [
+      "content",
+      "format"
+    ],
+    "roles": {
+      "content": "text",
+      "format": "enum"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "decode_qr": {
+    "tool": "qr",
+    "method": "decode_qr",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_base64_decode_text": {
+    "tool": "encoding",
+    "method": "encoding_base64_decode_text",
+    "keys": [
+      "text",
+      "url_safe"
+    ],
+    "roles": {
+      "text": "text",
+      "url_safe": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_base64_decode_to_file": {
+    "tool": "encoding",
+    "method": "encoding_base64_decode_to_file",
+    "keys": [
+      "data",
+      "input_path",
+      "output_path",
+      "text",
+      "url_safe"
+    ],
+    "roles": {
+      "data": "json_blob",
+      "input_path": "input_path",
+      "output_path": "output_path",
+      "text": "text",
+      "url_safe": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "encoding_base64_encode_file": {
+    "tool": "encoding",
+    "method": "encoding_base64_encode_file",
+    "keys": [
+      "input_path",
+      "output_path",
+      "url_safe"
+    ],
+    "roles": {
+      "input_path": "input_path",
+      "output_path": "text",
+      "url_safe": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_base64_encode_text": {
+    "tool": "encoding",
+    "method": "encoding_base64_encode_text",
+    "keys": [
+      "text",
+      "url_safe"
+    ],
+    "roles": {
+      "text": "text",
+      "url_safe": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_binary_decode_text": {
+    "tool": "encoding",
+    "method": "encoding_binary_decode_text",
+    "keys": [
+      "text"
+    ],
+    "roles": {
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_binary_decode_to_file": {
+    "tool": "encoding",
+    "method": "encoding_binary_decode_to_file",
+    "keys": [
+      "binary_str",
+      "input_path",
+      "output_path",
+      "text"
+    ],
+    "roles": {
+      "binary_str": "text",
+      "input_path": "input_path",
+      "output_path": "output_path",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "encoding_binary_encode_file": {
+    "tool": "encoding",
+    "method": "encoding_binary_encode_file",
+    "keys": [
+      "input_path",
+      "output_path",
+      "spaced"
+    ],
+    "roles": {
+      "input_path": "input_path",
+      "output_path": "text",
+      "spaced": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_binary_encode_text": {
+    "tool": "encoding",
+    "method": "encoding_binary_encode_text",
+    "keys": [
+      "spaced",
+      "text"
+    ],
+    "roles": {
+      "spaced": "text",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_binary_text": {
+    "tool": "encoding",
+    "method": "encoding_binary_text",
+    "keys": [
+      "direction"
+    ],
+    "roles": {
+      "direction": "enum"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_hex_decode_text": {
+    "tool": "encoding",
+    "method": "encoding_hex_decode_text",
+    "keys": [
+      "text"
+    ],
+    "roles": {
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_hex_decode_to_file": {
+    "tool": "encoding",
+    "method": "encoding_hex_decode_to_file",
+    "keys": [
+      "hex_str",
+      "input_path",
+      "output_path",
+      "text"
+    ],
+    "roles": {
+      "hex_str": "text",
+      "input_path": "input_path",
+      "output_path": "output_path",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "encoding_hex_encode_file": {
+    "tool": "encoding",
+    "method": "encoding_hex_encode_file",
+    "keys": [
+      "input_path",
+      "output_path",
+      "spaced"
+    ],
+    "roles": {
+      "input_path": "input_path",
+      "output_path": "text",
+      "spaced": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_hex_encode_text": {
+    "tool": "encoding",
+    "method": "encoding_hex_encode_text",
+    "keys": [
+      "spaced",
+      "text"
+    ],
+    "roles": {
+      "spaced": "text",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_html_decode": {
+    "tool": "encoding",
+    "method": "encoding_html_decode",
+    "keys": [
+      "text"
+    ],
+    "roles": {
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_html_encode": {
+    "tool": "encoding",
+    "method": "encoding_html_encode",
+    "keys": [
+      "text"
+    ],
+    "roles": {
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_html_encode_numeric": {
+    "tool": "encoding",
+    "method": "encoding_html_encode_numeric",
+    "keys": [
+      "hex_format",
+      "text"
+    ],
+    "roles": {
+      "hex_format": "text",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_transform": {
+    "tool": "encoding",
+    "method": "encoding_transform",
+    "keys": [
+      "direction",
+      "method",
+      "spaced",
+      "text"
+    ],
+    "roles": {
+      "direction": "enum",
+      "method": "enum",
+      "spaced": "text",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_url_decode": {
+    "tool": "encoding",
+    "method": "encoding_url_decode",
+    "keys": [
+      "text"
+    ],
+    "roles": {
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "encoding_url_encode": {
+    "tool": "encoding",
+    "method": "encoding_url_encode",
+    "keys": [
+      "full_url",
+      "text"
+    ],
+    "roles": {
+      "full_url": "text",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "json",
+      "xml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "format_code": {
+    "tool": "data",
+    "method": "format_code",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "format_css": {
+    "tool": "data",
+    "method": "format_css",
+    "keys": [
+      "content",
+      "indent"
+    ],
+    "roles": {
+      "content": "text",
+      "indent": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "format_javascript": {
+    "tool": "data",
+    "method": "format_javascript",
+    "keys": [
+      "content"
+    ],
+    "roles": {
+      "content": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "format_js": {
+    "tool": "data",
+    "method": "format_js",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "format_json": {
+    "tool": "data",
+    "method": "format_json",
+    "keys": [
+      "content",
+      "indent"
+    ],
+    "roles": {
+      "content": "text",
+      "indent": "text"
+    },
+    "accepted_file_kinds": [
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "format_sql": {
+    "tool": "data",
+    "method": "format_sql",
+    "keys": [
+      "content"
+    ],
+    "roles": {
+      "content": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "format_xml": {
+    "tool": "data",
+    "method": "format_xml",
+    "keys": [
+      "content",
+      "indent"
+    ],
+    "roles": {
+      "content": "text",
+      "indent": "text"
+    },
+    "accepted_file_kinds": [
+      "csv",
+      "tsv",
+      "json",
+      "yaml",
+      "toml",
+      "xml",
+      "h5",
+      "hdf5",
+      "sql"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "format_yaml": {
+    "tool": "data",
+    "method": "format_yaml",
+    "keys": [
+      "content",
+      "indent"
+    ],
+    "roles": {
+      "content": "text",
+      "indent": "text"
+    },
+    "accepted_file_kinds": [
+      "yaml"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "generate_barcode": {
+    "tool": "qr",
+    "method": "generate_barcode",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "generate_qr": {
+    "tool": "qr",
+    "method": "generate_qr",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "generate_qr_svg": {
+    "tool": "qr",
+    "method": "generate_qr_svg",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "get_apps": {
+    "tool": "shell",
+    "method": "get_apps",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "get_data_dir": {
+    "tool": "shell",
+    "method": "get_data_dir",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "get_network_connections": {
+    "tool": "network_monitor",
+    "method": "get_network_connections",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "get_recents": {
+    "tool": "shell",
+    "method": "get_recents",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "get_setting": {
+    "tool": "shell",
+    "method": "get_setting",
+    "keys": [
+      "default",
+      "key"
+    ],
+    "roles": {
+      "default": "text",
+      "key": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "get_settings_all": {
+    "tool": "shell",
+    "method": "get_settings_all",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "get_theme_palette": {
+    "tool": "shell",
+    "method": "get_theme_palette",
+    "keys": [
+      "theme_name"
+    ],
+    "roles": {
+      "theme_name": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "get_tooltips": {
+    "tool": "shell",
+    "method": "get_tooltips",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "get_version": {
+    "tool": "shell",
+    "method": "get_version",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_add_border": {
+    "tool": "images",
+    "method": "image_add_border",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_adjust": {
+    "tool": "images",
+    "method": "image_adjust",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_apply_filter_preset": {
+    "tool": "images",
+    "method": "image_apply_filter_preset",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_auto_enhance": {
+    "tool": "images",
+    "method": "image_auto_enhance",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_blur_region": {
+    "tool": "images",
+    "method": "image_blur_region",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_circle_crop": {
+    "tool": "images",
+    "method": "image_circle_crop",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_compress": {
+    "tool": "images",
+    "method": "image_compress",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_crop": {
+    "tool": "images",
+    "method": "image_crop",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_flip": {
+    "tool": "images",
+    "method": "image_flip",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_load_data": {
+    "tool": "images",
+    "method": "image_load_data",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_load_preview": {
+    "tool": "images",
+    "method": "image_load_preview",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_pixelate_region": {
+    "tool": "images",
+    "method": "image_pixelate_region",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_remove_background": {
+    "tool": "images",
+    "method": "image_remove_background",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_resize": {
+    "tool": "images",
+    "method": "image_resize",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "image_rotate": {
+    "tool": "images",
+    "method": "image_rotate",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_add_border": {
+    "tool": "images",
+    "method": "images_add_border",
+    "keys": [
+      "border_size",
+      "border_width",
+      "color",
+      "file_path",
+      "output_path",
+      "overwrite",
+      "polaroid"
+    ],
+    "roles": {
+      "border_size": "text",
+      "border_width": "text",
+      "color": "text",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "overwrite": "bool",
+      "polaroid": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_adjust": {
+    "tool": "images",
+    "method": "images_adjust",
+    "keys": [
+      "brightness",
+      "color",
+      "contrast",
+      "file_path",
+      "output_path",
+      "overwrite",
+      "saturation",
+      "sharpness"
+    ],
+    "roles": {
+      "brightness": "text",
+      "color": "text",
+      "contrast": "text",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "overwrite": "bool",
+      "saturation": "text",
+      "sharpness": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_apply_filter": {
+    "tool": "images",
+    "method": "images_apply_filter",
+    "keys": [
+      "file_path",
+      "filter_name",
+      "output_path",
+      "overwrite"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "filter_name": "text",
+      "output_path": "output_path",
+      "overwrite": "bool"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_aspect_box": {
+    "tool": "images",
+    "method": "images_aspect_box",
+    "keys": [
+      "aspect_ratio",
+      "height",
+      "width"
+    ],
+    "roles": {
+      "aspect_ratio": "text",
+      "height": "int",
+      "width": "int"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_auto_enhance": {
+    "tool": "images",
+    "method": "images_auto_enhance",
+    "keys": [
+      "file_path",
+      "output_path",
+      "overwrite"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "overwrite": "bool"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_batch_process": {
+    "tool": "images",
+    "method": "images_batch_process",
+    "keys": [
+      "bg_model",
+      "file_paths",
+      "height",
+      "keep_aspect",
+      "output_dir",
+      "quality",
+      "remove_background",
+      "target_format",
+      "width"
+    ],
+    "roles": {
+      "bg_model": "text",
+      "file_paths": "paths_list",
+      "height": "int",
+      "keep_aspect": "text",
+      "output_dir": "folder",
+      "quality": "int",
+      "remove_background": "text",
+      "target_format": "text",
+      "width": "int"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_blur_region": {
+    "tool": "images",
+    "method": "images_blur_region",
+    "keys": [
+      "box",
+      "file_path",
+      "output_path",
+      "overwrite",
+      "radius"
+    ],
+    "roles": {
+      "box": "text",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "overwrite": "bool",
+      "radius": "float"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_circle_crop": {
+    "tool": "images",
+    "method": "images_circle_crop",
+    "keys": [
+      "file_path",
+      "output_path",
+      "overwrite"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "overwrite": "bool"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_compress": {
+    "tool": "images",
+    "method": "images_compress",
+    "keys": [
+      "file_path",
+      "output_path",
+      "quality"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "quality": "int"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_crop": {
+    "tool": "images",
+    "method": "images_crop",
+    "keys": [
+      "file_path",
+      "height",
+      "output_path",
+      "overwrite",
+      "width",
+      "x",
+      "y"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "height": "int",
+      "output_path": "output_path",
+      "overwrite": "bool",
+      "width": "int",
+      "x": "int",
+      "y": "int"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_delete_model": {
+    "tool": "images",
+    "method": "images_delete_model",
+    "keys": [
+      "model"
+    ],
+    "roles": {
+      "model": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_download_model": {
+    "tool": "images",
+    "method": "images_download_model",
+    "keys": [
+      "model"
+    ],
+    "roles": {
+      "model": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_flip": {
+    "tool": "images",
+    "method": "images_flip",
+    "keys": [
+      "direction",
+      "file_path",
+      "output_path",
+      "overwrite"
+    ],
+    "roles": {
+      "direction": "enum",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "overwrite": "bool"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_gif_ops": {
+    "tool": "images",
+    "method": "images_gif_ops",
+    "keys": [
+      "action",
+      "file_path",
+      "fps",
+      "frame_paths",
+      "loop",
+      "output_dir",
+      "output_path"
+    ],
+    "roles": {
+      "action": "text",
+      "file_path": "input_path",
+      "fps": "int",
+      "frame_paths": "text",
+      "loop": "bool",
+      "output_dir": "folder",
+      "output_path": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_load_data": {
+    "tool": "images",
+    "method": "images_load_data",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_load_preview": {
+    "tool": "images",
+    "method": "images_load_preview",
+    "keys": [
+      "file_path",
+      "max_size"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "max_size": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_models_status": {
+    "tool": "images",
+    "method": "images_models_status",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_ocr": {
+    "tool": "images",
+    "method": "images_ocr",
+    "keys": [
+      "file_path",
+      "language"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "language": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_pixelate_region": {
+    "tool": "images",
+    "method": "images_pixelate_region",
+    "keys": [
+      "box",
+      "file_path",
+      "output_path",
+      "overwrite",
+      "pixel_size"
+    ],
+    "roles": {
+      "box": "text",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "overwrite": "bool",
+      "pixel_size": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_prefetch_models": {
+    "tool": "images",
+    "method": "images_prefetch_models",
+    "keys": [
+      "models"
+    ],
+    "roles": {
+      "models": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_presets": {
+    "tool": "images",
+    "method": "images_presets",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "images_remove_background": {
+    "tool": "images",
+    "method": "images_remove_background",
+    "keys": [
+      "backdrop",
+      "blur_radius",
+      "color",
+      "file_path",
+      "model",
+      "output_path",
+      "overwrite"
+    ],
+    "roles": {
+      "backdrop": "text",
+      "blur_radius": "text",
+      "color": "text",
+      "file_path": "input_path",
+      "model": "text",
+      "output_path": "output_path",
+      "overwrite": "bool"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_resize": {
+    "tool": "images",
+    "method": "images_resize",
+    "keys": [
+      "file_path",
+      "height",
+      "keep_aspect",
+      "output_path",
+      "overwrite",
+      "width"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "height": "int",
+      "keep_aspect": "text",
+      "output_path": "output_path",
+      "overwrite": "bool",
+      "width": "int"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_rotate": {
+    "tool": "images",
+    "method": "images_rotate",
+    "keys": [
+      "degrees",
+      "file_path",
+      "output_path",
+      "overwrite"
+    ],
+    "roles": {
+      "degrees": "text",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "overwrite": "bool"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_save_preview": {
+    "tool": "images",
+    "method": "images_save_preview",
+    "keys": [
+      "data_url",
+      "output_path"
+    ],
+    "roles": {
+      "data_url": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "images_to_ascii": {
+    "tool": "images",
+    "method": "images_to_ascii",
+    "keys": [
+      "charset",
+      "columns",
+      "file_path",
+      "output_path",
+      "width"
+    ],
+    "roles": {
+      "charset": "text",
+      "columns": "int",
+      "file_path": "input_path",
+      "output_path": "text",
+      "width": "int"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "infer_json_schema": {
+    "tool": "data",
+    "method": "infer_json_schema",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "job_cancel": {
+    "tool": "shell",
+    "method": "job_cancel",
+    "keys": [
+      "id"
+    ],
+    "roles": {
+      "id": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": true
+  },
+  "job_poll": {
+    "tool": "shell",
+    "method": "job_poll",
+    "keys": [
+      "id"
+    ],
+    "roles": {
+      "id": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": true
+  },
+  "job_start": {
+    "tool": "shell",
+    "method": "job_start",
+    "keys": [
+      "method",
+      "params"
+    ],
+    "roles": {
+      "method": "enum",
+      "params": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": true
+  },
+  "markdown_export_html": {
+    "tool": "markdown",
+    "method": "markdown_export_html",
+    "keys": [
+      "flavor",
+      "markdown",
+      "output_path"
+    ],
+    "roles": {
+      "flavor": "enum",
+      "markdown": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "md",
+      "txt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "markdown_export_pdf": {
+    "tool": "markdown",
+    "method": "markdown_export_pdf",
+    "keys": [
+      "flavor",
+      "markdown",
+      "output_path"
+    ],
+    "roles": {
+      "flavor": "enum",
+      "markdown": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "markdown_flavors": {
+    "tool": "markdown",
+    "method": "markdown_flavors",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "md",
+      "txt"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "markdown_format_snippet": {
+    "tool": "markdown",
+    "method": "markdown_format_snippet",
+    "keys": [
+      "alt",
+      "cols",
+      "label",
+      "language",
+      "level",
+      "marker",
+      "ordered",
+      "placeholder",
+      "rows",
+      "snippet_type",
+      "text",
+      "url"
+    ],
+    "roles": {
+      "alt": "text",
+      "cols": "text",
+      "label": "text",
+      "language": "text",
+      "level": "text",
+      "marker": "text",
+      "ordered": "text",
+      "placeholder": "text",
+      "rows": "int",
+      "snippet_type": "text",
+      "text": "text",
+      "url": "text"
+    },
+    "accepted_file_kinds": [
+      "md",
+      "txt"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "markdown_to_html": {
+    "tool": "markdown",
+    "method": "markdown_to_html",
+    "keys": [
+      "flavor",
+      "markdown"
+    ],
+    "roles": {
+      "flavor": "enum",
+      "markdown": "text"
+    },
+    "accepted_file_kinds": [
+      "md",
+      "txt"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "media_batch_operations": {
+    "tool": "media",
+    "method": "media_batch_operations",
+    "keys": [
+      "audio_format",
+      "bitrate",
+      "crf",
+      "items",
+      "operation",
+      "output_dir",
+      "preset",
+      "target_format"
+    ],
+    "roles": {
+      "audio_format": "text",
+      "bitrate": "text",
+      "crf": "text",
+      "items": "paths_list",
+      "operation": "enum",
+      "output_dir": "folder",
+      "preset": "enum",
+      "target_format": "text"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_capture_frame": {
+    "tool": "media",
+    "method": "media_capture_frame",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "media_compose_audio": {
+    "tool": "media",
+    "method": "media_compose_audio",
+    "keys": [
+      "audio_path",
+      "output_path",
+      "video_path"
+    ],
+    "roles": {
+      "audio_path": "input_path",
+      "output_path": "output_path",
+      "video_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "mp3",
+      "wav",
+      "flac",
+      "ogg",
+      "aac"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_compose_timeline": {
+    "tool": "media",
+    "method": "media_compose_timeline",
+    "keys": [
+      "clips",
+      "output_path"
+    ],
+    "roles": {
+      "clips": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_compress": {
+    "tool": "media",
+    "method": "media_compress",
+    "keys": [
+      "file_path",
+      "input_path",
+      "output_path",
+      "preset"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "input_path": "input_path",
+      "output_path": "output_path",
+      "preset": "enum"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_convert": {
+    "tool": "media",
+    "method": "media_convert",
+    "keys": [
+      "audio_codec",
+      "input_path",
+      "output_path",
+      "video_codec"
+    ],
+    "roles": {
+      "audio_codec": "text",
+      "input_path": "input_path",
+      "output_path": "output_path",
+      "video_codec": "text"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_extract_audio": {
+    "tool": "media",
+    "method": "media_extract_audio",
+    "keys": [
+      "audio_format",
+      "bitrate",
+      "input_path",
+      "output_path"
+    ],
+    "roles": {
+      "audio_format": "text",
+      "bitrate": "text",
+      "input_path": "input_path",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "mp3",
+      "wav",
+      "flac",
+      "ogg",
+      "aac"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_extract_frame": {
+    "tool": "media",
+    "method": "media_extract_frame",
+    "keys": [
+      "input_path",
+      "output_path",
+      "timestamp"
+    ],
+    "roles": {
+      "input_path": "input_path",
+      "output_path": "output_path",
+      "timestamp": "text"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_get_file_url": {
+    "tool": "media",
+    "method": "media_get_file_url",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "media_get_info": {
+    "tool": "media",
+    "method": "media_get_info",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "media_info": {
+    "tool": "media",
+    "method": "media_info",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "media_mute": {
+    "tool": "media",
+    "method": "media_mute",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "media_mute_video": {
+    "tool": "media",
+    "method": "media_mute_video",
+    "keys": [
+      "input_path",
+      "output_path"
+    ],
+    "roles": {
+      "input_path": "input_path",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_speed_reverse": {
+    "tool": "media",
+    "method": "media_speed_reverse",
+    "keys": [
+      "input_path",
+      "output_path",
+      "reverse",
+      "speed_factor"
+    ],
+    "roles": {
+      "input_path": "input_path",
+      "output_path": "output_path",
+      "reverse": "text",
+      "speed_factor": "text"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_transcribe": {
+    "tool": "media",
+    "method": "media_transcribe",
+    "keys": [
+      "input_path",
+      "language",
+      "output_path",
+      "subtitle_format"
+    ],
+    "roles": {
+      "input_path": "input_path",
+      "language": "text",
+      "output_path": "text",
+      "subtitle_format": "text"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "media_trim": {
+    "tool": "media",
+    "method": "media_trim",
+    "keys": [
+      "end_time",
+      "fast_copy",
+      "input_path",
+      "output_path",
+      "start_time"
+    ],
+    "roles": {
+      "end_time": "float",
+      "fast_copy": "text",
+      "input_path": "input_path",
+      "output_path": "output_path",
+      "start_time": "float"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm",
+      "mp3",
+      "wav",
+      "flac",
+      "aac",
+      "ogg",
+      "srt",
+      "vtt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "media_video_to_gif": {
+    "tool": "media",
+    "method": "media_video_to_gif",
+    "keys": [
+      "duration",
+      "fps",
+      "input_path",
+      "output_path",
+      "start_time",
+      "width"
+    ],
+    "roles": {
+      "duration": "float",
+      "fps": "int",
+      "input_path": "input_path",
+      "output_path": "output_path",
+      "start_time": "float",
+      "width": "int"
+    },
+    "accepted_file_kinds": [
+      "mp4",
+      "mov",
+      "mkv",
+      "webm"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "metadata_batch_cleanup": {
+    "tool": "metadata",
+    "method": "metadata_batch_cleanup",
+    "keys": [
+      "input_dir",
+      "output_dir",
+      "preview",
+      "recursive"
+    ],
+    "roles": {
+      "input_dir": "folder",
+      "output_dir": "folder",
+      "preview": "bool",
+      "recursive": "bool"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "metadata_compare": {
+    "tool": "metadata",
+    "method": "metadata_compare",
+    "keys": [
+      "after",
+      "before"
+    ],
+    "roles": {
+      "after": "text",
+      "before": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "metadata_editable_keys": {
+    "tool": "metadata",
+    "method": "metadata_editable_keys",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "metadata_export": {
+    "tool": "metadata",
+    "method": "metadata_export",
+    "keys": [
+      "file_path",
+      "output_path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "json"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "metadata_gps_preview": {
+    "tool": "metadata",
+    "method": "metadata_gps_preview",
+    "keys": [
+      "file_path",
+      "metadata"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "metadata": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "metadata_inspect": {
+    "tool": "metadata",
+    "method": "metadata_inspect",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "metadata_presets": {
+    "tool": "metadata",
+    "method": "metadata_presets",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "metadata_save": {
+    "tool": "metadata",
+    "method": "metadata_save",
+    "keys": [
+      "file_path",
+      "output_path",
+      "updates"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "updates": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "metadata_strip": {
+    "tool": "metadata",
+    "method": "metadata_strip",
+    "keys": [
+      "backup",
+      "file_path",
+      "output_path"
+    ],
+    "roles": {
+      "backup": "text",
+      "file_path": "input_path",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "metadata_strip_any": {
+    "tool": "metadata",
+    "method": "metadata_strip_any",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "metadata_support_report": {
+    "tool": "metadata",
+    "method": "metadata_support_report",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "pdf",
+      "docx",
+      "xlsx",
+      "pptx",
+      "mp3",
+      "flac",
+      "wav",
+      "mp4",
+      "mkv"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "minify_json": {
+    "tool": "data",
+    "method": "minify_json",
+    "keys": [
+      "content"
+    ],
+    "roles": {
+      "content": "text"
+    },
+    "accepted_file_kinds": [
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "model3d_center_origin": {
+    "tool": "model3d",
+    "method": "model3d_center_origin",
+    "keys": [
+      "file_path",
+      "output_path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "model3d_cut": {
+    "tool": "model3d",
+    "method": "model3d_cut",
+    "keys": [
+      "cap",
+      "file_path",
+      "output_dir",
+      "planes"
+    ],
+    "roles": {
+      "cap": "text",
+      "file_path": "input_path",
+      "output_dir": "folder",
+      "planes": "text"
+    },
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "model3d_cut_mesh": {
+    "tool": "model3d",
+    "method": "model3d_cut_mesh",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "model3d_export": {
+    "tool": "model3d",
+    "method": "model3d_export",
+    "keys": [
+      "file_path",
+      "format",
+      "output_path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "format": "enum",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "model3d_info": {
+    "tool": "model3d",
+    "method": "model3d_info",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "model3d_load": {
+    "tool": "model3d",
+    "method": "model3d_load",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "model3d_load_mesh": {
+    "tool": "model3d",
+    "method": "model3d_load_mesh",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "model3d_measure": {
+    "tool": "model3d",
+    "method": "model3d_measure",
+    "keys": [
+      "p1",
+      "p2"
+    ],
+    "roles": {
+      "p1": "text",
+      "p2": "text"
+    },
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "model3d_repair": {
+    "tool": "model3d",
+    "method": "model3d_repair",
+    "keys": [
+      "file_path",
+      "output_path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "model3d_repair_mesh": {
+    "tool": "model3d",
+    "method": "model3d_repair_mesh",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "model3d_scale": {
+    "tool": "model3d",
+    "method": "model3d_scale",
+    "keys": [
+      "factor",
+      "factor_x",
+      "factor_y",
+      "factor_z",
+      "file_path",
+      "output_path"
+    ],
+    "roles": {
+      "factor": "float",
+      "factor_x": "text",
+      "factor_y": "text",
+      "factor_z": "text",
+      "file_path": "input_path",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "model3d_scale_mesh": {
+    "tool": "model3d",
+    "method": "model3d_scale_mesh",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "stl",
+      "obj",
+      "ply",
+      "gltf",
+      "step"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "network_apps": {
+    "tool": "network_monitor",
+    "method": "network_apps",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "network_database_ops": {
+    "tool": "network_monitor",
+    "method": "network_database_ops",
+    "keys": [
+      "action",
+      "days"
+    ],
+    "roles": {
+      "action": "text",
+      "days": "text"
+    },
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "network_destination_status": {
+    "tool": "network_monitor",
+    "method": "network_destination_status",
+    "keys": [
+      "destination"
+    ],
+    "roles": {
+      "destination": "text"
+    },
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "network_get_connections": {
+    "tool": "network_monitor",
+    "method": "network_get_connections",
+    "keys": [
+      "filter"
+    ],
+    "roles": {
+      "filter": "text"
+    },
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "network_history": {
+    "tool": "network_monitor",
+    "method": "network_history",
+    "keys": [
+      "domain",
+      "limit",
+      "process",
+      "process_name",
+      "query"
+    ],
+    "roles": {
+      "domain": "text",
+      "limit": "int",
+      "process": "text",
+      "process_name": "text",
+      "query": "text"
+    },
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "network_manage_destinations": {
+    "tool": "network_monitor",
+    "method": "network_manage_destinations",
+    "keys": [
+      "destination",
+      "known"
+    ],
+    "roles": {
+      "destination": "text",
+      "known": "text"
+    },
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "network_stats": {
+    "tool": "network_monitor",
+    "method": "network_stats",
+    "keys": [
+      "days",
+      "limit"
+    ],
+    "roles": {
+      "days": "text",
+      "limit": "int"
+    },
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "ocr_batch": {
+    "tool": "ocr",
+    "method": "ocr_batch",
+    "keys": [
+      "dpi",
+      "file_paths",
+      "format",
+      "language",
+      "output_dir",
+      "paths",
+      "recursive",
+      "searchable_pdf"
+    ],
+    "roles": {
+      "dpi": "int",
+      "file_paths": "paths_list",
+      "format": "enum",
+      "language": "text",
+      "output_dir": "folder",
+      "paths": "paths_list",
+      "recursive": "bool",
+      "searchable_pdf": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf",
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "ocr_create_searchable_pdf": {
+    "tool": "ocr",
+    "method": "ocr_create_searchable_pdf",
+    "keys": [
+      "dpi",
+      "input_path",
+      "language",
+      "output_path",
+      "page_range",
+      "pages"
+    ],
+    "roles": {
+      "dpi": "int",
+      "input_path": "input_path",
+      "language": "text",
+      "output_path": "output_path",
+      "page_range": "text",
+      "pages": "int"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "ocr_image": {
+    "tool": "ocr",
+    "method": "ocr_image",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "ocr_inspect_file": {
+    "tool": "ocr",
+    "method": "ocr_inspect_file",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "pdf",
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "ocr_languages": {
+    "tool": "ocr",
+    "method": "ocr_languages",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "pdf",
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "ocr_preview_image": {
+    "tool": "ocr",
+    "method": "ocr_preview_image",
+    "keys": [
+      "file_path",
+      "max_dim"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "max_dim": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "ocr_recognize_file": {
+    "tool": "ocr",
+    "method": "ocr_recognize_file",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "pdf",
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "ocr_recognize_image": {
+    "tool": "ocr",
+    "method": "ocr_recognize_image",
+    "keys": [
+      "dpi",
+      "file_path",
+      "format",
+      "language",
+      "output_path"
+    ],
+    "roles": {
+      "dpi": "int",
+      "file_path": "input_path",
+      "format": "enum",
+      "language": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "ocr_recognize_pdf": {
+    "tool": "ocr",
+    "method": "ocr_recognize_pdf",
+    "keys": [
+      "dpi",
+      "file_path",
+      "format",
+      "language",
+      "output_path",
+      "page_range"
+    ],
+    "roles": {
+      "dpi": "int",
+      "file_path": "input_path",
+      "format": "enum",
+      "language": "text",
+      "output_path": "output_path",
+      "page_range": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "ocr_scan_inputs": {
+    "tool": "ocr",
+    "method": "ocr_scan_inputs",
+    "keys": [
+      "paths",
+      "recursive"
+    ],
+    "roles": {
+      "paths": "paths_list",
+      "recursive": "bool"
+    },
+    "accepted_file_kinds": [
+      "pdf",
+      "png",
+      "jpg",
+      "webp",
+      "tiff",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "open_folder": {
+    "tool": "shell",
+    "method": "open_folder",
+    "keys": [
+      "path"
+    ],
+    "roles": {
+      "path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "open_path": {
+    "tool": "shell",
+    "method": "open_path",
+    "keys": [
+      "path"
+    ],
+    "roles": {
+      "path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "palette_aggregate": {
+    "tool": "palette",
+    "method": "palette_aggregate",
+    "keys": [
+      "image_paths",
+      "method",
+      "num_colors",
+      "threshold"
+    ],
+    "roles": {
+      "image_paths": "text",
+      "method": "enum",
+      "num_colors": "int",
+      "threshold": "float"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "palette_contrast": {
+    "tool": "palette",
+    "method": "palette_contrast",
+    "keys": [
+      "color1",
+      "color2"
+    ],
+    "roles": {
+      "color1": "text",
+      "color2": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "palette_export_aco": {
+    "tool": "palette",
+    "method": "palette_export_aco",
+    "keys": [
+      "colors",
+      "output_path"
+    ],
+    "roles": {
+      "colors": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "txt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "palette_export_ase": {
+    "tool": "palette",
+    "method": "palette_export_ase",
+    "keys": [
+      "colors",
+      "output_path"
+    ],
+    "roles": {
+      "colors": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "txt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "palette_export_css": {
+    "tool": "palette",
+    "method": "palette_export_css",
+    "keys": [
+      "colors",
+      "output_path",
+      "prefix"
+    ],
+    "roles": {
+      "colors": "text",
+      "output_path": "output_path",
+      "prefix": "text"
+    },
+    "accepted_file_kinds": [
+      "css"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "palette_export_gpl": {
+    "tool": "palette",
+    "method": "palette_export_gpl",
+    "keys": [
+      "colors",
+      "output_path",
+      "palette_name"
+    ],
+    "roles": {
+      "colors": "text",
+      "output_path": "output_path",
+      "palette_name": "text"
+    },
+    "accepted_file_kinds": [
+      "txt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "palette_export_json": {
+    "tool": "palette",
+    "method": "palette_export_json",
+    "keys": [
+      "colors",
+      "output_path"
+    ],
+    "roles": {
+      "colors": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "txt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "palette_export_strip": {
+    "tool": "palette",
+    "method": "palette_export_strip",
+    "keys": [
+      "colors",
+      "height",
+      "output_path",
+      "width"
+    ],
+    "roles": {
+      "colors": "text",
+      "height": "int",
+      "output_path": "output_path",
+      "width": "int"
+    },
+    "accepted_file_kinds": [
+      "txt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "palette_extract": {
+    "tool": "palette",
+    "method": "palette_extract",
+    "keys": [
+      "image_path",
+      "method",
+      "n_colors",
+      "num_colors"
+    ],
+    "roles": {
+      "image_path": "input_path",
+      "method": "enum",
+      "n_colors": "text",
+      "num_colors": "int"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "palette_load_image": {
+    "tool": "palette",
+    "method": "palette_load_image",
+    "keys": [
+      "image_path"
+    ],
+    "roles": {
+      "image_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "palette_nearest_name": {
+    "tool": "palette",
+    "method": "palette_nearest_name",
+    "keys": [
+      "color"
+    ],
+    "roles": {
+      "color": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "palette_sample_pixel": {
+    "tool": "palette",
+    "method": "palette_sample_pixel",
+    "keys": [
+      "image_path",
+      "x",
+      "y"
+    ],
+    "roles": {
+      "image_path": "input_path",
+      "x": "int",
+      "y": "int"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "paste_image_from_clipboard": {
+    "tool": "shell",
+    "method": "paste_image_from_clipboard",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp",
+      "bmp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "pdf_add_page_numbers": {
+    "tool": "pdf",
+    "method": "pdf_add_page_numbers",
+    "keys": [
+      "file_path",
+      "format",
+      "output_path",
+      "position"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "format": "enum",
+      "output_path": "output_path",
+      "position": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_assemble": {
+    "tool": "pdf",
+    "method": "pdf_assemble",
+    "keys": [
+      "output_path",
+      "page_numbers",
+      "pages",
+      "sources"
+    ],
+    "roles": {
+      "output_path": "output_path",
+      "page_numbers": "text",
+      "pages": "int",
+      "sources": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_batch_operations": {
+    "tool": "pdf",
+    "method": "pdf_batch_operations",
+    "keys": [
+      "image_path",
+      "items",
+      "operation",
+      "output_dir",
+      "password",
+      "watermark_text"
+    ],
+    "roles": {
+      "image_path": "input_path",
+      "items": "paths_list",
+      "operation": "enum",
+      "output_dir": "folder",
+      "password": "text",
+      "watermark_text": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_compress": {
+    "tool": "pdf",
+    "method": "pdf_compress",
+    "keys": [
+      "file_path",
+      "input_path",
+      "level",
+      "output_path",
+      "preset",
+      "quality"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "input_path": "input_path",
+      "level": "text",
+      "output_path": "output_path",
+      "preset": "enum",
+      "quality": "int"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_create_searchable_pdf": {
+    "tool": "pdf",
+    "method": "pdf_create_searchable_pdf",
+    "keys": [
+      "dpi",
+      "file_path",
+      "language",
+      "output_path"
+    ],
+    "roles": {
+      "dpi": "int",
+      "file_path": "input_path",
+      "language": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_delete_page": {
+    "tool": "pdf",
+    "method": "pdf_delete_page",
+    "keys": [
+      "file_path",
+      "output_path",
+      "page_number"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "page_number": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_export_groups": {
+    "tool": "pdf",
+    "method": "pdf_export_groups",
+    "keys": [
+      "groups",
+      "output_dir",
+      "page_numbers",
+      "sources"
+    ],
+    "roles": {
+      "groups": "text",
+      "output_dir": "folder",
+      "page_numbers": "text",
+      "sources": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_extract_page": {
+    "tool": "pdf",
+    "method": "pdf_extract_page",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "pdf_extract_single_page": {
+    "tool": "pdf",
+    "method": "pdf_extract_single_page",
+    "keys": [
+      "file_path",
+      "output_path",
+      "page_number"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "page_number": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_extract_text": {
+    "tool": "pdf",
+    "method": "pdf_extract_text",
+    "keys": [
+      "file_path",
+      "output_path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_merge": {
+    "tool": "pdf",
+    "method": "pdf_merge",
+    "keys": [
+      "file_paths",
+      "output_path"
+    ],
+    "roles": {
+      "file_paths": "paths_list",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_merge_pages": {
+    "tool": "pdf",
+    "method": "pdf_merge_pages",
+    "keys": [
+      "output_path",
+      "page_numbers",
+      "pages",
+      "sources"
+    ],
+    "roles": {
+      "output_path": "output_path",
+      "page_numbers": "text",
+      "pages": "int",
+      "sources": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_open_doc": {
+    "tool": "pdf",
+    "method": "pdf_open_doc",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "pdf_page_numbers": {
+    "tool": "pdf",
+    "method": "pdf_page_numbers",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "pdf_protect": {
+    "tool": "pdf",
+    "method": "pdf_protect",
+    "keys": [
+      "allow_printing",
+      "file_path",
+      "output_path",
+      "owner_password",
+      "password"
+    ],
+    "roles": {
+      "allow_printing": "text",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "owner_password": "text",
+      "password": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_query_rect": {
+    "tool": "pdf",
+    "method": "pdf_query_rect",
+    "keys": [
+      "end_line",
+      "file_path",
+      "page_number",
+      "rect",
+      "start_line"
+    ],
+    "roles": {
+      "end_line": "text",
+      "file_path": "input_path",
+      "page_number": "text",
+      "rect": "text",
+      "start_line": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "pdf_render_page": {
+    "tool": "pdf",
+    "method": "pdf_render_page",
+    "keys": [
+      "dpi",
+      "file_path",
+      "page_number"
+    ],
+    "roles": {
+      "dpi": "int",
+      "file_path": "input_path",
+      "page_number": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_reorder_pages": {
+    "tool": "pdf",
+    "method": "pdf_reorder_pages",
+    "keys": [
+      "file_path",
+      "order",
+      "output_path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "order": "text",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_reorganize": {
+    "tool": "pdf",
+    "method": "pdf_reorganize",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "pdf_rotate_page": {
+    "tool": "pdf",
+    "method": "pdf_rotate_page",
+    "keys": [
+      "degrees",
+      "file_path",
+      "output_path",
+      "page_number"
+    ],
+    "roles": {
+      "degrees": "text",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "page_number": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_rotate_pages": {
+    "tool": "pdf",
+    "method": "pdf_rotate_pages",
+    "keys": [
+      "degrees",
+      "file_path",
+      "output_path",
+      "pages"
+    ],
+    "roles": {
+      "degrees": "text",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "pages": "int"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_save_annotated_page": {
+    "tool": "pdf",
+    "method": "pdf_save_annotated_page",
+    "keys": [
+      "annotations",
+      "file_path",
+      "output_path",
+      "page_number"
+    ],
+    "roles": {
+      "annotations": "text",
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "page_number": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_split": {
+    "tool": "pdf",
+    "method": "pdf_split",
+    "keys": [
+      "every_n",
+      "file_path",
+      "output_dir",
+      "ranges"
+    ],
+    "roles": {
+      "every_n": "text",
+      "file_path": "input_path",
+      "output_dir": "folder",
+      "ranges": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_thumbnails": {
+    "tool": "pdf",
+    "method": "pdf_thumbnails",
+    "keys": [
+      "file_path",
+      "max_dim",
+      "pages"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "max_dim": "text",
+      "pages": "int"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "pdf_to_docx": {
+    "tool": "pdf",
+    "method": "pdf_to_docx",
+    "keys": [
+      "file_path",
+      "output_path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_unlock": {
+    "tool": "pdf",
+    "method": "pdf_unlock",
+    "keys": [
+      "file_path",
+      "output_path",
+      "password"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "output_path": "output_path",
+      "password": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "pdf_watermark": {
+    "tool": "pdf",
+    "method": "pdf_watermark",
+    "keys": [
+      "file_path",
+      "font_size",
+      "opacity",
+      "output_path",
+      "text"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "font_size": "text",
+      "opacity": "text",
+      "output_path": "output_path",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "ping": {
+    "tool": "shell",
+    "method": "ping",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "playlist_export_csv": {
+    "tool": "playlist",
+    "method": "playlist_export_csv",
+    "keys": [
+      "output_path",
+      "tracks"
+    ],
+    "roles": {
+      "output_path": "output_path",
+      "tracks": "text"
+    },
+    "accepted_file_kinds": [
+      "csv"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "playlist_export_json": {
+    "tool": "playlist",
+    "method": "playlist_export_json",
+    "keys": [
+      "output_path",
+      "tracks"
+    ],
+    "roles": {
+      "output_path": "output_path",
+      "tracks": "text"
+    },
+    "accepted_file_kinds": [
+      "json"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "playlist_export_m3u8": {
+    "tool": "playlist",
+    "method": "playlist_export_m3u8",
+    "keys": [
+      "output_path",
+      "tracks"
+    ],
+    "roles": {
+      "output_path": "output_path",
+      "tracks": "text"
+    },
+    "accepted_file_kinds": [
+      "m3u",
+      "m3u8",
+      "mp3",
+      "wav",
+      "flac",
+      "ogg",
+      "mp4"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "playlist_fetch": {
+    "tool": "playlist",
+    "method": "playlist_fetch",
+    "keys": [
+      "url"
+    ],
+    "roles": {
+      "url": "text"
+    },
+    "accepted_file_kinds": [
+      "m3u",
+      "m3u8",
+      "mp3",
+      "wav",
+      "flac",
+      "ogg",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "playlist_import_file": {
+    "tool": "playlist",
+    "method": "playlist_import_file",
+    "keys": [
+      "file_path",
+      "path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "m3u",
+      "m3u8",
+      "mp3",
+      "wav",
+      "flac",
+      "ogg",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "playlist_parse_text": {
+    "tool": "playlist",
+    "method": "playlist_parse_text",
+    "keys": [
+      "text"
+    ],
+    "roles": {
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "playlist_spotify_auth": {
+    "tool": "playlist",
+    "method": "playlist_spotify_auth",
+    "keys": [
+      "action",
+      "client_id"
+    ],
+    "roles": {
+      "action": "text",
+      "client_id": "text"
+    },
+    "accepted_file_kinds": [
+      "m3u",
+      "m3u8",
+      "mp3",
+      "wav",
+      "flac",
+      "ogg",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "playlist_youtube_auth": {
+    "tool": "playlist",
+    "method": "playlist_youtube_auth",
+    "keys": [
+      "action",
+      "client_id",
+      "client_secret"
+    ],
+    "roles": {
+      "action": "text",
+      "client_id": "text",
+      "client_secret": "text"
+    },
+    "accepted_file_kinds": [
+      "m3u",
+      "m3u8",
+      "mp3",
+      "wav",
+      "flac",
+      "ogg",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "playlist_youtube_build": {
+    "tool": "playlist",
+    "method": "playlist_youtube_build",
+    "keys": [
+      "playlist_title",
+      "tracks"
+    ],
+    "roles": {
+      "playlist_title": "text",
+      "tracks": "text"
+    },
+    "accepted_file_kinds": [
+      "m3u",
+      "m3u8",
+      "mp3",
+      "wav",
+      "flac",
+      "ogg",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "qr_build_payload": {
+    "tool": "qr",
+    "method": "qr_build_payload",
+    "keys": [
+      "schema"
+    ],
+    "roles": {
+      "schema": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "qr_decode": {
+    "tool": "qr",
+    "method": "qr_decode",
+    "keys": [
+      "image_path"
+    ],
+    "roles": {
+      "image_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "qr_decode_data_url": {
+    "tool": "qr",
+    "method": "qr_decode_data_url",
+    "keys": [
+      "data_url"
+    ],
+    "roles": {
+      "data_url": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "qr_export_ics": {
+    "tool": "qr",
+    "method": "qr_export_ics",
+    "keys": [
+      "description",
+      "end_time",
+      "location",
+      "output_path",
+      "start_time",
+      "title"
+    ],
+    "roles": {
+      "description": "text",
+      "end_time": "float",
+      "location": "text",
+      "output_path": "output_path",
+      "start_time": "float",
+      "title": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "qr_generate": {
+    "tool": "qr",
+    "method": "qr_generate",
+    "keys": [
+      "back_color",
+      "border",
+      "box_size",
+      "error_correction",
+      "fields",
+      "fill_color",
+      "logo_path",
+      "output_path",
+      "payload",
+      "schema",
+      "size_px"
+    ],
+    "roles": {
+      "back_color": "text",
+      "border": "text",
+      "box_size": "text",
+      "error_correction": "text",
+      "fields": "text",
+      "fill_color": "text",
+      "logo_path": "text",
+      "output_path": "output_path",
+      "payload": "text",
+      "schema": "json_blob",
+      "size_px": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "qr_generate_barcode": {
+    "tool": "qr",
+    "method": "qr_generate_barcode",
+    "keys": [
+      "barcode_type",
+      "height",
+      "include_label",
+      "output_path",
+      "payload"
+    ],
+    "roles": {
+      "barcode_type": "text",
+      "height": "int",
+      "include_label": "text",
+      "output_path": "output_path",
+      "payload": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "qr_generate_svg": {
+    "tool": "qr",
+    "method": "qr_generate_svg",
+    "keys": [
+      "back_color",
+      "border",
+      "box_size",
+      "error_correction",
+      "fields",
+      "fill_color",
+      "output_path",
+      "payload",
+      "schema"
+    ],
+    "roles": {
+      "back_color": "text",
+      "border": "text",
+      "box_size": "text",
+      "error_correction": "text",
+      "fields": "text",
+      "fill_color": "text",
+      "output_path": "output_path",
+      "payload": "text",
+      "schema": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "qr_label_presets": {
+    "tool": "qr",
+    "method": "qr_label_presets",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "qr_label_sheet": {
+    "tool": "qr",
+    "method": "qr_label_sheet",
+    "keys": [
+      "barcode_type",
+      "count",
+      "output_path",
+      "payload",
+      "preset"
+    ],
+    "roles": {
+      "barcode_type": "text",
+      "count": "int",
+      "output_path": "output_path",
+      "payload": "text",
+      "preset": "enum"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "webp"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "query_jsonpath": {
+    "tool": "data",
+    "method": "query_jsonpath",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "read_file_text": {
+    "tool": "shell",
+    "method": "read_file_text",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "read_text_file": {
+    "tool": "shell",
+    "method": "read_text_file",
+    "keys": [
+      "file_path",
+      "path"
+    ],
+    "roles": {
+      "file_path": "input_path",
+      "path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "renamer_apply": {
+    "tool": "renamer",
+    "method": "renamer_apply",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "renamer_consolidate": {
+    "tool": "renamer",
+    "method": "renamer_consolidate",
+    "keys": [
+      "file_paths",
+      "mode",
+      "options",
+      "target_dir"
+    ],
+    "roles": {
+      "file_paths": "paths_list",
+      "mode": "enum",
+      "options": "json_blob",
+      "target_dir": "folder"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "renamer_execute": {
+    "tool": "renamer",
+    "method": "renamer_execute",
+    "keys": [
+      "auto_resolve_conflicts",
+      "consolidate_to",
+      "file_paths",
+      "mode",
+      "options",
+      "sort_by",
+      "steps",
+      "timeline"
+    ],
+    "roles": {
+      "auto_resolve_conflicts": "text",
+      "consolidate_to": "text",
+      "file_paths": "paths_list",
+      "mode": "enum",
+      "options": "json_blob",
+      "sort_by": "text",
+      "steps": "int",
+      "timeline": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "renamer_find_new_files": {
+    "tool": "renamer",
+    "method": "renamer_find_new_files",
+    "keys": [
+      "directory_path",
+      "processed_files",
+      "source_folders"
+    ],
+    "roles": {
+      "directory_path": "text",
+      "processed_files": "text",
+      "source_folders": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "renamer_presets": {
+    "tool": "renamer",
+    "method": "renamer_presets",
+    "keys": [
+      "action",
+      "name",
+      "recipe"
+    ],
+    "roles": {
+      "action": "text",
+      "name": "text",
+      "recipe": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "renamer_preview": {
+    "tool": "renamer",
+    "method": "renamer_preview",
+    "keys": [
+      "auto_resolve_conflicts",
+      "consolidate_to",
+      "file_paths",
+      "mode",
+      "options",
+      "sort_by",
+      "steps",
+      "timeline"
+    ],
+    "roles": {
+      "auto_resolve_conflicts": "text",
+      "consolidate_to": "text",
+      "file_paths": "paths_list",
+      "mode": "enum",
+      "options": "json_blob",
+      "sort_by": "text",
+      "steps": "int",
+      "timeline": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "renamer_save_plan": {
+    "tool": "renamer",
+    "method": "renamer_save_plan",
+    "keys": [
+      "mode",
+      "name",
+      "options",
+      "params",
+      "processed_files",
+      "source_folders",
+      "target_dir"
+    ],
+    "roles": {
+      "mode": "enum",
+      "name": "text",
+      "options": "json_blob",
+      "params": "json_blob",
+      "processed_files": "text",
+      "source_folders": "text",
+      "target_dir": "folder"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "renamer_save_preset": {
+    "tool": "renamer",
+    "method": "renamer_save_preset",
+    "keys": [
+      "mode",
+      "options",
+      "params",
+      "preset_name",
+      "template"
+    ],
+    "roles": {
+      "mode": "enum",
+      "options": "json_blob",
+      "params": "json_blob",
+      "preset_name": "text",
+      "template": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "renamer_scan_inputs": {
+    "tool": "renamer",
+    "method": "renamer_scan_inputs",
+    "keys": [
+      "paths",
+      "recursive"
+    ],
+    "roles": {
+      "paths": "paths_list",
+      "recursive": "bool"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "renamer_sort_timeline": {
+    "tool": "renamer",
+    "method": "renamer_sort_timeline",
+    "keys": [
+      "file_paths"
+    ],
+    "roles": {
+      "file_paths": "paths_list"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "renamer_undo": {
+    "tool": "renamer",
+    "method": "renamer_undo",
+    "keys": [
+      "results"
+    ],
+    "roles": {
+      "results": "text"
+    },
+    "accepted_file_kinds": [
+      "png",
+      "jpg",
+      "pdf",
+      "txt",
+      "docx",
+      "mp3",
+      "mp4"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "render_markdown": {
+    "tool": "markdown",
+    "method": "render_markdown",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "md",
+      "txt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "reset_settings": {
+    "tool": "shell",
+    "method": "reset_settings",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "reset_settings_defaults": {
+    "tool": "shell",
+    "method": "reset_settings_defaults",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "resume_analyze_ats": {
+    "tool": "resume",
+    "method": "resume_analyze_ats",
+    "keys": [
+      "job_description",
+      "resume"
+    ],
+    "roles": {
+      "job_description": "text",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "json",
+      "docx",
+      "pdf",
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "resume_apply_profile": {
+    "tool": "resume",
+    "method": "resume_apply_profile",
+    "keys": [
+      "profile_name",
+      "resume"
+    ],
+    "roles": {
+      "profile_name": "text",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "json",
+      "docx",
+      "pdf",
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "resume_docx_fit": {
+    "tool": "resume",
+    "method": "resume_docx_fit",
+    "keys": [
+      "font_pt",
+      "resume"
+    ],
+    "roles": {
+      "font_pt": "float",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "docx"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "resume_export": {
+    "tool": "resume",
+    "method": "resume_export",
+    "keys": [
+      "font_pt",
+      "output_path",
+      "resume"
+    ],
+    "roles": {
+      "font_pt": "float",
+      "output_path": "output_path",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "json",
+      "docx",
+      "pdf",
+      "txt",
+      "md"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "resume_export_docx": {
+    "tool": "resume",
+    "method": "resume_export_docx",
+    "keys": [
+      "output_path",
+      "resume"
+    ],
+    "roles": {
+      "output_path": "output_path",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "docx"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "resume_export_markdown": {
+    "tool": "resume",
+    "method": "resume_export_markdown",
+    "keys": [
+      "output_path",
+      "resume"
+    ],
+    "roles": {
+      "output_path": "output_path",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "md",
+      "txt"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "resume_export_pdf": {
+    "tool": "resume",
+    "method": "resume_export_pdf",
+    "keys": [
+      "output_path",
+      "resume"
+    ],
+    "roles": {
+      "output_path": "output_path",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "pdf"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "resume_load_file": {
+    "tool": "resume",
+    "method": "resume_load_file",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "json",
+      "docx",
+      "pdf",
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "resume_render_html": {
+    "tool": "resume",
+    "method": "resume_render_html",
+    "keys": [
+      "accent_color",
+      "layout",
+      "resume"
+    ],
+    "roles": {
+      "accent_color": "text",
+      "layout": "enum",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "json",
+      "docx",
+      "pdf",
+      "txt",
+      "md"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "resume_render_preview": {
+    "tool": "resume",
+    "method": "resume_render_preview",
+    "keys": [
+      "dpi",
+      "font_pt",
+      "resume"
+    ],
+    "roles": {
+      "dpi": "int",
+      "font_pt": "float",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "json",
+      "docx",
+      "pdf",
+      "txt",
+      "md"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "resume_sample": {
+    "tool": "resume",
+    "method": "resume_sample",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "json",
+      "docx",
+      "pdf",
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "resume_save_file": {
+    "tool": "resume",
+    "method": "resume_save_file",
+    "keys": [
+      "output_path",
+      "resume"
+    ],
+    "roles": {
+      "output_path": "output_path",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "json"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "resume_save_profile": {
+    "tool": "resume",
+    "method": "resume_save_profile",
+    "keys": [
+      "profile_name",
+      "resume"
+    ],
+    "roles": {
+      "profile_name": "text",
+      "resume": "json_blob"
+    },
+    "accepted_file_kinds": [
+      "json",
+      "docx",
+      "pdf",
+      "txt",
+      "md"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "route_file": {
+    "tool": "shell",
+    "method": "route_file",
+    "keys": [
+      "mode",
+      "path"
+    ],
+    "roles": {
+      "mode": "enum",
+      "path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "save_file": {
+    "tool": "shell",
+    "method": "save_file",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "save_file_dialog": {
+    "tool": "shell",
+    "method": "save_file_dialog",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "save_file_text": {
+    "tool": "shell",
+    "method": "save_file_text",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "search_tools": {
+    "tool": "shell",
+    "method": "search_tools",
+    "keys": [
+      "query"
+    ],
+    "roles": {
+      "query": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "select_directory": {
+    "tool": "shell",
+    "method": "select_directory",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "select_file": {
+    "tool": "shell",
+    "method": "select_file",
+    "keys": [
+      "file_types"
+    ],
+    "roles": {
+      "file_types": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "select_files": {
+    "tool": "shell",
+    "method": "select_files",
+    "keys": [
+      "file_types"
+    ],
+    "roles": {
+      "file_types": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "select_folder": {
+    "tool": "shell",
+    "method": "select_folder",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "select_save_path": {
+    "tool": "shell",
+    "method": "select_save_path",
+    "keys": [
+      "default_name",
+      "file_types"
+    ],
+    "roles": {
+      "default_name": "text",
+      "file_types": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": true,
+    "is_job": false
+  },
+  "set_setting": {
+    "tool": "shell",
+    "method": "set_setting",
+    "keys": [
+      "key",
+      "value"
+    ],
+    "roles": {
+      "key": "text",
+      "value": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "shell_get_associations": {
+    "tool": "shell",
+    "method": "shell_get_associations",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "shell_manual_instructions": {
+    "tool": "shell",
+    "method": "shell_manual_instructions",
+    "keys": [
+      "extensions"
+    ],
+    "roles": {
+      "extensions": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "shell_register": {
+    "tool": "shell",
+    "method": "shell_register",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "shell_set_associations": {
+    "tool": "shell",
+    "method": "shell_set_associations",
+    "keys": [
+      "extensions"
+    ],
+    "roles": {
+      "extensions": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "shell_unregister": {
+    "tool": "shell",
+    "method": "shell_unregister",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_case_transform": {
+    "tool": "text_tools",
+    "method": "text_case_transform",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_diff": {
+    "tool": "text_tools",
+    "method": "text_diff",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_line_ops": {
+    "tool": "text_tools",
+    "method": "text_line_ops",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_regex_replace": {
+    "tool": "text_tools",
+    "method": "text_regex_replace",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_tools_case": {
+    "tool": "text_tools",
+    "method": "text_tools_case",
+    "keys": [
+      "mode",
+      "text"
+    ],
+    "roles": {
+      "mode": "enum",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_tools_cleanup": {
+    "tool": "text_tools",
+    "method": "text_tools_cleanup",
+    "keys": [
+      "ending",
+      "operation",
+      "style",
+      "tab_size",
+      "text",
+      "width"
+    ],
+    "roles": {
+      "ending": "text",
+      "operation": "enum",
+      "style": "text",
+      "tab_size": "text",
+      "text": "text",
+      "width": "int"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_tools_convert": {
+    "tool": "text_tools",
+    "method": "text_tools_convert",
+    "keys": [
+      "operation",
+      "text"
+    ],
+    "roles": {
+      "operation": "enum",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_tools_diff": {
+    "tool": "text_tools",
+    "method": "text_tools_diff",
+    "keys": [
+      "ignore_case",
+      "ignore_whitespace",
+      "left",
+      "modified",
+      "original",
+      "right",
+      "text1",
+      "text2",
+      "view"
+    ],
+    "roles": {
+      "ignore_case": "text",
+      "ignore_whitespace": "text",
+      "left": "text",
+      "modified": "text",
+      "original": "text",
+      "right": "text",
+      "text1": "text",
+      "text2": "text",
+      "view": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_tools_lines": {
+    "tool": "text_tools",
+    "method": "text_tools_lines",
+    "keys": [
+      "delimiter",
+      "operation",
+      "prefix",
+      "start",
+      "suffix",
+      "text"
+    ],
+    "roles": {
+      "delimiter": "enum",
+      "operation": "enum",
+      "prefix": "text",
+      "start": "text",
+      "suffix": "text",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "text_tools_regex_replace": {
+    "tool": "text_tools",
+    "method": "text_tools_regex_replace",
+    "keys": [
+      "dotall",
+      "ignore_case",
+      "multiline",
+      "pattern",
+      "replacement",
+      "text"
+    ],
+    "roles": {
+      "dotall": "text",
+      "ignore_case": "text",
+      "multiline": "text",
+      "pattern": "text",
+      "replacement": "text",
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "toggle_fullscreen": {
+    "tool": "shell",
+    "method": "toggle_fullscreen",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [
+      "txt",
+      "pdf",
+      "png",
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "units_catalog": {
+    "tool": "unit_converter",
+    "method": "units_catalog",
+    "keys": [],
+    "roles": {},
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "units_compatible_table": {
+    "tool": "unit_converter",
+    "method": "units_compatible_table",
+    "keys": [
+      "category_id",
+      "fmt_mode",
+      "format_mode",
+      "from_unit",
+      "include_all",
+      "sig_figs",
+      "value"
+    ],
+    "roles": {
+      "category_id": "text",
+      "fmt_mode": "text",
+      "format_mode": "text",
+      "from_unit": "text",
+      "include_all": "text",
+      "sig_figs": "text",
+      "value": "text"
+    },
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "units_convert": {
+    "tool": "unit_converter",
+    "method": "units_convert",
+    "keys": [
+      "fmt_mode",
+      "format_mode",
+      "from_unit",
+      "sig_figs",
+      "to_unit",
+      "value"
+    ],
+    "roles": {
+      "fmt_mode": "text",
+      "format_mode": "text",
+      "from_unit": "text",
+      "sig_figs": "text",
+      "to_unit": "text",
+      "value": "text"
+    },
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "units_expression": {
+    "tool": "unit_converter",
+    "method": "units_expression",
+    "keys": [
+      "expression",
+      "fmt_mode",
+      "format_mode",
+      "sig_figs",
+      "target_unit"
+    ],
+    "roles": {
+      "expression": "text",
+      "fmt_mode": "text",
+      "format_mode": "text",
+      "sig_figs": "text",
+      "target_unit": "text"
+    },
+    "accepted_file_kinds": [],
+    "writes_output": false,
+    "is_job": false
+  },
+  "validate_json": {
+    "tool": "data",
+    "method": "validate_json",
+    "keys": [
+      "content"
+    ],
+    "roles": {
+      "content": "text"
+    },
+    "accepted_file_kinds": [
+      "json"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "word_counter_analyze": {
+    "tool": "word_counter",
+    "method": "word_counter_analyze",
+    "keys": [
+      "text"
+    ],
+    "roles": {
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "docx"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "word_counter_analyze_file": {
+    "tool": "word_counter",
+    "method": "word_counter_analyze_file",
+    "keys": [
+      "file_path"
+    ],
+    "roles": {
+      "file_path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "docx"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "word_counter_generate_report": {
+    "tool": "word_counter",
+    "method": "word_counter_generate_report",
+    "keys": [
+      "text"
+    ],
+    "roles": {
+      "text": "text"
+    },
+    "accepted_file_kinds": [
+      "docx"
+    ],
+    "writes_output": false,
+    "is_job": false
+  },
+  "write_text_file": {
+    "tool": "shell",
+    "method": "write_text_file",
+    "keys": [
+      "content",
+      "file_path",
+      "path"
+    ],
+    "roles": {
+      "content": "text",
+      "file_path": "input_path",
+      "path": "input_path"
+    },
+    "accepted_file_kinds": [
+      "txt",
+      "md"
+    ],
+    "writes_output": true,
+    "is_job": false
+  }
+}

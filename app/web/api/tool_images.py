@@ -1,3 +1,4 @@
+import os
 import base64
 import io
 from pathlib import Path
@@ -40,7 +41,7 @@ from app.features.image.ops import (
     save_image,
 )
 from app.features.ocr.ops import ocr_image
-from app.web.api.result import api_method, ok, require
+from app.web.api.result import api_method, fail, ok, require
 
 
 def _calc_load_img(file_path: str) -> Image.Image:
@@ -163,6 +164,8 @@ class ImagesApiMixin:
         degrees = int(params.get("degrees", 90))
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         rotated_img = rotate_image(source_img, degrees)
         if out_p:
@@ -183,6 +186,8 @@ class ImagesApiMixin:
         direction = str(params.get("direction", "horizontal"))
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         flipped_img = flip_image(source_img, horizontal=(direction.lower() != "vertical"))
         if out_p:
@@ -205,6 +210,8 @@ class ImagesApiMixin:
         keep_aspect = bool(params.get("keep_aspect", True))
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         resized_img = resize_image(source_img, req_width, req_height, keep_aspect=keep_aspect)
         if out_p:
@@ -227,6 +234,8 @@ class ImagesApiMixin:
         box = (coord_x, coord_y, coord_x + int(params["width"]), coord_y + int(params["height"]))
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         cropped_img = crop_image(source_img, box)
         if out_p:
@@ -246,6 +255,8 @@ class ImagesApiMixin:
         file_path = str(params["file_path"])
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         cropped_img = circle_crop_image(source_img)
         if out_p:
@@ -273,6 +284,8 @@ class ImagesApiMixin:
         sat_scaled = sat_val * 100 if sat_val < 10 else sat_val
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         adjusted_img = adjust_image(
             source_img,
@@ -298,6 +311,8 @@ class ImagesApiMixin:
         file_path = str(params["file_path"])
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         enhanced_img = auto_enhance(source_img)
         if out_p:
@@ -318,6 +333,8 @@ class ImagesApiMixin:
         filter_name = str(params["filter_name"])
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         filtered_img = apply_filter_preset(source_img, filter_name)
         if out_p:
@@ -338,6 +355,8 @@ class ImagesApiMixin:
         model = str(params.get("model", "u2net"))
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         backdrop = str(params.get("backdrop", "transparent")).lower()
         color_tuple = calc_color_tuple(params.get("color", "#ffffff"))
         blur_radius = int(params.get("blur_radius", 25))
@@ -374,6 +393,8 @@ class ImagesApiMixin:
         polaroid = bool(params.get("polaroid", False))
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         bordered_img = add_border(source_img, border_size=border_size, color=color_tuple, polaroid=polaroid)
         if out_p:
@@ -395,6 +416,8 @@ class ImagesApiMixin:
         blur_radius = int(params.get("radius", 15))
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         blurred_img = blur_region(source_img, box, radius=blur_radius)
         if out_p:
@@ -416,6 +439,8 @@ class ImagesApiMixin:
         pixel_size = int(params.get("pixel_size", 10))
         overwrite = bool(params.get("overwrite", False))
         out_p = str(params["output_path"]) if params.get("output_path") else (file_path if overwrite else "")
+        if out_p and os.path.abspath(out_p) == os.path.abspath(file_path) and not overwrite:
+            return fail("Output path cannot overwrite input file without overwrite flag")
         source_img = _calc_load_img(file_path)
         pixelated_img = pixelate_region(source_img, box, pixel_size=pixel_size)
         if out_p:
