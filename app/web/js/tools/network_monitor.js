@@ -83,9 +83,9 @@ window.FOSS = window.FOSS || {};
 
   var LIVE_COLUMNS = [
     { key: "pid", label: "PID", field: "pid", width: "7%", numeric: true },
-    { key: "process", label: "Process", field: "process_name", width: "16%" },
-    { key: "source_identity", label: "Source Identity", field: "source_identity", width: "14%" },
-    { key: "trust_level", label: "Trust Level", field: "trust_level", width: "14%" },
+    { key: "process", label: "Process", field: "process_name", width: "15%" },
+    { key: "source_identity", label: "Source Identity", field: "source_identity", width: "13%" },
+    { key: "trust_level", label: "Trust Level", field: "trust_level", width: "16%" },
     { key: "proto", label: "Proto", field: "protocol", width: "6%" },
     { key: "local", label: "Local", field: "local_address", width: "10%" },
     { key: "remote", label: "Remote", field: "remote_address", width: "15%" },

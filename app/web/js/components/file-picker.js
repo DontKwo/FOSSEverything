@@ -28,7 +28,7 @@ window.FOSS.components = window.FOSS.components || {};
     var pathEl = window.FOSS.dom.el("div", {
       className: "picker-path",
       text: currentPath || "Click to browse or drop file here",
-      title: currentPath || "",
+      title: currentPath || "Click to browse or drop file here",
       "data-truncate-ok": "true"
     });
 
@@ -105,7 +105,7 @@ window.FOSS.components = window.FOSS.components || {};
       nameEl.textContent = currentPath ? currentPath.split(/[/\\]/).pop() : "No file chosen";
       nameEl.setAttribute("title", currentPath || "No file chosen");
       pathEl.textContent = currentPath || "Click to browse or drop file here";
-      pathEl.setAttribute("title", currentPath || "");
+      pathEl.setAttribute("title", currentPath || "Click to browse or drop file here");
     }
 
     return {

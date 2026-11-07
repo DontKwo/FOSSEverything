@@ -6,6 +6,7 @@ window.FOSS.components = window.FOSS.components || {};
   var fieldCounter = 0;
 
   function field(labelStr, controlEl, hintStr, isInvalid, testid) {
+    var wrapOk = false;
     if (labelStr && typeof labelStr === "object" && !labelStr.tagName) {
       var opts = labelStr;
       labelStr = opts.label || "";
@@ -13,6 +14,7 @@ window.FOSS.components = window.FOSS.components || {};
       hintStr = opts.hint || "";
       isInvalid = opts.isInvalid || false;
       testid = opts.testid || "";
+      wrapOk = !!opts.wrapOk;
     }
     var children = [];
     var controlId = "";
@@ -31,6 +33,9 @@ window.FOSS.components = window.FOSS.components || {};
       var labelAttrs = { text: labelStr };
       if (controlId) {
         labelAttrs.htmlFor = controlId;
+      }
+      if (wrapOk) {
+        labelAttrs["data-wrap-ok"] = "true";
       }
       children.push(window.FOSS.dom.el("label", labelAttrs));
     }
