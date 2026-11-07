@@ -57,10 +57,116 @@ window.FOSS = window.FOSS || {};
     panel.innerHTML = "";
     var currentCombinedPath = "";
 
+    // Export Controls setup
+    var resultHost = window.FOSS.dom.el("div", { "data-testid": "pdf-merge-result", hidden: true });
+
+    var stampNumbersCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      "data-testid": "pdf-stamp-numbers-check",
+      "aria-label": "Add Page Numbers",
+      title: "Add Page Numbers",
+      onchange: function () {
+        numberConfigWrap.hidden = !stampNumbersCheck.checked;
+      }
+    });
+
+    var defaultStampFormat = String(pdfDefault("stamp_format", "Page {n} of {total}"));
+    var formatSelect = window.FOSS.dom.el("select", {
+      className: "select select-sm text-xs",
+      "data-testid": "pdf-stamp-format",
+      "aria-label": "Page Number Format",
+      title: "Page Number Format"
+    }, [
+      window.FOSS.dom.el("option", { value: "Page {n} of {total}", text: "Page {n} of {total}" }),
+      window.FOSS.dom.el("option", { value: "{n} / {total}", text: "{n} / {total}" }),
+      window.FOSS.dom.el("option", { value: "{n}", text: "{n}" })
+    ]);
+    formatSelect.value = defaultStampFormat;
+
+    var defaultStampPosition = String(pdfDefault("stamp_position", "bottom_center"));
+    var positionSelect = window.FOSS.dom.el("select", {
+      className: "select select-sm text-xs",
+      "data-testid": "pdf-stamp-position",
+      "aria-label": "Page Number Position",
+      title: "Page Number Position"
+    }, [
+      window.FOSS.dom.el("option", { value: "bottom_center", text: "Bottom Center" }),
+      window.FOSS.dom.el("option", { value: "bottom_right", text: "Bottom Right" }),
+      window.FOSS.dom.el("option", { value: "bottom_left", text: "Bottom Left" }),
+      window.FOSS.dom.el("option", { value: "top_center", text: "Top Center" }),
+      window.FOSS.dom.el("option", { value: "top_right", text: "Top Right" }),
+      window.FOSS.dom.el("option", { value: "top_left", text: "Top Left" })
+    ]);
+    positionSelect.value = defaultStampPosition;
+
+    var startNumInput = window.FOSS.dom.el("input", {
+      type: "number",
+      className: "input input-sm text-xs",
+      value: "1",
+      min: "1",
+      style: "width: 4rem;",
+      "aria-label": "Starting Page Number",
+      title: "Starting Page Number"
+    });
+
+    var numberConfigWrap = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-1);", hidden: true }, [
+      formatSelect,
+      positionSelect,
+      startNumInput
+    ]);
+
+    var exportGroupsBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "pdf-export-groups-btn",
+      title: "Export groups as separate PDFs",
+      onclick: function () {
+        exportGroups();
+      }
+    }, [
+      window.FOSS.icons.el("archive", 14),
+      window.FOSS.dom.el("span", { text: "Export Groups" })
+    ]);
+
+    var exportCombinedBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary btn-sm",
+      "data-testid": "pdf-merge-btn",
+      title: "Export Combined PDF",
+      onclick: function () {
+        exportCombined();
+      }
+    }, [
+      window.FOSS.icons.el("check", 14),
+      window.FOSS.dom.el("span", { text: "Export Combined" })
+    ]);
+
+    var exportCombinedBtnAlias = window.FOSS.dom.el("button", {
+      className: "btn btn-success btn-sm",
+      "data-testid": "pdf-merge-save-btn",
+      title: "Export Combined PDF",
+      style: "display: none;",
+      onclick: function () {
+        exportCombined();
+      }
+    });
+
+    var exportPanelRight = window.FOSS.dom.el("div", {
+      className: "row items-center",
+      style: "gap: var(--space-2); margin-left: auto; flex-wrap: wrap;"
+    }, [
+      window.FOSS.dom.el("label", { className: "row items-center text-xs", style: "gap: var(--space-1); cursor: pointer;" }, [
+        stampNumbersCheck,
+        window.FOSS.dom.el("span", { text: "Page #s" })
+      ]),
+      numberConfigWrap,
+      exportGroupsBtn,
+      exportCombinedBtn,
+      exportCombinedBtnAlias
+    ]);
+
     var headerRow = window.FOSS.dom.el("div", { className: "row-between", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
       window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2); flex-wrap: wrap;" }, [
         window.FOSS.dom.el("button", {
-          className: "btn btn-primary",
+          className: "btn btn-primary btn-sm",
           "data-testid": "pdf-add-files-btn",
           onclick: function () {
             window.FOSS.api("select_files", { title: "Select PDF Documents", file_types: ["pdf"] })
@@ -77,18 +183,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", { text: "Add PDFs" })
         ]),
         window.FOSS.dom.el("button", {
-          className: "btn btn-success",
-          "data-testid": "pdf-merge-save-btn",
-          title: "Export Combined PDF",
-          onclick: function () {
-            exportCombined();
-          }
-        }, [
-          window.FOSS.icons.el("check", 14),
-          window.FOSS.dom.el("span", { text: "Export Combined PDF" })
-        ]),
-        window.FOSS.dom.el("button", {
-          className: "btn btn-ghost",
+          className: "btn btn-ghost btn-sm",
           "data-testid": "pdf-select-all-btn",
           onclick: function () {
             getAllFlatPages().forEach(function (page) {
@@ -98,7 +193,7 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.dom.el("span", { text: "Select All" })]),
         window.FOSS.dom.el("button", {
-          className: "btn btn-ghost",
+          className: "btn btn-ghost btn-sm",
           "data-testid": "pdf-deselect-btn",
           onclick: function () {
             selectedPageIds.clear();
@@ -106,7 +201,7 @@ window.FOSS = window.FOSS || {};
           }
         }, [window.FOSS.dom.el("span", { text: "Deselect" })]),
         window.FOSS.dom.el("button", {
-          className: "btn btn-secondary",
+          className: "btn btn-secondary btn-sm",
           "data-testid": "pdf-group-selected-btn",
           title: "Group selected pages together",
           onclick: function () {
@@ -119,7 +214,7 @@ window.FOSS = window.FOSS || {};
               message: "Enter a name for the new document group:",
               defaultValue: "Group " + (workspaceItems.filter(function(i){return i.kind === 'group'}).length + 1)
             }).then(function(groupName) {
-              if (groupName === null) return; // User cancelled
+              if (groupName === null) return;
               if (!groupName.trim()) groupName = "Group " + (workspaceItems.filter(function(i){return i.kind === 'group'}).length + 1);
 
               pushUndo();
@@ -143,7 +238,6 @@ window.FOSS = window.FOSS || {};
                 }
               });
 
-              // Filter out empty groups or selected pages
               var newItems = [];
               workspaceItems.forEach(function (item) {
                 if (item.kind === "page" && selectedPageIds.has(item.id)) {
@@ -174,7 +268,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", { text: "Group Selected" })
         ]),
         window.FOSS.dom.el("button", {
-          className: "btn btn-ghost",
+          className: "btn btn-ghost btn-sm",
           "data-testid": "pdf-ungroup-btn",
           title: "Ungroup selected groups into individual pages",
           onclick: function () {
@@ -202,7 +296,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", { text: "Ungroup" })
         ]),
         window.FOSS.dom.el("button", {
-          className: "btn btn-ghost",
+          className: "btn btn-ghost btn-sm",
           "data-testid": "pdf-rotate-ccw-btn",
           title: "Rotate selected pages " + rotationStep() + " degrees CCW",
           onclick: function () {
@@ -213,7 +307,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", { text: "Rotate CCW" })
         ]),
         window.FOSS.dom.el("button", {
-          className: "btn btn-ghost",
+          className: "btn btn-ghost btn-sm",
           "data-testid": "pdf-rotate-cw-btn",
           title: "Rotate selected pages " + rotationStep() + " degrees CW",
           onclick: function () {
@@ -224,7 +318,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", { text: "Rotate CW" })
         ]),
         window.FOSS.dom.el("button", {
-          className: "btn btn-ghost",
+          className: "btn btn-ghost btn-sm",
           "data-testid": "pdf-duplicate-page-btn",
           title: "Duplicate selected pages",
           onclick: function () {
@@ -257,7 +351,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", { text: "Duplicate" })
         ]),
         window.FOSS.dom.el("button", {
-          className: "btn btn-ghost text-danger",
+          className: "btn btn-ghost btn-sm text-danger",
           "data-testid": "pdf-delete-page-btn",
           title: "Delete selected pages",
           onclick: function () {
@@ -286,7 +380,7 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", { text: "Delete" })
         ]),
         window.FOSS.dom.el("button", {
-          className: "btn btn-ghost",
+          className: "btn btn-ghost btn-sm",
           "data-testid": "pdf-undo-btn",
           title: "Undo last layout change",
           onclick: function () {
@@ -297,22 +391,29 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("span", { text: "Undo" })
         ])
       ]),
-      window.FOSS.dom.el("div", { className: "text-xs text-muted", "data-testid": "pdf-merge-status", text: "Ready" })
+      exportPanelRight
     ]);
 
     var workspaceArea = window.FOSS.dom.el("div", { className: "pdf-workspace", "data-testid": "pdf-workspace" });
 
-    var autoScrollTimer = null;
     function handleAutoScroll(e, container) {
       var rect = container.getBoundingClientRect();
-      var edgeZone = 60;
-      var scrollSpeed = 15;
+      var edgeZone = 80;
+      var scrollSpeed = 20;
       if (e.clientY < rect.top + edgeZone) {
         container.scrollTop -= scrollSpeed;
-      } else if (e.clientY > rect.bottom - edgeZone) {
+        window.scrollBy(0, -scrollSpeed);
+      } else if (e.clientY > rect.bottom - edgeZone || e.clientY > window.innerHeight - edgeZone) {
         container.scrollTop += scrollSpeed;
+        window.scrollBy(0, scrollSpeed);
       }
     }
+
+    window.addEventListener("dragover", function (e) {
+      if (dragState && workspaceArea) {
+        handleAutoScroll(e, workspaceArea);
+      }
+    });
 
     workspaceArea.ondragover = function (e) {
       if (dragState) {
@@ -961,101 +1062,6 @@ window.FOSS = window.FOSS || {};
       return found;
     }
 
-    // Export Controls & Result Footer
-    var resultHost = window.FOSS.dom.el("div", { "data-testid": "pdf-merge-result", hidden: true });
-
-    var stampNumbersCheck = window.FOSS.dom.el("input", {
-      type: "checkbox",
-      "data-testid": "pdf-stamp-numbers-check",
-      "aria-label": "Add Page Numbers",
-      title: "Add Page Numbers",
-      onchange: function () {
-        numberConfigWrap.hidden = !stampNumbersCheck.checked;
-      }
-    });
-
-    var defaultStampFormat = String(pdfDefault("stamp_format", "Page {n} of {total}"));
-    var formatSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "pdf-stamp-format",
-      "aria-label": "Page Number Format",
-      title: "Page Number Format"
-    }, [
-      window.FOSS.dom.el("option", { value: "Page {n} of {total}", text: "Page {n} of {total}" }),
-      window.FOSS.dom.el("option", { value: "{n} / {total}", text: "{n} / {total}" }),
-      window.FOSS.dom.el("option", { value: "{n}", text: "{n}" })
-    ]);
-    formatSelect.value = defaultStampFormat;
-
-    var defaultStampPosition = String(pdfDefault("stamp_position", "bottom_center"));
-    var positionSelect = window.FOSS.dom.el("select", {
-      className: "select",
-      "data-testid": "pdf-stamp-position",
-      "aria-label": "Page Number Position",
-      title: "Page Number Position"
-    }, [
-      window.FOSS.dom.el("option", { value: "bottom_center", text: "Bottom Center" }),
-      window.FOSS.dom.el("option", { value: "bottom_right", text: "Bottom Right" }),
-      window.FOSS.dom.el("option", { value: "bottom_left", text: "Bottom Left" }),
-      window.FOSS.dom.el("option", { value: "top_center", text: "Top Center" }),
-      window.FOSS.dom.el("option", { value: "top_right", text: "Top Right" }),
-      window.FOSS.dom.el("option", { value: "top_left", text: "Top Left" })
-    ]);
-    positionSelect.value = defaultStampPosition;
-
-    var startNumInput = window.FOSS.dom.el("input", {
-      type: "number",
-      className: "input",
-      value: "1",
-      min: "1",
-      style: "width: 5rem;",
-      "aria-label": "Starting Page Number",
-      title: "Starting Page Number"
-    });
-
-    var numberConfigWrap = window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);", hidden: true }, [
-      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Format:" }),
-      formatSelect,
-      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Position:" }),
-      positionSelect,
-      window.FOSS.dom.el("span", { className: "text-xs text-muted", text: "Start #:" }),
-      startNumInput
-    ]);
-
-    var exportBar = window.FOSS.dom.el("div", {
-      className: "card row-between",
-      style: "gap: var(--space-3); flex-wrap: wrap;"
-    }, [
-      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-3); flex-wrap: wrap;" }, [
-        window.FOSS.dom.el("label", { className: "row", style: "gap: var(--space-2); cursor: pointer;" }, [
-          stampNumbersCheck,
-          window.FOSS.dom.el("span", { className: "text-sm font-semibold", text: "Add Page Numbers" })
-        ]),
-        numberConfigWrap
-      ]),
-      window.FOSS.dom.el("div", { className: "row", style: "gap: var(--space-2);" }, [
-        window.FOSS.dom.el("button", {
-          className: "btn btn-secondary",
-          "data-testid": "pdf-export-groups-btn",
-          onclick: function () {
-            exportGroups();
-          }
-        }, [
-          window.FOSS.icons.el("archive", 14),
-          window.FOSS.dom.el("span", { text: "Export Groups as PDFs..." })
-        ]),
-        window.FOSS.dom.el("button", {
-          className: "btn btn-primary",
-          "data-testid": "pdf-merge-btn",
-          onclick: function () {
-            exportCombined();
-          }
-        }, [
-          window.FOSS.icons.el("check", 14),
-          window.FOSS.dom.el("span", { text: "Export Combined PDF..." })
-        ])
-      ])
-    ]);
 
     function exportCombined() {
       var flat = getAllFlatPages();
@@ -1166,7 +1172,6 @@ window.FOSS = window.FOSS || {};
 
     panel.appendChild(headerRow);
     panel.appendChild(workspaceArea);
-    panel.appendChild(exportBar);
     panel.appendChild(resultHost);
 
     renderWorkspace();

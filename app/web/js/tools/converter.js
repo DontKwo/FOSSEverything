@@ -59,19 +59,27 @@ window.FOSS = window.FOSS || {};
     return matches[0];
   }
 
-  // TAB 1: Single File Converter
-  function renderSingle(panel, ctx) {
+  // Unified Single File & Batch Queue Converter
+  function renderUnified(panel, ctx) {
     panel.innerHTML = "";
     panel.setAttribute("data-testid", "converter-page");
 
     var currentFile = "";
     var currentFamily = "Generic";
     var availableTargetsList = [];
+    var queueItems = [];
+    var isProcessing = false;
 
     var statusBar = window.FOSS.dom.el("div", {
       className: "text-xs text-muted mb-sm",
       "data-testid": "converter-status",
       text: "Ready"
+    });
+
+    var queueStatusBar = window.FOSS.dom.el("div", {
+      className: "text-xs text-muted mb-sm",
+      "data-testid": "converter-queue-status",
+      text: "Queue idle: 0 items"
     });
 
     var errorBanner = window.FOSS.dom.el("div", {
@@ -82,15 +90,28 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
     ]);
 
+    var batchErrorBanner = window.FOSS.dom.el("div", {
+      className: "banner danger hidden mb-sm",
+      "data-testid": "converter-batch-error"
+    }, [
+      window.FOSS.icons.el("alert", 18),
+      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
+    ]);
+
     function showError(msg) {
       var span = errorBanner.querySelector(".banner-msg");
       if (span) span.textContent = msg;
       errorBanner.classList.remove("hidden");
+      var bSpan = batchErrorBanner.querySelector(".banner-msg");
+      if (bSpan) bSpan.textContent = msg;
+      batchErrorBanner.classList.remove("hidden");
       statusBar.textContent = "Error: " + msg;
+      queueStatusBar.textContent = "Error: " + msg;
     }
 
     function clearError() {
       errorBanner.classList.add("hidden");
+      batchErrorBanner.classList.add("hidden");
     }
 
     var resultHost = window.FOSS.dom.el("div", {
@@ -147,7 +168,7 @@ window.FOSS = window.FOSS || {};
     var sourceCard = window.FOSS.dom.el("div", {
       className: "card card-compact flex-col gap-3"
     }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Source File" }),
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Single File Conversion" }),
       window.FOSS.dom.el("div", { className: "flex-col gap-2" }, [
         chooseBtn,
         fileDisplay,
@@ -155,12 +176,7 @@ window.FOSS = window.FOSS || {};
       ])
     ]);
 
-    var sidebar = window.FOSS.dom.el("div", {
-      className: "converter-sidebar-pane",
-      style: "width: 100%; min-width: 0;"
-    }, [sourceCard]);
-
-    // Right Column: Target Options and Conversion
+    // Single Target Options
     var targetSelect = window.FOSS.dom.el("select", {
       className: "input",
       "data-testid": "converter-target-select",
@@ -258,101 +274,20 @@ window.FOSS = window.FOSS || {};
           showError((err && err.message) || String(err));
         });
       }
-    }, [window.FOSS.icons.el("refresh", 16), window.FOSS.dom.el("span", { text: "Convert File" })]);
+    }, [window.FOSS.icons.el("refresh", 16), window.FOSS.dom.el("span", { text: "Convert Single File" })]);
 
-    var stageCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-3 grow",
+    var singleOptionsCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3",
       style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
     }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Conversion Options" }),
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Single File Options" }),
       window.FOSS.components.field("Target Format", targetSelect),
       contextualOptionsContainer,
       window.FOSS.components.field("Suggested Filename (Optional)", outputStemInput),
       convertBtn
     ]);
 
-    var stageWrapper = window.FOSS.dom.el("div", {
-      className: "converter-stage-pane grow",
-      style: "width: 100%; min-width: 0;"
-    }, [stageCard]);
-
-    var split = window.FOSS.dom.el("div", {
-      className: "split resizable converter-workbench"
-    }, [
-      sidebar,
-      window.FOSS.components.splitDivider({ vertical: true }),
-      stageWrapper
-    ]);
-
-    function loadFile(filePath) {
-      currentFile = filePath;
-      var fileName = filePath.split(/[/\\]/).pop();
-      fileDisplay.textContent = fileName;
-      fileDisplay.setAttribute("title", filePath);
-      statusBar.textContent = "Analyzing " + fileName + "...";
-
-      window.FOSS.api("converter_available_targets", { file_path: filePath }).then(function (res) {
-        if (!res) return;
-        currentFamily = res.family || "File";
-        familyBadge.textContent = currentFamily;
-        availableTargetsList = res.targets || [];
-        targetSelect.innerHTML = "";
-        availableTargetsList.forEach(function (t) {
-          targetSelect.appendChild(window.FOSS.dom.el("option", { value: t, text: t }));
-        });
-        targetSelect.value = pickDefaultTarget(currentFamily, availableTargetsList);
-        updateContextualOptions();
-        statusBar.textContent = "Ready (" + availableTargetsList.length + " compatible target formats)";
-      }).catch(function (err) {
-        showError((err && err.message) || String(err));
-      });
-    }
-
-    panel.appendChild(statusBar);
-    panel.appendChild(errorBanner);
-    panel.appendChild(resultHost);
-    panel.appendChild(split);
-
-    if (pendingPaths.length) {
-      var firstPath = pendingPaths[0];
-      pendingPaths = [];
-      loadFile(firstPath);
-    }
-  }
-
-  // TAB 2: Batch & Folder Queue
-  function renderBatch(panel, ctx) {
-    panel.innerHTML = "";
-    panel.setAttribute("data-testid", "converter-page");
-
-    var queueItems = [];
-    var isProcessing = false;
-
-    var statusBar = window.FOSS.dom.el("div", {
-      className: "text-xs text-muted mb-sm",
-      "data-testid": "converter-queue-status",
-      text: "Queue idle: 0 items"
-    });
-
-    var errorBanner = window.FOSS.dom.el("div", {
-      className: "banner danger hidden mb-sm",
-      "data-testid": "converter-batch-error"
-    }, [
-      window.FOSS.icons.el("alert", 18),
-      window.FOSS.dom.el("span", { className: "banner-msg", text: "" })
-    ]);
-
-    function showError(msg) {
-      var span = errorBanner.querySelector(".banner-msg");
-      if (span) span.textContent = msg;
-      errorBanner.classList.remove("hidden");
-    }
-
-    function clearError() {
-      errorBanner.classList.add("hidden");
-    }
-
-    // Top Controls Bar
+    // Batch Controls
     var defaultBatchRecursive = !!window.FOSS.toolDefaults.get("converter", "batch_recursive", true);
     var defaultPreserveTree = !!window.FOSS.toolDefaults.get("converter", "preserve_tree", true);
 
@@ -422,6 +357,65 @@ window.FOSS = window.FOSS || {};
       });
     }
 
+    var outputDirInput = window.FOSS.dom.el("input", {
+      type: "text",
+      className: "input font-mono grow text-xs",
+      "data-testid": "converter-batch-out-dir",
+      placeholder: "Default: <common_folder>/converted",
+      "aria-label": "Batch Output Folder",
+      title: "Batch Output Folder"
+    });
+
+    var browseBatchDirBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary btn-sm",
+      "data-testid": "converter-batch-browse-btn",
+      type: "button",
+      onClick: function () {
+        window.FOSS.api("select_folder", { title: "Select Output Folder" }).then(function (res) {
+          if (res && res.path) outputDirInput.value = res.path;
+        });
+      }
+    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Browse..." })]);
+
+    var batchRunBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-primary",
+      "data-testid": "converter-batch-start-btn",
+      type: "button",
+      onClick: function () {
+        executeBatch();
+      }
+    }, [window.FOSS.icons.el("refresh", 16), window.FOSS.dom.el("span", { text: "Convert Queue" })]);
+
+    var batchOptionsCard = window.FOSS.dom.el("div", {
+      className: "card card-compact flex-col gap-3",
+      style: "width: 100%; box-sizing: border-box;"
+    }, [
+      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Batch Queue Settings" }),
+      window.FOSS.components.field("Filter Family", familyFilterSelect),
+      window.FOSS.components.field("Apply Format to All", targetAllSelect),
+      window.FOSS.dom.el("div", { className: "flex-col gap-2 pt-1" }, [
+        window.FOSS.dom.el("label", { className: "row gap-2 items-center text-xs cursor-pointer" }, [
+          recursiveCheck,
+          window.FOSS.dom.el("span", { text: "Include Subfolders Recursively" })
+        ]),
+        window.FOSS.dom.el("label", { className: "row gap-2 items-center text-xs cursor-pointer" }, [
+          preserveTreeCheck,
+          window.FOSS.dom.el("span", { text: "Preserve Folder Hierarchy" })
+        ])
+      ]),
+      window.FOSS.dom.el("div", { className: "flex-col gap-1 pt-1" }, [
+        window.FOSS.dom.el("label", { className: "text-xs font-semibold text-muted", text: "Batch Output Folder" }),
+        window.FOSS.dom.el("div", { className: "row gap-2" }, [outputDirInput, browseBatchDirBtn])
+      ]),
+      batchRunBtn
+    ]);
+
+    var sidebar = window.FOSS.dom.el("div", {
+      className: "converter-sidebar-pane flex-col gap-3",
+      style: "width: 100%; min-width: 0;"
+    }, [sourceCard, singleOptionsCard, batchOptionsCard]);
+
+    // Batch Queue Table on Right Stage
     var addFilesBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       "data-testid": "converter-queue-add-btn",
@@ -433,7 +427,7 @@ window.FOSS = window.FOSS || {};
           addPathsToQueue(res.paths);
         });
       }
-    }, [window.FOSS.icons.el("file-plus", 14), window.FOSS.dom.el("span", { text: "Add Files..." })]);
+    }, [window.FOSS.icons.el("file-plus", 14), window.FOSS.dom.el("span", { text: "Add Files to Queue..." })]);
 
     var addFolderBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
@@ -448,7 +442,7 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Add Folder..." })]);
 
-        var clearCompletedBtn = window.FOSS.dom.el("button", {
+    var clearCompletedBtn = window.FOSS.dom.el("button", {
       className: "btn btn-ghost btn-sm",
       "data-testid": "converter-batch-clear-btn",
       type: "button",
@@ -459,7 +453,7 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.icons.el("trash", 14), window.FOSS.dom.el("span", { text: "Clear Completed" })]);
 
     function addPathsToQueue(paths) {
-      statusBar.textContent = "Scanning input files...";
+      queueStatusBar.textContent = "Scanning input files...";
       window.FOSS.api("converter_scan_inputs", {
         paths: paths,
         recursive: recursiveCheck.checked
@@ -484,13 +478,12 @@ window.FOSS = window.FOSS || {};
         });
         updateTargetAllOptions();
         renderQueueTable();
-        statusBar.textContent = "Queue: " + queueItems.length + " item(s) ready";
+        queueStatusBar.textContent = "Queue: " + queueItems.length + " item(s) ready";
       }).catch(function (err) {
         showError((err && err.message) || String(err));
       });
     }
 
-    // Center Queue Table
     var tableHost = window.FOSS.dom.el("div", {
       className: "grow flex-col gap-2 overflow-x-auto",
       "data-testid": "converter-queue-table",
@@ -516,13 +509,13 @@ window.FOSS = window.FOSS || {};
           className: "text-muted text-sm p-8 text-center font-mono",
           text: queueItems.length === 0 ? "Batch queue is empty. Click Add Files or Add Folder above." : "No queue items match the active family filter."
         }));
-        runBtn.textContent = "Convert 0 Files";
-        runBtn.disabled = true;
+        batchRunBtn.textContent = "Convert 0 Files";
+        batchRunBtn.disabled = true;
         return;
       }
 
-      runBtn.textContent = "Convert " + visibleItems.length + " Files";
-      runBtn.disabled = false;
+      batchRunBtn.textContent = "Convert " + visibleItems.length + " Files";
+      batchRunBtn.disabled = false;
 
       var rows = visibleItems.map(function (it, idx) {
         var relHint = it.rel_dir ? it.rel_dir + "/" : "";
@@ -567,21 +560,20 @@ window.FOSS = window.FOSS || {};
         }
 
         var removeBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-icon btn-ghost btn-sm",
-          style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
-          "aria-label": "Remove from queue",
+          className: "btn btn-ghost btn-sm btn-icon text-muted",
           title: "Remove from queue",
+          "aria-label": "Remove from queue",
           onClick: function () {
-            var origIdx = queueItems.indexOf(it);
-            if (origIdx !== -1) queueItems.splice(origIdx, 1);
+            var rIdx = queueItems.indexOf(it);
+            if (rIdx >= 0) queueItems.splice(rIdx, 1);
             updateTargetAllOptions();
             renderQueueTable();
           }
-        }, [window.FOSS.icons.el("x", 14)]);
+        }, [window.FOSS.icons.el("close", 12)]);
 
         return window.FOSS.dom.el("tr", {}, [
           window.FOSS.dom.el("td", {
-            className: "font-semibold text-sm",
+            className: "font-mono text-xs font-semibold",
             style: "width: 35%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
             text: nameText,
             "data-truncate-ok": "true",
@@ -627,41 +619,11 @@ window.FOSS = window.FOSS || {};
       tableHost.appendChild(table);
     }
 
-    // Bottom Bar: Output Folder and Primary Run Button
-    var outputDirInput = window.FOSS.dom.el("input", {
-      type: "text",
-      className: "input font-mono grow text-xs",
-      "data-testid": "converter-batch-out-dir",
-      placeholder: "Default: <common_folder>/converted",
-      "aria-label": "Batch Output Folder",
-      title: "Batch Output Folder"
-    });
-
-    var browseBatchDirBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      "data-testid": "converter-batch-browse-btn",
-      type: "button",
-      onClick: function () {
-        window.FOSS.api("select_folder", { title: "Select Output Folder" }).then(function (res) {
-          if (res && res.path) outputDirInput.value = res.path;
-        });
-      }
-    }, [window.FOSS.icons.el("folder", 14), window.FOSS.dom.el("span", { text: "Browse..." })]);
-
-    var runBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-primary",
-      "data-testid": "converter-batch-start-btn",
-      type: "button",
-      onClick: function () {
-        executeBatch();
-      }
-    }, [window.FOSS.icons.el("refresh", 16), window.FOSS.dom.el("span", { text: "Convert Files" })]);
-
     function executeBatch() {
       if (queueItems.length === 0 || isProcessing) return;
       isProcessing = true;
       clearError();
-      statusBar.textContent = "Processing batch conversions...";
+      queueStatusBar.textContent = "Processing batch conversions...";
 
       queueItems.forEach(function (it) { it.status = "Converting..."; });
       renderQueueTable();
@@ -690,46 +652,17 @@ window.FOSS = window.FOSS || {};
               queueItems[i].output_path = r.output_path;
             }
           });
-          statusBar.textContent = "Batch complete (" + (res.succeeded || 0) + " succeeded, " + (res.failed || 0) + " failed)";
+          queueStatusBar.textContent = "Batch complete (" + (res.succeeded || 0) + " succeeded, " + (res.failed || 0) + " failed)";
         } else {
-          statusBar.textContent = "Batch complete";
+          queueStatusBar.textContent = "Batch complete";
         }
         renderQueueTable();
       }).catch(function (err) {
         isProcessing = false;
         showError((err && err.message) || String(err));
-        statusBar.textContent = "Batch stopped with error";
+        queueStatusBar.textContent = "Batch stopped with error";
       });
     }
-
-    var settingsCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-3",
-      style: "width: 100%; box-sizing: border-box;"
-    }, [
-      window.FOSS.dom.el("div", { className: "card-title text-sm font-semibold", text: "Batch Options" }),
-      window.FOSS.components.field("Filter Family", familyFilterSelect),
-      window.FOSS.components.field("Apply Format to All", targetAllSelect),
-      window.FOSS.dom.el("div", { className: "flex-col gap-2 pt-1" }, [
-        window.FOSS.dom.el("label", { className: "row gap-2 items-center text-xs cursor-pointer" }, [
-          recursiveCheck,
-          window.FOSS.dom.el("span", { text: "Include Subfolders Recursively" })
-        ]),
-        window.FOSS.dom.el("label", { className: "row gap-2 items-center text-xs cursor-pointer" }, [
-          preserveTreeCheck,
-          window.FOSS.dom.el("span", { text: "Preserve Folder Hierarchy" })
-        ])
-      ]),
-      window.FOSS.dom.el("div", { className: "flex-col gap-1 pt-1" }, [
-        window.FOSS.dom.el("label", { className: "text-xs font-semibold text-muted", text: "Output Folder" }),
-        window.FOSS.dom.el("div", { className: "row gap-2" }, [outputDirInput, browseBatchDirBtn])
-      ]),
-      runBtn
-    ]);
-
-    var sidebar = window.FOSS.dom.el("div", {
-      className: "converter-sidebar-pane",
-      style: "width: 100%; min-width: 0;"
-    }, [settingsCard]);
 
     var stageCard = window.FOSS.dom.el("div", {
       className: "card card-compact flex-col gap-3 grow",
@@ -758,16 +691,46 @@ window.FOSS = window.FOSS || {};
       stageWrapper
     ]);
 
+    function loadFile(filePath) {
+      currentFile = filePath;
+      var fileName = filePath.split(/[/\\]/).pop();
+      fileDisplay.textContent = fileName;
+      fileDisplay.setAttribute("title", filePath);
+      statusBar.textContent = "Analyzing " + fileName + "...";
+
+      window.FOSS.api("converter_available_targets", { file_path: filePath }).then(function (res) {
+        if (!res) return;
+        currentFamily = res.family || "File";
+        familyBadge.textContent = currentFamily;
+        availableTargetsList = res.targets || [];
+        targetSelect.innerHTML = "";
+        availableTargetsList.forEach(function (t) {
+          targetSelect.appendChild(window.FOSS.dom.el("option", { value: t, text: t }));
+        });
+        targetSelect.value = pickDefaultTarget(currentFamily, availableTargetsList);
+        updateContextualOptions();
+        statusBar.textContent = "Ready (" + availableTargetsList.length + " compatible target formats)";
+      }).catch(function (err) {
+        showError((err && err.message) || String(err));
+      });
+    }
+
     panel.appendChild(statusBar);
+    panel.appendChild(queueStatusBar);
     panel.appendChild(errorBanner);
+    panel.appendChild(batchErrorBanner);
+    panel.appendChild(resultHost);
     panel.appendChild(split);
 
     renderQueueTable();
 
     if (pendingPaths.length) {
-      var queuedPaths = pendingPaths;
+      var pathsToAdd = pendingPaths;
       pendingPaths = [];
-      addPathsToQueue(queuedPaths);
+      if (pathsToAdd.length === 1) {
+        loadFile(pathsToAdd[0]);
+      }
+      addPathsToQueue(pathsToAdd);
     }
   }
 
@@ -786,17 +749,12 @@ window.FOSS = window.FOSS || {};
       { key: "preserve_tree", label: "Preserve folder structure when converting batch", type: "toggle", default: true }
     ],
     tabs: [
-      { id: "single", label: "Single File", render: renderSingle },
-      { id: "batch", label: "Batch & Folder Queue", aliases: ["queue"], render: renderBatch }
+      { id: "single", label: "Converter", aliases: ["main", "batch", "queue"], render: renderUnified }
     ],
     onFiles: function (paths, ctx) {
       if (!paths || !paths.length) return;
       pendingPaths = paths.slice();
-      if (paths.length === 1) {
-        window.FOSS.router.open("converter", "single");
-      } else {
-        window.FOSS.router.open("converter", "batch");
-      }
+      window.FOSS.router.open("converter", "single");
     }
   });
 })();

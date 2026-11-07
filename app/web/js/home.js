@@ -61,13 +61,9 @@ window.FOSS = window.FOSS || {};
     // Hero section
     var heroTitle = window.FOSS.dom.el("h1", {
       className: "home-hero-title",
-      text: "FOSSEverything Workbench"
+      text: "FOSSEverything"
     });
-    var heroSub = window.FOSS.dom.el("p", {
-      className: "home-hero-sub",
-      text: "Free, local-first offline Swiss Army knife for documents, media, data, and daily utilities."
-    });
-    var hero = window.FOSS.dom.el("div", { className: "home-hero stack-sm" }, [heroTitle, heroSub]);
+    var hero = window.FOSS.dom.el("div", { className: "home-hero stack-sm" }, [heroTitle]);
     page.appendChild(hero);
 
     // Search bar

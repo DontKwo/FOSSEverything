@@ -18,7 +18,7 @@ window.FOSS = window.FOSS || {};
     ]);
     page.appendChild(header);
 
-    var split = window.FOSS.dom.el("div", { className: "split", "data-testid": "settings-split" });
+    var split = window.FOSS.dom.el("div", { className: "split resizable", "data-testid": "settings-split" });
 
     // Left nav sections list
     var sections = [
@@ -32,7 +32,7 @@ window.FOSS = window.FOSS || {};
       { id: "about", label: "About" }
     ];
 
-    var navEl = window.FOSS.dom.el("div", { className: "card settings-nav stack-sm" });
+    var navEl = window.FOSS.dom.el("div", { className: "card settings-nav stack-sm", style: "min-width: 14rem;" });
     sections.forEach(function (sec) {
       var isAct = activeSection === sec.id;
       var btn = window.FOSS.dom.el("button", {
@@ -47,6 +47,15 @@ window.FOSS = window.FOSS || {};
       navEl.appendChild(btn);
     });
     split.appendChild(navEl);
+
+    var divider = window.FOSS.dom.el("div", {
+      className: "split-divider",
+      "data-side": "left",
+      role: "separator",
+      "aria-label": "Resize settings panels",
+      tabindex: "0"
+    });
+    split.appendChild(divider);
 
     // Right content panel
     var contentPanel = window.FOSS.dom.el("div", { className: "card settings-content", "data-testid": "settings-content-panel" });
@@ -224,9 +233,32 @@ window.FOSS = window.FOSS || {};
 
     function persistAndRefresh() {
       window.FOSS.store.set("sidebar_layout", layout);
+      var favSec = layout.sections.find(function (s) { return s.id === "sec_favorites"; });
+      if (favSec) {
+        var favIds = (favSec.items || []).map(function (it) { return it.id; });
+        window.FOSS.store.set("favorites", favIds);
+        window.dispatchEvent(new CustomEvent("foss:favorites-changed", { detail: { favorites: favIds } }));
+      }
       window.FOSS.router.renderSidebar();
       renderSidebarCustomizer(panel);
     }
+
+    function handleAutoScroll(e, container) {
+      var rect = container.getBoundingClientRect();
+      var edgeZone = 50;
+      var scrollSpeed = 16;
+      if (e.clientY < rect.top + edgeZone) {
+        container.scrollTop -= scrollSpeed;
+        if (window.scrollY > 0) window.scrollBy(0, -scrollSpeed);
+      } else if (e.clientY > rect.bottom - edgeZone) {
+        container.scrollTop += scrollSpeed;
+        window.scrollBy(0, scrollSpeed);
+      }
+    }
+
+    editor.addEventListener("dragover", function (e) {
+      handleAutoScroll(e, panel.closest(".settings-page") || panel);
+    });
 
     // Top action bar
     var newSecInput = window.FOSS.dom.el("input", {
@@ -251,18 +283,6 @@ window.FOSS = window.FOSS || {};
       }
     });
 
-    var showAllBtn = window.FOSS.dom.el("button", {
-      className: "btn btn-secondary btn-sm",
-      text: "Show All Apps",
-      "data-testid": "settings-show-all-apps-btn",
-      onClick: function () {
-        layout.sections.forEach(function (s) {
-          (s.items || []).forEach(function (it) { it.visible = true; });
-        });
-        persistAndRefresh();
-      }
-    });
-
     var resetBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary btn-sm",
       text: "Reset Sidebar Layout",
@@ -277,7 +297,6 @@ window.FOSS = window.FOSS || {};
     var actionBar = window.FOSS.dom.el("div", { className: "row gap-2" }, [
       newSecInput,
       addSecBtn,
-      showAllBtn,
       resetBtn
     ]);
     editor.appendChild(actionBar);
@@ -402,22 +421,11 @@ window.FOSS = window.FOSS || {};
           } catch (err) {}
         };
 
-        var check = window.FOSS.dom.el("input", {
-          type: "checkbox",
-          checked: !!item.visible,
-          "data-testid": "settings-app-check-" + item.id,
-          "aria-label": "Toggle tool visibility",
-          onChange: function (e) {
-            item.visible = e.target.checked;
-            window.FOSS.store.set("sidebar_layout", layout);
-            window.FOSS.router.renderSidebar();
-          }
-        });
-
         var removeAppBtn = window.FOSS.dom.el("button", {
           className: "btn btn-ghost btn-sm",
           "aria-label": "Remove tool from section",
           title: "Remove from section",
+          "data-testid": "settings-remove-app-" + item.id,
           onClick: function () {
             sec.items.splice(itemIdx, 1);
             persistAndRefresh();
@@ -427,7 +435,6 @@ window.FOSS = window.FOSS || {};
         var iconEl = window.FOSS.icons.el(tool ? tool.icon || "file" : "file", 18);
         var labelGroup = window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [
           window.FOSS.icons.el("grip", 14),
-          check,
           iconEl,
           window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: tool ? tool.title : item.id })
         ]);
@@ -776,10 +783,6 @@ window.FOSS = window.FOSS || {};
   function renderAbout(panel) {
     panel.appendChild(window.FOSS.dom.el("h2", { className: "card-title", text: "About FOSSEverything" }));
     panel.appendChild(window.FOSS.dom.el("p", { className: "desc", text: "Version 0.1.0 | AGPL-3.0-or-later" }));
-    panel.appendChild(window.FOSS.dom.el("p", {
-      className: "desc",
-      text: "Zero telemetry. Fully local-first and offline processing. No account, ads, or tracking."
-    }));
   }
 
   window.FOSS.settings = {

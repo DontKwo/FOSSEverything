@@ -83,18 +83,26 @@ class DomainResolver:
         return ""
 
 
+USER_TRUST_OVERRIDES: dict[str, str] = {}
+
+def set_user_process_trust(process_name: str, trust_level: str) -> None:
+    # Set user defined process trust level override.
+    USER_TRUST_OVERRIDES[process_name.lower().strip()] = trust_level
+
 def classify_connection_trust(process_name: str, remote_ip: str, remote_domain: str | None = None) -> tuple[str, str]:
     # Determine source identity and trustworthiness rating.
     proc_lower = process_name.lower().strip()
-    if proc_lower in ("svchost.exe", "lsass.exe", "services.exe", "explorer.exe", "system"):
-        return "Windows System", "Trusted System"
-    if proc_lower in ("msedge.exe", "chrome.exe", "firefox.exe", "brave.exe"):
+    if proc_lower in USER_TRUST_OVERRIDES:
+        return "Custom Trust", USER_TRUST_OVERRIDES[proc_lower]
+    if proc_lower in ("svchost.exe", "lsass.exe", "services.exe", "explorer.exe", "system", "smss.exe", "winlogon.exe", "spoolsv.exe", "systemd", "dbus-daemon", "chrony", "cupsd", "networkmanager"):
+        return "System Component", "Trusted System"
+    if proc_lower in ("msedge.exe", "chrome.exe", "firefox.exe", "brave.exe", "safari", "opera.exe"):
         return "Web Browser", "Trusted App"
-    if proc_lower in ("python.exe", "node.exe", "git.exe", "code.exe", "uv.exe"):
+    if proc_lower in ("python.exe", "node.exe", "git.exe", "code.exe", "uv.exe", "cargo.exe", "rustc.exe", "docker.exe", "bash", "zsh", "python3", "node"):
         return "Developer Tool", "Local Dev"
     if remote_ip.startswith(("127.", "10.", "192.168.", "172.16.", "172.17.", "172.18.", "::1")):
         return "Local Subnet", "Local Safe"
-    if remote_domain and any(remote_domain.endswith(dom) for dom in ("microsoft.com", "google.com", "github.com", "cloudflare.com")):
+    if remote_domain and any(remote_domain.endswith(dom) for dom in ("microsoft.com", "google.com", "github.com", "cloudflare.com", "apple.com", "ubuntu.com", "mozilla.org")):
         return "Verified CDN", "Trusted Service"
     if not remote_domain and remote_ip:
         return "External IP", "Unverified"

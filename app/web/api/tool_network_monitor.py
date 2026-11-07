@@ -16,7 +16,7 @@ from app.features.network_monitor.db import (
     wipe_all,
 )
 from app.features.network_monitor.monitor import ConnectionMonitor, LiveConnection
-from app.features.network_monitor.resolver import classify_connection_trust
+from app.features.network_monitor.resolver import classify_connection_trust, set_user_process_trust
 from app.web.api.result import api_method, ok, require
 
 
@@ -111,6 +111,15 @@ class NetworkMonitorApiMixin:
                 "status": "CLOSED",
             })
         return ok(events=hist_events, count=len(hist_events), db_path=path_str)
+
+    @api_method
+    def network_set_process_trust(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Change user trust level for a given process name.
+        require(params, "process_name", "trust_level")
+        pname = str(params["process_name"]).strip()
+        trust = str(params["trust_level"]).strip()
+        set_user_process_trust(pname, trust)
+        return ok(process_name=pname, trust_level=trust)
 
     @api_method
     def network_stats(self, params: dict[str, Any]) -> dict[str, Any]:

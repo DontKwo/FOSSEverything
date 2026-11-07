@@ -50,7 +50,7 @@ window.FOSS = window.FOSS || {};
   ];
 
   var FIELD_DEFS = {
-    url: [{ key: "text", label: "Web URL", value: "https://github.com/fosseverything", placeholder: "https://example.com", testid: "qr-text-input" }],
+    url: [{ key: "text", label: "Web URL", value: "https://github.com/DontKwo/FOSSEverything", placeholder: "https://example.com", testid: "qr-text-input" }],
     text: [{ key: "text", label: "Plain Text", kind: "textarea", placeholder: "Enter arbitrary text or notes", testid: "qr-text-input" }],
     vcard: [
       { key: "name", label: "Full Name", placeholder: "Full Name" },

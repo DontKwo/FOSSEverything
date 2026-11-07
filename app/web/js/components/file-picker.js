@@ -75,7 +75,7 @@ window.FOSS.components = window.FOSS.components || {};
         browseBtn.click();
       }
     }, [
-      window.FOSS.icons.el("file", 24),
+      window.FOSS.icons.el("file", 18),
       info,
       actions
     ]);

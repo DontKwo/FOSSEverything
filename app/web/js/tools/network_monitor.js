@@ -28,8 +28,8 @@ window.FOSS = window.FOSS || {};
     }
   }
 
-  function renderTrustBadge(trustLevel) {
-    var cls = "badge";
+  function renderTrustBadge(trustLevel, procName, onUpdated) {
+    var cls = "badge cursor-pointer";
     if (trustLevel === "Trusted System" || trustLevel === "Trusted App" || trustLevel === "Trusted Service" || trustLevel === "Local Safe") {
       cls += " success";
     } else if (trustLevel === "Local Dev") {
@@ -41,7 +41,43 @@ window.FOSS = window.FOSS || {};
     }
     return window.FOSS.dom.el("span", {
       className: cls,
-      text: trustLevel || "Unknown"
+      text: trustLevel || "Unknown",
+      title: "Click to change trust level for " + (procName || "this app"),
+      onClick: function (e) {
+        if (!procName) return;
+        e.stopPropagation();
+        openTrustChangeDialog(procName, trustLevel, onUpdated);
+      }
+    });
+  }
+
+  function openTrustChangeDialog(procName, currentTrust, onUpdated) {
+    var select = window.FOSS.dom.el("select", { className: "select w-full" }, [
+      window.FOSS.dom.el("option", { value: "Trusted System", text: "Trusted System" }),
+      window.FOSS.dom.el("option", { value: "Trusted App", text: "Trusted App" }),
+      window.FOSS.dom.el("option", { value: "Local Safe", text: "Local Safe" }),
+      window.FOSS.dom.el("option", { value: "Local Dev", text: "Local Dev" }),
+      window.FOSS.dom.el("option", { value: "Unverified", text: "Unverified" })
+    ]);
+    select.value = currentTrust || "Unverified";
+
+    var content = window.FOSS.dom.el("div", { className: "stack-sm" }, [
+      window.FOSS.dom.el("p", { className: "text-sm", text: "Set trust level for process: " + procName }),
+      select
+    ]);
+
+    window.FOSS.dialogs.custom({
+      title: "Change Application Trust Level",
+      testid: "nm-trust-dialog",
+      confirmText: "Save Trust Level",
+      content: content,
+      onConfirm: function () {
+        var newTrust = select.value;
+        window.FOSS.api("network_set_process_trust", { process_name: procName, trust_level: newTrust }).then(function () {
+          window.FOSS.toast.show("Trust level set to " + newTrust, "success");
+          if (onUpdated) onUpdated();
+        });
+      }
     });
   }
 
@@ -272,7 +308,7 @@ window.FOSS = window.FOSS || {};
             className: "nm-cell",
             "data-truncate-ok": "true",
             title: c.trust_level || "Unverified"
-          }, [renderTrustBadge(c.trust_level)]),
+          }, [renderTrustBadge(c.trust_level, c.process_name, loadLive)]),
           textCell(c.protocol || ""),
           textCell(c.local_address || ""),
           textCell(c.remote_address || ""),

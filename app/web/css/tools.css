@@ -1187,8 +1187,8 @@ html.is-resizing .model3d-canvas-container canvas,
 
 .model3d-overlay-stack {
   position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
+  bottom: var(--space-3);
+  right: var(--space-3);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
