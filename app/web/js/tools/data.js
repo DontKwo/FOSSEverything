@@ -451,7 +451,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "data-hdf5-details"
     }, [window.FOSS.dom.el("div", { className: "text-sm text-muted text-center", text: "Select a group or dataset to see its details." })]);
 
-    var grid = window.FOSS.dom.el("div", { className: "split resizable", style: "--split-left: 14rem; min-height: 24rem;" }, [
+    var grid = window.FOSS.dom.el("div", { className: "split resizable", style: "--split-left: 15rem; min-height: 0; flex: 1 1 0%;" }, [
       window.FOSS.dom.el("div", { className: "flex-col", style: "width: 100%; min-width: 0;" }, [
         window.FOSS.dom.el("div", { className: "row items-center flex-wrap gap-2 mb-2" }, [searchInput]),
         treeFrame,
@@ -1525,7 +1525,7 @@ window.FOSS = window.FOSS || {};
     var randCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
     var randTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Random / Password Generator" });
 
-    var defaultGeneratorType = String(lookupDefault("generator_type", "password"));
+    var defaultGeneratorType = String(toolDefault("generator_type", "password"));
     var randKind = window.FOSS.dom.el("select", {
       className: "input input-sm",
       "aria-label": "Generator Type"
@@ -1640,7 +1640,11 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.icons.el("clock", 14), window.FOSS.dom.el("span", { text: "Calculate Schedule" })]);
 
     cronCard.appendChild(cronTitle);
-    cronCard.appendChild(window.FOSS.components.field("Expression (minute hour dom month dow)", cronInput));
+    cronCard.appendChild(window.FOSS.components.field({
+      label: "Expression (minute hour dom month dow)",
+      control: cronInput,
+      wrapOk: true
+    }));
     cronCard.appendChild(cronBtn);
     cronCard.appendChild(cronDesc);
     cronCard.appendChild(cronRunsList);
@@ -1753,7 +1757,8 @@ window.FOSS = window.FOSS || {};
       { id: "editor", label: "Format & Convert", aliases: ["main", "format"], render: renderEditorTab },
       { id: "structure", label: "HDF5", aliases: ["tree", "hdf5"], render: renderStructureTab },
       { id: "tables", label: "Tables", render: renderTablesTab },
-      { id: "query", label: "JSONPath & Schema", render: renderQueryTab }
+      { id: "query", label: "JSONPath & Schema", render: renderQueryTab },
+      { id: "utilities", label: "Utilities", render: renderUtilitiesTab }
     ]
   });
 })();

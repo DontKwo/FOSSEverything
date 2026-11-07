@@ -76,7 +76,7 @@ def scenario_live_sort_and_mark(page: Page, fixtures: dict[str, str], api: Any) 
         has=page.locator("[data-testid='network_monitor-dest-badge']")
     )
     if rows.count() > 0:
-        rows.first.click()
+        rows.first.click(position={"x": 10, "y": 10})
         expect(page.locator("[data-testid='network_monitor-live-row'].nm-row-selected").first).to_be_visible()
         page.evaluate("document.querySelectorAll('#view-root, #view-root *').forEach(function (e) { e.scrollTop = 0; })")
     calc_clear_overlays(page)
