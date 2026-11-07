@@ -272,8 +272,7 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var sidebar = window.FOSS.dom.el("div", {
-      className: "compressor-sidebar-pane",
-      style: "width: 100%; min-width: 0;"
+      className: "compressor-sidebar-pane compressor-full-width"
     }, [sidebarCard]);
 
     // Right Column: Queue & Savings Table
@@ -349,9 +348,8 @@ window.FOSS = window.FOSS || {};
     }
 
     var tableHost = window.FOSS.dom.el("div", {
-      className: "table-wrap grow flex-col gap-2",
-      "data-testid": "compressor-queue-table",
-      style: "min-width: 0; width: 100%; box-sizing: border-box;"
+      className: "table-wrap grow flex-col gap-2 compressor-card-bound",
+      "data-testid": "compressor-queue-table"
     });
 
     var savingsBanner = window.FOSS.dom.el("div", {
@@ -381,16 +379,14 @@ window.FOSS = window.FOSS || {};
         if (it.status === "Done") {
           if (it.saved_bytes > 0) {
             savingsBadge = window.FOSS.dom.el("span", {
-              className: "badge badge-success text-xs font-mono",
-              style: "white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;",
+              className: "badge badge-success text-xs font-mono compressor-ellipsis",
               "data-truncate-ok": "true",
               title: "-" + it.saved_pct + "% (" + formatBytes(it.saved_bytes) + ")",
               text: "-" + it.saved_pct + "%"
             });
           } else {
             savingsBadge = window.FOSS.dom.el("span", {
-              className: "badge badge-neutral text-xs font-mono",
-              style: "white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis;",
+              className: "badge badge-neutral text-xs font-mono compressor-ellipsis",
               "data-truncate-ok": "true",
               title: "Optimal file size",
               text: "Optimal"
@@ -398,28 +394,24 @@ window.FOSS = window.FOSS || {};
           }
         } else if (it.status === "Failed") {
           savingsBadge = window.FOSS.dom.el("span", {
-            className: "badge badge-danger text-xs",
-            style: "white-space: nowrap;",
+            className: "badge badge-danger text-xs compressor-nowrap",
             text: "Failed"
           });
         } else if (it.status === "Compressing...") {
           savingsBadge = window.FOSS.dom.el("span", {
-            className: "badge badge-warning text-xs",
-            style: "white-space: nowrap;",
+            className: "badge badge-warning text-xs compressor-nowrap",
             text: "Working..."
           });
         } else {
           savingsBadge = window.FOSS.dom.el("span", {
-            className: "badge badge-neutral text-xs font-mono",
-            style: "white-space: nowrap;",
+            className: "badge badge-neutral text-xs font-mono compressor-nowrap",
             title: "Estimated savings before compressing",
             text: it.est_bytes > 0 ? "~-" + it.est_pct + "%" : "Queued"
           });
         }
 
         var removeBtn = window.FOSS.dom.el("button", {
-          className: "btn btn-icon btn-ghost btn-sm",
-          style: "width: 2rem; height: 2rem; min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center;",
+          className: "btn btn-ghost btn-xs text-danger compressor-icon-btn-box",
           "aria-label": "Remove from queue",
           title: "Remove from queue",
           onClick: function () {
@@ -431,54 +423,49 @@ window.FOSS = window.FOSS || {};
 
         return window.FOSS.dom.el("tr", {}, [
           window.FOSS.dom.el("td", {
-            className: "font-semibold text-sm",
-            style: "width: 30%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            className: "font-semibold text-sm compressor-col-file",
             text: it.name,
             "data-truncate-ok": "true",
             title: it.path
           }),
           window.FOSS.dom.el("td", {
-            className: "text-xs text-muted",
-            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            className: "text-xs text-muted compressor-col-type",
             text: it.category,
             "data-truncate-ok": "true",
             title: it.category
           }),
           window.FOSS.dom.el("td", {
-            className: "text-xs font-mono text-muted",
-            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            className: "text-xs font-mono text-muted compressor-col-type",
             text: formatBytes(it.size_bytes),
             "data-truncate-ok": "true",
             title: formatBytes(it.size_bytes)
           }),
           window.FOSS.dom.el("td", {
-            className: "text-xs font-mono",
-            style: "width: 15%; max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            className: "text-xs font-mono compressor-col-type",
             text: it.compressed_bytes > 0 ? formatBytes(it.compressed_bytes) : (it.est_bytes > 0 ? "~" + formatBytes(it.est_bytes) : "-"),
             "data-truncate-ok": "true",
             title: it.compressed_bytes > 0 ? formatBytes(it.compressed_bytes) : (it.est_bytes > 0 ? "Estimated " + formatBytes(it.est_bytes) : "-")
           }),
           window.FOSS.dom.el("td", {
-            style: "width: 25%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+            className: "compressor-col-saved",
             "data-truncate-ok": "true",
             title: it.status === "Done" ? "-" + it.saved_pct + "%" : "Estimated savings"
           }, [savingsBadge]),
-          window.FOSS.dom.el("td", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;" }, [removeBtn])
+          window.FOSS.dom.el("td", { className: "compressor-col-action" }, [removeBtn])
         ]);
       });
 
       var table = window.FOSS.dom.el("table", {
-        className: "table w-full",
-        style: "table-layout: fixed; width: 100%; min-width: 0;"
+        className: "table w-full compressor-table-fixed"
       }, [
         window.FOSS.dom.el("thead", {}, [
           window.FOSS.dom.el("tr", {}, [
-            window.FOSS.dom.el("th", { style: "width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "File", "data-truncate-ok": "true", title: "File" }),
-            window.FOSS.dom.el("th", { style: "width: 15%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Type", "data-truncate-ok": "true", title: "Type" }),
-            window.FOSS.dom.el("th", { style: "width: 15%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Orig", "data-truncate-ok": "true", title: "Original" }),
-            window.FOSS.dom.el("th", { style: "width: 15%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Comp", "data-truncate-ok": "true", title: "Compressed" }),
-            window.FOSS.dom.el("th", { style: "width: 25%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;", text: "Saved", "data-truncate-ok": "true", title: "Savings" }),
-            window.FOSS.dom.el("th", { className: "text-right", style: "width: 2.5rem; padding: 0.25rem 0;", text: "", "data-truncate-ok": "true", title: "Actions" })
+            window.FOSS.dom.el("th", { className: "compressor-col-file", text: "File", "data-truncate-ok": "true", title: "File" }),
+            window.FOSS.dom.el("th", { className: "compressor-col-type", text: "Type", "data-truncate-ok": "true", title: "Type" }),
+            window.FOSS.dom.el("th", { className: "compressor-col-orig", text: "Orig", "data-truncate-ok": "true", title: "Original" }),
+            window.FOSS.dom.el("th", { className: "compressor-col-comp", text: "Comp", "data-truncate-ok": "true", title: "Compressed" }),
+            window.FOSS.dom.el("th", { className: "compressor-col-saved", text: "Saved", "data-truncate-ok": "true", title: "Savings" }),
+            window.FOSS.dom.el("th", { className: "compressor-col-action", text: "", "data-truncate-ok": "true", title: "Actions" })
           ])
         ]),
         window.FOSS.dom.el("tbody", {}, rows)
@@ -583,8 +570,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var stageCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-3 grow",
-      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
+      className: "card card-compact flex-col gap-3 grow compressor-full-width"
     }, [
       window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
         window.FOSS.dom.el("div", { className: "row gap-2 flex-wrap" }, [
@@ -598,8 +584,7 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var stageWrapper = window.FOSS.dom.el("div", {
-      className: "compressor-stage-pane grow",
-      style: "width: 100%; min-width: 0;"
+      className: "compressor-stage-pane grow compressor-full-width"
     }, [stageCard]);
 
     var split = window.FOSS.dom.el("div", {

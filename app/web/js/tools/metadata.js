@@ -97,8 +97,7 @@ window.FOSS = window.FOSS || {};
 
     // Left Column: Dropzone, Privacy Assessment, Editable Form, Actions
     var pathDisplay = window.FOSS.dom.el("div", {
-      className: "font-mono text-xs text-muted grow",
-      style: "min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+      className: "font-mono text-xs text-muted grow metadata-ellipsis",
       "data-testid": "metadata-file-display",
       "data-truncate-ok": "true",
       title: "No file selected",
@@ -273,8 +272,7 @@ window.FOSS = window.FOSS || {};
     });
 
     var inspectTableHost = window.FOSS.dom.el("div", {
-      className: "table-wrap grow",
-      style: "min-height: 12rem;",
+      className: "table-wrap grow metadata-min-h-12",
       "data-testid": "metadata-table"
     });
 
@@ -306,8 +304,7 @@ window.FOSS = window.FOSS || {};
     }, [window.FOSS.icons.el("plus", 14), window.FOSS.dom.el("span", { text: "Add Tag" })]);
 
     var stageCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-3 grow",
-      style: "box-sizing: border-box; min-width: 0;"
+      className: "card card-compact flex-col gap-3 grow metadata-box-bound"
     }, [
       window.FOSS.dom.el("div", { className: "row gap-2 items-center justify-between flex-wrap" }, [
         window.FOSS.dom.el("span", { className: "font-semibold text-sm", text: "Editable Metadata Fields" }),
@@ -434,19 +431,18 @@ window.FOSS = window.FOSS || {};
             text: String(key)
           }),
           window.FOSS.dom.el("td", {
-            className: "text-xs font-mono",
-            style: "padding: 0.25rem 0.5rem;"
+            className: "text-xs font-mono metadata-cell-compact"
           }, [valInput]),
-          window.FOSS.dom.el("td", { style: "width: 5rem; text-align: right; white-space: nowrap;" }, [copyBtn, deleteBtn])
+          window.FOSS.dom.el("td", { className: "metadata-cell-actions" }, [copyBtn, deleteBtn])
         ]);
       });
 
       var tbl = window.FOSS.dom.el("table", { className: "table" }, [
         window.FOSS.dom.el("thead", {}, [
           window.FOSS.dom.el("tr", {}, [
-            window.FOSS.dom.el("th", { text: "Tag Name", style: "width: 35%;" }),
+            window.FOSS.dom.el("th", { className: "metadata-th-tag", text: "Tag Name" }),
             window.FOSS.dom.el("th", { text: "Value" }),
-            window.FOSS.dom.el("th", { text: "", style: "width: 2.5rem;" })
+            window.FOSS.dom.el("th", { className: "metadata-th-action", text: "" })
           ])
         ]),
         window.FOSS.dom.el("tbody", {}, rows)
@@ -502,7 +498,7 @@ window.FOSS = window.FOSS || {};
       var rows = keys.map(function (k) {
         return window.FOSS.dom.el("tr", {}, [
           window.FOSS.dom.el("td", { className: "font-mono text-xs", text: k }),
-          window.FOSS.dom.el("td", { className: "text-xs", style: "word-break: break-all;", text: String(meta[k]) }),
+          window.FOSS.dom.el("td", { className: "text-xs metadata-break-all", text: String(meta[k]) }),
           window.FOSS.dom.el("td", { className: "text-xs text-success font-mono", text: "[Stripped]" })
         ]);
       });
@@ -627,8 +623,7 @@ window.FOSS = window.FOSS || {};
     }
 
     var folderDisplay = window.FOSS.dom.el("div", {
-      className: "font-mono text-xs text-muted grow",
-      style: "min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;",
+      className: "font-mono text-xs text-muted grow metadata-ellipsis",
       "data-testid": "metadata-batch-folder-display",
       "data-truncate-ok": "true",
       title: "No folder selected",
@@ -688,8 +683,7 @@ window.FOSS = window.FOSS || {};
     ]);
 
     var leftCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-3",
-      style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
+      className: "card card-compact flex-col gap-3 metadata-box-full"
     }, [
       window.FOSS.dom.el("div", { className: "font-semibold text-sm", text: "Batch Scrub Settings" }),
       window.FOSS.dom.el("div", { className: "row gap-2 items-center" }, [folderBtn, folderDisplay]),
@@ -705,16 +699,14 @@ window.FOSS = window.FOSS || {};
     }, [leftCard]);
 
     var tableHost = window.FOSS.dom.el("div", {
-      className: "table-wrap grow",
-      style: "min-height: 12rem;",
+      className: "table-wrap grow metadata-min-h-12",
       "data-testid": "metadata-batch-table"
     }, [
       window.FOSS.dom.el("div", { className: "text-xs text-muted p-3", text: "No scan or scrub results yet." })
     ]);
 
     var stageCard = window.FOSS.dom.el("div", {
-      className: "card card-compact flex-col gap-3 grow",
-      style: "box-sizing: border-box; min-width: 0;"
+      className: "card card-compact flex-col gap-3 grow metadata-box-bound"
     }, [
       window.FOSS.dom.el("div", { className: "font-semibold text-sm", text: "Batch Scan & Scrub Results" }),
       tableHost
@@ -781,8 +773,8 @@ window.FOSS = window.FOSS || {};
           window.FOSS.dom.el("thead", {}, [
             window.FOSS.dom.el("tr", {}, [
               window.FOSS.dom.el("th", { text: "File" }),
-              window.FOSS.dom.el("th", { text: "Metadata Fields", style: "width: 8rem;" }),
-              window.FOSS.dom.el("th", { text: "Status", style: "width: 6rem;" })
+              window.FOSS.dom.el("th", { className: "metadata-th-fields", text: "Metadata Fields" }),
+              window.FOSS.dom.el("th", { className: "metadata-th-status", text: "Status" })
             ])
           ]),
           window.FOSS.dom.el("tbody", {}, rows)

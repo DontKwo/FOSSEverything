@@ -570,6 +570,55 @@ html.is-resizing .model3d-canvas-container canvas,
   box-sizing: border-box;
 }
 
+.converter-card-bound {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.converter-full-width {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.converter-table-fixed {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+}
+
+.converter-col-file {
+  width: 35%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.converter-col-meta {
+  width: 15%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.converter-col-target {
+  width: 20%;
+}
+
+.converter-col-status {
+  width: 15%;
+  text-align: center;
+}
+
+.converter-col-action {
+  width: 2.5rem;
+  padding: var(--space-1) 0;
+  text-align: right;
+}
+
 /* File Compressor Workbench */
 .split.resizable.compressor-workbench,
 .compressor-workbench {
@@ -638,6 +687,91 @@ html.is-resizing .model3d-canvas-container canvas,
   max-width: 100%;
   flex-shrink: 0;
   box-sizing: border-box;
+}
+
+.compressor-full-width {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.compressor-card-bound {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.compressor-ellipsis {
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compressor-nowrap {
+  white-space: nowrap;
+}
+
+.compressor-icon-btn-box {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.compressor-col-file {
+  width: 30%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compressor-col-type {
+  width: 15%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compressor-col-orig {
+  width: 15%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compressor-col-comp {
+  width: 15%;
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compressor-col-saved {
+  width: 25%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compressor-col-action {
+  width: 2.5rem;
+  padding: var(--space-1) 0;
+  text-align: right;
+}
+
+.compressor-table-fixed {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
 }
 
 /* Batch Renamer Workbench */
@@ -811,6 +945,58 @@ html.is-resizing .model3d-canvas-container canvas,
 }
 
 /* Metadata Tools Workbench */
+.metadata-ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metadata-min-h-12 {
+  min-height: 12rem;
+}
+
+.metadata-box-bound {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.metadata-box-full {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.metadata-cell-compact {
+  padding: var(--space-1) var(--space-2);
+}
+
+.metadata-cell-actions {
+  width: 5rem;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.metadata-th-tag {
+  width: 35%;
+}
+
+.metadata-th-action {
+  width: 2.5rem;
+}
+
+.metadata-break-all {
+  word-break: break-all;
+}
+
+.metadata-th-fields {
+  width: 8rem;
+}
+
+.metadata-th-status {
+  width: 6rem;
+}
+
 .split.resizable.metadata-workbench,
 .metadata-workbench {
   display: grid;
@@ -1089,6 +1275,14 @@ html.is-resizing .model3d-canvas-container canvas,
   overflow: auto;
 }
 
+.ocr-col-num {
+  width: 2.5rem;
+}
+
+.ocr-col-action {
+  width: 3.5rem;
+}
+
 .ocr-left-col {
   display: flex;
   flex-direction: column;
@@ -1224,6 +1418,76 @@ html.is-resizing .model3d-canvas-container canvas,
 }
 
 /* PDF Workspace & Combine/Organize */
+.pdf-stamp-start-input {
+  width: 4rem;
+}
+
+.pdf-stamp-config-wrap {
+  gap: var(--space-1);
+}
+
+.pdf-header-controls {
+  gap: var(--space-2);
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.pdf-header-label {
+  gap: var(--space-1);
+  cursor: pointer;
+}
+
+.pdf-header-row {
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.pdf-empty-state-box {
+  min-height: 20rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.pdf-actions-wrap {
+  gap: var(--space-2);
+}
+
+.pdf-modal-actions {
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.pdf-page-thumb-box {
+  width: 100%;
+  max-width: 8rem;
+}
+
+.pdf-row-gap-2 {
+  gap: var(--space-2);
+}
+
+.pdf-margin-top-3 {
+  margin-top: var(--space-3);
+}
+
+.pdf-margin-top-2 {
+  margin-top: var(--space-2);
+}
+
+.pdf-card-flex {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.pdf-split-flex {
+  min-height: 0;
+  flex-shrink: 0;
+}
+
 .pdf-workspace {
   display: flex;
   flex-direction: column;
@@ -1371,6 +1635,79 @@ html.is-resizing .model3d-canvas-container canvas,
 }
 
 /* Resume Studio Workbench & Live Preview */
+.resume-btn-row {
+  margin-bottom: var(--space-2);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.resume-row-gap-2 {
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.resume-flex-col-gap-3 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.resume-input-width-11 {
+  width: 11rem;
+}
+
+.resume-input-width-10 {
+  width: 10rem;
+}
+
+.resume-input-width-12 {
+  width: 12rem;
+}
+
+.resume-card-title-mb {
+  margin-bottom: var(--space-2);
+}
+
+.resume-padding-2-3 {
+  padding: var(--space-2) var(--space-3);
+}
+
+.resume-section-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.resume-flex-auto {
+  flex: 1 1 auto;
+}
+
+.resume-item-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+  background: var(--bg-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.resume-bullet-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.resume-bullet-row {
+  gap: var(--space-1);
+}
+
+.resume-self-start {
+  align-self: flex-start;
+}
+
 .split.resizable.resume-workbench-split,
 .resume-workbench-split {
   display: grid;

@@ -321,6 +321,9 @@ window.FOSS = window.FOSS || {};
 
     window.FOSS.api("ocr_languages", {}).then(function (res) {
       if (res && res.catalog) fillLanguages(langSelect, res.catalog);
+      if (res && res.installed && res.installed.length === 0) {
+        showError("Tesseract OCR is not installed on this system. Please install Tesseract to enable text recognition.");
+      }
     });
 
     var dpiSelect = window.FOSS.dom.el("select", {
@@ -741,6 +744,9 @@ window.FOSS = window.FOSS || {};
 
     window.FOSS.api("ocr_languages", {}).then(function (res) {
       if (res && res.catalog) fillLanguages(langSelect, res.catalog);
+      if (res && res.installed && res.installed.length === 0) {
+        showError("Tesseract OCR is not installed on this system. Please install Tesseract to enable text recognition.");
+      }
     });
 
     var dpiSelect = window.FOSS.dom.el("select", {
@@ -875,11 +881,11 @@ window.FOSS = window.FOSS || {};
       var table = window.FOSS.dom.el("table", { className: "table" }, [
         window.FOSS.dom.el("thead", {}, [
           window.FOSS.dom.el("tr", {}, [
-            window.FOSS.dom.el("th", { text: "#", style: "width: 2.5rem;" }),
+            window.FOSS.dom.el("th", { className: "ocr-col-num", text: "#" }),
             window.FOSS.dom.el("th", { text: "File / Folder" }),
             window.FOSS.dom.el("th", { text: "Location" }),
             window.FOSS.dom.el("th", { text: "Status" }),
-            window.FOSS.dom.el("th", { text: "", style: "width: 3.5rem;" })
+            window.FOSS.dom.el("th", { className: "ocr-col-action", text: "" })
           ])
         ]),
         window.FOSS.dom.el("tbody", {}, rows)
