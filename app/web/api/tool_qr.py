@@ -275,7 +275,7 @@ class QrApiMixin:
         final_preset = matched_preset or preset_name
 
         count = int(params.get("count", 30))
-        payload = str(params.get("payload", "https://github.com/fosseverything"))
+        payload = str(params.get("payload", "https://github.com/DontKwo/FOSSEverything"))
         bc_type = params.get("barcode_type")
         if bc_type:
             img = generate_barcode(payload, barcode_type=str(bc_type))

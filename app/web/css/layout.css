@@ -6,7 +6,8 @@ body {
   height: 100vh;
   max-height: 100vh;
   max-width: 100vw;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .app {
@@ -163,7 +164,7 @@ body {
   grid-column: 2;
   position: sticky;
   top: 0;
-  height: var(--topbar-h);
+  min-height: var(--topbar-h);
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border);
   display: flex;
@@ -175,7 +176,8 @@ body {
   contain: layout paint;
   flex-shrink: 0;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .breadcrumb {

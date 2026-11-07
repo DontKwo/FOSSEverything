@@ -451,16 +451,20 @@ window.FOSS = window.FOSS || {};
       "data-testid": "data-hdf5-details"
     }, [window.FOSS.dom.el("div", { className: "text-sm text-muted text-center", text: "Select a group or dataset to see its details." })]);
 
-    var grid = window.FOSS.dom.el("div", { className: "wb-editor-grid" }, [
-      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [treeFrame, resultsFrame]),
-      window.FOSS.dom.el("div", { className: "wb-editor-col" }, [detailsHost])
+    var grid = window.FOSS.dom.el("div", { className: "split resizable", style: "--split-left: 14rem; min-height: 24rem;" }, [
+      window.FOSS.dom.el("div", { className: "flex-col", style: "width: 100%; min-width: 0;" }, [
+        window.FOSS.dom.el("div", { className: "row items-center flex-wrap gap-2 mb-2" }, [searchInput]),
+        treeFrame,
+        resultsFrame
+      ]),
+      window.FOSS.components.splitDivider({ side: "left" }),
+      window.FOSS.dom.el("div", { className: "flex-col grow", style: "width: 100%; min-width: 0;" }, [detailsHost])
     ]);
 
     var card = window.FOSS.dom.el("div", {
       className: "card flex-col gap-3 wb-card-fill hidden",
       "data-testid": "data-hdf5-explorer"
     }, [
-      window.FOSS.dom.el("div", { className: "row items-center flex-wrap gap-2 wb-field-full" }, [searchInput]),
       summaryEl,
       grid
     ]);
@@ -876,13 +880,113 @@ window.FOSS = window.FOSS || {};
         controls.appendChild(pageButton("data-hdf5-cols-prev", "Prev Cols", "cols", -1));
         controls.appendChild(pageButton("data-hdf5-cols-next", "Next Cols", "cols", 1));
       }
+      var plotterCanvas = window.FOSS.dom.el("canvas", {
+        style: "width: 100%; height: 160px; background: var(--bg-sunken); border-radius: var(--radius-sm); border: 1px solid var(--border);",
+        "data-testid": "data-hdf5-plotter"
+      });
+
+      var plotModeSelect = window.FOSS.dom.el("select", { className: "select select-sm text-xs", "aria-label": "Plot Mode" }, [
+        window.FOSS.dom.el("option", { value: "none", text: "Hide Plotter" }),
+        window.FOSS.dom.el("option", { value: "col_vs_col", text: "Plot Column 1 vs Column 2" }),
+        window.FOSS.dom.el("option", { value: "row_vs_row", text: "Plot Row 1 vs Row 2" }),
+        window.FOSS.dom.el("option", { value: "series", text: "Plot All Columns as Series" })
+      ]);
+
+      var plotterWrap = window.FOSS.dom.el("div", { className: "flex-col gap-1 hidden mt-2" }, [
+        plotterCanvas
+      ]);
+
+      plotModeSelect.addEventListener("change", function () {
+        var isHidden = plotModeSelect.value === "none";
+        plotterWrap.classList.toggle("hidden", isHidden);
+        if (!isHidden && last) {
+          drawPlot(last, plotModeSelect.value);
+        }
+      });
+
+      function drawPlot(res, mode) {
+        if (!res || !res.rows || !res.rows.length) return;
+        var ctx = plotterCanvas.getContext("2d");
+        var w = plotterCanvas.width = plotterCanvas.clientWidth || 400;
+        var h = plotterCanvas.height = plotterCanvas.clientHeight || 160;
+        ctx.clearRect(0, 0, w, h);
+
+        var pad = 24;
+        ctx.strokeStyle = "#475569";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(pad, pad);
+        ctx.lineTo(pad, h - pad);
+        ctx.lineTo(w - pad, h - pad);
+        ctx.stroke();
+
+        if (mode === "col_vs_col" && res.rows.length > 0 && res.rows[0].length >= 2) {
+          var pts = [];
+          var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+          res.rows.forEach(function (r) {
+            var x = parseFloat(r[0]);
+            var y = parseFloat(r[1]);
+            if (!isNaN(x) && !isNaN(y)) {
+              pts.push({ x: x, y: y });
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+            }
+          });
+          if (pts.length > 1 && maxX > minX && maxY > minY) {
+            ctx.strokeStyle = "#38bdf8";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            pts.forEach(function (p, idx) {
+              var px = pad + ((p.x - minX) / (maxX - minX)) * (w - 2 * pad);
+              var py = (h - pad) - ((p.y - minY) / (maxY - minY)) * (h - 2 * pad);
+              if (idx === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            });
+            ctx.stroke();
+          }
+        } else {
+          var rowsToPlot = res.rows.slice(0, 5);
+          var colors = ["#38bdf8", "#34d399", "#fbbf24", "#f87171", "#a78bfa"];
+          rowsToPlot.forEach(function (r, rIdx) {
+            var pts = [];
+            var minY = Infinity, maxY = -Infinity;
+            r.forEach(function (v) {
+              var y = parseFloat(v);
+              if (!isNaN(y)) {
+                pts.push(y);
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+              }
+            });
+            if (pts.length > 1) {
+              var span = (maxY > minY) ? (maxY - minY) : 1;
+              ctx.strokeStyle = colors[rIdx % colors.length];
+              ctx.lineWidth = 1.5;
+              ctx.beginPath();
+              pts.forEach(function (yVal, idx) {
+                var px = pad + (idx / (pts.length - 1)) * (w - 2 * pad);
+                var py = (h - pad) - ((yVal - minY) / span) * (h - 2 * pad);
+                if (idx === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+              });
+              ctx.stroke();
+            }
+          });
+        }
+      }
+
       controls.appendChild(exportBtn);
+      controls.appendChild(window.FOSS.dom.el("span", { className: "text-xs ml-2 text-muted", text: "Plot:" }));
+      controls.appendChild(plotModeSelect);
 
       var wrap = window.FOSS.dom.el("div", { className: "flex-col gap-2 wb-field-full", "data-testid": "data-hdf5-preview" }, [
         sectionTitle("Data preview"),
         controls,
         infoEl,
         statsEl,
+        plotterWrap,
         tableHost
       ]);
       load(true);
@@ -1647,10 +1751,9 @@ window.FOSS = window.FOSS || {};
     ],
     tabs: [
       { id: "editor", label: "Format & Convert", aliases: ["main", "format"], render: renderEditorTab },
-      { id: "structure", label: "Tree & HDF5", render: renderStructureTab },
+      { id: "structure", label: "HDF5", aliases: ["tree", "hdf5"], render: renderStructureTab },
       { id: "tables", label: "Tables", render: renderTablesTab },
-      { id: "query", label: "JSONPath & Schema", render: renderQueryTab },
-      { id: "utilities", label: "Utilities", aliases: ["units", "calendar"], render: renderUtilitiesTab }
+      { id: "query", label: "JSONPath & Schema", render: renderQueryTab }
     ]
   });
 })();

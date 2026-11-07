@@ -415,25 +415,74 @@ window.FOSS = window.FOSS || {};
   function renderTrim(panel) {
     var D = window.FOSS.dom;
     buildTab(panel, "Ready to trim media clips.", function (ui) {
+      var fpsVal = (state.info && state.info.fps) ? parseFloat(state.info.fps) : 30.0;
+      if (isNaN(fpsVal) || fpsVal <= 0) fpsVal = 30.0;
+
       var startInput = numberInput("media-trim-start", "Trim Start Time (seconds)", "0.0", { step: "0.1", min: "0", "data-truncate-ok": "true" });
       var endInput = numberInput("media-trim-end", "Trim End Time (seconds)", "10.0", { step: "0.1", min: "0", "data-truncate-ok": "true" });
+
+      var startFrameInput = numberInput("media-trim-start-frame", "Start Frame", "0", { step: "1", min: "0" });
+      var endFrameInput = numberInput("media-trim-end-frame", "End Frame", "300", { step: "1", min: "0" });
+
+      var readoutEl = D.el("div", {
+        className: "text-xs font-mono text-muted mb-2 p-2 rounded bg-neutral",
+        text: "Position: 0.00s (Frame 0)"
+      });
+
+      function updateReadout(timeSec) {
+        var curFps = (state.info && state.info.fps) ? parseFloat(state.info.fps) : fpsVal;
+        var f = Math.round(timeSec * curFps);
+        readoutEl.textContent = "Current Position: " + timeSec.toFixed(2) + "s (Frame " + f + ")";
+      }
 
       startInput.addEventListener("input", function () {
         var s = parseFloat(startInput.value);
         if (!isNaN(s) && ui.stage && ui.stage.video) {
           ui.stage.video.currentTime = Math.max(0, s);
+          startFrameInput.value = String(Math.round(s * fpsVal));
+          updateReadout(Math.max(0, s));
         }
       });
       endInput.addEventListener("input", function () {
         var e = parseFloat(endInput.value);
         if (!isNaN(e) && ui.stage && ui.stage.video) {
           ui.stage.video.currentTime = Math.max(0, e);
+          endFrameInput.value = String(Math.round(e * fpsVal));
+          updateReadout(Math.max(0, e));
         }
       });
 
+      startFrameInput.addEventListener("input", function () {
+        var f = parseInt(startFrameInput.value, 10);
+        if (!isNaN(f) && ui.stage && ui.stage.video) {
+          var t = Math.max(0, f / fpsVal);
+          startInput.value = t.toFixed(2);
+          ui.stage.video.currentTime = t;
+          updateReadout(t);
+        }
+      });
+      endFrameInput.addEventListener("input", function () {
+        var f = parseInt(endFrameInput.value, 10);
+        if (!isNaN(f) && ui.stage && ui.stage.video) {
+          var t = Math.max(0, f / fpsVal);
+          endInput.value = t.toFixed(2);
+          ui.stage.video.currentTime = t;
+          updateReadout(t);
+        }
+      });
+
+      if (ui.stage && ui.stage.video) {
+        ui.stage.video.addEventListener("timeupdate", function () {
+          updateReadout(ui.stage.video.currentTime || 0);
+        });
+      }
+
       function syncEndToDuration() {
         var dur = ui.stage.getDuration();
-        if (dur > 0) endInput.value = dur.toFixed(1);
+        if (dur > 0) {
+          endInput.value = dur.toFixed(1);
+          endFrameInput.value = String(Math.round(dur * fpsVal));
+        }
       }
       ui.stage.onLoaded(syncEndToDuration);
       syncEndToDuration();
@@ -442,14 +491,24 @@ window.FOSS = window.FOSS || {};
         className: "btn btn-secondary btn-sm",
         "data-testid": "media-trim-set-start-btn",
         type: "button",
-        onClick: function () { startInput.value = ui.stage.getTime().toFixed(2); }
+        onClick: function () {
+          var curT = ui.stage.getTime();
+          startInput.value = curT.toFixed(2);
+          startFrameInput.value = String(Math.round(curT * fpsVal));
+          updateReadout(curT);
+        }
       }, [window.FOSS.icons.el("play", 12), D.el("span", { text: "Set Start" })]);
 
       var setEndBtn = D.el("button", {
         className: "btn btn-secondary btn-sm",
         "data-testid": "media-trim-set-end-btn",
         type: "button",
-        onClick: function () { endInput.value = ui.stage.getTime().toFixed(2); }
+        onClick: function () {
+          var curT = ui.stage.getTime();
+          endInput.value = curT.toFixed(2);
+          endFrameInput.value = String(Math.round(curT * fpsVal));
+          updateReadout(curT);
+        }
       }, [window.FOSS.icons.el("pause", 12), D.el("span", { text: "Set End" })]);
 
       var fastCopySwitch = window.FOSS.components.switch({
@@ -494,9 +553,14 @@ window.FOSS = window.FOSS || {};
 
       return [D.el("div", { className: "card card-compact" }, [
         D.el("div", { className: "card-title text-sm font-semibold", text: "Trim Parameters" }),
-        D.el("div", { className: "grid grid-cols-2 gap-3" }, [
+        readoutEl,
+        D.el("div", { className: "grid grid-cols-2 gap-3 mb-2" }, [
           D.el("div", { className: "flex-col gap-1" }, [window.FOSS.components.field("Start Time (sec)", startInput), setStartBtn]),
           D.el("div", { className: "flex-col gap-1" }, [window.FOSS.components.field("End Time (sec)", endInput), setEndBtn])
+        ]),
+        D.el("div", { className: "grid grid-cols-2 gap-3 mb-2" }, [
+          D.el("div", { className: "flex-col gap-1" }, [window.FOSS.components.field("Start Frame", startFrameInput)]),
+          D.el("div", { className: "flex-col gap-1" }, [window.FOSS.components.field("End Frame", endFrameInput)])
         ]),
         fastCopySwitch.el,
         D.el("div", { className: "row gap-2 flex-wrap" }, [runBtn, runBtnAlias])

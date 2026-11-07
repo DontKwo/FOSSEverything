@@ -137,6 +137,131 @@ window.FOSS = window.FOSS || {};
     });
   }
 
+  function getToolbarOrder(toolbarId, defaultKeys) {
+    var key = "toolbar_order." + toolbarId;
+    var savedOrder = window.FOSS.store.get(key, null);
+    if (Array.isArray(savedOrder) && savedOrder.length > 0) return savedOrder;
+    return defaultKeys || [];
+  }
+
+  function setToolbarOrder(toolbarId, keys) {
+    var key = "toolbar_order." + toolbarId;
+    window.FOSS.store.set(key, keys);
+    window.dispatchEvent(new CustomEvent("foss:toolbar-order-changed", {
+      detail: { toolbarId: toolbarId, order: keys }
+    }));
+  }
+
+  function renderCustomizableToolbar(opts) {
+    opts = opts || {};
+    var toolbarId = opts.id || "toolbar_" + Date.now();
+    var items = opts.items || [];
+    var className = opts.className || "row items-center gap-2 flex-wrap";
+    var defaultKeys = items.map(function (it) { return it.id; });
+
+    var container = window.FOSS.dom.el("div", {
+      className: className,
+      "data-testid": opts.testid || ("toolbar-" + toolbarId)
+    });
+
+    function rebuild() {
+      container.innerHTML = "";
+      var order = getToolbarOrder(toolbarId, defaultKeys);
+      var itemMap = {};
+      items.forEach(function (it) { itemMap[it.id] = it; });
+
+      order.forEach(function (k) {
+        if (itemMap[k] && itemMap[k].el) {
+          container.appendChild(itemMap[k].el);
+        }
+      });
+
+      items.forEach(function (it) {
+        if (order.indexOf(it.id) === -1 && it.el) {
+          container.appendChild(it.el);
+        }
+      });
+
+      var editBtn = window.FOSS.dom.el("button", {
+        className: "btn btn-ghost btn-sm btn-icon",
+        title: "Customize toolbar order",
+        "aria-label": "Customize toolbar order",
+        onClick: function () {
+          openToolbarCustomizer(toolbarId, items, rebuild);
+        }
+      }, [window.FOSS.icons.el("settings", 12)]);
+      container.appendChild(editBtn);
+    }
+
+    rebuild();
+    return { el: container, refresh: rebuild };
+  }
+
+  function openToolbarCustomizer(toolbarId, items, onSave) {
+    var defaultKeys = items.map(function (it) { return it.id; });
+    var currentOrder = getToolbarOrder(toolbarId, defaultKeys).slice();
+
+    var listEl = window.FOSS.dom.el("div", { className: "stack-sm" });
+
+    function renderList() {
+      listEl.innerHTML = "";
+      currentOrder.forEach(function (k, idx) {
+        var it = items.find(function (i) { return i.id === k; });
+        var label = (it && it.label) || k;
+
+        var upBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          disabled: idx === 0,
+          text: "\u25b2",
+          onClick: function () {
+            if (idx > 0) {
+              var tmp = currentOrder[idx - 1];
+              currentOrder[idx - 1] = currentOrder[idx];
+              currentOrder[idx] = tmp;
+              renderList();
+            }
+          }
+        });
+
+        var downBtn = window.FOSS.dom.el("button", {
+          className: "btn btn-ghost btn-sm",
+          disabled: idx === currentOrder.length - 1,
+          text: "\u25bc",
+          onClick: function () {
+            if (idx < currentOrder.length - 1) {
+              var tmp = currentOrder[idx + 1];
+              currentOrder[idx + 1] = currentOrder[idx];
+              currentOrder[idx] = tmp;
+              renderList();
+            }
+          }
+        });
+
+        var row = window.FOSS.dom.el("div", {
+          className: "row-between p-2 rounded surface-hover"
+        }, [
+          window.FOSS.dom.el("span", { className: "text-sm font-semibold", text: label }),
+          window.FOSS.dom.el("div", { className: "row gap-1" }, [upBtn, downBtn])
+        ]);
+        listEl.appendChild(row);
+      });
+    }
+
+    renderList();
+
+    window.FOSS.dialogs.custom({
+      title: "Customize Toolbar Order",
+      testid: "toolbar-customizer-modal",
+      confirmText: "Save Order",
+      content: listEl,
+      onConfirm: function () {
+        setToolbarOrder(toolbarId, currentOrder);
+        if (onSave) onSave();
+        window.FOSS.toast.show("Toolbar order updated", "success");
+      }
+    });
+  }
+
   window.FOSS.toolDefaults = {
     define: define,
     getFields: getFields,
@@ -144,6 +269,9 @@ window.FOSS = window.FOSS || {};
     get: get,
     save: save,
     buildForm: buildForm,
-    openEditor: openEditor
+    openEditor: openEditor,
+    getToolbarOrder: getToolbarOrder,
+    setToolbarOrder: setToolbarOrder,
+    renderCustomizableToolbar: renderCustomizableToolbar
   };
 })();

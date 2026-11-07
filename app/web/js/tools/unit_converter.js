@@ -647,6 +647,15 @@ window.FOSS = window.FOSS || {};
       title: "Target Unit (Optional)"
     });
 
+    var viewUnitsBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
+      "data-testid": "unit_converter-view-units-btn",
+      type: "button",
+      onClick: function () {
+        openUnitsDictionaryModal();
+      }
+    }, [window.FOSS.icons.el("book-open", 14), window.FOSS.dom.el("span", { text: "View Valid Units" })]);
+
     var evaluateBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
       "data-testid": "unit_converter-expr-btn",
@@ -686,6 +695,62 @@ window.FOSS = window.FOSS || {};
       ]);
     }));
 
+    function openUnitsDictionaryModal() {
+      fetchCatalog(function (catalog) {
+        var modalContent = window.FOSS.dom.el("div", { className: "stack-sm", style: "max-height: 60vh; overflow-y: auto;" });
+        var filterBox = window.FOSS.dom.el("input", {
+          type: "search",
+          className: "input input-sm mb-2",
+          placeholder: "Search units (e.g. BTU, watt, meter)..."
+        });
+
+        var listContainer = window.FOSS.dom.el("div", { className: "stack-sm" });
+
+        function renderFilteredUnits() {
+          listContainer.innerHTML = "";
+          var q = filterBox.value.toLowerCase().trim();
+          (catalog.categories || []).forEach(function (cat) {
+            var matching = (cat.units || []).filter(function (u) {
+              if (!q) return true;
+              return u.id.toLowerCase().indexOf(q) !== -1 ||
+                (u.label && u.label.toLowerCase().indexOf(q) !== -1) ||
+                (u.symbol && u.symbol.toLowerCase().indexOf(q) !== -1);
+            });
+            if (matching.length > 0) {
+              var catHead = window.FOSS.dom.el("div", { className: "text-xs font-bold text-muted uppercase mt-2", text: cat.name });
+              listContainer.appendChild(catHead);
+              matching.forEach(function (u) {
+                var row = window.FOSS.dom.el("div", {
+                  className: "row-between p-2 rounded surface-hover cursor-pointer",
+                  title: "Click to append " + u.id,
+                  onClick: function () {
+                    targetUnitInput.value = u.id;
+                  }
+                }, [
+                  window.FOSS.dom.el("span", { className: "font-mono font-bold text-sm", text: u.id + (u.symbol && u.symbol !== u.id ? " (" + u.symbol + ")" : "") }),
+                  window.FOSS.dom.el("span", { className: "text-xs text-muted", text: u.label || "" })
+                ]);
+                listContainer.appendChild(row);
+              });
+            }
+          });
+        }
+
+        filterBox.addEventListener("input", renderFilteredUnits);
+        renderFilteredUnits();
+
+        modalContent.appendChild(filterBox);
+        modalContent.appendChild(listContainer);
+
+        window.FOSS.dialogs.custom({
+          title: "Valid Measurement Units Dictionary",
+          testid: "unit-dictionary-modal",
+          confirmText: "Close",
+          content: modalContent
+        });
+      });
+    }
+
     var leftCard = window.FOSS.dom.el("div", {
       className: "card card-compact flex-col gap-3",
       style: "min-width: 0; max-width: 100%; box-sizing: border-box;"
@@ -693,7 +758,7 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "font-semibold text-sm", text: "Expression Input" }),
       window.FOSS.components.field("Quantity Formula", exprInput),
       window.FOSS.components.field("Target Unit (Optional)", targetUnitInput),
-      evaluateBtn,
+      window.FOSS.dom.el("div", { className: "row gap-2" }, [evaluateBtn, viewUnitsBtn]),
       window.FOSS.dom.el("div", { className: "text-xs font-semibold text-muted pt-sm", text: "Engineering & Physics Quick Presets" }),
       examplesContainer
     ]);

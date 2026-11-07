@@ -215,17 +215,18 @@ select {
 /* File Picker */
 .file-picker {
   border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
   background-color: color-mix(in srgb, var(--bg-surface) 60%, transparent);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: var(--space-3);
-  text-align: center;
+  text-align: left;
   cursor: pointer;
   max-width: 100%;
+  min-height: var(--control-h);
   box-sizing: border-box;
   transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
 }
@@ -239,10 +240,11 @@ select {
 .file-picker .stack {
   max-width: 100%;
   min-width: 0;
+  flex: 1 1 0%;
 }
 
 .file-picker .picker-name {
-  font-size: var(--text-md);
+  font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text);
   max-width: 100%;
@@ -828,6 +830,7 @@ table.table tbody tr:hover {
   color: var(--text);
   gap: var(--space-3);
   min-height: var(--control-h);
+  flex-wrap: wrap;
 }
 
 .palette-item:hover,
@@ -839,17 +842,24 @@ table.table tbody tr:hover {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  flex: 1 1 12rem;
+  min-width: 0;
 }
 
 .palette-item-title {
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text);
+  display: block;
+  line-height: 1.3;
 }
 
 .palette-item-desc {
   font-size: var(--text-xs);
   color: var(--text-muted);
+  display: block;
+  line-height: 1.3;
+  word-break: break-word;
 }
 
 /* Kbd */

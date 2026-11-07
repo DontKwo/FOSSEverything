@@ -1402,6 +1402,35 @@ window.FOSS = window.FOSS || {};
     var normY = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Normal Y", title: "Normal Y", value: "0", style: "min-width: 0; width: 100%;" });
     var normZ = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Normal Z", title: "Normal Z", value: "1", style: "min-width: 0; width: 100%;" });
 
+    var angleYaw = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Yaw / Azimuth (deg)", title: "Yaw (deg)", value: "0", min: "-180", max: "180", style: "min-width: 0; width: 100%;" });
+    var anglePitch = window.FOSS.dom.el("input", { type: "number", className: "input", "aria-label": "Pitch / Inclination (deg)", title: "Pitch (deg)", value: "0", min: "-90", max: "90", style: "min-width: 0; width: 100%;" });
+    var modeSelect = window.FOSS.dom.el("select", { className: "select select-sm text-xs", "aria-label": "Plane Orientation Mode" }, [
+      window.FOSS.dom.el("option", { value: "normal", text: "Normal Vectors (X, Y, Z)" }),
+      window.FOSS.dom.el("option", { value: "angles", text: "Euler Angles (Yaw, Pitch)" })
+    ]);
+
+    function normalToAngles(nx, ny, nz) {
+      var len = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1.0;
+      nx /= len; ny /= len; nz /= len;
+      var pitch = Math.asin(Math.max(-1, Math.min(1, ny))) * (180 / Math.PI);
+      var yaw = Math.atan2(nx, nz) * (180 / Math.PI);
+      return { yaw: Math.round(yaw * 10) / 10, pitch: Math.round(pitch * 10) / 10 };
+    }
+
+    function anglesToNormal(yawDeg, pitchDeg) {
+      var yRad = (yawDeg || 0) * (Math.PI / 180);
+      var pRad = (pitchDeg || 0) * (Math.PI / 180);
+      var cosP = Math.cos(pRad);
+      var sinP = Math.sin(pRad);
+      var sinY = Math.sin(yRad);
+      var cosY = Math.cos(yRad);
+      return [
+        Math.round(cosP * sinY * 1000) / 1000,
+        Math.round(sinP * 1000) / 1000,
+        Math.round(cosP * cosY * 1000) / 1000
+      ];
+    }
+
     function syncInputsWithCurrentPlane() {
       var p = cuttingPlanes[selectedPlaneIdx] || { origin: [0, 0, 0], normal: [0, 0, 1] };
       origX.value = String(p.origin[0]);
@@ -1410,25 +1439,43 @@ window.FOSS = window.FOSS || {};
       normX.value = String(p.normal[0]);
       normY.value = String(p.normal[1]);
       normZ.value = String(p.normal[2]);
+
+      var ang = normalToAngles(p.normal[0], p.normal[1], p.normal[2]);
+      angleYaw.value = String(ang.yaw);
+      anglePitch.value = String(ang.pitch);
     }
 
-    function updateCurrentPlane() {
+    function updateCurrentPlane(fromAngle) {
       if (!cuttingPlanes[selectedPlaneIdx]) return;
       cuttingPlanes[selectedPlaneIdx].origin = [
         parseFloat(origX.value || "0"),
         parseFloat(origY.value || "0"),
         parseFloat(origZ.value || "0")
       ];
-      cuttingPlanes[selectedPlaneIdx].normal = [
-        parseFloat(normX.value || "0"),
-        parseFloat(normY.value || "0"),
-        parseFloat(normZ.value || "1")
-      ];
+      if (fromAngle) {
+        var norm = anglesToNormal(parseFloat(angleYaw.value || "0"), parseFloat(anglePitch.value || "0"));
+        normX.value = String(norm[0]);
+        normY.value = String(norm[1]);
+        normZ.value = String(norm[2]);
+        cuttingPlanes[selectedPlaneIdx].normal = norm;
+      } else {
+        cuttingPlanes[selectedPlaneIdx].normal = [
+          parseFloat(normX.value || "0"),
+          parseFloat(normY.value || "0"),
+          parseFloat(normZ.value || "1")
+        ];
+        var ang = normalToAngles(cuttingPlanes[selectedPlaneIdx].normal[0], cuttingPlanes[selectedPlaneIdx].normal[1], cuttingPlanes[selectedPlaneIdx].normal[2]);
+        angleYaw.value = String(ang.yaw);
+        anglePitch.value = String(ang.pitch);
+      }
       viewport.render();
     }
 
     [origX, origY, origZ, normX, normY, normZ].forEach(function (inp) {
-      inp.addEventListener("input", updateCurrentPlane);
+      inp.addEventListener("input", function () { updateCurrentPlane(false); });
+    });
+    [angleYaw, anglePitch].forEach(function (inp) {
+      inp.addEventListener("input", function () { updateCurrentPlane(true); });
     });
 
     syncInputsWithCurrentPlane();
@@ -1548,15 +1595,26 @@ window.FOSS = window.FOSS || {};
       window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [origX, origY, origZ])
     ]);
 
+    var normalInputsGrid = window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [normX, normY, normZ]);
+    var angleInputsGrid = window.FOSS.dom.el("div", { className: "grid grid-cols-2 gap-1 hidden" }, [angleYaw, anglePitch]);
+
+    modeSelect.addEventListener("change", function () {
+      var isAngle = modeSelect.value === "angles";
+      normalInputsGrid.classList.toggle("hidden", isAngle);
+      angleInputsGrid.classList.toggle("hidden", !isAngle);
+    });
+
     var normalCard = window.FOSS.dom.el("div", {
       className: "card card-compact",
       "data-testid": "model3d-normal-card"
     }, [
       window.FOSS.dom.el("div", { className: "row justify-between items-center" }, [
-        window.FOSS.dom.el("span", { className: "card-title text-sm font-semibold", text: "Active Plane Normal" }),
+        window.FOSS.dom.el("span", { className: "card-title text-sm font-semibold", text: "Active Plane Orientation" }),
         viewDirBtn
       ]),
-      window.FOSS.dom.el("div", { className: "grid grid-cols-3 gap-1" }, [normX, normY, normZ])
+      window.FOSS.dom.el("div", { className: "mb-1" }, [modeSelect]),
+      normalInputsGrid,
+      angleInputsGrid
     ]);
 
     var defaultCapCut = window.FOSS.toolDefaults.get("model3d", "cap_cut", true) !== false;
