@@ -456,18 +456,24 @@ class BaseApi:
 
     @api_method
     def shell_get_associations(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Query status of file associations for supported extensions.
+        # Query status of file associations for supported extensions with memoized cache.
+        refresh = bool(params.get("refresh", False))
+        cached = getattr(self, "_cached_associations", None)
+        if cached is not None and not refresh:
+            return ok(associations=cached)
         exts = [".pdf", ".png", ".jpg", ".docx", ".mp4", ".mp3", ".zip"]
         results: dict[str, bool] = {}
         for e in exts:
             results[e] = is_default_for_extension(e)
+        self._cached_associations = results
         return ok(associations=results)
 
     @api_method
     def shell_set_associations(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Set file association default handler.
+        # Set file association default handler and invalidate cached associations.
         exts = params.get("extensions", [])
         set_default_for_extensions(exts)
+        self._cached_associations = None
         return ok()
 
     @api_method
