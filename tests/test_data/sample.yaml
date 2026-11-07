@@ -1,0 +1,20 @@
+mission: Apollo
+active: true
+count: 42
+launch:
+  site: LC-39A
+  window_utc: '2024-01-15T12:00:00Z'
+  azimuth_deg: 72.5
+stages:
+- name: S-IC
+  engines: 5
+  fuel: RP-1
+- name: S-II
+  engines: 5
+  fuel: LH2
+limits:
+  max_q_pa: 33000
+  max_accel_g: 4.0
+tags:
+- test
+- sample

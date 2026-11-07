@@ -1,0 +1,98 @@
+// DOM helper utilities and element creation functions.
+window.FOSS = window.FOSS || {};
+
+(function () {
+  function el(tag, attrs, children) {
+    var element = document.createElement(tag);
+    if (attrs) {
+      for (var k in attrs) {
+        if (Object.prototype.hasOwnProperty.call(attrs, k)) {
+          var v = attrs[k];
+          if (k === "className") {
+            element.className = v;
+          } else if (k === "htmlFor") {
+            element.setAttribute("for", String(v));
+          } else if (k === "style") {
+            if (typeof v === "string") {
+              var styleRules = v.split(";");
+              for (var ri = 0; ri < styleRules.length; ri++) {
+                var rule = styleRules[ri].trim();
+                if (!rule) continue;
+                var colon = rule.indexOf(":");
+                if (colon > 0) {
+                  element.style.setProperty(rule.substring(0, colon).trim(), rule.substring(colon + 1).trim());
+                }
+              }
+            } else if (typeof v === "object" && v !== null) {
+              for (var sk in v) {
+                if (Object.prototype.hasOwnProperty.call(v, sk)) {
+                  var cssProp = sk.indexOf("-") >= 0 ? sk : sk.replace(/([A-Z])/g, "-$1").toLowerCase();
+                  element.style.setProperty(cssProp, String(v[sk]));
+                }
+              }
+            }
+          } else if (k === "text") {
+            element.textContent = v;
+          } else if (k === "html") {
+            element.innerHTML = v;
+          } else if (k.indexOf("on") === 0 && typeof v === "function") {
+            element.addEventListener(k.substring(2).toLowerCase(), v);
+          } else if (v !== null && v !== undefined && v !== false) {
+            element.setAttribute(k, v === true ? "" : v);
+          }
+        }
+      }
+    }
+    if (children) {
+      if (!Array.isArray(children)) children = [children];
+      for (var i = 0; i < children.length; i++) {
+        var child = children[i];
+        if (!child) continue;
+        if (typeof child === "string" || typeof child === "number") {
+          element.appendChild(document.createTextNode(String(child)));
+        } else if (child.nodeType) {
+          element.appendChild(child);
+        } else if (child.el && child.el.nodeType) {
+          element.appendChild(child.el);
+        }
+      }
+    }
+    return element;
+  }
+
+  function append(parent, child) {
+    if (!parent || !child) return;
+    var pNode = parent.nodeType ? parent : (parent.el && parent.el.nodeType ? parent.el : null);
+    var node = child.nodeType ? child : (child.el && child.el.nodeType ? child.el : null);
+    if (pNode && node) pNode.appendChild(node);
+  }
+
+  function qs(selector, parent) {
+    return (parent || document).querySelector(selector);
+  }
+
+  function qsa(selector, parent) {
+    return Array.prototype.slice.call((parent || document).querySelectorAll(selector));
+  }
+
+  function on(target, event, handler) {
+    if (target) {
+      target.addEventListener(event, handler);
+    }
+  }
+
+  // Prevent mouse wheel from inadvertently altering number inputs
+  document.addEventListener("wheel", function (e) {
+    if (e.target === document.activeElement && document.activeElement.type === "number" && !e.ctrlKey) {
+      document.activeElement.blur();
+    }
+  }, { passive: true });
+
+  window.FOSS.dom = {
+    el: el,
+    qs: qs,
+    qsa: qsa,
+    on: on,
+    append: append
+  };
+})();

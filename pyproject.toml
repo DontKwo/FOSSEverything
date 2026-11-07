@@ -1,0 +1,82 @@
+[project]
+name = "FOSSEverything"
+version = "0.1.0"
+description = "Free, local-first, offline file suite for documents, media, data, and everyday work."
+license = "AGPL-3.0-or-later"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "PyMuPDF>=1.23",
+    "pikepdf>=10.0",
+    "Pillow>=10.0",
+    "rembg[cpu]>=2.0.79",
+    "PyYAML>=6.0",
+    "pyspellchecker>=0.8",
+    "qrcode[pil]>=7.4",
+    "mutagen>=1.48.1",
+    "tinytag>=2.3.1",
+    "imageio-ffmpeg>=0.6.0",
+    "opencv-python-headless>=5.0.0.93",
+    "spotipy>=2.24.0",
+    "trimesh>=4.4",
+    "shapely>=2.0",
+    "mapbox-earcut>=1.0",
+    "python-barcode>=0.16.1",
+    "cryptography>=50.0.1",
+    "pillow-heif>=1.6.0",
+    "rawpy>=0.27.1",
+    "psd-tools>=1.19.0",
+    "cairosvg>=2.9.0",
+    "pdf2docx>=0.5.13",
+    "fonttools>=4.64.0",
+    "brotli>=1.2.0",
+    "language-tool-python>=3.4.0",
+    "sqlparse>=0.6.0",
+    "jsbeautifier>=2.0.3",
+    "cssbeautifier>=2.0.3",
+    "google-api-python-client>=2.200.0",
+    "google-auth-oauthlib>=1.4.1",
+    "google-auth-httplib2>=0.4.2",
+    "psutil>=7.2.2",
+    "matplotlib>=3.11.1",
+    "pywebview>=6.2.1",
+    "pint>=0.24",
+    "markdown-it-py>=3.0",
+    "rich>=13.0",
+    "python-pptx>=1.0.2",
+    "openpyxl>=3.1.5",
+    "python-docx>=1.2.0",
+    "h5py>=3.10",
+]
+
+[project.optional-dependencies]
+cad = ["cadquery-ocp>=7.9.3.1.1"]
+
+[project.scripts]
+fosseverything = "main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[dependency-groups]
+dev = [
+    "playwright>=1.64.1",
+    "pyinstaller>=6.22.2",
+    "pytest>=9.1.1",
+    "pytest-timeout>=2.4.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-m 'not ui_full and not native and not matrix and not perf and not ui_matrix'"
+markers = [
+    "ui_full: full viewport matrix (slow)",
+    "native: boots the real pywebview window",
+    "matrix: automated large-scale API matrix tests",
+    "perf: performance budget tests",
+    "ui_matrix: automated large-scale UI test matrix",
+]
+timeout = 300
+

@@ -1,0 +1,1 @@
+"""FOSSEverything application package."""

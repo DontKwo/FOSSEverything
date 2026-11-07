@@ -1,0 +1,1170 @@
+{
+  "shared_app_shell_home_and_search-01": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-02": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-03": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-04": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-05": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-apps-grid"
+  },
+  "shared_app_shell_home_and_search-06": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-recents-section"
+  },
+  "shared_app_shell_home_and_search-07": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-view"
+  },
+  "shared_app_shell_home_and_search-08": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-view"
+  },
+  "shared_app_shell_home_and_search-09": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-theme-select"
+  },
+  "shared_app_shell_home_and_search-10": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-search-input"
+  },
+  "shared_app_shell_home_and_search-11": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-view"
+  },
+  "shared_app_shell_home_and_search-12": {
+    "view": "settings",
+    "tab": "keybindings",
+    "testid": "settings-nav-keybindings"
+  },
+  "shared_app_shell_home_and_search-13": {
+    "view": "home",
+    "tab": "main",
+    "testid": "home-apps-grid"
+  },
+  "shared_app_shell_home_and_search-14": {
+    "delegated": "artcraft",
+    "feature": "keyboard_annotation_editing"
+  },
+  "pdf_studio-01": {
+    "view": "pdf",
+    "tab": "organize",
+    "testid": "pdf-page-preview"
+  },
+  "pdf_studio-02": {
+    "delegated": "artcraft",
+    "feature": "annotations"
+  },
+  "pdf_studio-03": {
+    "delegated": "artcraft",
+    "feature": "annotation_manipulation"
+  },
+  "pdf_studio-04": {
+    "view": "pdf",
+    "tab": "organize",
+    "testid": "pdf-rotate-cw-btn"
+  },
+  "pdf_studio-05": {
+    "view": "pdf",
+    "tab": "security",
+    "testid": "pdf-protect-btn"
+  },
+  "pdf_studio-06": {
+    "view": "pdf",
+    "tab": "merge",
+    "testid": "pdf-merge-btn"
+  },
+  "pdf_studio-07": {
+    "view": "pdf",
+    "tab": "split",
+    "testid": "pdf-split-btn"
+  },
+  "pdf_studio-08": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-compress-btn"
+  },
+  "pdf_studio-09": {
+    "view": "pdf",
+    "tab": "split",
+    "testid": "pdf-extract-single-btn"
+  },
+  "pdf_studio-10": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-watermark-btn"
+  },
+  "pdf_studio-11": {
+    "delegated": "artcraft",
+    "feature": "image_watermark_signatures"
+  },
+  "pdf_studio-12": {
+    "view": "pdf",
+    "tab": "organize",
+    "testid": "pdf-add-numbers-btn"
+  },
+  "pdf_studio-13": {
+    "delegated": "artcraft",
+    "feature": "bookmarks_attachments"
+  },
+  "pdf_studio-14": {
+    "delegated": "artcraft",
+    "feature": "acroform_fields"
+  },
+  "pdf_studio-15": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-extract-text-btn"
+  },
+  "pdf_studio-16": {
+    "delegated": "artcraft",
+    "feature": "pdf_qa_repair"
+  },
+  "pdf_studio-17": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-use-ocr"
+  },
+  "pdf_studio-18": {
+    "view": "converter",
+    "tab": "convert",
+    "testid": "converter-convert-btn"
+  },
+  "pdf_studio-19": {
+    "view": "converter",
+    "tab": "convert",
+    "testid": "converter-card"
+  },
+  "image_studio-01": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "tool-page-images"
+  },
+  "image_studio-02": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-draw-tools"
+  },
+  "image_studio-03": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-auto-enhance-btn"
+  },
+  "image_studio-04": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-adjust-group"
+  },
+  "image_studio-05": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-crop-group"
+  },
+  "image_studio-06": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-rotate-group"
+  },
+  "image_studio-07": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-redact-group"
+  },
+  "image_studio-08": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-border-group"
+  },
+  "image_studio-09": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-resize-group"
+  },
+  "image_studio-10": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-copy-btn"
+  },
+  "image_studio-11": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-layers-group"
+  },
+  "image_studio-12": {
+    "view": "images",
+    "tab": "compress",
+    "testid": "image-compress-group"
+  },
+  "image_studio-13": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-batch-group"
+  },
+  "image_studio-14": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-export-format"
+  },
+  "image_studio-15": {
+    "view": "images",
+    "tab": "background",
+    "testid": "image-bg-model-select"
+  },
+  "image_studio-16": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-screenshot-group"
+  },
+  "image_studio-17": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-perspective-group"
+  },
+  "image_studio-18": {
+    "view": "images",
+    "tab": "background",
+    "testid": "image-batch-bg-btn"
+  },
+  "image_studio-19": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-curves-group"
+  },
+  "image_studio-20": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-annotation-presets"
+  },
+  "image_studio-21": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-layer-mask-group"
+  },
+  "image_studio-22": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-ocr-btn"
+  },
+  "image_studio-23": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-raw-format-info"
+  },
+  "image_studio-24": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-gif-group"
+  },
+  "image_studio-25": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-ascii-btn"
+  },
+  "image_studio-26": {
+    "view": "images",
+    "tab": "convert",
+    "testid": "image-gif-video-btn"
+  },
+  "file_converter-01": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "tool-page-converter"
+  },
+  "file_converter-02": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-output-filename"
+  },
+  "file_converter-03": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-convert-btn"
+  },
+  "file_converter-04": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-target-select"
+  },
+  "file_converter-05": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-source-display"
+  },
+  "file_converter-06": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-summary-text"
+  },
+  "file_converter-07": {
+    "view": "converter",
+    "tab": "queue",
+    "testid": "converter-batch-start-btn"
+  },
+  "file_converter-08": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-media-info"
+  },
+  "file_converter-09": {
+    "view": "archive",
+    "tab": "create",
+    "testid": "archive-create-btn"
+  },
+  "file_converter-10": {
+    "view": "converter",
+    "tab": "main",
+    "testid": "converter-convert-btn"
+  },
+  "file_converter-11": {
+    "view": "converter",
+    "tab": "compress",
+    "testid": "converter-compress-btn"
+  },
+  "file_converter-12": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-raw-badge"
+  },
+  "file_converter-13": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-font-notice"
+  },
+  "file_converter-14": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-ebook-notice"
+  },
+  "file_converter-15": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-export-enex-btn"
+  },
+  "file_converter-16": {
+    "view": "converter",
+    "tab": "single",
+    "testid": "converter-ics-notice"
+  },
+  "metadata_tools-01": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "tool-page-metadata"
+  },
+  "metadata_tools-02": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-inspect-table"
+  },
+  "metadata_tools-03": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-edit-form"
+  },
+  "metadata_tools-04": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-pdf-title-input"
+  },
+  "metadata_tools-05": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-save-btn"
+  },
+  "metadata_tools-06": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-strip-btn"
+  },
+  "metadata_tools-07": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-strip-pdf-btn"
+  },
+  "metadata_tools-08": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-warning-banner"
+  },
+  "metadata_tools-09": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-format-badge"
+  },
+  "metadata_tools-10": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-gps-card"
+  },
+  "metadata_tools-11": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-diff-table"
+  },
+  "metadata_tools-12": {
+    "view": "metadata",
+    "tab": "main",
+    "testid": "metadata-batch-cleanup-btn"
+  },
+  "data_studio-01": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "tool-page-data"
+  },
+  "data_studio-02": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-format"
+  },
+  "data_studio-03": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-minify"
+  },
+  "data_studio-04": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-validate"
+  },
+  "data_studio-05": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-convert-btn"
+  },
+  "data_studio-06": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-open"
+  },
+  "data_studio-07": {
+    "view": "data",
+    "tab": "query",
+    "testid": "data-query-evaluate"
+  },
+  "data_studio-08": {
+    "view": "data",
+    "tab": "query",
+    "testid": "data-query-infer-schema"
+  },
+  "data_studio-09": {
+    "view": "data",
+    "tab": "tables",
+    "testid": "data-tables-parse"
+  },
+  "data_studio-10": {
+    "view": "data",
+    "tab": "query",
+    "testid": "data-query-diff-schema"
+  },
+  "data_studio-11": {
+    "view": "data",
+    "tab": "tables",
+    "testid": "data-tables-csv-to-md"
+  },
+  "data_studio-12": {
+    "view": "data",
+    "tab": "query",
+    "testid": "data-query-validate-schema"
+  },
+  "data_studio-13": {
+    "view": "data",
+    "tab": "tables",
+    "testid": "data-tables-clean"
+  },
+  "data_studio-14": {
+    "view": "data",
+    "tab": "units",
+    "testid": "data-units-convert"
+  },
+  "data_studio-15": {
+    "view": "data",
+    "tab": "units",
+    "testid": "data-units-random-generate"
+  },
+  "data_studio-16": {
+    "view": "data",
+    "tab": "preview",
+    "testid": "data-preview-render"
+  },
+  "data_studio-17": {
+    "view": "data",
+    "tab": "calendar",
+    "testid": "data-calendar-generate"
+  },
+  "data_studio-18": {
+    "view": "data",
+    "tab": "writing",
+    "testid": "data-writing-diff-btn"
+  },
+  "data_studio-19": {
+    "view": "data",
+    "tab": "writing",
+    "testid": "data-writing-grammar-check"
+  },
+  "data_studio-20": {
+    "view": "data",
+    "tab": "writing",
+    "testid": "data-writing-citation-generate"
+  },
+  "data_studio-21": {
+    "view": "data",
+    "tab": "writing",
+    "testid": "data-writing-grammar-advanced"
+  },
+  "data_studio-22": {
+    "view": "data",
+    "tab": "editor",
+    "testid": "data-editor-format-lang"
+  },
+  "data_studio-23": {
+    "view": "data",
+    "tab": "cron",
+    "testid": "data-cron-describe-btn"
+  },
+  "text_tools-01": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-input"
+  },
+  "text_tools-02": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-case-upper"
+  },
+  "text_tools-03": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-reverse-reverse_characters"
+  },
+  "text_tools-04": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-cleanup-collapse_spaces"
+  },
+  "text_tools-05": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-lines-sort_asc"
+  },
+  "text_tools-06": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-convert-text_to_code_points"
+  },
+  "text_tools-07": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-regex-apply"
+  },
+  "text_tools-08": {
+    "view": "text_tools",
+    "tab": "main",
+    "testid": "text_tools-diff-compare"
+  },
+  "encoding_decoding-01": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-editor"
+  },
+  "encoding_decoding-02": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-encode"
+  },
+  "encoding_decoding-03": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-scheme"
+  },
+  "encoding_decoding-04": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-option"
+  },
+  "encoding_decoding-05": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-decode"
+  },
+  "encoding_decoding-06": {
+    "view": "encoding",
+    "tab": "file",
+    "testid": "encoding-file-picker"
+  },
+  "encoding_decoding-07": {
+    "view": "encoding",
+    "tab": "text",
+    "testid": "encoding-text-error"
+  },
+  "batch_file_renamer-01": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "tool-page-renamer"
+  },
+  "batch_file_renamer-02": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-find-input"
+  },
+  "batch_file_renamer-03": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-numbering-start"
+  },
+  "batch_file_renamer-04": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-prefix-input"
+  },
+  "batch_file_renamer-05": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-casing-select"
+  },
+  "batch_file_renamer-06": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-extension-input"
+  },
+  "batch_file_renamer-07": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-preview-table"
+  },
+  "batch_file_renamer-08": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-apply-btn"
+  },
+  "batch_file_renamer-09": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-undo-btn"
+  },
+  "batch_file_renamer-10": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-template-input"
+  },
+  "batch_file_renamer-11": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-consolidate-input"
+  },
+  "batch_file_renamer-12": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-timeline-check"
+  },
+  "batch_file_renamer-13": {
+    "view": "renamer",
+    "tab": "main",
+    "testid": "renamer-rerun-plan-btn"
+  },
+  "archive_packaging-01": {
+    "view": "archive",
+    "tab": "create",
+    "testid": "archive-create-btn"
+  },
+  "archive_packaging-02": {
+    "view": "archive",
+    "tab": "extract",
+    "testid": "archive-extract-btn"
+  },
+  "archive_packaging-03": {
+    "view": "archive",
+    "tab": "backup",
+    "testid": "archive-incremental-backup-btn"
+  },
+  "archive_packaging-04": {
+    "view": "archive",
+    "tab": "inspect",
+    "testid": "archive-member-table"
+  },
+  "archive_packaging-05": {
+    "view": "archive",
+    "tab": "protect",
+    "testid": "archive-protect-btn"
+  },
+  "archive_packaging-06": {
+    "view": "archive",
+    "tab": "protect",
+    "testid": "archive-rotate-key-btn"
+  },
+  "archive_packaging-07": {
+    "view": "archive",
+    "tab": "backup",
+    "testid": "archive-snapshot-btn"
+  },
+  "archive_packaging-08": {
+    "view": "archive",
+    "tab": "create",
+    "testid": "archive-preset-select"
+  },
+  "qr_codes_barcodes-01": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "tool-page-qr"
+  },
+  "qr_codes_barcodes-02": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-payload-type"
+  },
+  "qr_codes_barcodes-03": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-content-details"
+  },
+  "qr_codes_barcodes-04": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-styling-group"
+  },
+  "qr_codes_barcodes-05": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-logo-group"
+  },
+  "qr_codes_barcodes-06": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-export-svg-btn"
+  },
+  "qr_codes_barcodes-07": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-barcode-symbology"
+  },
+  "qr_codes_barcodes-08": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-scan-tab"
+  },
+  "qr_codes_barcodes-09": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-scan-file-picker"
+  },
+  "qr_codes_barcodes-10": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-scan-results"
+  },
+  "qr_codes_barcodes-11": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-scan-action-btn"
+  },
+  "qr_codes_barcodes-12": {
+    "view": "qr",
+    "tab": "scan",
+    "testid": "qr-webcam-scan-btn"
+  },
+  "qr_codes_barcodes-13": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-templates-group"
+  },
+  "qr_codes_barcodes-14": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-barcode-toggle"
+  },
+  "qr_codes_barcodes-15": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-export-ics-btn"
+  },
+  "qr_codes_barcodes-16": {
+    "view": "qr",
+    "tab": "generate",
+    "testid": "qr-export-labels-btn"
+  },
+  "palette_extractor_eyedropper-01": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "tool-page-palette"
+  },
+  "palette_extractor_eyedropper-02": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-file-picker"
+  },
+  "palette_extractor_eyedropper-03": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-preview-canvas"
+  },
+  "palette_extractor_eyedropper-04": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-hud-box"
+  },
+  "palette_extractor_eyedropper-05": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-tab-samples"
+  },
+  "palette_extractor_eyedropper-06": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-num-colors"
+  },
+  "palette_extractor_eyedropper-07": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-swatch-list"
+  },
+  "palette_extractor_eyedropper-08": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-contrast-info"
+  },
+  "palette_extractor_eyedropper-09": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-method-select"
+  },
+  "palette_extractor_eyedropper-10": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-copy-all-btn"
+  },
+  "palette_extractor_eyedropper-11": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-export-strip-btn"
+  },
+  "palette_extractor_eyedropper-12": {
+    "view": "palette",
+    "tab": "main",
+    "testid": "palette-multi-aggregate-btn"
+  },
+  "collage_maker-01": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "tool-page-collage"
+  },
+  "collage_maker-02": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-images-list"
+  },
+  "collage_maker-03": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-columns-select"
+  },
+  "collage_maker-04": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-captions-check"
+  },
+  "collage_maker-05": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-corner-radius"
+  },
+  "collage_maker-06": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-save-btn"
+  },
+  "collage_maker-07": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-preview-btn"
+  },
+  "collage_maker-08": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-preset-select"
+  },
+  "collage_maker-09": {
+    "view": "collage",
+    "tab": "main",
+    "testid": "collage-watermark-input"
+  },
+  "media_studio-01": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "tool-page-media"
+  },
+  "media_studio-02": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "media-trim-btn"
+  },
+  "media_studio-03": {
+    "view": "media",
+    "tab": "convert",
+    "testid": "media-convert-format"
+  },
+  "media_studio-04": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "media-mark-start-btn"
+  },
+  "media_studio-05": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "media-trim-btn"
+  },
+  "media_studio-06": {
+    "view": "media",
+    "tab": "audio",
+    "testid": "media-extract-audio-btn"
+  },
+  "media_studio-07": {
+    "view": "media",
+    "tab": "convert",
+    "testid": "media-convert-btn"
+  },
+  "media_studio-08": {
+    "view": "media",
+    "tab": "compress",
+    "testid": "media-compress-btn"
+  },
+  "media_studio-09": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-mute-btn"
+  },
+  "media_studio-10": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-capture-frame-btn"
+  },
+  "media_studio-11": {
+    "view": "metadata",
+    "tab": "inspect",
+    "testid": "tool-page-metadata"
+  },
+  "media_studio-12": {
+    "view": "converter",
+    "tab": "convert",
+    "testid": "converter-convert-btn"
+  },
+  "media_studio-13": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-gen-subtitles-btn"
+  },
+  "media_studio-14": {
+    "view": "media",
+    "tab": "trim",
+    "testid": "media-video-player"
+  },
+  "media_studio-15": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-transcribe-btn"
+  },
+  "media_studio-16": {
+    "view": "media",
+    "tab": "tools",
+    "testid": "media-gen-subtitles-btn"
+  },
+  "media_studio-17": {
+    "view": "media",
+    "tab": "timeline",
+    "testid": "media-compose-btn"
+  },
+  "ocr_studio_and_text_extraction-01": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "tool-page-ocr"
+  },
+  "ocr_studio_and_text_extraction-02": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-extract-btn"
+  },
+  "ocr_studio_and_text_extraction-03": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-file-picker"
+  },
+  "ocr_studio_and_text_extraction-04": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-language"
+  },
+  "ocr_studio_and_text_extraction-05": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-dpi"
+  },
+  "ocr_studio_and_text_extraction-06": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-preview-img"
+  },
+  "ocr_studio_and_text_extraction-07": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-copy-btn"
+  },
+  "ocr_studio_and_text_extraction-08": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-make-pdf-btn"
+  },
+  "ocr_studio_and_text_extraction-09": {
+    "view": "ocr",
+    "tab": "batch",
+    "testid": "ocr-run-batch-btn"
+  },
+  "ocr_studio_and_text_extraction-10": {
+    "view": "pdf",
+    "tab": "tools",
+    "testid": "pdf-use-ocr"
+  },
+  "ocr_studio_and_text_extraction-11": {
+    "view": "images",
+    "tab": "transform",
+    "testid": "image-ocr-btn"
+  },
+  "ocr_studio_and_text_extraction-12": {
+    "view": "converter",
+    "tab": "convert",
+    "testid": "converter-convert-btn"
+  },
+  "ocr_studio_and_text_extraction-13": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-format"
+  },
+  "ocr_studio_and_text_extraction-14": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-extract-btn"
+  },
+  "ocr_studio_and_text_extraction-15": {
+    "view": "ocr",
+    "tab": "document",
+    "testid": "ocr-language"
+  },
+  "resume_studio-01": {
+    "view": "resume",
+    "tab": "personal",
+    "testid": "tool-page-resume"
+  },
+  "resume_studio-02": {
+    "view": "resume",
+    "tab": "personal",
+    "testid": "resume-offline-badge"
+  },
+  "resume_studio-03": {
+    "view": "resume",
+    "tab": "sections",
+    "testid": "resume-master-mgmt"
+  },
+  "resume_studio-04": {
+    "view": "resume",
+    "tab": "sections",
+    "testid": "resume-bullet-toggle"
+  },
+  "resume_studio-05": {
+    "view": "resume",
+    "tab": "sections",
+    "testid": "resume-section-reorder"
+  },
+  "resume_studio-06": {
+    "view": "resume",
+    "tab": "profiles",
+    "testid": "resume-profile-select"
+  },
+  "resume_studio-07": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-theme-select"
+  },
+  "resume_studio-08": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-export-pdf-btn"
+  },
+  "resume_studio-09": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-export-md-btn"
+  },
+  "resume_studio-10": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-export-docx-btn"
+  },
+  "resume_studio-11": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-copy-txt-btn"
+  },
+  "resume_studio-12": {
+    "view": "resume",
+    "tab": "preview",
+    "testid": "resume-layout-select"
+  },
+  "resume_studio-13": {
+    "view": "resume",
+    "tab": "history",
+    "testid": "resume-history-diff"
+  },
+  "product_and_engineering_guardrails-01": {
+    "view": "settings",
+    "tab": "about",
+    "testid": "settings-nav-about"
+  },
+  "product_and_engineering_guardrails-02": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-open-data-dir-btn"
+  },
+  "product_and_engineering_guardrails-03": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-view"
+  },
+  "product_and_engineering_guardrails-04": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-view"
+  },
+  "product_and_engineering_guardrails-05": {
+    "view": "settings",
+    "tab": "integrations",
+    "testid": "artcraft-tools-list"
+  },
+  "product_and_engineering_guardrails-06": {
+    "view": "settings",
+    "tab": "general",
+    "testid": "settings-view"
+  },
+  "product_and_engineering_guardrails-07": {
+    "view": "settings",
+    "tab": "about",
+    "testid": "settings-nav-about"
+  }
+}

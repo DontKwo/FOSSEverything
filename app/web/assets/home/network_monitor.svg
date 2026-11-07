@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg_net" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#083344"/>
+      <stop offset="50%" stop-color="#164e63"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="accent_net" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg_net)"/>
+  <circle cx="510" cy="90" r="130" fill="#0284c7" opacity="0.15"/>
+  <g transform="translate(230, 75)">
+    <circle cx="90" cy="70" r="65" fill="#0d2838" stroke="url(#accent_net)" stroke-width="3"/>
+    <circle cx="90" cy="70" r="42" fill="none" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.7"/>
+    <circle cx="90" cy="70" r="20" fill="none" stroke="#38bdf8" stroke-width="1.5" opacity="0.5"/>
+    <line x1="90" y1="70" x2="135" y2="40" stroke="#38bdf8" stroke-width="2.5"/>
+    <circle cx="135" cy="40" r="5" fill="#38bdf8"/>
+    <circle cx="60" cy="85" r="4" fill="#4ade80"/>
+    <circle cx="110" cy="100" r="4" fill="#fbbf24"/>
+    <circle cx="90" cy="70" r="4" fill="#f1f5f9"/>
+  </g>
+  <text x="320" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" fill="#f1f5f9" text-anchor="middle" letter-spacing="1">NETWORK MONITOR</text>
+  <text x="320" y="306" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#a3b1c6" text-anchor="middle">PROCESS CONNECTIONS - BANDWIDTH - AUDIT</text>
+</svg>

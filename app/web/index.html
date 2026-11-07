@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FOSSEverything</title>
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/tools.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <!-- Injected by router / shell -->
+    </aside>
+    <header class="topbar">
+      <!-- Injected by shell -->
+    </header>
+    <main id="view-root" class="scroll-main" tabindex="-1">
+      <!-- Tool or page content injected here -->
+    </main>
+  </div>
+
+  <div id="toast-host"></div>
+  <div id="modal-host"></div>
+  <div id="palette-host"></div>
+  <div id="tooltip-host"></div>
+
+  <!-- Core scripts -->
+  <script src="js/core/icons.js"></script>
+  <script src="js/core/dom.js"></script>
+  <script src="js/core/bridge.js"></script>
+  <script src="js/core/store.js"></script>
+  <script src="js/core/theme.js"></script>
+  <script src="js/core/toast.js"></script>
+  <script src="js/core/dialogs.js"></script>
+  <script src="js/core/tool_defaults.js"></script>
+  <script src="js/core/tooltips.js"></script>
+  <script src="js/core/router.js"></script>
+  <script src="js/core/shortcuts.js"></script>
+  <script src="js/core/palette.js"></script>
+  <script src="js/core/dropzone.js"></script>
+  <script src="js/core/resizer.js"></script>
+
+  <!-- Components -->
+  <script src="js/components/code-editor.js"></script>
+  <script src="js/components/empty-state.js"></script>
+  <script src="js/components/field.js"></script>
+  <script src="js/components/file-picker.js"></script>
+  <script src="js/components/progress.js"></script>
+  <script src="js/components/result-card.js"></script>
+  <script src="js/components/segmented.js"></script>
+  <script src="js/components/slider.js"></script>
+  <script src="js/components/switch.js"></script>
+  <script src="js/components/table.js"></script>
+
+  <!-- Tools -->
+  <script src="js/tools/archive.js"></script>
+  <script src="js/tools/collage.js"></script>
+  <script src="js/tools/compressor.js"></script>
+  <script src="js/tools/converter.js"></script>
+  <script src="js/tools/data.js"></script>
+  <script src="js/tools/encoding.js"></script>
+
+  <script src="js/tools/images.js"></script>
+  <script src="js/tools/markdown.js"></script>
+  <script src="js/tools/media.js"></script>
+  <script src="js/tools/metadata.js"></script>
+  <script src="js/tools/model3d.js"></script>
+  <script src="js/tools/network_monitor.js"></script>
+  <script src="js/tools/ocr.js"></script>
+  <script src="js/tools/palette.js"></script>
+  <script src="js/tools/pdf.js"></script>
+  <script src="js/tools/playlist.js"></script>
+  <script src="js/tools/qr.js"></script>
+  <script src="js/tools/renamer.js"></script>
+  <script src="js/tools/resume.js"></script>
+
+  <script src="js/tools/text_tools.js"></script>
+  <script src="js/tools/unit_converter.js"></script>
+
+  <!-- Views and App initialization -->
+  <script src="js/home.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

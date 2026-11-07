@@ -1,0 +1,70 @@
+{
+  "mission": "Apollo",
+  "active": true,
+  "count": 42,
+  "ratio": 0.618,
+  "notes": null,
+  "crew": [
+    {
+      "name": "Armstrong",
+      "role": "commander",
+      "flights": 2
+    },
+    {
+      "name": "Collins",
+      "role": "pilot",
+      "flights": 2
+    },
+    {
+      "name": "Aldrin",
+      "role": "lander pilot",
+      "flights": 2
+    }
+  ],
+  "stages": {
+    "first": {
+      "engines": 5,
+      "thrust_kn": [
+        7600.0,
+        7600.0,
+        7600.0,
+        7600.0,
+        7600.0
+      ],
+      "tags": [
+        "booster"
+      ]
+    },
+    "second": {
+      "engines": 5,
+      "thrust_kn": [
+        1000.0,
+        1000.0,
+        1000.0,
+        1000.0,
+        1000.0
+      ],
+      "tags": [
+        "upper",
+        "cryogenic"
+      ]
+    }
+  },
+  "matrix": [
+    [
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      1
+    ]
+  ]
+}

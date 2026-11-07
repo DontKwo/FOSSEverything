@@ -1,0 +1,135 @@
+/* Base reset and typography */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+[hidden],
+.hidden {
+  display: none !important;
+}
+
+html {
+  font-size: calc(var(--font-base) * var(--ui-scale, 1));
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: 1.5;
+  color: var(--text);
+  background-color: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:focus-visible {
+  outline: 0.125rem solid var(--focus);
+  outline-offset: 0.125rem;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background-color: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: var(--text-sm);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sidebar,
+.topbar,
+.nav-item,
+.chip,
+.badge {
+  user-select: none;
+}
+
+table {
+  font-variant-numeric: tabular-nums;
+  border-collapse: collapse;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  transition: scrollbar-color 0.2s ease;
+}
+
+/* Layout and typography utilities */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.flex-row { display: flex; flex-direction: row; }
+.flex-wrap { flex-wrap: wrap; }
+.flex-1, .grow { flex: 1 1 0%; min-width: 0; }
+.shrink-0 { flex-shrink: 0; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.items-end { align-items: flex-end; }
+.items-stretch { align-items: stretch; }
+.justify-between, .row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.justify-center { justify-content: center; }
+.justify-end { justify-content: flex-end; }
+
+.gap-1, [gap="xs"] { gap: var(--space-1); }
+.gap-2, [gap="sm"] { gap: var(--space-2); }
+.gap-3, [gap="md"] { gap: var(--space-3); }
+.gap-4, [gap="lg"] { gap: var(--space-4); }
+
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.min-w-0 { min-width: 0; }
+.min-h-0 { min-height: 0; }
+.p-2 { padding: var(--space-2); }
+.p-3 { padding: var(--space-3); }
+.p-4 { padding: var(--space-4); }
+
+.text-xs, .micro { font-size: var(--text-xs); }
+.text-sm, .small { font-size: var(--text-sm); }
+.text-base { font-size: var(--text-md); }
+.text-lg { font-size: var(--text-lg); }
+.text-muted, .muted { color: var(--text-muted); }
+.font-mono, .mono { font-family: var(--font-mono); }
+.font-semibold, .strong { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.text-center, .center { text-align: center; }
+.nowrap { white-space: nowrap; }
+
+.checkerboard-bg {
+  background-image: linear-gradient(45deg, var(--canvas-checker-a) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--canvas-checker-a) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--canvas-checker-a) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--canvas-checker-a) 75%);
+  background-size: 1rem 1rem;
+  background-position: 0 0, 0 0.5rem, 0.5rem -0.5rem, -0.5rem 0;
+  background-color: var(--canvas-checker-b);
+}

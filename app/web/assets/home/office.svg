@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs>
+    <linearGradient id="bg_off" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="accent_off" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg_off)"/>
+  <circle cx="520" cy="90" r="140" fill="#2563eb" opacity="0.15"/>
+  <g transform="translate(235, 75)">
+    <rect x="35" y="10" width="105" height="130" rx="8" fill="#1e3a8a" opacity="0.4"/>
+    <rect x="20" y="20" width="105" height="130" rx="8" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+    <rect x="5" y="30" width="105" height="130" rx="8" fill="#0f172a" stroke="url(#accent_off)" stroke-width="2.5"/>
+    <rect x="25" y="55" width="65" height="6" rx="3" fill="#60a5fa"/>
+    <rect x="25" y="70" width="50" height="5" rx="2.5" fill="#94a3b8"/>
+    <rect x="25" y="83" width="60" height="5" rx="2.5" fill="#94a3b8"/>
+    <rect x="25" y="96" width="40" height="5" rx="2.5" fill="#94a3b8"/>
+    <rect x="25" y="115" width="28" height="16" rx="4" fill="#2563eb"/>
+    <text x="39" y="127" font-family="monospace" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">DOC</text>
+  </g>
+  <text x="320" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" fill="#f1f5f9" text-anchor="middle" letter-spacing="1">OFFICE TOOLS</text>
+  <text x="320" y="306" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" fill="#a3b1c6" text-anchor="middle">DOCX - PPTX - XLSX - ODF CONVERTER</text>
+</svg>

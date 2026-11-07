@@ -1,0 +1,7 @@
+Guidance, Navigation, and Control systems test dataset.
+
+This plain text file holds several paragraphs with ordinary punctuation: commas, semicolons; colons: and "quoted" phrases. It is used to check encoding, word counts, and diffing.
+
+Second paragraph. It contains short sentences. Each one ends with a period! Some end with a question mark?
+
+Final paragraph with numbers (1, 2, 3), a hyphenated-word, and an apostrophe in don't.
