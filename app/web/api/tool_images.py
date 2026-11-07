@@ -379,8 +379,9 @@ class ImagesApiMixin:
     @api_method
     def images_prefetch_models(self, params: dict[str, Any]) -> dict[str, Any]:
         # Prefetch background removal model weights to cache.
-        models = list(params.get("models", ["u2netp"]))
-        prefetch_background_removal_models(models)
+        models = list(params.get("models", []))
+        if models:
+            prefetch_background_removal_models(models)
         return ok(prefetched=models)
 
     @api_method

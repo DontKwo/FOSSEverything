@@ -1,0 +1,6 @@
+{
+  "max_webapi_import_ms": 1500,
+  "max_warm_tool_open_ms": 150,
+  "max_warm_api_call_ms": 200,
+  "target_tools_count": 21
+}

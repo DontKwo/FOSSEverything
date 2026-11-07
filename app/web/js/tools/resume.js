@@ -422,7 +422,9 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(splitWrap);
 
     renderLeftPane();
-    fetchLivePreview();
+    setTimeout(function () {
+      fetchLivePreview();
+    }, 0);
 
     // --- Sub-views Implementations ------------------------------------------
 

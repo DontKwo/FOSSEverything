@@ -8,12 +8,37 @@ from typing import Any
 
 import pint
 
-UREG: pint.UnitRegistry = pint.UnitRegistry(autoconvert_offset_to_baseunit=False)
-EXPR_UREG: pint.UnitRegistry = pint.UnitRegistry(autoconvert_offset_to_baseunit=True)
+_UREG_CACHE: pint.UnitRegistry | None = None
+_EXPR_UREG_CACHE: pint.UnitRegistry | None = None
 
-for _registry in (UREG, EXPR_UREG):
-    with contextlib.suppress(ValueError, pint.errors.RedefinitionError):
-        _registry.define("mpg = mile / gallon = MPG")
+
+def get_ureg() -> pint.UnitRegistry:
+    # Lazily initialize and return the standard UnitRegistry.
+    global _UREG_CACHE
+    if _UREG_CACHE is None:
+        _UREG_CACHE = pint.UnitRegistry(autoconvert_offset_to_baseunit=False)
+        with contextlib.suppress(ValueError, pint.errors.RedefinitionError):
+            _UREG_CACHE.define("mpg = mile / gallon = MPG")
+    return _UREG_CACHE
+
+
+def get_expr_ureg() -> pint.UnitRegistry:
+    # Lazily initialize and return the expression UnitRegistry.
+    global _EXPR_UREG_CACHE
+    if _EXPR_UREG_CACHE is None:
+        _EXPR_UREG_CACHE = pint.UnitRegistry(autoconvert_offset_to_baseunit=True)
+        with contextlib.suppress(ValueError, pint.errors.RedefinitionError):
+            _EXPR_UREG_CACHE.define("mpg = mile / gallon = MPG")
+    return _EXPR_UREG_CACHE
+
+
+def __getattr__(name: str) -> Any:
+    # Defer registry initialization when accessed via module attributes.
+    if name == "UREG":
+        return get_ureg()
+    if name == "EXPR_UREG":
+        return get_expr_ureg()
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 CATEGORIES: list[dict[str, Any]] = [
     {
@@ -540,8 +565,16 @@ def format_magnitude(val: float, mode: str = "standard", sig_figs: int = 7) -> s
     return f"{val:.{max(1, sig_figs - 1)}e}"
 
 
+_UNIT_CATALOG_CACHE: dict[str, Any] | None = None
+
+
 def get_unit_catalog() -> dict[str, Any]:
-    # Return structured categories and full searchable list of units.
+    # Return structured categories and full searchable list of units with caching.
+    global _UNIT_CATALOG_CACHE
+    if _UNIT_CATALOG_CACHE is not None:
+        return _UNIT_CATALOG_CACHE
+
+    ureg = get_ureg()
     categories_output: list[dict[str, Any]] = []
     for cat in CATEGORIES:
         enriched_units: list[dict[str, Any]] = []
@@ -549,7 +582,7 @@ def get_unit_catalog() -> dict[str, Any]:
             expr_str = str(u_item["expr"])
             dim_str = ""
             try:
-                dim_str = str(UREG(expr_str).dimensionality)
+                dim_str = str(ureg(expr_str).dimensionality)
             except Exception:
                 dim_str = "[]"
             enriched_units.append({
@@ -590,10 +623,11 @@ def get_unit_catalog() -> dict[str, Any]:
         {"name": "tebi", "symbol": "Ti", "factor": "1024^4"},
     ]
 
-    return {
+    _UNIT_CATALOG_CACHE = {
         "categories": categories_output,
         "prefixes": prefixes,
     }
+    return _UNIT_CATALOG_CACHE
 
 
 def convert_unit_value(
@@ -631,7 +665,7 @@ def convert_unit_value(
             "si_base": "m\u00b3 / m",
         }
 
-    quantity = UREG.Quantity(value, norm_from)
+    quantity = get_ureg().Quantity(value, norm_from)
     converted = quantity.to(norm_to)
     result_val = float(converted.magnitude)
 
@@ -670,7 +704,7 @@ def convert_to_compatible_units(
 
     if not target_units or include_all:
         with contextlib.suppress(Exception):
-            compat = UREG.get_compatible_units(norm_from)
+            compat = get_ureg().get_compatible_units(norm_from)
             for unit_obj in compat:
                 unit_name = str(unit_obj)
                 if not any(t[0] == unit_name for t in target_units):
@@ -702,7 +736,7 @@ def convert_expression(
     sig_figs: int = 7,
 ) -> dict[str, Any]:
     # Evaluate compound physical quantities and dimensional equations.
-    parsed = EXPR_UREG(expression)
+    parsed = get_expr_ureg()(expression)
     if target_unit and target_unit.strip():
         norm_target = normalize_unit_identifier(target_unit.strip())
         converted = parsed.to(norm_target)

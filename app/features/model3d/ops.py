@@ -13,9 +13,19 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 import numpy as np
-import trimesh
 
 from app.core.file_formats import normalized_format
+
+_TRIMESH_CACHE: Any = None
+
+
+def get_trimesh() -> Any:
+    # Lazily import and cache trimesh library on demand.
+    global _TRIMESH_CACHE
+    if _TRIMESH_CACHE is None:
+        import trimesh
+        _TRIMESH_CACHE = trimesh
+    return _TRIMESH_CACHE
 
 MESH_EXTENSIONS = {".stl", ".obj", ".ply", ".gltf", ".glb"}
 BREP_EXTENSIONS = {".step", ".stp", ".iges", ".igs"}
@@ -55,7 +65,8 @@ def load(path: str) -> Model3D:
         shape = brep_backend.brep_load(path)
         return Model3D(backend="brep", shape=shape, source_path=path, source_format=normalized_format(ext))
     if ext in MESH_EXTENSIONS:
-        mesh = trimesh.load(path, force="mesh")
+        tr = get_trimesh()
+        mesh = tr.load(path, force="mesh")
         return Model3D(backend="mesh", mesh=mesh, source_path=path, source_format=normalized_format(ext))
     raise ValueError(f"Unsupported 3D model format: {ext}")
 
@@ -184,15 +195,16 @@ def _mesh_cut(model: Model3D, origin: np.ndarray, normal: np.ndarray, cap: bool)
     warnings = list(model.warnings)
     if cap and not mesh.is_watertight:
         repaired = mesh.copy()
-        trimesh.repair.fill_holes(repaired)
-        trimesh.repair.fix_normals(repaired)
+        tr = get_trimesh()
+        tr.repair.fill_holes(repaired)
+        tr.repair.fix_normals(repaired)
         if repaired.is_watertight:
             mesh = repaired
             warnings.append("Source mesh was not watertight; holes were auto-repaired before capping.")
         else:
             warnings.append("Source mesh is not watertight and could not be auto-repaired; the cap may be incomplete.")
 
-    def _slice(sign: float) -> trimesh.Trimesh:
+    def _slice(sign: float) -> Any:
         try:
             return mesh.slice_plane(origin, normal * sign, cap=cap)
         except Exception:
@@ -211,10 +223,11 @@ def repair(model: Model3D) -> Model3D:
     if model.backend != "mesh":
         raise ValueError("Repair is only available for mesh (STL/OBJ/PLY) models.")
     mesh = model.mesh.copy()
-    trimesh.repair.fill_holes(mesh)
+    tr = get_trimesh()
+    tr.repair.fill_holes(mesh)
     mesh.update_faces(mesh.unique_faces())
     mesh.update_faces(mesh.nondegenerate_faces())
-    trimesh.repair.fix_normals(mesh)
+    tr.repair.fix_normals(mesh)
     return Model3D(backend="mesh", mesh=mesh, source_path=model.source_path, source_format=model.source_format, warnings=list(model.warnings))
 
 
@@ -260,7 +273,8 @@ def export(model: Model3D, path: str, fmt: str | None = None) -> str:
     if model.backend == "brep":
         from app.features.model3d import brep_backend
         verts, faces = brep_backend.brep_tessellate(model.shape)
-        mesh = trimesh.Trimesh(vertices=verts, faces=faces)
+        tr = get_trimesh()
+        mesh = tr.Trimesh(vertices=verts, faces=faces)
     else:
         mesh = model.mesh
     mesh.export(path, file_type=target.lower())
