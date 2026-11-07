@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import Any
 
@@ -65,6 +66,8 @@ class MetadataApiMixin:
         require(params, "input_dir")
         in_dir = str(params["input_dir"])
         out_dir = str(params["output_dir"]) if params.get("output_dir") else f"{in_dir}_clean"
+        if os.path.abspath(in_dir) == os.path.abspath(out_dir):
+            out_dir = f"{in_dir}_clean"
         recursive = bool(params.get("recursive", True))
         preview = bool(params.get("preview", False))
         results = batch_metadata_cleanup(in_dir, out_dir, recursive=recursive, preview=preview)
