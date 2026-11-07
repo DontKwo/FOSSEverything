@@ -7,7 +7,7 @@ FOSSEverything is a local-first, offline desktop utility suite licensed under th
 Prerequisites: Python 3.11+ and [uv](https://astral.sh/uv).
 
 ```bash
-git clone https://github.com/jm18005/fosseverything.git
+git clone https://github.com/DontKwo/FOSSEverything.git
 cd fosseverything
 uv sync
 uv run python main.py

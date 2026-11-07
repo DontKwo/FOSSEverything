@@ -1,8 +1,8 @@
 # fosseverything: local desktop power tool # noqa: 19
 
-[![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20Offline-success)](https://github.com/jm18005/FOSSEverything)
-[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/jm18005/FOSSEverything)
-[![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-informational)](https://github.com/jm18005/FOSSEverything)
+[![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20Offline-success)](https://github.com/DontKwo/FOSSEverything)
+[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/DontKwo/FOSSEverything)
+[![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-informational)](https://github.com/DontKwo/FOSSEverything)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
 
 FOSSEverything is an offline desktop utility suite for editing documents, media, and data locally. Edit PDFs, manipulate images, transcode audio and video, extract text with Tesseract OCR, inspect 3D models, monitor local network sockets, generate QR codes, tailor ATS-friendly resumes, compute folder hash manifests, and batch-convert files. All processing executes on your device with zero cloud tracking, zero accounts, and zero telemetry.
@@ -13,14 +13,14 @@ FOSSEverything is an offline desktop utility suite for editing documents, media,
 
 ### Portable Binaries
 Standalone packages bundle a dedicated Python runtime with all core dependencies.
-- **Windows:** Download `FOSSEverything-Setup.exe` from [Releases](https://github.com/jm18005/FOSSEverything/releases) and execute the installer.
-- **macOS / Linux:** Download the standalone `FOSSEverything` executable from [Releases](https://github.com/jm18005/FOSSEverything/releases) and run `./FOSSEverything`.
+- **Windows:** Download `FOSSEverything-Setup.exe` from [Releases](https://github.com/DontKwo/FOSSEverything/releases) and execute the installer.
+- **macOS / Linux:** Download the standalone `FOSSEverything` executable from [Releases](https://github.com/DontKwo/FOSSEverything/releases) and run `./FOSSEverything`.
 
 ### Run From Source
 Prerequisites: [uv](https://astral.sh/uv) and Python 3.11+.
 
 ```bash
-git clone https://github.com/jm18005/FOSSEverything.git
+git clone https://github.com/DontKwo/FOSSEverything.git
 cd FOSSEverything
 
 # Bootstrap dependencies and launch
