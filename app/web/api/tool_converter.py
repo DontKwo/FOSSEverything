@@ -4,22 +4,20 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.features.converter.ops import BatchConversionItem, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.features.converter.ops import BatchConversionItem, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.features.converter.ops import BatchConversionItem
 
 import pymupdf as fitz
 from PIL import Image
-import yaml
 
-from app.features.converter.ops import (
-    BatchConversionItem,
-    available_targets,
-    batch_convert_files,
-    conversion_summary,
-    convert_file,
-    export_enex,
-    source_family,
-)
-from app.features.ocr import ops as ocr_ops
 from app.web.api.result import api_method, ok, require
 
 logger = logging.getLogger(__name__)
@@ -88,6 +86,7 @@ def _write_data_rows(rows: list[dict[str, Any]], out_path: str, target_fmt: str)
             with open(out_path, "w", encoding="utf-8") as f_out:
                 f_out.write("")
     elif fmt == "YAML":
+        import yaml
         with open(out_path, "w", encoding="utf-8") as f_out:
             yaml.safe_dump(rows, f_out, sort_keys=False)
     elif fmt == "XML":
@@ -128,6 +127,8 @@ def _convert_single_internal(
     quality: int = 90,
 ) -> list[str]:
     # Unified converter dispatch supporting single and batch conversion.
+    from app.features.converter.ops import convert_file
+    from app.features.ocr import ops as ocr_ops
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"Input file not found: {file_path}")
     raw_fmt = target_format.strip()
@@ -224,6 +225,7 @@ def _convert_single_internal(
 class ConverterApiMixin:
     @api_method
     def converter_available_targets(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.converter.ops import available_targets, source_family
         # Return list of compatible destination formats for source file.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -267,6 +269,7 @@ class ConverterApiMixin:
 
     @api_method
     def converter_scan_inputs(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.converter.ops import available_targets, source_family
         # Expand mixed file and folder paths into convertible queue descriptors.
         require(params, "paths")
         raw_paths = list(params["paths"])
@@ -381,6 +384,7 @@ class ConverterApiMixin:
 
     @api_method
     def converter_batch_convert(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.converter.ops import batch_convert_files, BatchConversionItem
         # Batch convert files, routing standard pairs through batch_convert_files.
         require(params, "items")
         raw_items = list(params["items"])
@@ -434,6 +438,7 @@ class ConverterApiMixin:
 
     @api_method
     def converter_summary(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.converter.ops import conversion_summary
         # Return explanation of output shape before conversion.
         require(params, "file_path", "target_format")
         file_path = str(params["file_path"])
@@ -453,6 +458,7 @@ class ConverterApiMixin:
 
     @api_method
     def converter_export_enex(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.converter.ops import export_enex
         # Export notes collection to Evernote ENEX XML archive.
         require(params, "notes", "output_path")
         notes = list(params["notes"])
@@ -462,6 +468,7 @@ class ConverterApiMixin:
 
     @api_method
     def converter_source_family(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.converter.ops import source_family
         # Identify source file media family (image, document, audio, video, ebook).
         require(params, "file_path")
         file_path = str(params["file_path"])
