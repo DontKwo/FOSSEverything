@@ -3,7 +3,7 @@
 [![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20Offline-success)](https://github.com/DontKwo/FOSSEverything)
 [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/DontKwo/FOSSEverything)
 [![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-informational)](https://github.com/DontKwo/FOSSEverything)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](LICENSE)
+[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
 
 FOSSEverything is an offline desktop utility suite for editing documents, media, and data locally. Edit PDFs, manipulate images, transcode audio and video, extract text with Tesseract OCR, inspect 3D models, monitor local network sockets, generate QR codes, tailor ATS-friendly resumes, compute folder hash manifests, and batch-convert files. All processing executes on your device with zero cloud tracking, zero accounts, and zero telemetry.
 
@@ -64,6 +64,13 @@ Platform behavior:
 - **macOS**: Configures a command-line launcher at `~/.local/bin/fosseverything`.
 
 ---
+
+
+---
+
+## Trademark and Directory Disclaimer
+
+**TRADEMARK & DIRECTORY DISCLAIMER:** FOSSEverything indexes and catalogs Free and Open Source Software. All product names, logos, brands, and registered trademarks belong to their respective owners. Reference to any software project, organization, or brand does not constitute endorsement or affiliation. The software and directory are provided AS IS without warranty of any kind.
 
 ## core tools
 

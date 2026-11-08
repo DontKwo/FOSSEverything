@@ -2,7 +2,10 @@
 name = "FOSSEverything"
 version = "0.1.0"
 description = "Free, local-first, offline file suite for documents, media, data, and everyday work."
-license = "AGPL-3.0-or-later"
+license = "GPL-3.0-or-later"
+authors = [
+    { name = "DontKwo", email = "323857007+DontKwo@users.noreply.github.com" }
+]
 requires-python = ">=3.11,<4.0"
 dependencies = [
     "PyMuPDF>=1.23",
