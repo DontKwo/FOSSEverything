@@ -72,6 +72,12 @@ Platform behavior:
 
 **TRADEMARK & DIRECTORY DISCLAIMER:** FOSSEverything indexes and catalogs Free and Open Source Software. All product names, logos, brands, and registered trademarks belong to their respective owners. Reference to any software project, organization, or brand does not constitute endorsement or affiliation. The software and directory are provided AS IS without warranty of any kind.
 
+## search portal overview
+
+FOSSEverything uses an entirely local, offline search index (with no AI or cloud dependencies) to help you instantly discover tools, workspaces, and actions. Simply press `Ctrl+K` (`Cmd+K` on macOS) or use the search bar to jump to any capability using natural keywords.
+
+---
+
 ## core tools
 
 | Tool | Capabilities |
@@ -97,6 +103,33 @@ Platform behavior:
 | Hash & Verify | Checksum calculation (SHA-256, SHA-512, MD5, BLAKE2). Generate and verify directory tree manifest files. |
 | Text Tools | Case transforms, text reversal, whitespace normalization, line deduplication, regex search, and side-by-side diffing. |
 | Encoding / Decoding | Encode and decode Base64, URL percent-encoding, HTML entities, hex strings, and byte representations. |
+
+---
+
+## local development setup
+
+FOSSEverything relies on [uv](https://astral.sh/uv) to manage Python dependencies seamlessly.
+
+1. Ensure you have Python 3.11+ installed.
+2. Clone the repository and navigate into it:
+   ```bash
+   git clone https://github.com/DontKwo/FOSSEverything.git
+   cd FOSSEverything
+   ```
+3. Install dependencies using `uv`:
+   ```bash
+   uv sync
+   ```
+4. Run the application locally:
+   ```bash
+   uv run python main.py
+   ```
+
+---
+
+## contribution guide
+
+We welcome contributions! Please review the [CONTRIBUTING.md](CONTRIBUTING.md) file before opening any pull requests. It contains detailed information on codebase architecture, testing procedures (`uv run pytest`), and style invariants necessary for merging your code.
 
 ---
 
