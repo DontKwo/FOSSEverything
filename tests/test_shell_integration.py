@@ -33,7 +33,8 @@ class TestShellIntegration(unittest.TestCase):
     @patch("os.makedirs")
     @patch("shutil.which")
     @patch("subprocess.run")
-    def test_linux_registration_command_args(self, mock_run: MagicMock, mock_which: MagicMock, mock_makedirs: MagicMock) -> None:
+    @patch("shutil.copyfile")
+    def test_linux_registration_command_args(self, mock_copyfile: MagicMock, mock_run: MagicMock, mock_which: MagicMock, mock_makedirs: MagicMock) -> None:
         mock_which.return_value = None
         with patch("builtins.open", mock_open()) as mocked_file:
             shell_integration._register_linux(exe_path="/usr/bin/dummy")
@@ -43,6 +44,12 @@ class TestShellIntegration(unittest.TestCase):
             written_content = "".join(call_arg[0][0] for call_arg in write_calls)
 
             self.assertIn("Exec=/usr/bin/dummy %F", written_content)
+            self.assertIn("Icon=fosseverything", written_content)
+
+    def test_app_png_icon_path(self) -> None:
+        png_path = shell_integration.app_png_icon_path()
+        self.assertTrue(isinstance(png_path, str))
+        self.assertTrue(png_path.endswith("icon.png"))
 
     @patch("os.makedirs")
     @patch("os.chmod")

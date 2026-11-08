@@ -27,6 +27,19 @@ def app_icon_path() -> str:
         return os.path.join(getattr(sys, "_MEIPASS", os.path.dirname(sys.executable)), "assets", "icon.ico")
     return os.path.join(_PROJECT_ROOT, "assets", "icon.ico")
 
+
+def app_png_icon_path() -> str:
+    """Absolute path to the app's .png asset for FreeDesktop and Linux launchers."""
+    if getattr(sys, "frozen", False):
+        base = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+        png_path = os.path.join(base, "assets", "icon.png")
+        if os.path.isfile(png_path):
+            return png_path
+        alt_png = os.path.join(base, "icon.png")
+        if os.path.isfile(alt_png):
+            return alt_png
+    return os.path.join(_PROJECT_ROOT, "assets", "icon.png")
+
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif", ".ico", ".svg"}
 PDF_EXTENSIONS = {".pdf"}
 MEDIA_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".flv", ".wmv", ".m4v", ".mp3", ".wav", ".flac", ".aac", ".m4a", ".ogg", ".wma", ".opus"}
@@ -133,6 +146,7 @@ def try_forward_to_running_instance(file_path: str | None, force_mode: str | Non
 def start_ipc_server(window: Any) -> threading.Thread:
     """Listen for launch requests from newly started processes and route them into this warm instance."""
     def _listen() -> None:
+        srv = None
         try:
             srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -152,6 +166,12 @@ def start_ipc_server(window: Any) -> threading.Thread:
                             _ = err
         except OSError as err:
             _ = err
+        finally:
+            if srv is not None:
+                try:
+                    srv.close()
+                except Exception:
+                    pass
 
     thread = threading.Thread(target=_listen, daemon=True)
     thread.start()
@@ -485,13 +505,23 @@ def _register_linux(exe_path: str | None = None) -> tuple[bool, str]:
         else:
             exe_path = f'{sys.executable} {os.path.abspath(sys.argv[0])}'
 
+    icon_name = "fosseverything"
+    icon_src = app_png_icon_path()
+    if os.path.isfile(icon_src):
+        try:
+            hicolor_dir = os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps")
+            os.makedirs(hicolor_dir, exist_ok=True)
+            shutil.copyfile(icon_src, os.path.join(hicolor_dir, f"{icon_name}.png"))
+        except Exception:
+            icon_name = icon_src
+
     desktop_content = f"""[Desktop Entry]
 Type=Application
 Name={APP_NAME}
 GenericName=Local Desktop Power Tool
 Comment={APP_DESCRIPTION}
 Exec={exe_path} %F
-Icon=utilities-terminal
+Icon={icon_name}
 Terminal=false
 Categories=Utility;Graphics;AudioVideo;Office;
 MimeType=application/pdf;image/png;image/jpeg;image/webp;image/gif;video/mp4;video/quicktime;video/x-matroska;audio/mpeg;audio/wav;audio/flac;application/json;application/yaml;text/csv;
@@ -516,6 +546,9 @@ def _unregister_linux() -> tuple[bool, str]:
         desktop_file = os.path.expanduser("~/.local/share/applications/fosseverything.desktop")
         if os.path.exists(desktop_file):
             os.remove(desktop_file)
+        icon_file = os.path.expanduser("~/.local/share/icons/hicolor/256x256/apps/fosseverything.png")
+        if os.path.exists(icon_file):
+            os.remove(icon_file)
         return True, "Removed FOSSEverything Linux desktop integration."
     except Exception as exc:
         return False, f"Failed to remove desktop entry: {exc}"
