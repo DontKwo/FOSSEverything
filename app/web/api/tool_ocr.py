@@ -6,19 +6,7 @@ from typing import Any
 
 from PIL import Image
 
-from app.features.ocr.ops import (
-    SUPPORTED_LANGUAGES,
-    create_searchable_pdf,
-    discover_tesseract_languages,
-    expand_ocr_inputs,
-    get_supported_languages,
-    inspect_pdf_searchable_status,
-    ocr_file,
-    ocr_image,
-    ocr_pdf,
-    parse_page_selection,
-    save_ocr_text,
-)
+
 from app.web.api.result import api_method, ok, require
 
 
@@ -30,6 +18,10 @@ def _force_reocr(params: dict[str, Any]) -> bool:
 class OcrApiMixin:
     @api_method
     def ocr_recognize_image(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.ocr.ops import (
+            ocr_image,
+            save_ocr_text,
+        )
         # Perform optical character recognition on single image file.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -52,6 +44,12 @@ class OcrApiMixin:
 
     @api_method
     def ocr_recognize_pdf(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.ocr.ops import (
+            inspect_pdf_searchable_status,
+            ocr_pdf,
+            parse_page_selection,
+            save_ocr_text,
+        )
         # Perform OCR across pages of PDF document with optional page selection.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -102,6 +100,9 @@ class OcrApiMixin:
 
     @api_method
     def ocr_inspect_file(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.ocr.ops import (
+            inspect_pdf_searchable_status,
+        )
         # Inspect searchable status and page breakdown for a PDF or image.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -132,6 +133,11 @@ class OcrApiMixin:
 
     @api_method
     def ocr_languages(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.ocr.ops import (
+            SUPPORTED_LANGUAGES,
+            discover_tesseract_languages,
+            get_supported_languages,
+        )
         # Query installed and supported Tesseract language packs.
         _ = params
         installed = discover_tesseract_languages()
@@ -141,6 +147,9 @@ class OcrApiMixin:
 
     @api_method
     def ocr_scan_inputs(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.ocr.ops import (
+            expand_ocr_inputs,
+        )
         # Expand directory path into list of individual supported OCR files.
         raw_paths = list(params.get("paths") or [])
         recursive = bool(params.get("recursive", True))
@@ -149,6 +158,11 @@ class OcrApiMixin:
 
     @api_method
     def ocr_create_searchable_pdf(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.ocr.ops import (
+            create_searchable_pdf,
+            inspect_pdf_searchable_status,
+            parse_page_selection,
+        )
         # Synthesize searchable PDF document preserving existing searchable text.
         require(params, "input_path", "output_path")
         in_p = str(params["input_path"])
@@ -181,6 +195,12 @@ class OcrApiMixin:
 
     @api_method
     def ocr_batch(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.ocr.ops import (
+            create_searchable_pdf,
+            expand_ocr_inputs,
+            ocr_file,
+            save_ocr_text,
+        )
         # Process multiple files and folders in batch OCR mode.
         raw_paths = params.get("paths") or params.get("file_paths") or []
         if not raw_paths:
