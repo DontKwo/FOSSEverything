@@ -6,45 +6,12 @@ from typing import Any
 
 from PIL import Image
 
-from app.features.image.ops import (
-    ASCII_CHARSET_PRESETS,
-    ASPECT_RATIO_PRESETS,
-    BACKGROUND_REMOVAL_MODELS,
-    FILTER_PRESETS,
-    SINGLE_IMAGE_EXPORT_FORMATS,
-    SUPPORTED_FORMATS,
-    _normalize_model_name,
-    add_border,
-    adjust_image,
-    apply_filter_preset,
-    aspect_ratio_crop_box,
-    auto_enhance,
-    batch_process,
-    blur_region,
-    circle_crop_image,
-    crop_image,
-    delete_rembg_model,
-    download_rembg_model,
-    extract_gif_frames,
-    flip_image,
-    frames_to_gif,
-    gif_to_video,
-    list_rembg_models_status,
-    load_image,
-    pixelate_region,
-    prefetch_background_removal_models,
-    remove_background,
-    replace_background_color,
-    resize_image,
-    rotate_image,
-    save_ascii_art,
-    save_image,
-)
-from app.features.ocr.ops import ocr_image
+
 from app.web.api.result import api_method, fail, ok, require
 
 
 def _calc_load_img(file_path: str) -> Image.Image:
+    from app.features.image.ops import load_image
     # Open image and force pixel buffer loading to release file locks.
     source_img = load_image(file_path)
     source_img.load()
@@ -60,6 +27,7 @@ def _calc_to_data_url(image_obj: Image.Image, format_name: str = "PNG") -> str:
 
 
 def _calc_save(image_obj: Image.Image, out_path: str, params: dict[str, Any], default_format: str = "") -> None:
+    from app.features.image.ops import save_image
     # Save image in the format given by the output extension with the requested quality.
     ext = Path(out_path).suffix.lstrip(".")
     save_image(image_obj, out_path, format=default_format or ext or "PNG", quality=int(params.get("quality", 85)))
@@ -80,6 +48,15 @@ def calc_color_tuple(color_val: Any) -> tuple[int, int, int]:
 class ImagesApiMixin:
     @api_method
     def images_presets(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            ASPECT_RATIO_PRESETS,
+            BACKGROUND_REMOVAL_MODELS,
+            FILTER_PRESETS,
+            SINGLE_IMAGE_EXPORT_FORMATS,
+            SUPPORTED_FORMATS,
+            ASCII_CHARSET_PRESETS,
+            _normalize_model_name,
+        )
         # Return presets for aspect ratios, background models, filters, formats, charsets.
         norm = _normalize_model_name("u2net")
         return ok(
@@ -94,12 +71,18 @@ class ImagesApiMixin:
 
     @api_method
     def images_models_status(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            list_rembg_models_status,
+        )
         # Scan and return download status of all background removal models.
         status_info = list_rembg_models_status()
         return ok(**status_info)
 
     @api_method
     def images_download_model(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            download_rembg_model,
+        )
         # Download specified background removal model to unified models directory.
         require(params, "model")
         target_model = str(params["model"])
@@ -108,6 +91,9 @@ class ImagesApiMixin:
 
     @api_method
     def images_delete_model(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            delete_rembg_model,
+        )
         # Delete specified background removal model from unified models directory.
         require(params, "model")
         target_model = str(params["model"])
@@ -158,6 +144,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_rotate(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            load_image,
+            rotate_image,
+            save_image,
+        )
         # Rotate image clockwise by specified degrees.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -180,6 +171,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_flip(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            flip_image,
+            load_image,
+            save_image,
+        )
         # Flip image horizontally or vertically.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -202,6 +198,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_resize(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            load_image,
+            resize_image,
+            save_image,
+        )
         # Resize image dimensions with optional aspect ratio preservation.
         require(params, "file_path", "width", "height")
         file_path = str(params["file_path"])
@@ -226,6 +227,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_crop(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            crop_image,
+            load_image,
+            save_image,
+        )
         # Crop rectangular area from image.
         require(params, "file_path", "x", "y", "width", "height")
         file_path = str(params["file_path"])
@@ -250,6 +256,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_circle_crop(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            circle_crop_image,
+            load_image,
+            save_image,
+        )
         # Crop circular avatar from image.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -271,6 +282,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_adjust(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            adjust_image,
+            load_image,
+            save_image,
+        )
         # Adjust image brightness, contrast, sharpness, and color saturation.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -306,6 +322,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_auto_enhance(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            auto_enhance,
+            load_image,
+            save_image,
+        )
         # Automatically enhance image color balance and contrast.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -327,6 +348,12 @@ class ImagesApiMixin:
 
     @api_method
     def images_apply_filter(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            FILTER_PRESETS,
+            apply_filter_preset,
+            load_image,
+            save_image,
+        )
         # Apply artistic or photographic filter preset to image.
         require(params, "file_path", "filter_name")
         file_path = str(params["file_path"])
@@ -349,6 +376,12 @@ class ImagesApiMixin:
 
     @api_method
     def images_remove_background(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            load_image,
+            remove_background,
+            replace_background_color,
+            save_image,
+        )
         # Remove background using machine learning segmentation models.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -378,6 +411,9 @@ class ImagesApiMixin:
 
     @api_method
     def images_prefetch_models(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            prefetch_background_removal_models,
+        )
         # Prefetch background removal model weights to cache.
         models = list(params.get("models", []))
         if models:
@@ -386,6 +422,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_add_border(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            add_border,
+            load_image,
+            save_image,
+        )
         # Add decorative border frame around image.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -410,6 +451,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_blur_region(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            blur_region,
+            load_image,
+            save_image,
+        )
         # Blur rectangular bounding box within image.
         require(params, "file_path", "box")
         file_path = str(params["file_path"])
@@ -433,6 +479,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_pixelate_region(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            load_image,
+            pixelate_region,
+            save_image,
+        )
         # Censor image bounding box with pixelation mosaic.
         require(params, "file_path", "box")
         file_path = str(params["file_path"])
@@ -456,6 +507,9 @@ class ImagesApiMixin:
 
     @api_method
     def images_aspect_box(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            aspect_ratio_crop_box,
+        )
         # Calculate aspect ratio centered crop bounding box.
         require(params, "width", "height", "aspect_ratio")
         full_width = int(params["width"])
@@ -473,6 +527,11 @@ class ImagesApiMixin:
 
     @api_method
     def images_to_ascii(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            ASCII_CHARSET_PRESETS,
+            load_image,
+            save_ascii_art,
+        )
         # Convert image to ASCII text art.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -493,6 +552,12 @@ class ImagesApiMixin:
 
     @api_method
     def images_gif_ops(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            extract_gif_frames,
+            frames_to_gif,
+            gif_to_video,
+            load_image,
+        )
         # Extract frames from GIF or assemble GIF from frame paths.
         action = str(params.get("action", "extract")).lower()
         if action == "extract":
@@ -522,6 +587,9 @@ class ImagesApiMixin:
 
     @api_method
     def images_batch_process(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            batch_process,
+        )
         # Batch execute pipeline operations across multiple images.
         require(params, "file_paths")
         paths = [str(input_p) for input_p in params["file_paths"]]
@@ -548,6 +616,9 @@ class ImagesApiMixin:
 
     @api_method
     def images_ocr(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.ocr.ops import (
+            ocr_image,
+        )
         # Recognize text inside image using OCR.
         require(params, "file_path")
         text = ocr_image(str(params["file_path"]), language=str(params.get("language", "eng")))
@@ -555,6 +626,10 @@ class ImagesApiMixin:
 
     @api_method
     def images_compress(self, params: dict[str, Any]) -> dict[str, Any]:
+        from app.features.image.ops import (
+            load_image,
+            save_image,
+        )
         # Compress image file with specified quality.
         require(params, "file_path", "output_path")
         file_path = str(params["file_path"])

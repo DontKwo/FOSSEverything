@@ -7,7 +7,6 @@ from typing import Any
 from PIL import Image, ImageColor, ImageDraw, ImageFont
 import qrcode
 from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H
-import cv2
 import numpy as np
 import pymupdf
 import barcode as _barcode_lib
@@ -738,6 +737,7 @@ def generate_label_sheet(
 
 def decode_qr_and_barcodes(source: str | Image.Image | object) -> list[dict]:
     """Decode all QR codes and barcodes found in an image, document, or OpenCV frame."""
+    import cv2
     if isinstance(source, str):
         if source.lower().endswith(".pdf"):
             doc = pymupdf.open(source)
