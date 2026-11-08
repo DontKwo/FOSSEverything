@@ -1,54 +1,387 @@
+from typing import Any
+import importlib
+
 from app.web.api.base import BaseApi
-from app.web.api.tool_archive import ArchiveApiMixin
-from app.web.api.tool_collage import CollageApiMixin
-from app.web.api.tool_compressor import CompressorApiMixin
-from app.web.api.tool_converter import ConverterApiMixin
-from app.web.api.tool_data import DataApiMixin
-from app.web.api.tool_encoding import EncodingApiMixin
-from app.web.api.tool_images import ImagesApiMixin
-from app.web.api.tool_markdown import MarkdownApiMixin
-from app.web.api.tool_media import MediaApiMixin
-from app.web.api.tool_metadata import MetadataApiMixin
-from app.web.api.tool_model3d import Model3dApiMixin
-from app.web.api.tool_network_monitor import NetworkMonitorApiMixin
-from app.web.api.tool_ocr import OcrApiMixin
-from app.web.api.tool_palette import PaletteApiMixin
-from app.web.api.tool_pdf import PdfApiMixin
-from app.web.api.tool_playlist import PlaylistApiMixin
-from app.web.api.tool_qr import QrApiMixin
-from app.web.api.tool_renamer import RenamerApiMixin
-from app.web.api.tool_resume import ResumeApiMixin
-from app.web.api.tool_text_tools import TextToolsApiMixin
-from app.web.api.tool_unit_converter import UnitConverterApiMixin
-from app.web.api.tool_word_counter import WordCounterApiMixin
 
 
-class WebApi(
-    BaseApi,
-    ArchiveApiMixin,
-    CollageApiMixin,
-    CompressorApiMixin,
-    ConverterApiMixin,
-    DataApiMixin,
-    EncodingApiMixin,
-    ImagesApiMixin,
-    MarkdownApiMixin,
-    MediaApiMixin,
-    MetadataApiMixin,
-    Model3dApiMixin,
-    NetworkMonitorApiMixin,
-    OcrApiMixin,
-    PaletteApiMixin,
-    PdfApiMixin,
-    PlaylistApiMixin,
-    QrApiMixin,
-    RenamerApiMixin,
-    ResumeApiMixin,
-    TextToolsApiMixin,
-    UnitConverterApiMixin,
-    WordCounterApiMixin,
-):
+class LazyMethod:
+    def __init__(self, name: str, mod_name: str, cls_name: str) -> None:
+        self.name = name
+        self.mod_name = mod_name
+        self.cls_name = cls_name
+        self._method: Any = None
+
+    def __get__(self, obj: Any, objtype: Any = None) -> Any:
+        if self._method is None:
+            mod = importlib.import_module(self.mod_name)
+            cls = getattr(mod, self.cls_name)
+            self._method = getattr(cls, self.name)
+        if obj is None:
+            return self._method
+        return self._method.__get__(obj, objtype)
+
+
+class WebApi(BaseApi):
     pass
 
+setattr(WebApi, "archive_checksums", LazyMethod("archive_checksums", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_compare_snapshots", LazyMethod("archive_compare_snapshots", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_convert", LazyMethod("archive_convert", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_create", LazyMethod("archive_create", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_extract", LazyMethod("archive_extract", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_extract_selected", LazyMethod("archive_extract_selected", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_incremental_backup", LazyMethod("archive_incremental_backup", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_list", LazyMethod("archive_list", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_presets", LazyMethod("archive_presets", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_protect", LazyMethod("archive_protect", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_rotate_key", LazyMethod("archive_rotate_key", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_snapshot", LazyMethod("archive_snapshot", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_test", LazyMethod("archive_test", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_unprotect", LazyMethod("archive_unprotect", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_verify_integrity", LazyMethod("archive_verify_integrity", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "archive_verify_sha256", LazyMethod("archive_verify_sha256", "app.web.api.tool_archive", "ArchiveApiMixin"))
+setattr(WebApi, "collage_create", LazyMethod("collage_create", "app.web.api.tool_collage", "CollageApiMixin"))
+setattr(WebApi, "collage_export_freeform", LazyMethod("collage_export_freeform", "app.web.api.tool_collage", "CollageApiMixin"))
+setattr(WebApi, "collage_load_layer_asset", LazyMethod("collage_load_layer_asset", "app.web.api.tool_collage", "CollageApiMixin"))
+setattr(WebApi, "collage_presets", LazyMethod("collage_presets", "app.web.api.tool_collage", "CollageApiMixin"))
+setattr(WebApi, "collage_preview", LazyMethod("collage_preview", "app.web.api.tool_collage", "CollageApiMixin"))
+setattr(WebApi, "compressor_compress_items", LazyMethod("compressor_compress_items", "app.web.api.tool_compressor", "CompressorApiMixin"))
+setattr(WebApi, "compressor_estimate_savings", LazyMethod("compressor_estimate_savings", "app.web.api.tool_compressor", "CompressorApiMixin"))
+setattr(WebApi, "compressor_scan_inputs", LazyMethod("compressor_scan_inputs", "app.web.api.tool_compressor", "CompressorApiMixin"))
+setattr(WebApi, "conversion_summary", LazyMethod("conversion_summary", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "convert_data_format", LazyMethod("convert_data_format", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "convert_file", LazyMethod("convert_file", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "converter_available_targets", LazyMethod("converter_available_targets", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "converter_batch", LazyMethod("converter_batch", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "converter_batch_convert", LazyMethod("converter_batch_convert", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "converter_convert_file", LazyMethod("converter_convert_file", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "converter_export_enex", LazyMethod("converter_export_enex", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "converter_scan_inputs", LazyMethod("converter_scan_inputs", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "converter_source_family", LazyMethod("converter_source_family", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "converter_summary", LazyMethod("converter_summary", "app.web.api.tool_converter", "ConverterApiMixin"))
+setattr(WebApi, "data_change_delimiter", LazyMethod("data_change_delimiter", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_clean_table", LazyMethod("data_clean_table", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_convert_format", LazyMethod("data_convert_format", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_convert_units", LazyMethod("data_convert_units", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_cron_describe", LazyMethod("data_cron_describe", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_csv_to_table", LazyMethod("data_csv_to_table", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_diff_documents", LazyMethod("data_diff_documents", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_diff_schema", LazyMethod("data_diff_schema", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_format_code", LazyMethod("data_format_code", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_generate_bibliography", LazyMethod("data_generate_bibliography", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_generate_citation", LazyMethod("data_generate_citation", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_grammar_check", LazyMethod("data_grammar_check", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_hdf5_children", LazyMethod("data_hdf5_children", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_hdf5_export_slice", LazyMethod("data_hdf5_export_slice", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_hdf5_node", LazyMethod("data_hdf5_node", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_hdf5_open", LazyMethod("data_hdf5_open", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_hdf5_preview", LazyMethod("data_hdf5_preview", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_hdf5_search", LazyMethod("data_hdf5_search", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_ics_generate", LazyMethod("data_ics_generate", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_ics_parse", LazyMethod("data_ics_parse", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_infer_schema", LazyMethod("data_infer_schema", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_inspect_structure", LazyMethod("data_inspect_structure", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_minify_code", LazyMethod("data_minify_code", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_normalize_table", LazyMethod("data_normalize_table", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_query_jsonpath", LazyMethod("data_query_jsonpath", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_random_value", LazyMethod("data_random_value", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_render_preview", LazyMethod("data_render_preview", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_save_file", LazyMethod("data_save_file", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_table_to_csv", LazyMethod("data_table_to_csv", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_table_to_rows", LazyMethod("data_table_to_rows", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_validate_against_schema", LazyMethod("data_validate_against_schema", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_validate_syntax", LazyMethod("data_validate_syntax", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "decode_qr", LazyMethod("decode_qr", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "encoding_base64_decode_text", LazyMethod("encoding_base64_decode_text", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_base64_decode_to_file", LazyMethod("encoding_base64_decode_to_file", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_base64_encode_file", LazyMethod("encoding_base64_encode_file", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_base64_encode_text", LazyMethod("encoding_base64_encode_text", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_binary_decode_text", LazyMethod("encoding_binary_decode_text", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_binary_decode_to_file", LazyMethod("encoding_binary_decode_to_file", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_binary_encode_file", LazyMethod("encoding_binary_encode_file", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_binary_encode_text", LazyMethod("encoding_binary_encode_text", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_binary_text", LazyMethod("encoding_binary_text", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_hex_decode_text", LazyMethod("encoding_hex_decode_text", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_hex_decode_to_file", LazyMethod("encoding_hex_decode_to_file", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_hex_encode_file", LazyMethod("encoding_hex_encode_file", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_hex_encode_text", LazyMethod("encoding_hex_encode_text", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_html_decode", LazyMethod("encoding_html_decode", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_html_encode", LazyMethod("encoding_html_encode", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_html_encode_numeric", LazyMethod("encoding_html_encode_numeric", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_transform", LazyMethod("encoding_transform", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_url_decode", LazyMethod("encoding_url_decode", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "encoding_url_encode", LazyMethod("encoding_url_encode", "app.web.api.tool_encoding", "EncodingApiMixin"))
+setattr(WebApi, "format_code", LazyMethod("format_code", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "format_css", LazyMethod("format_css", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "format_javascript", LazyMethod("format_javascript", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "format_js", LazyMethod("format_js", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "format_json", LazyMethod("format_json", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "format_sql", LazyMethod("format_sql", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "format_xml", LazyMethod("format_xml", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "format_yaml", LazyMethod("format_yaml", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "generate_barcode", LazyMethod("generate_barcode", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "generate_qr", LazyMethod("generate_qr", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "generate_qr_svg", LazyMethod("generate_qr_svg", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "get_network_connections", LazyMethod("get_network_connections", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "image_add_border", LazyMethod("image_add_border", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_adjust", LazyMethod("image_adjust", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_apply_filter_preset", LazyMethod("image_apply_filter_preset", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_auto_enhance", LazyMethod("image_auto_enhance", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_blur_region", LazyMethod("image_blur_region", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_circle_crop", LazyMethod("image_circle_crop", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_compress", LazyMethod("image_compress", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_crop", LazyMethod("image_crop", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_flip", LazyMethod("image_flip", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_load_data", LazyMethod("image_load_data", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_load_preview", LazyMethod("image_load_preview", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_pixelate_region", LazyMethod("image_pixelate_region", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_remove_background", LazyMethod("image_remove_background", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_resize", LazyMethod("image_resize", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "image_rotate", LazyMethod("image_rotate", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_add_border", LazyMethod("images_add_border", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_adjust", LazyMethod("images_adjust", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_apply_filter", LazyMethod("images_apply_filter", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_aspect_box", LazyMethod("images_aspect_box", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_auto_enhance", LazyMethod("images_auto_enhance", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_batch_process", LazyMethod("images_batch_process", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_blur_region", LazyMethod("images_blur_region", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_circle_crop", LazyMethod("images_circle_crop", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_compress", LazyMethod("images_compress", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_crop", LazyMethod("images_crop", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_delete_model", LazyMethod("images_delete_model", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_download_model", LazyMethod("images_download_model", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_flip", LazyMethod("images_flip", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_gif_ops", LazyMethod("images_gif_ops", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_load_data", LazyMethod("images_load_data", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_load_preview", LazyMethod("images_load_preview", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_models_status", LazyMethod("images_models_status", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_ocr", LazyMethod("images_ocr", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_pixelate_region", LazyMethod("images_pixelate_region", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_prefetch_models", LazyMethod("images_prefetch_models", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_presets", LazyMethod("images_presets", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_remove_background", LazyMethod("images_remove_background", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_resize", LazyMethod("images_resize", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_rotate", LazyMethod("images_rotate", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_save_preview", LazyMethod("images_save_preview", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "images_to_ascii", LazyMethod("images_to_ascii", "app.web.api.tool_images", "ImagesApiMixin"))
+setattr(WebApi, "infer_json_schema", LazyMethod("infer_json_schema", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "markdown_export_html", LazyMethod("markdown_export_html", "app.web.api.tool_markdown", "MarkdownApiMixin"))
+setattr(WebApi, "markdown_export_pdf", LazyMethod("markdown_export_pdf", "app.web.api.tool_markdown", "MarkdownApiMixin"))
+setattr(WebApi, "markdown_flavors", LazyMethod("markdown_flavors", "app.web.api.tool_markdown", "MarkdownApiMixin"))
+setattr(WebApi, "markdown_format_snippet", LazyMethod("markdown_format_snippet", "app.web.api.tool_markdown", "MarkdownApiMixin"))
+setattr(WebApi, "markdown_to_html", LazyMethod("markdown_to_html", "app.web.api.tool_markdown", "MarkdownApiMixin"))
+setattr(WebApi, "media_batch_operations", LazyMethod("media_batch_operations", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_capture_frame", LazyMethod("media_capture_frame", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_compose_audio", LazyMethod("media_compose_audio", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_compose_timeline", LazyMethod("media_compose_timeline", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_compress", LazyMethod("media_compress", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_convert", LazyMethod("media_convert", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_extract_audio", LazyMethod("media_extract_audio", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_extract_frame", LazyMethod("media_extract_frame", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_get_file_url", LazyMethod("media_get_file_url", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_get_info", LazyMethod("media_get_info", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_info", LazyMethod("media_info", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_mute", LazyMethod("media_mute", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_mute_video", LazyMethod("media_mute_video", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_speed_reverse", LazyMethod("media_speed_reverse", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_transcribe", LazyMethod("media_transcribe", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_trim", LazyMethod("media_trim", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "media_video_to_gif", LazyMethod("media_video_to_gif", "app.web.api.tool_media", "MediaApiMixin"))
+setattr(WebApi, "metadata_batch_cleanup", LazyMethod("metadata_batch_cleanup", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_compare", LazyMethod("metadata_compare", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_editable_keys", LazyMethod("metadata_editable_keys", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_export", LazyMethod("metadata_export", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_gps_preview", LazyMethod("metadata_gps_preview", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_inspect", LazyMethod("metadata_inspect", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_presets", LazyMethod("metadata_presets", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_save", LazyMethod("metadata_save", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_strip", LazyMethod("metadata_strip", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_strip_any", LazyMethod("metadata_strip_any", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "metadata_support_report", LazyMethod("metadata_support_report", "app.web.api.tool_metadata", "MetadataApiMixin"))
+setattr(WebApi, "minify_json", LazyMethod("minify_json", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "model3d_center_origin", LazyMethod("model3d_center_origin", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_cut", LazyMethod("model3d_cut", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_cut_mesh", LazyMethod("model3d_cut_mesh", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_export", LazyMethod("model3d_export", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_info", LazyMethod("model3d_info", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_load", LazyMethod("model3d_load", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_load_mesh", LazyMethod("model3d_load_mesh", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_measure", LazyMethod("model3d_measure", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_repair", LazyMethod("model3d_repair", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_repair_mesh", LazyMethod("model3d_repair_mesh", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_scale", LazyMethod("model3d_scale", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "model3d_scale_mesh", LazyMethod("model3d_scale_mesh", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "network_apps", LazyMethod("network_apps", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "network_database_ops", LazyMethod("network_database_ops", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "network_destination_status", LazyMethod("network_destination_status", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "network_get_connections", LazyMethod("network_get_connections", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "network_history", LazyMethod("network_history", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "network_manage_destinations", LazyMethod("network_manage_destinations", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "network_set_process_trust", LazyMethod("network_set_process_trust", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "network_stats", LazyMethod("network_stats", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "ocr_batch", LazyMethod("ocr_batch", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "ocr_create_searchable_pdf", LazyMethod("ocr_create_searchable_pdf", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "ocr_image", LazyMethod("ocr_image", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "ocr_inspect_file", LazyMethod("ocr_inspect_file", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "ocr_languages", LazyMethod("ocr_languages", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "ocr_preview_image", LazyMethod("ocr_preview_image", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "ocr_recognize_file", LazyMethod("ocr_recognize_file", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "ocr_recognize_image", LazyMethod("ocr_recognize_image", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "ocr_recognize_pdf", LazyMethod("ocr_recognize_pdf", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "ocr_scan_inputs", LazyMethod("ocr_scan_inputs", "app.web.api.tool_ocr", "OcrApiMixin"))
+setattr(WebApi, "palette_aggregate", LazyMethod("palette_aggregate", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_contrast", LazyMethod("palette_contrast", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_export_aco", LazyMethod("palette_export_aco", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_export_ase", LazyMethod("palette_export_ase", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_export_css", LazyMethod("palette_export_css", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_export_gpl", LazyMethod("palette_export_gpl", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_export_json", LazyMethod("palette_export_json", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_export_strip", LazyMethod("palette_export_strip", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_extract", LazyMethod("palette_extract", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_load_image", LazyMethod("palette_load_image", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_nearest_name", LazyMethod("palette_nearest_name", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "palette_sample_pixel", LazyMethod("palette_sample_pixel", "app.web.api.tool_palette", "PaletteApiMixin"))
+setattr(WebApi, "pdf_add_page_numbers", LazyMethod("pdf_add_page_numbers", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_assemble", LazyMethod("pdf_assemble", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_batch_operations", LazyMethod("pdf_batch_operations", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_compress", LazyMethod("pdf_compress", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_create_searchable_pdf", LazyMethod("pdf_create_searchable_pdf", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_delete_page", LazyMethod("pdf_delete_page", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_export_groups", LazyMethod("pdf_export_groups", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_extract_page", LazyMethod("pdf_extract_page", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_extract_single_page", LazyMethod("pdf_extract_single_page", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_extract_text", LazyMethod("pdf_extract_text", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_merge", LazyMethod("pdf_merge", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_merge_pages", LazyMethod("pdf_merge_pages", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_open_doc", LazyMethod("pdf_open_doc", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_page_numbers", LazyMethod("pdf_page_numbers", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_protect", LazyMethod("pdf_protect", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_query_rect", LazyMethod("pdf_query_rect", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_render_page", LazyMethod("pdf_render_page", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_reorder_pages", LazyMethod("pdf_reorder_pages", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_reorganize", LazyMethod("pdf_reorganize", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_rotate_page", LazyMethod("pdf_rotate_page", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_rotate_pages", LazyMethod("pdf_rotate_pages", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_save_annotated_page", LazyMethod("pdf_save_annotated_page", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_split", LazyMethod("pdf_split", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_thumbnails", LazyMethod("pdf_thumbnails", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_to_docx", LazyMethod("pdf_to_docx", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_unlock", LazyMethod("pdf_unlock", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "pdf_watermark", LazyMethod("pdf_watermark", "app.web.api.tool_pdf", "PdfApiMixin"))
+setattr(WebApi, "playlist_export_csv", LazyMethod("playlist_export_csv", "app.web.api.tool_playlist", "PlaylistApiMixin"))
+setattr(WebApi, "playlist_export_json", LazyMethod("playlist_export_json", "app.web.api.tool_playlist", "PlaylistApiMixin"))
+setattr(WebApi, "playlist_export_m3u8", LazyMethod("playlist_export_m3u8", "app.web.api.tool_playlist", "PlaylistApiMixin"))
+setattr(WebApi, "playlist_fetch", LazyMethod("playlist_fetch", "app.web.api.tool_playlist", "PlaylistApiMixin"))
+setattr(WebApi, "playlist_import_file", LazyMethod("playlist_import_file", "app.web.api.tool_playlist", "PlaylistApiMixin"))
+setattr(WebApi, "playlist_parse_text", LazyMethod("playlist_parse_text", "app.web.api.tool_playlist", "PlaylistApiMixin"))
+setattr(WebApi, "playlist_spotify_auth", LazyMethod("playlist_spotify_auth", "app.web.api.tool_playlist", "PlaylistApiMixin"))
+setattr(WebApi, "playlist_youtube_auth", LazyMethod("playlist_youtube_auth", "app.web.api.tool_playlist", "PlaylistApiMixin"))
+setattr(WebApi, "playlist_youtube_build", LazyMethod("playlist_youtube_build", "app.web.api.tool_playlist", "PlaylistApiMixin"))
+setattr(WebApi, "qr_build_payload", LazyMethod("qr_build_payload", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "qr_decode", LazyMethod("qr_decode", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "qr_decode_data_url", LazyMethod("qr_decode_data_url", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "qr_export_ics", LazyMethod("qr_export_ics", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "qr_generate", LazyMethod("qr_generate", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "qr_generate_barcode", LazyMethod("qr_generate_barcode", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "qr_generate_svg", LazyMethod("qr_generate_svg", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "qr_label_presets", LazyMethod("qr_label_presets", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "qr_label_sheet", LazyMethod("qr_label_sheet", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "query_jsonpath", LazyMethod("query_jsonpath", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "renamer_apply", LazyMethod("renamer_apply", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_consolidate", LazyMethod("renamer_consolidate", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_execute", LazyMethod("renamer_execute", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_find_new_files", LazyMethod("renamer_find_new_files", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_presets", LazyMethod("renamer_presets", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_preview", LazyMethod("renamer_preview", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_save_plan", LazyMethod("renamer_save_plan", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_save_preset", LazyMethod("renamer_save_preset", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_scan_inputs", LazyMethod("renamer_scan_inputs", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_sort_timeline", LazyMethod("renamer_sort_timeline", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "renamer_undo", LazyMethod("renamer_undo", "app.web.api.tool_renamer", "RenamerApiMixin"))
+setattr(WebApi, "render_markdown", LazyMethod("render_markdown", "app.web.api.tool_markdown", "MarkdownApiMixin"))
+setattr(WebApi, "resume_analyze_ats", LazyMethod("resume_analyze_ats", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_apply_profile", LazyMethod("resume_apply_profile", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_docx_fit", LazyMethod("resume_docx_fit", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_export", LazyMethod("resume_export", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_export_docx", LazyMethod("resume_export_docx", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_export_markdown", LazyMethod("resume_export_markdown", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_export_pdf", LazyMethod("resume_export_pdf", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_load_file", LazyMethod("resume_load_file", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_render_html", LazyMethod("resume_render_html", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_render_preview", LazyMethod("resume_render_preview", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_sample", LazyMethod("resume_sample", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_save_file", LazyMethod("resume_save_file", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "resume_save_profile", LazyMethod("resume_save_profile", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "text_case_transform", LazyMethod("text_case_transform", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "text_diff", LazyMethod("text_diff", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "text_line_ops", LazyMethod("text_line_ops", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "text_regex_replace", LazyMethod("text_regex_replace", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "text_tools_case", LazyMethod("text_tools_case", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "text_tools_cleanup", LazyMethod("text_tools_cleanup", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "text_tools_convert", LazyMethod("text_tools_convert", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "text_tools_diff", LazyMethod("text_tools_diff", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "text_tools_lines", LazyMethod("text_tools_lines", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "text_tools_regex_replace", LazyMethod("text_tools_regex_replace", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
+setattr(WebApi, "units_catalog", LazyMethod("units_catalog", "app.web.api.tool_unit_converter", "UnitConverterApiMixin"))
+setattr(WebApi, "units_compatible_table", LazyMethod("units_compatible_table", "app.web.api.tool_unit_converter", "UnitConverterApiMixin"))
+setattr(WebApi, "units_convert", LazyMethod("units_convert", "app.web.api.tool_unit_converter", "UnitConverterApiMixin"))
+setattr(WebApi, "units_expression", LazyMethod("units_expression", "app.web.api.tool_unit_converter", "UnitConverterApiMixin"))
+setattr(WebApi, "validate_json", LazyMethod("validate_json", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "word_counter_analyze", LazyMethod("word_counter_analyze", "app.web.api.tool_word_counter", "WordCounterApiMixin"))
+setattr(WebApi, "word_counter_analyze_file", LazyMethod("word_counter_analyze_file", "app.web.api.tool_word_counter", "WordCounterApiMixin"))
+setattr(WebApi, "word_counter_generate_report", LazyMethod("word_counter_generate_report", "app.web.api.tool_word_counter", "WordCounterApiMixin"))
 
-__all__ = ["WebApi"]
+def __getattr__(name: str) -> Any:
+    if name == "WebApi":
+        return WebApi
+    if name == "ArchiveApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_archive"), "ArchiveApiMixin")
+    if name == "CollageApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_collage"), "CollageApiMixin")
+    if name == "CompressorApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_compressor"), "CompressorApiMixin")
+    if name == "ConverterApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_converter"), "ConverterApiMixin")
+    if name == "DataApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_data"), "DataApiMixin")
+    if name == "EncodingApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_encoding"), "EncodingApiMixin")
+    if name == "ImagesApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_images"), "ImagesApiMixin")
+    if name == "MarkdownApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_markdown"), "MarkdownApiMixin")
+    if name == "MediaApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_media"), "MediaApiMixin")
+    if name == "MetadataApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_metadata"), "MetadataApiMixin")
+    if name == "Model3dApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_model3d"), "Model3dApiMixin")
+    if name == "NetworkMonitorApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_network_monitor"), "NetworkMonitorApiMixin")
+    if name == "OcrApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_ocr"), "OcrApiMixin")
+    if name == "PaletteApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_palette"), "PaletteApiMixin")
+    if name == "PdfApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_pdf"), "PdfApiMixin")
+    if name == "PlaylistApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_playlist"), "PlaylistApiMixin")
+    if name == "QrApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_qr"), "QrApiMixin")
+    if name == "RenamerApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_renamer"), "RenamerApiMixin")
+    if name == "ResumeApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_resume"), "ResumeApiMixin")
+    if name == "TextToolsApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_text_tools"), "TextToolsApiMixin")
+    if name == "UnitConverterApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_unit_converter"), "UnitConverterApiMixin")
+    if name == "WordCounterApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_word_counter"), "WordCounterApiMixin")
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+def __dir__() -> list[str]:
+    return ["WebApi", "ArchiveApiMixin", "CollageApiMixin", "CompressorApiMixin", "ConverterApiMixin", "DataApiMixin", "EncodingApiMixin", "ImagesApiMixin", "MarkdownApiMixin", "MediaApiMixin", "MetadataApiMixin", "Model3dApiMixin", "NetworkMonitorApiMixin", "OcrApiMixin", "PaletteApiMixin", "PdfApiMixin", "PlaylistApiMixin", "QrApiMixin", "RenamerApiMixin", "ResumeApiMixin", "TextToolsApiMixin", "UnitConverterApiMixin", "WordCounterApiMixin", ]
+
+__all__ = ["WebApi", "ArchiveApiMixin", "CollageApiMixin", "CompressorApiMixin", "ConverterApiMixin", "DataApiMixin", "EncodingApiMixin", "ImagesApiMixin", "MarkdownApiMixin", "MediaApiMixin", "MetadataApiMixin", "Model3dApiMixin", "NetworkMonitorApiMixin", "OcrApiMixin", "PaletteApiMixin", "PdfApiMixin", "PlaylistApiMixin", "QrApiMixin", "RenamerApiMixin", "ResumeApiMixin", "TextToolsApiMixin", "UnitConverterApiMixin", "WordCounterApiMixin", ]
+
