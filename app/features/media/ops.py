@@ -712,7 +712,11 @@ def compose_media_with_audio(
         filter_with_label = f"{filter_expr}[aout]"
         cmd += ["-filter_complex", filter_with_label, "-map", "0:v:0", "-map", "[aout]", "-shortest", "-c:v", "libx264", "-c:a", "aac", output_path]
         if scale is not None:
-            cmd = [ffmpeg, "-y", "-i", temp_video, "-i", temp_audio, "-filter_complex", f"[0:v]scale={scale[0]}:{scale[1]}[v];[1:a]volume={volume_value}{f',afade=t=in:st=0:d={fade_in}' if fade_in > 0 else ''}{f',afade=t=out:st={max(0.0, get_media_info(temp_audio).get('duration_sec', 0.0) - fade_out)}:d={fade_out}' if fade_out > 0 else ''}[aout]", "-map", "[v]", "-map", "[aout]", "-shortest", "-c:v", "libx264", "-c:a", "aac", output_path]
+            fade_in_str = f",afade=t=in:st=0:d={fade_in}" if fade_in > 0 else ""
+            out_st = max(0.0, get_media_info(temp_audio).get("duration_sec", 0.0) - fade_out)
+            fade_out_str = f",afade=t=out:st={out_st}:d={fade_out}" if fade_out > 0 else ""
+            filter_str = f"[0:v]scale={scale[0]}:{scale[1]}[v];[1:a]volume={volume_value}{fade_in_str}{fade_out_str}[aout]"
+            cmd = [ffmpeg, "-y", "-i", temp_video, "-i", temp_audio, "-filter_complex", filter_str, "-map", "[v]", "-map", "[aout]", "-shortest", "-c:v", "libx264", "-c:a", "aac", output_path]
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
             raise RuntimeError(f"FFmpeg composition failed:\n{res.stderr}")

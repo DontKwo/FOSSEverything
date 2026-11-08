@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# FOSSEverything — one-command dev install and launch (macOS / Linux).
+# FOSSEverything - one-command dev install and launch (macOS / Linux).
 # Installs uv if missing (uv then provisions the right Python itself), syncs
 # dependencies, and runs the app. No pre-existing Python install required.
 set -e

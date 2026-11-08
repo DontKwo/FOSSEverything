@@ -87,10 +87,10 @@ def run_selftest(window: webview.Window) -> None:
 
 def main() -> None:
     # Desktop application entry point.
-    if "--register-shell" in sys.argv:
+    if "--register-shell" in sys.argv or "--install-desktop" in sys.argv:
         register_shell_context_menu()
         return
-    if "--unregister-shell" in sys.argv:
+    if "--unregister-shell" in sys.argv or "--uninstall-desktop" in sys.argv:
         unregister_shell_context_menu()
         return
 

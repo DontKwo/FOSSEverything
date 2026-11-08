@@ -11,10 +11,10 @@ FOSSEverything is an offline desktop utility suite for editing documents, media,
 
 ## quick start
 
-### Portable Binaries
-Standalone packages bundle a dedicated Python runtime with all core dependencies.
-- **Windows:** Download `FOSSEverything-Setup.exe` from [Releases](https://github.com/DontKwo/FOSSEverything/releases) and execute the installer.
-- **macOS / Linux:** Download the standalone `FOSSEverything` executable from [Releases](https://github.com/DontKwo/FOSSEverything/releases) and run `./FOSSEverything`.
+### Portable Binaries & Distributables
+Standalone packages bundle a dedicated runtime with all core dependencies and require zero setup.
+- **Windows:** Download `FOSSEverything-Setup.exe` (or `FOSSEverything-Portable-win64.zip`) from [Releases](https://github.com/DontKwo/FOSSEverything/releases). The setup wizard installs Start Menu and Desktop shortcuts.
+- **Linux:** Download `FOSSEverything-Portable-linux64.tar.gz` from [Releases](https://github.com/DontKwo/FOSSEverything/releases). Extract and run `./install.sh` (or `./FOSSEverything --install-desktop`) to register the application launcher shortcut with the high-resolution app icon.
 
 ### Run From Source
 Prerequisites: [uv](https://astral.sh/uv) and Python 3.11+.
@@ -33,6 +33,15 @@ Helper launch scripts are also provided:
 ./setup.sh        # macOS / Linux
 .\setup.ps1       # Windows PowerShell
 ```
+
+### Developer vs. Packaged Distributable Coexistence
+Developers often run both the cloned Git repo via `uv run python main.py` and have the packaged standalone binary installed. Both workflows are designed to coexist cleanly:
+- **Shared Offline Configuration:** User preferences (themes, UI scaling, tool settings) reside in `~/.fosseverything/settings.json`, remaining consistent whether launched from source or via the packaged executable.
+- **Single-Instance Routing:** If an instance is already running (either development or packaged), subsequent launches automatically forward opened files to the active window via local socket IPC (`127.0.0.1:47891`).
+- **Updates:**
+  - *Source installs* update dynamically via `git pull && uv sync`.
+  - *Packaged binaries* update via GitHub Releases. The automated CI/CD workflow builds fresh release assets for Windows and Linux on new merges and pull requests.
+- **Desktop Launchers & Shortcuts:** On Windows, the installer creates system Start Menu and Desktop shortcuts. On Linux, running `FOSSEverything --install-desktop` installs `fosseverything.desktop` into `~/.local/share/applications` and registers high-resolution app icons into `~/.local/share/icons/hicolor/256x256/apps/`.
 
 ---
 

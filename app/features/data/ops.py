@@ -726,7 +726,8 @@ def markdown_to_html(markdown_text: str) -> str:
             if not in_ol:
                 html_lines.append("<ol>")
                 in_ol = True
-            html_lines.append(f"<li>{inline_format(html.escape(re.sub(r'^\d+\.\s+', '', line)))}</li>")
+            clean_item = re.sub(r"^\d+\.\s+", "", line)
+            html_lines.append(f"<li>{inline_format(html.escape(clean_item))}</li>")
             continue
         flush_list("")
         if line.strip():
