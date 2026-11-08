@@ -26,7 +26,7 @@ Search functionality operates completely offline without AI or cloud dependencie
 
 All frontend assets are static and served directly:
 - **Location**: `app/web/`
-- **Components**: `index.html` serves as the single-page application host, `js/` contains module logic separated by component (e.g., `js/tools/`, `js/core/`), and `css/` houses stylesheet modules.
+- **Components**: `index.html` is the single-page application host, `js/` contains module logic separated by component (e.g., `js/tools/`, `js/core/`), and `css/` houses stylesheet modules.
 - **No Build Step**: JS and CSS are loaded as-is without transpilation or minification steps in the source repo, allowing direct edits to take effect immediately in development (`main.py --dev`).
 
 ## API Endpoints
