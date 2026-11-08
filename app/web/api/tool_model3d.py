@@ -3,18 +3,6 @@ from typing import Any
 
 import numpy as np
 
-from app.features.model3d.ops import (
-    CAD_INSTALL_HINT,
-    Model3D,
-    cut_multi,
-    export,
-    info,
-    load,
-    measure_distance,
-    repair,
-    scale,
-    tessellated_preview,
-)
 from app.web.api.result import api_method, ok, require
 
 
@@ -22,6 +10,8 @@ class Model3dApiMixin:
     @api_method
     def model3d_info(self, params: dict[str, Any]) -> dict[str, Any]:
         # Return geometry bounding box, volume, vertex count, and watertight status.
+        from app.features.model3d.ops import CAD_INSTALL_HINT, Model3D, info, load
+
         require(params, "file_path")
         file_path = str(params["file_path"])
         model_data: Model3D = load(file_path)
@@ -31,6 +21,8 @@ class Model3dApiMixin:
     @api_method
     def model3d_load(self, params: dict[str, Any]) -> dict[str, Any]:
         # Load 3D model and return serialized mesh coordinates.
+        from app.features.model3d.ops import info, load, tessellated_preview
+
         require(params, "file_path")
         file_path = str(params["file_path"])
         model_data = load(file_path)
@@ -57,6 +49,8 @@ class Model3dApiMixin:
     @api_method
     def model3d_cut(self, params: dict[str, Any]) -> dict[str, Any]:
         # Slice 3D model across one or more geometric cutting planes.
+        from app.features.model3d.ops import cut_multi, export, info, load
+
         require(params, "file_path", "planes", "output_dir")
         file_path = str(params["file_path"])
         planes_list = list(params["planes"])
@@ -86,6 +80,8 @@ class Model3dApiMixin:
     @api_method
     def model3d_repair(self, params: dict[str, Any]) -> dict[str, Any]:
         # Repair non-manifold edges, invert normals, and fix holes in mesh.
+        from app.features.model3d.ops import export, info, load, repair
+
         require(params, "file_path", "output_path")
         file_path = str(params["file_path"])
         output_path = str(params["output_path"])
@@ -103,6 +99,8 @@ class Model3dApiMixin:
     @api_method
     def model3d_scale(self, params: dict[str, Any]) -> dict[str, Any]:
         # Rescale model dimensions by uniform or axis-specific factors.
+        from app.features.model3d.ops import export, info, load, scale
+
         require(params, "file_path", "output_path")
         file_path = str(params["file_path"])
         output_path = str(params["output_path"])
@@ -129,6 +127,8 @@ class Model3dApiMixin:
     @api_method
     def model3d_measure(self, params: dict[str, Any]) -> dict[str, Any]:
         # Calculate Euclidean distance between two selected 3D coordinates.
+        from app.features.model3d.ops import measure_distance
+
         require(params, "p1", "p2")
         point_1 = tuple(float(coord_val) for coord_val in params["p1"])
         point_2 = tuple(float(coord_val) for coord_val in params["p2"])
@@ -138,6 +138,8 @@ class Model3dApiMixin:
     @api_method
     def model3d_export(self, params: dict[str, Any]) -> dict[str, Any]:
         # Convert and export 3D model to STL, OBJ, or PLY format.
+        from app.features.model3d.ops import export, load
+
         require(params, "file_path", "output_path")
         file_path = str(params["file_path"])
         output_path = str(params["output_path"])
@@ -149,6 +151,8 @@ class Model3dApiMixin:
     @api_method
     def model3d_center_origin(self, params: dict[str, Any]) -> dict[str, Any]:
         # Re-center geometry at origin (0, 0, 0) and export centered mesh.
+        from app.features.model3d.ops import export, info, load
+
         require(params, "file_path", "output_path")
         file_path = str(params["file_path"])
         output_path = str(params["output_path"])
