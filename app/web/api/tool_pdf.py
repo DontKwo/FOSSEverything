@@ -1,22 +1,42 @@
 import base64
 import os
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.features.pdf.ops import BatchPdfItem
-    from app.features.ocr.ops import create_searchable_pdf, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.features.pdf.ops import BatchPdfItem
-    from app.features.ocr.ops import create_searchable_pdf, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.features.pdf.ops import BatchPdfItem
-    from app.features.ocr.ops import create_searchable_pdf
+from typing import Any
 
 import pymupdf
 
+from app.features.ocr.ops import create_searchable_pdf
+from app.features.pdf.ops import (
+    BatchPdfItem,
+    PAGE_IMAGE_FORMATS,
+    add_page_numbers,
+    add_pdf_watermark,
+    assemble_pdf_workspace,
+    bake_annotations,
+    batch_add_image_watermark,
+    batch_add_pdf_watermark,
+    batch_compress_pdfs,
+    batch_protect_pdfs,
+    break_pdf_into_pages,
+    compress_pdf,
+    convert_scanned_pdf_to_docx,
+    export_pdf_groups,
+    export_pdf_pages,
+    merge_pdfs,
+    open_pdf,
+    page_count,
+    parse_split_ranges,
+    pdf_needs_ocr,
+    protect_pdf,
+    render_pdf_thumbnails,
+    reorganize_pdf_pages,
+    save_annotated_pdf,
+    save_pdf_text,
+    split_pdf,
+    text_in_line_range,
+    text_in_rect,
+    unlock_pdf,
+)
 from app.web.api.result import api_method, fail, ok, require
 
 
@@ -418,13 +438,21 @@ class PdfApiMixin:
         file_path = str(params["file_path"])
         page_num = int(params["page_number"])
         doc = open_pdf(file_path)
-        page = doc[page_num]
-        rect = params.get("rect")
-        if rect:
-            txt = text_in_rect(page, rect)
-        else:
-            txt = text_in_line_range(page, int(params.get("start_line", 0)), int(params.get("end_line", 100)))
-        doc.close()
+        try:
+            rect = params.get("rect")
+            if rect:
+                txt, words = text_in_rect(doc, page_num, tuple(rect))
+            else:
+                txt, words = text_in_line_range(
+                    doc,
+                    page_num,
+                    start_x=params.get("start_x"),
+                    start_y=params.get("start_y"),
+                    end_x=params.get("end_x"),
+                    end_y=params.get("end_y"),
+                )
+        finally:
+            doc.close()
         return ok(text=txt)
 
     @api_method

@@ -4,10 +4,9 @@ import json
 import math
 import os
 from collections import deque
-from typing import Any, TYPE_CHECKING
+from typing import Any
 
-if TYPE_CHECKING:
-    import h5py
+import h5py
 
 import numpy as np
 
