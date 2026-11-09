@@ -18,8 +18,8 @@ def build(onefile: bool = False) -> None:
     print(f"Entry Point:  {ENTRY_POINT}")  # noqa: 25 (CLI status output, not debug)
     print()  # noqa: 25 (CLI status output, not debug)
 
-    print("Running pre-build test suite (pytest --ignore=tests/ui -q)...")  # noqa: 25
-    test_res = subprocess.run([sys.executable, "-m", "pytest", "--ignore=tests/ui", "-q"], cwd=ROOT_DIR)
+    print("Running pre-build test suite (pytest -q)...")  # noqa: 25
+    test_res = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=ROOT_DIR)
     if test_res.returncode != 0:
         print("PRE-BUILD TESTS FAILED. Aborting build.")  # noqa: 25
         sys.exit(test_res.returncode)

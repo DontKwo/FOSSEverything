@@ -5,7 +5,9 @@ from typing import Any
 
 import pymupdf
 
-from app.features.ocr.ops import create_searchable_pdf
+from app.features.ocr.ops import (
+    create_searchable_pdf,
+)
 from app.features.pdf.ops import (
     BatchPdfItem,
     PAGE_IMAGE_FORMATS,
@@ -427,21 +429,13 @@ class PdfApiMixin:
         file_path = str(params["file_path"])
         page_num = int(params["page_number"])
         doc = open_pdf(file_path)
-        try:
-            rect = params.get("rect")
-            if rect:
-                txt, words = text_in_rect(doc, page_num, tuple(rect))
-            else:
-                txt, words = text_in_line_range(
-                    doc,
-                    page_num,
-                    start_x=params.get("start_x"),
-                    start_y=params.get("start_y"),
-                    end_x=params.get("end_x"),
-                    end_y=params.get("end_y"),
-                )
-        finally:
-            doc.close()
+        page = doc[page_num]
+        rect = params.get("rect")
+        if rect:
+            txt = text_in_rect(page, rect)
+        else:
+            txt = text_in_line_range(page, int(params.get("start_line", 0)), int(params.get("end_line", 100)))
+        doc.close()
         return ok(text=txt)
 
     @api_method
