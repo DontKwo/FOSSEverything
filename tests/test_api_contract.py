@@ -194,3 +194,79 @@ def test_job_lifecycle() -> None:
     cid = start_cancel["id"]
     cancel_res = api.job_cancel({"id": cid})
     assert cancel_res.get("ok") is True
+
+
+def test_mixin_helper_methods_and_error_free_execution(tmp_path: Path) -> None:
+    # Verify helper methods exist on WebApi and calling endpoints never causes NameError or AttributeError.
+    api = WebApi()
+    assert hasattr(api, "_get_monitor"), "WebApi is missing _get_monitor helper"
+    assert hasattr(WebApi, "_get_monitor"), "WebApi class is missing _get_monitor descriptor"
+
+    # All callable members of ALL_MIXINS must be accessible on WebApi.
+    missing_from_webapi: list[str] = []
+    for cls in ALL_MIXINS:
+        for attr, fn in cls.__dict__.items():
+            if attr.startswith("__"):
+                continue
+            if callable(fn) and not hasattr(api, attr):
+                missing_from_webapi.append(f"{cls.__name__}.{attr}")
+
+    assert not missing_from_webapi, "Mixins declare methods missing from WebApi:\n" + "\n".join(missing_from_webapi)
+
+    # Use an isolated temporary file to avoid touching tests/test_data
+    scratch_file = tmp_path / "scratch.txt"
+    scratch_file.write_text("sample content", encoding="utf-8")
+
+    sample_params = {
+        "file_path": str(scratch_file),
+        "path": str(scratch_file),
+        "paths": [str(scratch_file)],
+        "output_path": str(tmp_path / "out.txt"),
+        "content": '{"key": "value"}',
+        "text": "sample text",
+        "markdown": "# Header\nContent",
+        "expression": "*/5 * * * *",
+        "source_format": "json",
+        "target_format": "yaml",
+        "language": "json",
+        "format": "json",
+        "operation": "reverse_words",
+        "category": "hex",
+        "metadata": {"title": "Test"},
+        "style": "apa",
+        "entries": [{"title": "Test"}],
+        "pattern": "foo",
+        "replacement": "bar",
+        "value": 1.0,
+        "from_unit": "m",
+        "to_unit": "km",
+        "source_unit": "m",
+        "target_unit": "km",
+        "title": "Title",
+        "start_time": "2026-01-01T00:00:00",
+        "destination": "8.8.8.8",
+        "process_name": "python",
+        "trust_level": "trusted",
+        "page_number": 0,
+    }
+
+    bugs: list[str] = []
+    for name in dir(api):
+        if name.startswith("_"):
+            continue
+        method = getattr(api, name)
+        if not callable(method):
+            continue
+        try:
+            res = method(sample_params)
+            if isinstance(res, dict) and not res.get("ok"):
+                code = res.get("code", "")
+                err = res.get("error", "")
+                if code in ("NameError", "AttributeError", "UnboundLocalError"):
+                    bugs.append(f"{name}: {code} - {err}")
+        except (NameError, AttributeError, UnboundLocalError) as exc:
+            bugs.append(f"{name} raised unhandled {type(exc).__name__}: {exc}")
+        except Exception:
+            pass
+
+    assert not bugs, "Internal name resolution or attribute errors detected:\n" + "\n".join(bugs)

@@ -1,29 +1,48 @@
 import base64
 import os
 from pathlib import Path
-from typing import Any, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.features.pdf.ops import BatchPdfItem
-    from app.features.ocr.ops import create_searchable_pdf, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.features.pdf.ops import BatchPdfItem
-    from app.features.ocr.ops import create_searchable_pdf, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from app.features.pdf.ops import BatchPdfItem
-    from app.features.ocr.ops import create_searchable_pdf
+from typing import Any
 
 import pymupdf
 
+from app.features.ocr.ops import create_searchable_pdf
+from app.features.pdf.ops import (
+    BatchPdfItem,
+    PAGE_IMAGE_FORMATS,
+    add_page_numbers,
+    add_pdf_watermark,
+    assemble_pdf_workspace,
+    bake_annotations,
+    batch_add_image_watermark,
+    batch_add_pdf_watermark,
+    batch_compress_pdfs,
+    batch_protect_pdfs,
+    break_pdf_into_pages,
+    compress_pdf,
+    convert_scanned_pdf_to_docx,
+    export_pdf_groups,
+    export_pdf_pages,
+    merge_pdfs,
+    open_pdf,
+    page_count,
+    parse_split_ranges,
+    pdf_needs_ocr,
+    protect_pdf,
+    render_pdf_thumbnails,
+    reorganize_pdf_pages,
+    save_annotated_pdf,
+    save_pdf_text,
+    split_pdf,
+    text_in_line_range,
+    text_in_rect,
+    unlock_pdf,
+)
 from app.web.api.result import api_method, fail, ok, require
 
 
 class PdfApiMixin:
     @api_method
     def pdf_open_doc(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import open_pdf, page_count, pdf_needs_ocr, PAGE_IMAGE_FORMATS
         # Open PDF document and return page count and metadata.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -143,13 +162,11 @@ class PdfApiMixin:
 
     @api_method
     def pdf_reorganize(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import reorganize_pdf_pages
         # Alias for page reordering.
         return self.pdf_reorder_pages(params)
 
     @api_method
     def pdf_merge(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import merge_pdfs
         # Merge multiple PDF documents into single PDF.
         require(params, "file_paths", "output_path")
         paths = list(params["file_paths"])
@@ -221,7 +238,6 @@ class PdfApiMixin:
 
     @api_method
     def pdf_split(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import split_pdf, parse_split_ranges
         # Split PDF by page ranges or individual pages.
         require(params, "file_path", "output_dir")
         file_path = str(params["file_path"])
@@ -245,7 +261,6 @@ class PdfApiMixin:
 
     @api_method
     def pdf_compress(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import compress_pdf
         # Compress PDF document to reduce file size.
         file_path = str(params.get("file_path") or params.get("input_path") or "")
         if not file_path:
@@ -271,7 +286,6 @@ class PdfApiMixin:
 
     @api_method
     def pdf_extract_text(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import save_pdf_text
         # Extract plain text content from PDF document.
         require(params, "file_path")
         file_path = str(params["file_path"])
@@ -288,7 +302,6 @@ class PdfApiMixin:
 
     @api_method
     def pdf_watermark(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import add_pdf_watermark
         # Apply text watermark across all pages of PDF.
         require(params, "file_path", "output_path", "text")
         file_path = str(params["file_path"])
@@ -301,7 +314,6 @@ class PdfApiMixin:
 
     @api_method
     def pdf_protect(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import protect_pdf
         # Password protect and encrypt PDF document.
         require(params, "file_path", "output_path", "password")
         file_path = str(params["file_path"])
@@ -314,7 +326,6 @@ class PdfApiMixin:
 
     @api_method
     def pdf_unlock(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import unlock_pdf
         # Unlock password-protected PDF document.
         require(params, "file_path", "output_path", "password")
         file_path = str(params["file_path"])
@@ -336,7 +347,6 @@ class PdfApiMixin:
 
     @api_method
     def pdf_page_numbers(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import add_page_numbers
         # Alias for adding page numbers.
         return self.pdf_add_page_numbers(params)
 
@@ -366,7 +376,6 @@ class PdfApiMixin:
 
     @api_method
     def pdf_to_docx(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import convert_scanned_pdf_to_docx
         # Convert scanned or digital PDF document to editable DOCX.
         require(params, "file_path", "output_path")
         file_path = str(params["file_path"])
@@ -418,13 +427,21 @@ class PdfApiMixin:
         file_path = str(params["file_path"])
         page_num = int(params["page_number"])
         doc = open_pdf(file_path)
-        page = doc[page_num]
-        rect = params.get("rect")
-        if rect:
-            txt = text_in_rect(page, rect)
-        else:
-            txt = text_in_line_range(page, int(params.get("start_line", 0)), int(params.get("end_line", 100)))
-        doc.close()
+        try:
+            rect = params.get("rect")
+            if rect:
+                txt, words = text_in_rect(doc, page_num, tuple(rect))
+            else:
+                txt, words = text_in_line_range(
+                    doc,
+                    page_num,
+                    start_x=params.get("start_x"),
+                    start_y=params.get("start_y"),
+                    end_x=params.get("end_x"),
+                    end_y=params.get("end_y"),
+                )
+        finally:
+            doc.close()
         return ok(text=txt)
 
     @api_method
@@ -452,7 +469,6 @@ class PdfApiMixin:
 
     @api_method
     def pdf_export_groups(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.pdf.ops import export_pdf_groups
         # Export named page groups into separate PDF files.
         require(params, "sources", "groups", "output_dir")
         sources = dict(params["sources"])

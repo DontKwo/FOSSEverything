@@ -7,6 +7,7 @@ from collections import deque
 from typing import Any
 
 import h5py
+
 import numpy as np
 
 MAX_CHILDREN_PAGE = 500
@@ -28,14 +29,16 @@ class Hdf5Error(ValueError):
 
 def is_hdf5_file(file_path: str) -> bool:
     # Check the HDF5 signature with h5py.
+    import h5py
     try:
         return bool(os.path.isfile(file_path) and h5py.is_hdf5(file_path))
     except H5_ERRORS:
         return False
 
 
-def _open_file(file_path: str) -> h5py.File:
+def _open_file(file_path: str) -> 'h5py.File':
     # Open a file read-only or raise a clean Hdf5Error.
+    import h5py
     if not os.path.exists(file_path):
         raise Hdf5Error(f"File not found: {file_path}")
     if not is_hdf5_file(file_path):
@@ -77,6 +80,7 @@ def _ref_text(ref: Any, hf: Any) -> str:
 
 def _json_value(value: Any, hf: Any = None) -> Any:
     # Convert numpy and h5py values into JSON-safe primitives.
+    import h5py
     if isinstance(value, h5py.Empty):
         return "<empty>"
     if isinstance(value, (bytes, np.bytes_)):
@@ -110,6 +114,7 @@ def _json_value(value: Any, hf: Any = None) -> Any:
 
 def _describe_dtype(dt: np.dtype) -> dict[str, Any]:
     # Describe a dtype with kind, label, and enum or compound details.
+    import h5py
     string_info = h5py.check_string_dtype(dt)
     enum_map = h5py.check_enum_dtype(dt)
     vlen_base = h5py.check_vlen_dtype(dt)
@@ -157,6 +162,7 @@ def _describe_dtype(dt: np.dtype) -> dict[str, Any]:
 
 def _read_attributes(obj: Any, hf: Any) -> list[dict[str, Any]]:
     # Read every attribute of an object, clipping large arrays.
+    import h5py
     items: list[dict[str, Any]] = []
     for name in obj.attrs.keys():
         entry: dict[str, Any] = {"name": str(name)}
@@ -180,6 +186,7 @@ def _read_attributes(obj: Any, hf: Any) -> list[dict[str, Any]]:
 
 def _link_info(grp: Any, name: str) -> dict[str, Any]:
     # Describe how a member is linked into its parent group.
+    import h5py
     link = grp.get(name, getlink=True)
     if isinstance(link, h5py.SoftLink):
         return {"type": "soft", "target": link.path}
@@ -198,6 +205,7 @@ def _resolve(grp: Any, name: str) -> Any:
 
 def _summarize(parent_path: str, name: str, obj: Any, link: dict[str, Any]) -> dict[str, Any]:
     # Build the compact tree row for one member.
+    import h5py
     node: dict[str, Any] = {"name": name, "path": _join_path(parent_path, name), "link": link, "broken": obj is None}
     if obj is None:
         node.update(kind="link", expandable=False)
@@ -213,6 +221,7 @@ def _summarize(parent_path: str, name: str, obj: Any, link: dict[str, Any]) -> d
 
 def _get_group(hf: Any, path: str) -> Any:
     # Open a group by path or raise Hdf5Error.
+    import h5py
     try:
         obj = hf[path]
     except H5_ERRORS as exc:
@@ -224,6 +233,7 @@ def _get_group(hf: Any, path: str) -> Any:
 
 def _get_dataset(hf: Any, path: str) -> Any:
     # Open a dataset by path or raise Hdf5Error.
+    import h5py
     try:
         obj = hf[path]
     except H5_ERRORS as exc:
@@ -264,6 +274,7 @@ def list_hdf5_children(file_path: str, path: str = "/", offset: int = 0, limit: 
 
 def _dataset_details(ds: Any, hf: Any) -> dict[str, Any]:
     # Collect shape, storage, filter, and dtype properties of a dataset.
+    import h5py
     desc = _describe_dtype(ds.dtype)
     plist = ds.id.get_create_plist()
     layouts = {h5py.h5d.COMPACT: "compact", h5py.h5d.CONTIGUOUS: "contiguous", h5py.h5d.CHUNKED: "chunked", h5py.h5d.VIRTUAL: "virtual"}
@@ -462,6 +473,7 @@ def preview_hdf5_dataset(
 
 def search_hdf5(file_path: str, query: str, limit: int = 200) -> dict[str, Any]:
     # Find members whose path contains the query text.
+    import h5py
     needle = str(query or "").strip().lower()
     cap = max(1, min(int(limit), 1000))
     matches: list[dict[str, Any]] = []
@@ -514,6 +526,7 @@ def _inline_preview(ds: Any) -> Any:
 
 def inspect_hdf5(file_path: str) -> dict[str, Any]:
     # Walk the file into a bounded hierarchical tree for generic structure views.
+    import h5py
     counts = {"groups": 0, "datasets": 0, "attributes": 0, "nodes": 0}
     truncated = False
 
