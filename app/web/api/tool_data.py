@@ -42,11 +42,20 @@ from app.features.data.ops import (
     validate_against_schema,
     validate_syntax,
 )
+from app.web.api.data_structure import inspect_data_structure
+from app.web.api.hdf5_reader import (
+    Hdf5Error,
+    describe_hdf5_node,
+    export_hdf5_slice,
+    list_hdf5_children,
+    open_hdf5,
+    preview_hdf5_dataset,
+    search_hdf5,
+)
 from app.web.api.result import api_method, fail, ok, require
 
 
 def _hdf5_result(func: Callable[..., dict[str, Any]], *args: Any, **kwargs: Any) -> dict[str, Any]:
-    from app.web.api.hdf5_reader import Hdf5Error
     # Run an HDF5 reader call and turn reader errors into a clean failure dict.
     try:
         return ok(**func(*args, **kwargs))
@@ -57,7 +66,6 @@ def _hdf5_result(func: Callable[..., dict[str, Any]], *args: Any, **kwargs: Any)
 class DataApiMixin:
     @api_method
     def data_convert_format(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import convert_data_format
         # Convert data between JSON, YAML, XML, TOML, and CSV formats.
         require(params, "content", "source_format", "target_format")
         res = convert_data_format(
@@ -117,7 +125,6 @@ class DataApiMixin:
 
     @api_method
     def format_json(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import format_json
         # Format JSON text.
         require(params, "content")
         return ok(
@@ -128,14 +135,12 @@ class DataApiMixin:
 
     @api_method
     def format_sql(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import format_sql
         # Format SQL query string.
         require(params, "content")
         return ok(result=format_sql(str(params["content"])))
 
     @api_method
     def format_css(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import format_css
         # Format CSS stylesheet string.
         require(params, "content")
         return ok(
@@ -146,7 +151,6 @@ class DataApiMixin:
 
     @api_method
     def format_javascript(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import format_javascript
         # Format JavaScript source text.
         require(params, "content")
         return ok(result=format_javascript(str(params["content"])))
@@ -158,7 +162,6 @@ class DataApiMixin:
 
     @api_method
     def format_xml(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import format_xml
         # Format XML document string.
         require(params, "content")
         return ok(
@@ -169,7 +172,6 @@ class DataApiMixin:
 
     @api_method
     def format_yaml(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import format_yaml
         # Format YAML document string.
         require(params, "content")
         return ok(
@@ -201,14 +203,12 @@ class DataApiMixin:
 
     @api_method
     def minify_json(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import minify_json
         # Minify JSON string.
         require(params, "content")
         return ok(result=minify_json(str(params["content"])))
 
     @api_method
     def data_validate_syntax(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import validate_syntax
         # Validate syntax of data formats (json, yaml, xml, toml, csv, sql).
         require(params, "content", "format")
         valid, msg, line = validate_syntax(
@@ -218,7 +218,6 @@ class DataApiMixin:
 
     @api_method
     def validate_json(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import validate_against_schema
         # Validate JSON syntax alias.
         valid, msg, line = validate_syntax(str(params.get("content", "")), "json")
         return ok(valid=valid, message=msg, line=line)
@@ -232,7 +231,6 @@ class DataApiMixin:
 
     @api_method
     def query_jsonpath(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import query_jsonpath
         # Alias for JSONPath querying.
         return self.data_query_jsonpath(params)
 
@@ -253,7 +251,6 @@ class DataApiMixin:
 
     @api_method
     def infer_json_schema(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.features.data.ops import infer_json_schema
         # Alias for schema inference.
         return self.data_infer_schema(params)
 
@@ -301,8 +298,7 @@ class DataApiMixin:
 
     @api_method
     def data_inspect_structure(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.web.api.data_structure import inspect_data_structure
-                        # Analyze and explain hierarchical schema, keys, types, and values of a data file.
+        # Analyze and explain hierarchical schema, keys, types, and values of a data file.
         res = inspect_data_structure(
             file_path=params.get("file_path"),
             content=params.get("content"),
@@ -312,7 +308,6 @@ class DataApiMixin:
 
     @api_method
     def data_hdf5_export_slice(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.web.api.hdf5_reader import export_hdf5_slice
         # Extract sliced multidimensional data from HDF5 and export to CSV, JSON, or NPY.
         require(params, "file_path", "dataset_path", "output_path")
         file_path = str(params["file_path"])
@@ -324,14 +319,12 @@ class DataApiMixin:
 
     @api_method
     def data_hdf5_open(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.web.api.hdf5_reader import open_hdf5
         # Open an HDF5 file and return file metadata with the first page of root members.
         require(params, "file_path")
         return _hdf5_result(open_hdf5, str(params["file_path"]))
 
     @api_method
     def data_hdf5_children(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.web.api.hdf5_reader import list_hdf5_children
         # List one page of members of an HDF5 group for lazy tree expansion.
         require(params, "file_path")
         return _hdf5_result(
@@ -344,14 +337,12 @@ class DataApiMixin:
 
     @api_method
     def data_hdf5_node(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.web.api.hdf5_reader import describe_hdf5_node
         # Describe an HDF5 node with attributes, storage, filters, dtype, and link target.
         require(params, "file_path")
         return _hdf5_result(describe_hdf5_node, str(params["file_path"]), str(params.get("path", "/")))
 
     @api_method
     def data_hdf5_preview(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.web.api.hdf5_reader import preview_hdf5_dataset
         # Read a bounded row and column window of an HDF5 dataset with numeric statistics.
         require(params, "file_path", "path")
         raw_index = params.get("index")
@@ -370,7 +361,6 @@ class DataApiMixin:
 
     @api_method
     def data_hdf5_search(self, params: dict[str, Any]) -> dict[str, Any]:
-        from app.web.api.hdf5_reader import search_hdf5
         # Search HDF5 member paths for a substring.
         require(params, "file_path", "query")
         return _hdf5_result(search_hdf5, str(params["file_path"]), str(params["query"]), int(params.get("limit", 200)))
