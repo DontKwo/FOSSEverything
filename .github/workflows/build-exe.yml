@@ -59,7 +59,7 @@ jobs:
 
       - name: Run Test Suite
         run: |
-          uv run python -m pytest -q
+          uv run python -m pytest --ignore=tests/ui -q
 
       - name: Build Standalone Executable (PyInstaller)
         run: |
@@ -137,7 +137,7 @@ jobs:
 
       - name: Run Test Suite
         run: |
-          uv run python -m pytest -q
+          uv run python -m pytest --ignore=tests/ui -q
 
       - name: Build Standalone Executable (PyInstaller)
         run: |

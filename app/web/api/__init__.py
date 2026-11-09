@@ -211,6 +211,7 @@ setattr(WebApi, "model3d_repair", LazyMethod("model3d_repair", "app.web.api.tool
 setattr(WebApi, "model3d_repair_mesh", LazyMethod("model3d_repair_mesh", "app.web.api.tool_model3d", "Model3dApiMixin"))
 setattr(WebApi, "model3d_scale", LazyMethod("model3d_scale", "app.web.api.tool_model3d", "Model3dApiMixin"))
 setattr(WebApi, "model3d_scale_mesh", LazyMethod("model3d_scale_mesh", "app.web.api.tool_model3d", "Model3dApiMixin"))
+setattr(WebApi, "_get_monitor", LazyMethod("_get_monitor", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "network_apps", LazyMethod("network_apps", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "network_database_ops", LazyMethod("network_database_ops", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "network_destination_status", LazyMethod("network_destination_status", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
