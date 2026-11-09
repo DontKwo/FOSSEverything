@@ -122,6 +122,7 @@ setattr(WebApi, "format_yaml", LazyMethod("format_yaml", "app.web.api.tool_data"
 setattr(WebApi, "generate_barcode", LazyMethod("generate_barcode", "app.web.api.tool_qr", "QrApiMixin"))
 setattr(WebApi, "generate_qr", LazyMethod("generate_qr", "app.web.api.tool_qr", "QrApiMixin"))
 setattr(WebApi, "generate_qr_svg", LazyMethod("generate_qr_svg", "app.web.api.tool_qr", "QrApiMixin"))
+setattr(WebApi, "_get_monitor", LazyMethod("_get_monitor", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "get_network_connections", LazyMethod("get_network_connections", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "image_add_border", LazyMethod("image_add_border", "app.web.api.tool_images", "ImagesApiMixin"))
 setattr(WebApi, "image_adjust", LazyMethod("image_adjust", "app.web.api.tool_images", "ImagesApiMixin"))
