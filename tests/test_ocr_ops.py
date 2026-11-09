@@ -7,6 +7,14 @@ from app.features.ocr import ops as ocr_ops
 from tests.test_support import TempDirTestCase
 
 
+def _has_tesseract() -> bool:
+    try:
+        fitz.get_tessdata()
+        return True
+    except Exception:
+        return False
+
+
 class TestOcrOps(TempDirTestCase):
     def _create_sample_image(self, text: str = "INVOICE #9982 - $120.00") -> str:
         """Create a synthetic high-contrast image with clear text for OCR."""
@@ -38,6 +46,7 @@ class TestOcrOps(TempDirTestCase):
         self.assertIn("deu", langs)
         self.assertEqual(langs["eng"], "English")
 
+    @unittest.skipUnless(_has_tesseract(), "Tesseract not installed")
     def test_ocr_image_path(self) -> None:
         img_path = self._create_sample_image("Hello World 123")
         res = ocr_ops.ocr_image(img_path, language="eng", dpi=200)
@@ -48,6 +57,7 @@ class TestOcrOps(TempDirTestCase):
         self.assertIn("World", res["text"])
         self.assertGreaterEqual(len(res["words"]), 2)
 
+    @unittest.skipUnless(_has_tesseract(), "Tesseract not installed")
     def test_ocr_image_pil_object(self) -> None:
         img = Image.new("RGB", (500, 120), color="white")
         draw = ImageDraw.Draw(img)
@@ -55,6 +65,7 @@ class TestOcrOps(TempDirTestCase):
         res = ocr_ops.ocr_image(img, language="eng", dpi=200)
         self.assertIn("Direct", res["text"])
 
+    @unittest.skipUnless(_has_tesseract(), "Tesseract not installed")
     def test_ocr_pdf_document(self) -> None:
         pdf_path = self._create_sample_pdf("Page One Scanned Content")
         res = ocr_ops.ocr_pdf(pdf_path, language="eng", dpi=150)
@@ -63,6 +74,7 @@ class TestOcrOps(TempDirTestCase):
         self.assertIn("Scanned", res["text"])
         self.assertEqual(len(res["page_texts"]), 1)
 
+    @unittest.skipUnless(_has_tesseract(), "Tesseract not installed")
     def test_ocr_file_universal_dispatcher(self) -> None:
         img_path = self._create_sample_image("Universal Dispatcher Test")
         res_img = ocr_ops.ocr_file(img_path, language="eng")
@@ -72,6 +84,7 @@ class TestOcrOps(TempDirTestCase):
         res_pdf = ocr_ops.ocr_file(pdf_path, language="eng")
         self.assertIn("PDF", res_pdf["text"])
 
+    @unittest.skipUnless(_has_tesseract(), "Tesseract not installed")
     def test_create_searchable_pdf_from_image(self) -> None:
         img_path = self._create_sample_image("Searchable Image Text 2026")
         out_pdf = os.path.join(self.work_dir, "searchable_from_img.pdf")
@@ -84,6 +97,7 @@ class TestOcrOps(TempDirTestCase):
             txt = doc[0].get_text()
             self.assertIn("Searchable", txt)
 
+    @unittest.skipUnless(_has_tesseract(), "Tesseract not installed")
     def test_create_searchable_pdf_from_scanned_pdf(self) -> None:
         scanned_pdf = self._create_sample_pdf("Scanned PDF to Searchable PDF")
         out_pdf = os.path.join(self.work_dir, "searchable_from_pdf.pdf")
