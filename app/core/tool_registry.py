@@ -204,3 +204,28 @@ class ToolRegistry:
             if best >= 0.78:
                 return 25
         return 0
+
+
+_default_registry: ToolRegistry | None = None
+
+
+def get_default_registry() -> ToolRegistry:
+    # Return singleton ToolRegistry populated from HOME_APPS with full synonym indexing.
+    global _default_registry
+    if _default_registry is None:
+        from app.core.home_apps import HOME_APPS
+        reg = ToolRegistry()
+        for app in HOME_APPS:
+            reg.register(
+                ToolDefinition(
+                    id=app.id,
+                    title=app.name,
+                    category=app.category,
+                    keywords=app.keywords,
+                    activate=lambda: None,
+                    description=app.description,
+                )
+            )
+        _default_registry = reg
+    return _default_registry
+

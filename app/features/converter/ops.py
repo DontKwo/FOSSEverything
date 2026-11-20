@@ -89,7 +89,10 @@ def convert_ebook(input_path: str, output_path: str) -> str:
             "Install it from calibre-ebook.com to enable this feature."
         )
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-    res = subprocess.run([exe, input_path, output_path], capture_output=True, text=True)
+    try:
+        res = subprocess.run([exe, input_path, output_path], capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError("Calibre conversion timed out after 120 seconds.") from exc
     if res.returncode != 0:
         raise RuntimeError(f"Calibre conversion failed:\n{res.stderr}")
     return output_path
@@ -644,10 +647,7 @@ def convert_file(
                 if rows:
                     max_c = max(len(r) for r in rows)
                     norm = [r + [""] * (max_c - len(r)) for r in rows]
-                    tbl = [
-                        "| " + " | ".join(norm[0]) + " |",
-                        "| " + " | ".join(["---"] * max_c) + " |",
-                    ]
+                    tbl = ["| " + " | ".join(norm[0]) + " |", "| " + " | ".join(["---"] * max_c) + " |"]
                     for r in norm[1:]:
                         tbl.append("| " + " | ".join(r) + " |")
                     md = "\n".join(tbl)
@@ -895,6 +895,7 @@ def convert_office_doc(input_path: str, output_path: str, target_format: str) ->
                     ],
                     check=True,
                     capture_output=True,
+                    timeout=120,
                 )
                 base = os.path.splitext(os.path.basename(input_path))[0]
                 generated_pdf = os.path.join(out_dir, f"{base}.pdf")
@@ -903,7 +904,7 @@ def convert_office_doc(input_path: str, output_path: str, target_format: str) ->
                 if os.path.exists(output_path):
                     return output_path
             except Exception:
-                pass
+                pass  # noqa: 10
 
     if ext == ".docx" and tgt in ("md", "markdown", "html", "pdf"):
         pandoc = shutil.which("pandoc")
@@ -913,11 +914,12 @@ def convert_office_doc(input_path: str, output_path: str, target_format: str) ->
                     [pandoc, input_path, "-o", output_path],
                     check=True,
                     capture_output=True,
+                    timeout=60,
                 )
                 if os.path.exists(output_path):
                     return output_path
             except Exception:
-                pass
+                pass  # noqa: 10
 
     if ext == ".docx" and tgt == "pdf":
         try:

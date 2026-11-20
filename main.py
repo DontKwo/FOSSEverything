@@ -16,6 +16,7 @@ if sys.platform == "win32":
 import webview
 from webview.dom import DOMEventHandler
 
+from app.system.install_options import apply_install_options
 from app.system.settings import get_setting
 from app.system.shell_integration import (
     app_icon_path,
@@ -91,6 +92,9 @@ def run_selftest(window: webview.Window) -> None:
 
 def main() -> None:
     # Desktop application entry point.
+    if "--configure" in sys.argv:
+        configured, _message = apply_install_options(sys.argv[1:])
+        sys.exit(0 if configured else 1)
     if "--register-shell" in sys.argv or "--install-desktop" in sys.argv:
         register_shell_context_menu()
         return

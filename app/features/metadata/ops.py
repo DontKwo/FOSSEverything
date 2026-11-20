@@ -311,13 +311,16 @@ def strip_metadata(input_path: str, output_path: str) -> str:
             "copy",
             output_path,
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True)
-        if res.returncode != 0:
-            # Fallback to re-encoding if copy failed
-            cmd = [ffmpeg, "-y", "-i", input_path, "-map_metadata", "-1", output_path]
-            res = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
             if res.returncode != 0:
-                raise RuntimeError(f"Metadata stripping failed:\n{res.stderr}")
+                # Fallback to re-encoding if copy failed
+                cmd = [ffmpeg, "-y", "-i", input_path, "-map_metadata", "-1", output_path]
+                res = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+                if res.returncode != 0:
+                    raise RuntimeError(f"Metadata stripping failed:\n{res.stderr}")
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("FFmpeg metadata stripping timed out after 60 seconds.") from exc
         return output_path
     if kind == "Office":
         return strip_office_metadata(input_path, output_path)

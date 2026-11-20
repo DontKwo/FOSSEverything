@@ -10,7 +10,7 @@ ENTRY_POINT = os.path.join(ROOT_DIR, "main.py")
 DIST_DIR = os.path.join(ROOT_DIR, "dist")
 
 
-def build(onefile: bool = False) -> None:
+def build(onefile: bool = False, skip_tests: bool = False) -> None:
     print("=" * 60)  # noqa: 25 (CLI status output, not debug)
     print("   FOSSEverything - One-Click Standalone Executable Builder")  # noqa: 25 (CLI status output, not debug)
     print("=" * 60)  # noqa: 25 (CLI status output, not debug)
@@ -18,11 +18,14 @@ def build(onefile: bool = False) -> None:
     print(f"Entry Point:  {ENTRY_POINT}")  # noqa: 25 (CLI status output, not debug)
     print()  # noqa: 25 (CLI status output, not debug)
 
-    print("Running pre-build test suite (pytest --ignore=tests/ui -q)...")  # noqa: 25
-    test_res = subprocess.run([sys.executable, "-m", "pytest", "--ignore=tests/ui", "-q"], cwd=ROOT_DIR)
-    if test_res.returncode != 0:
-        print("PRE-BUILD TESTS FAILED. Aborting build.")  # noqa: 25
-        sys.exit(test_res.returncode)
+    if skip_tests:
+        print("Skipping pre-build test suite (--skip-tests).")  # noqa: 25
+    else:
+        print("Running pre-build test suite (pytest --ignore=tests/ui -q)...")  # noqa: 25
+        test_res = subprocess.run([sys.executable, "-m", "pytest", "--ignore=tests/ui", "-q"], cwd=ROOT_DIR)
+        if test_res.returncode != 0:
+            print("PRE-BUILD TESTS FAILED. Aborting build.")  # noqa: 25
+            sys.exit(test_res.returncode)
 
     # Collect imageio-ffmpeg binaries if present
     extra_data = []
@@ -144,5 +147,4 @@ def build(onefile: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    onefile_mode = "--onefile" in sys.argv
-    build(onefile=onefile_mode)
+    build(onefile="--onefile" in sys.argv, skip_tests="--skip-tests" in sys.argv)

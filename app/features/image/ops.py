@@ -851,6 +851,9 @@ def gif_to_video(input_path: Union[str, Path], output_path: Union[str, Path], fp
             "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2", "-pix_fmt", "yuv420p",
             str(output_path),
         ]
-        subprocess.run(cmd, capture_output=True, check=True)
+        try:
+            subprocess.run(cmd, capture_output=True, check=True, timeout=60)
+        except subprocess.TimeoutExpired as exc:
+            raise RuntimeError("FFmpeg image sequence rendering timed out after 60 seconds.") from exc
     return str(output_path)
 

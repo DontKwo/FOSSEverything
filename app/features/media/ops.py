@@ -21,6 +21,23 @@ from tinytag import TinyTag
 from app.features.image import ops as image_ops
 
 
+DEFAULT_FFMPEG_TIMEOUT: float = 300.0
+
+
+def _run_ffmpeg_command(cmd: list[str], timeout: float = DEFAULT_FFMPEG_TIMEOUT, cwd: str | None = None) -> subprocess.CompletedProcess[str]:
+    # Execute an external FFmpeg/Whisper process with timeout protection.
+    try:
+        return subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            cwd=cwd,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"Media process timed out after {timeout} seconds: {' '.join(cmd[:3])}") from exc
+
+
 def get_ffmpeg_path() -> str:
     """Return the path to the local FFmpeg binary."""
     exe = imageio_ffmpeg.get_ffmpeg_exe()
@@ -91,14 +108,7 @@ def get_media_info(path: str) -> dict:
     # Use FFmpeg to get exact stream details
     try:
         ffmpeg = get_ffmpeg_path()
-        proc = subprocess.run(
-            [ffmpeg, "-hide_banner", "-i", path],
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
+        proc = _run_ffmpeg_command([ffmpeg, "-hide_banner", "-i", path], timeout=30.0)
         stderr = proc.stderr
 
         # Duration match: Duration: 00:01:23.45, start: 0.000000, bitrate: 128 kb/s
@@ -191,7 +201,7 @@ def transcribe_audio(input_path: str, language: str = "en", model: str = "tiny",
     os.makedirs(output_dir, exist_ok=True)
     try:
         cmd = [shutil.which("whisper") or shutil.which("faster-whisper"), input_path, "--language", language, "--output_dir", output_dir, "--output_format", "json"]
-        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=temp_dir)
+        proc = _run_ffmpeg_command(cmd, timeout=300.0, cwd=temp_dir)
         json_out = os.path.join(output_dir, os.path.splitext(os.path.basename(input_path))[0] + ".json")
         if os.path.exists(json_out):
             with open(json_out, "r", encoding="utf-8") as handle:
@@ -268,7 +278,7 @@ def trim_media(
 
     cmd.append(output_path)
 
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = _run_ffmpeg_command(cmd)
     if res.returncode != 0:
         raise RuntimeError(f"FFmpeg trim failed:\n{res.stderr}")
     return output_path
@@ -301,7 +311,7 @@ def extract_audio(
         cmd.extend(["-b:a", bitrate])
 
     cmd.append(output_path)
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = _run_ffmpeg_command(cmd)
     if res.returncode != 0:
         raise RuntimeError(f"FFmpeg audio extraction failed:\n{res.stderr}")
     return output_path
@@ -353,7 +363,7 @@ def convert_media(
             cmd.extend(["-c:a", a_codec, "-b:a", "192k"])
 
     cmd.append(output_path)
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = _run_ffmpeg_command(cmd)
     if res.returncode != 0:
         raise RuntimeError(f"FFmpeg conversion failed:\n{res.stderr}")
     return output_path
@@ -365,11 +375,11 @@ def mute_video(input_path: str, output_path: str) -> str:
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
     cmd = [ffmpeg, "-y", "-i", input_path, "-c:v", "copy", "-an", output_path]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = _run_ffmpeg_command(cmd)
     if res.returncode != 0:
         # Fallback to re-encoding if copy failed
         cmd = [ffmpeg, "-y", "-i", input_path, "-an", output_path]
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        res = _run_ffmpeg_command(cmd)
         if res.returncode != 0:
             raise RuntimeError(f"FFmpeg mute failed:\n{res.stderr}")
     return output_path
@@ -392,7 +402,7 @@ def extract_frame(
         "-q:v", "2",
         output_path,
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = _run_ffmpeg_command(cmd, timeout=30.0)
     if res.returncode != 0:
         raise RuntimeError(f"FFmpeg frame extraction failed:\n{res.stderr}")
     return output_path
@@ -717,7 +727,7 @@ def compose_media_with_audio(
             fade_out_str = f",afade=t=out:st={out_st}:d={fade_out}" if fade_out > 0 else ""
             filter_str = f"[0:v]scale={scale[0]}:{scale[1]}[v];[1:a]volume={volume_value}{fade_in_str}{fade_out_str}[aout]"
             cmd = [ffmpeg, "-y", "-i", temp_video, "-i", temp_audio, "-filter_complex", filter_str, "-map", "[v]", "-map", "[aout]", "-shortest", "-c:v", "libx264", "-c:a", "aac", output_path]
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        res = _run_ffmpeg_command(cmd)
         if res.returncode != 0:
             raise RuntimeError(f"FFmpeg composition failed:\n{res.stderr}")
         return output_path
@@ -772,7 +782,7 @@ def _mix_audio_tracks(video_input: str, output_path: str, audio_tracks: list[dic
     filter_complex = ";".join(filter_parts)
 
     cmd += ["-filter_complex", filter_complex, "-map", "0:v:0", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-shortest", output_path]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = _run_ffmpeg_command(cmd)
     if res.returncode != 0:
         raise RuntimeError(f"FFmpeg multi-track audio mix failed:\n{res.stderr}")
     return output_path
@@ -872,7 +882,7 @@ def compose_timeline(
         cmd += ["-r", str(fps)]
     cmd += ["-c:v", "libx264", "-pix_fmt", "yuv420p", concat_output]
 
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = _run_ffmpeg_command(cmd)
     if res.returncode != 0:
         raise RuntimeError(f"FFmpeg timeline composition failed:\n{res.stderr}")
 
@@ -884,7 +894,7 @@ def compose_timeline(
             palette = concat_output + ".palette.png"
             try:
                 gen_cmd = [ffmpeg, "-y", "-i", concat_output, "-vf", f"fps={gif_fps},split[a][b];[a]palettegen[p];[b][p]paletteuse", output_path]
-                res2 = subprocess.run(gen_cmd, capture_output=True, text=True)
+                res2 = _run_ffmpeg_command(gen_cmd)
                 if res2.returncode != 0:
                     raise RuntimeError(f"FFmpeg GIF export failed:\n{res2.stderr}")
             finally:
@@ -910,7 +920,7 @@ def extract_subtitles(input_path: str, output_path: str, stream_index: int = 0) 
     ffmpeg = get_ffmpeg_path()
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
     cmd = [ffmpeg, "-y", "-i", input_path, "-map", f"0:s:{stream_index}", "-c:s", "srt", output_path]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = _run_ffmpeg_command(cmd)
     if res.returncode != 0:
         raise RuntimeError(f"FFmpeg subtitle extraction failed:\n{res.stderr}")
     return output_path
@@ -927,7 +937,7 @@ def burn_subtitles(input_path: str, output_path: str, subtitle_file: str, font_s
     filter_expr = f"subtitles='{subtitle_arg}'"
 
     cmd = [ffmpeg, "-y", "-i", input_path, "-vf", filter_expr, output_path]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+    res = _run_ffmpeg_command(cmd)
     if res.returncode != 0:
         raise RuntimeError(f"FFmpeg subtitle burn-in failed:\n{res.stderr}")
     return output_path
@@ -967,7 +977,7 @@ def change_playback_speed(input_path: str, output_path: str, speed_factor: float
         cmd.extend(["-af", calc_atempo(speed_factor)])
 
     cmd.append(output_path)
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    proc = _run_ffmpeg_command(cmd)
     if proc.returncode != 0:
         raise RuntimeError(f"FFmpeg speed adjustment failed:\n{proc.stderr}")
     return output_path
@@ -990,7 +1000,7 @@ def reverse_media(input_path: str, output_path: str) -> str:
         cmd.extend(["-af", "areverse"])
 
     cmd.append(output_path)
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    proc = _run_ffmpeg_command(cmd)
     if proc.returncode != 0:
         raise RuntimeError(f"FFmpeg media reversal failed:\n{proc.stderr}")
     return output_path
@@ -1013,7 +1023,7 @@ def video_to_gif(
     cmd.extend(["-i", input_path])
     filter_expr = f"fps={fps},scale={width}:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
     cmd.extend(["-vf", filter_expr, output_path])
-    proc = subprocess.run(cmd, capture_output=True, text=True)
+    proc = _run_ffmpeg_command(cmd)
     if proc.returncode != 0:
         raise RuntimeError(f"FFmpeg GIF conversion failed:\n{proc.stderr}")
     return output_path

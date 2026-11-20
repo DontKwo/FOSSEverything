@@ -83,9 +83,31 @@ def archive_format_for_path(path: str) -> str:
     raise ValueError(f"Unsupported archive extension for: {path}")
 
 
+DEFAULT_MAX_ARCHIVE_MEMBERS: int = 20_000
+DEFAULT_MAX_ARCHIVE_BYTES: int = 4 * 1024 * 1024 * 1024
+DEFAULT_MAX_MEMBER_BYTES: int = 2 * 1024 * 1024 * 1024
+
+
+def _copy_stream_bounded(src: Any, dst: Any, max_file_bytes: int, current_total: int, max_total_bytes: int) -> int:
+    # Stream data from src to dst while enforcing per-file and total extraction size limits.
+    file_bytes = 0
+    chunk_size = 65536
+    while chunk := src.read(chunk_size):
+        file_bytes += len(chunk)
+        if file_bytes > max_file_bytes:
+            raise ValueError(f"Archive member exceeds maximum permitted file size of {max_file_bytes} bytes")
+        if current_total + file_bytes > max_total_bytes:
+            raise ValueError(f"Archive decompression bomb detected: exceeds maximum allowed total size of {max_total_bytes} bytes")
+        dst.write(chunk)
+    return file_bytes
+
+
 def _resolve_safe_member_path(dest_root: Path, member_name: str) -> Path:
-    # Reject archive entries that escape dest_root via .. or absolute roots.
-    candidate = (dest_root / member_name.lstrip("/\\")).resolve()
+    # Reject archive entries that escape dest_root via .., absolute roots, or drive letters.
+    normalized = member_name.replace("\\", "/").lstrip("/")
+    if len(normalized) >= 2 and normalized[1] == ":":
+        raise ValueError(f"Unsafe archive member path with drive letter blocked: {member_name}")
+    candidate = (dest_root / normalized).resolve()
     if candidate != dest_root and not candidate.is_relative_to(dest_root):
         raise ValueError(f"Unsafe archive member path blocked: {member_name}")
     return candidate
@@ -221,29 +243,47 @@ def inspect_archive_members(archive_path: str) -> list[dict[str, Any]]:
     return results
 
 
-def extract_archive(archive_path: str, destination_dir: str) -> list[str]:
-    # Extract an archive safely to a destination directory and return written file paths.
+def extract_archive_bounded(
+    archive_path: str,
+    destination_dir: str,
+    max_total_bytes: int = DEFAULT_MAX_ARCHIVE_BYTES,
+    max_members: int = DEFAULT_MAX_ARCHIVE_MEMBERS,
+) -> list[str]:
+    # Extract an archive safely with bounded size and member limits.
     archive_path = os.path.abspath(archive_path)
     destination_dir = os.path.abspath(destination_dir)
     os.makedirs(destination_dir, exist_ok=True)
     dest_path = Path(destination_dir).resolve()
 
     extracted: list[str] = []
+    total_written = 0
     lower = archive_path.lower()
     if lower.endswith(".zip"):
         with zipfile.ZipFile(archive_path, "r") as zip_file:
-            for info in zip_file.infolist():
+            infolist = zip_file.infolist()
+            if len(infolist) > max_members:
+                raise ValueError(f"Archive exceeds maximum allowed member count of {max_members}")
+            for info in infolist:
                 target_p = _resolve_safe_member_path(dest_path, info.filename)
                 if info.is_dir():
                     target_p.mkdir(parents=True, exist_ok=True)
                 else:
                     target_p.parent.mkdir(parents=True, exist_ok=True)
-                    with zip_file.open(info) as src, open(target_p, "wb") as dst:
-                        shutil.copyfileobj(src, dst)
-                    extracted.append(str(target_p))
+                    try:
+                        with zip_file.open(info) as src, open(target_p, "wb") as dst:
+                            written = _copy_stream_bounded(src, dst, DEFAULT_MAX_MEMBER_BYTES, total_written, max_total_bytes)
+                            total_written += written
+                        extracted.append(str(target_p))
+                    except Exception:
+                        if target_p.exists():
+                            target_p.unlink(missing_ok=True)
+                        raise
     elif lower.endswith((".tar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".tar.bz2", ".tbz2", ".gz", ".xz", ".bz2")):
         with tarfile.open(archive_path, "r:*") as tar_file:
-            for member in tar_file.getmembers():
+            members = tar_file.getmembers()
+            if len(members) > max_members:
+                raise ValueError(f"Archive exceeds maximum allowed member count of {max_members}")
+            for member in members:
                 target_p = _resolve_safe_member_path(dest_path, member.name)
                 if member.issym() or member.islnk():
                     link_target = (dest_path / member.linkname).resolve()
@@ -255,16 +295,32 @@ def extract_archive(archive_path: str, destination_dir: str) -> list[str]:
                     target_p.parent.mkdir(parents=True, exist_ok=True)
                     fobj = tar_file.extractfile(member)
                     if fobj is not None:
-                        with fobj, open(target_p, "wb") as dst:
-                            shutil.copyfileobj(fobj, dst)
-                        extracted.append(str(target_p))
+                        try:
+                            with fobj, open(target_p, "wb") as dst:
+                                written = _copy_stream_bounded(fobj, dst, DEFAULT_MAX_MEMBER_BYTES, total_written, max_total_bytes)
+                                total_written += written
+                            extracted.append(str(target_p))
+                        except Exception:
+                            if target_p.exists():
+                                target_p.unlink(missing_ok=True)
+                            raise
     else:
         raise ValueError(f"Unsupported archive type: {archive_path}")
 
     return extracted
 
 
-def extract_selected_members(archive_path: str, members: list[str], output_dir: str) -> list[str]:
+def extract_archive(archive_path: str, destination_dir: str) -> list[str]:
+    # Extract an archive safely to a destination directory and return written file paths.
+    return extract_archive_bounded(archive_path, destination_dir, DEFAULT_MAX_ARCHIVE_BYTES, DEFAULT_MAX_ARCHIVE_MEMBERS)
+
+
+def extract_selected_members(
+    archive_path: str,
+    members: list[str],
+    output_dir: str,
+    max_total_bytes: int = DEFAULT_MAX_ARCHIVE_BYTES,
+) -> list[str]:
     # Extract specific archive members safely.
     archive_path = os.path.abspath(archive_path)
     output_dir = os.path.abspath(output_dir)
@@ -272,6 +328,7 @@ def extract_selected_members(archive_path: str, members: list[str], output_dir: 
     dest_path = Path(output_dir).resolve()
     member_set = set(members)
     extracted: list[str] = []
+    total_written = 0
 
     lower = archive_path.lower()
     if lower.endswith(".zip"):
@@ -283,9 +340,15 @@ def extract_selected_members(archive_path: str, members: list[str], output_dir: 
                         target_p.mkdir(parents=True, exist_ok=True)
                     else:
                         target_p.parent.mkdir(parents=True, exist_ok=True)
-                        with zip_file.open(info) as src, open(target_p, "wb") as dst:
-                            shutil.copyfileobj(src, dst)
-                        extracted.append(str(target_p))
+                        try:
+                            with zip_file.open(info) as src, open(target_p, "wb") as dst:
+                                written = _copy_stream_bounded(src, dst, DEFAULT_MAX_MEMBER_BYTES, total_written, max_total_bytes)
+                                total_written += written
+                            extracted.append(str(target_p))
+                        except Exception:
+                            if target_p.exists():
+                                target_p.unlink(missing_ok=True)
+                            raise
     elif lower.endswith((".tar", ".tar.gz", ".tgz", ".tar.xz", ".txz", ".tar.bz2", ".tbz2", ".gz", ".xz", ".bz2")):
         with tarfile.open(archive_path, "r:*") as tar_file:
             for member in tar_file.getmembers():
@@ -297,9 +360,15 @@ def extract_selected_members(archive_path: str, members: list[str], output_dir: 
                         target_p.parent.mkdir(parents=True, exist_ok=True)
                         fobj = tar_file.extractfile(member)
                         if fobj is not None:
-                            with fobj, open(target_p, "wb") as dst:
-                                shutil.copyfileobj(fobj, dst)
-                            extracted.append(str(target_p))
+                            try:
+                                with fobj, open(target_p, "wb") as dst:
+                                    written = _copy_stream_bounded(fobj, dst, DEFAULT_MAX_MEMBER_BYTES, total_written, max_total_bytes)
+                                    total_written += written
+                                extracted.append(str(target_p))
+                            except Exception:
+                                if target_p.exists():
+                                    target_p.unlink(missing_ok=True)
+                                raise
     else:
         raise ValueError(f"Unsupported archive type: {archive_path}")
 
@@ -396,8 +465,14 @@ def create_password_protected_bundle(source_path: str, output_path: str, passwor
             os.unlink(temp_archive.name)
 
 
-def extract_password_protected_bundle(bundle_path: str, destination_dir: str, password: str) -> list[str]:
-    # Decrypt and extract a local password-protected bundle created by create_password_protected_bundle.
+def extract_password_protected_bundle_bounded(
+    bundle_path: str,
+    destination_dir: str,
+    password: str,
+    max_total_bytes: int = DEFAULT_MAX_ARCHIVE_BYTES,
+    max_members: int = DEFAULT_MAX_ARCHIVE_MEMBERS,
+) -> list[str]:
+    # Decrypt and extract a local password-protected bundle with size limits.
     bundle_path = os.path.abspath(bundle_path)
     destination_dir = os.path.abspath(destination_dir)
     os.makedirs(destination_dir, exist_ok=True)
@@ -419,21 +494,31 @@ def extract_password_protected_bundle(bundle_path: str, destination_dir: str, pa
     temp_archive = tempfile.NamedTemporaryFile(suffix=".bin", delete=False)
     temp_archive.close()
     extracted: list[str] = []
+    total_written = 0
     try:
         with open(temp_archive.name, "wb") as file_handle:
             file_handle.write(archive_bytes)
 
         if archive_code == b"0":
             with zipfile.ZipFile(temp_archive.name, "r") as zip_file:
-                for info in zip_file.infolist():
+                infolist = zip_file.infolist()
+                if len(infolist) > max_members:
+                    raise ValueError(f"Archive exceeds maximum allowed member count of {max_members}")
+                for info in infolist:
                     target_p = _resolve_safe_member_path(dest_path, info.filename)
                     if info.is_dir():
                         target_p.mkdir(parents=True, exist_ok=True)
                     else:
                         target_p.parent.mkdir(parents=True, exist_ok=True)
-                        with zip_file.open(info) as src, open(target_p, "wb") as dst:
-                            shutil.copyfileobj(src, dst)
-                        extracted.append(str(target_p))
+                        try:
+                            with zip_file.open(info) as src, open(target_p, "wb") as dst:
+                                written = _copy_stream_bounded(src, dst, DEFAULT_MAX_MEMBER_BYTES, total_written, max_total_bytes)
+                                total_written += written
+                            extracted.append(str(target_p))
+                        except Exception:
+                            if target_p.exists():
+                                target_p.unlink(missing_ok=True)
+                            raise
         else:
             mode_map = {
                 b"1": "r:gz",
@@ -443,7 +528,10 @@ def extract_password_protected_bundle(bundle_path: str, destination_dir: str, pa
             }
             open_mode = mode_map.get(archive_code, "r:*")
             with tarfile.open(temp_archive.name, open_mode) as tar_file:
-                for member in tar_file.getmembers():
+                members = tar_file.getmembers()
+                if len(members) > max_members:
+                    raise ValueError(f"Archive exceeds maximum allowed member count of {max_members}")
+                for member in members:
                     target_p = _resolve_safe_member_path(dest_path, member.name)
                     if member.isdir():
                         target_p.mkdir(parents=True, exist_ok=True)
@@ -451,13 +539,26 @@ def extract_password_protected_bundle(bundle_path: str, destination_dir: str, pa
                         target_p.parent.mkdir(parents=True, exist_ok=True)
                         fobj = tar_file.extractfile(member)
                         if fobj is not None:
-                            with fobj, open(target_p, "wb") as dst:
-                                shutil.copyfileobj(fobj, dst)
-                            extracted.append(str(target_p))
+                            try:
+                                with fobj, open(target_p, "wb") as dst:
+                                    written = _copy_stream_bounded(fobj, dst, DEFAULT_MAX_MEMBER_BYTES, total_written, max_total_bytes)
+                                    total_written += written
+                                extracted.append(str(target_p))
+                            except Exception:
+                                if target_p.exists():
+                                    target_p.unlink(missing_ok=True)
+                                raise
         return extracted
     finally:
         if os.path.exists(temp_archive.name):
             os.unlink(temp_archive.name)
+
+
+def extract_password_protected_bundle(bundle_path: str, destination_dir: str, password: str) -> list[str]:
+    # Decrypt and extract a local password-protected bundle created by create_password_protected_bundle.
+    return extract_password_protected_bundle_bounded(
+        bundle_path, destination_dir, password, DEFAULT_MAX_ARCHIVE_BYTES, DEFAULT_MAX_ARCHIVE_MEMBERS
+    )
 
 
 def snapshot_directory(source_dir: str, manifest_path: str | None = None) -> dict[str, Any]:

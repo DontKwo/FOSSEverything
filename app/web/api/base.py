@@ -150,35 +150,24 @@ class BaseApi:
 
     @api_method
     def search_tools(self, params: dict[str, Any]) -> dict[str, Any]:
-        # Perform ranking search over registered tools and actions.
-        query = str(params.get("query", "")).strip().lower()
+        # Perform ranking search over registered tools using synonym-aware ToolRegistry.
+        query = str(params.get("query", "")).strip()
+        from app.core.tool_registry import get_default_registry
+        registry = get_default_registry()
+        search_results = registry.search(query, limit=16)
 
-        results: list[dict[str, Any]] = []
-        for app in HOME_APPS:
-            score = 0
-            if not query:
-                score = 10
-            elif query == app.id or query == app.name.lower():
-                score += 100
-            elif query in app.name.lower():
-                score += 50
-            elif query in app.description.lower():
-                score += 20
-            elif any(query in kw for kw in app.keywords):
-                score += 30
-
-            if score > 0:
-                results.append({
-                    "id": app.id,
-                    "title": app.name,
-                    "category": app.category,
-                    "description": app.description,
-                    "action_id": f"{app.id}-main",
-                    "score": score,
-                })
-
-        results.sort(key=lambda r: r["score"], reverse=True)
-        return ok(results=results[:12])
+        results: list[dict[str, Any]] = [
+            {
+                "id": res.tool.id,
+                "title": res.tool.title,
+                "category": res.tool.category,
+                "description": res.tool.description,
+                "action_id": f"{res.tool.id}-main",
+                "score": res.score,
+            }
+            for res in search_results
+        ]
+        return ok(results=results)
 
     @api_method
     def get_tooltips(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -512,3 +501,34 @@ class BaseApi:
         # Request cancellation for background job.
         require(params, "id")
         return self._jobs.cancel(params["id"])
+
+    @api_method
+    def diagnostics_report(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Generate sanitized system and tool diagnostics report.
+        from app.system.diagnostics import generate_diagnostics_report
+        report = generate_diagnostics_report()
+        return ok(**report)
+
+    @api_method
+    def tool_inventory_list(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Return canonical tool inventory entries.
+        from app.core.tool_inventory import get_tool_inventory
+        inventory = get_tool_inventory()
+        items = [
+            {
+                "id": t.id,
+                "name": t.name,
+                "category": t.category,
+                "purpose": t.purpose,
+                "inputs": list(t.inputs),
+                "outputs": list(t.outputs),
+                "supported_formats": list(t.supported_formats),
+                "optional_dependencies": list(t.optional_dependencies),
+                "os_support": list(t.os_support),
+                "offline_behavior": t.offline_behavior,
+                "destructive_risk": t.destructive_risk,
+                "test_modules": list(t.test_modules),
+            }
+            for t in inventory
+        ]
+        return ok(tools=items, total=len(items))

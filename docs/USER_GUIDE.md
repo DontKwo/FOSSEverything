@@ -2,6 +2,47 @@
 
 Welcome to FOSSEverything, the offline desktop power tool. This guide will walk you through the basics of operating the application, utilizing search filters, and contributing new application modules to the ecosystem.
 
+## Installing
+
+Download the package for your platform from the [latest release](https://github.com/DontKwo/FOSSEverything/releases/latest).
+
+### Windows setup wizard
+
+The installer asks for:
+- **Install folder** and **Start Menu folder** (or none).
+- **Installation type**: Full, Compact (app only), or Custom components: Explorer right-click menu "Open in FOSSEverything", and Open with entries per file family (PDF, images, audio and video, Office, data, playlists, 3D models, Markdown).
+- **Shortcuts**: desktop icon.
+- **First-run preferences**: theme and interface size. Existing preferences are kept by default.
+- **Per-user or all-users** install (no administrator rights needed for per-user).
+
+Uninstalling removes shortcuts and registry entries and offers to delete your preferences.
+
+Silent install flags:
+
+```text
+FOSSEverything-Setup.exe /VERYSILENT /CURRENTUSER /DIR="<install folder>" /TYPE=compact /COMPONENTS="ctx,assoc\pdf" /TASKS=desktopicon /Theme=dark /Scale=1.25
+```
+
+Themes: `ut_austin_dark`, `dark`, `light`, `solarized`, `monokai`, `cyberpunk`, `ut_austin`. Scale: `0.9`, `1.0`, `1.1`, `1.25`, `1.5`, `2.0`.
+
+### macOS
+
+Open `FOSSEverything-macos.dmg` and drag the app to Applications. Builds are not notarized yet, so the first launch needs right-click, **Open**. If macOS still blocks it, run `xattr -dr com.apple.quarantine /Applications/FOSSEverything.app`.
+
+### Linux
+
+Extract the tarball and run `./install.sh`. It prompts for install folder, command link, theme, and scale when run in a terminal. Scripted use:
+
+```bash
+./install.sh --prefix ~/apps/FOSSEverything --theme dark --ui-scale 1.25 --no-cli-link --yes
+./install.sh --uninstall --prefix ~/apps/FOSSEverything --yes
+```
+
+Use `./install.sh --help` for every option.
+
+### Windows SmartScreen
+
+Builds are not code signed yet. If SmartScreen warns, choose **More info**, then **Run anyway**. Compare the file against `SHA256SUMS.txt` on the release page.
 ## Running the Web Portal
 
 Because FOSSEverything is designed as a standalone offline desktop application, the primary way to launch the interface is via the standard Python bootstrapper:

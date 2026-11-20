@@ -6,6 +6,7 @@
   **The offline desktop power tool for documents, media, data, and daily workflows.**
 
   [![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20Offline-success.svg)](PRIVACY.md)
+  [![Latest release](https://img.shields.io/github/v/release/DontKwo/FOSSEverything?label=release)](https://github.com/DontKwo/FOSSEverything/releases/latest)
   [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](https://github.com/DontKwo/FOSSEverything/releases)
   [![Build Executables](https://github.com/DontKwo/FOSSEverything/actions/workflows/build-exe.yml/badge.svg)](https://github.com/DontKwo/FOSSEverything/actions/workflows/build-exe.yml)
   [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
@@ -18,18 +19,19 @@ FOSSEverything is a desktop utility suite for editing documents, manipulating me
 
 ---
 
-## Downloads & Releases
+## Downloads
 
-Pre-compiled standalone packages bundle dependencies and execute out of the box without requiring a Python installation:
+Every push to `main` builds all platforms and publishes a new [GitHub release](https://github.com/DontKwo/FOSSEverything/releases/latest). These links always point to the newest one:
 
-| Platform | Format | Direct Download | Installation Note |
-|---|---|---|---|
-| **Windows** | Setup Installer | [FOSSEverything-Setup.exe](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Setup.exe) | Setup wizard with Start Menu and desktop shortcuts |
-| **Windows** | Portable ZIP | [FOSSEverything-Portable-win64.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-win64.zip) | Extract and launch `FOSSEverything.exe` directly |
-| **macOS** | Portable ZIP | [FOSSEverything-Portable-macos.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-macos.zip) | Extract and drag `FOSSEverything.app` to Applications |
-| **Linux** | Portable Tarball | [FOSSEverything-Portable-linux64.tar.gz](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-linux64.tar.gz) | Extract and run `./install.sh` for desktop launcher |
+| Platform | Download | How to install |
+|---|---|---|
+| **Windows** | [FOSSEverything-Setup.exe](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Setup.exe) | Installer wizard: pick folder, components, shortcuts, theme |
+| **Windows** | [FOSSEverything-Portable-win64.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-win64.zip) | Extract anywhere and run `FOSSEverything.exe` |
+| **macOS** | [FOSSEverything-macos.dmg](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-macos.dmg) | Open the DMG and drag the app to Applications |
+| **macOS** | [FOSSEverything-Portable-macos.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-macos.zip) | Extract and run `FOSSEverything.app` |
+| **Linux** | [FOSSEverything-Portable-linux64.tar.gz](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-linux64.tar.gz) | Extract and run `./install.sh` (use `--help` for options) |
 
-Find older versions and checksum manifests on the [Releases Page](https://github.com/DontKwo/FOSSEverything/releases).
+Older versions and `SHA256SUMS.txt` are on the [Releases page](https://github.com/DontKwo/FOSSEverything/releases). Installer options, silent install flags, and first-launch warnings (SmartScreen, Gatekeeper) are covered in the [User Guide](docs/USER_GUIDE.md#installing).
 
 ---
 

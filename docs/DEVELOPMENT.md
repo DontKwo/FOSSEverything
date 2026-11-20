@@ -91,7 +91,7 @@ uv run python scripts/build_executable.py
 uv run python scripts/build_executable.py --onefile
 
 # Compile Inno Setup installer (requires Inno Setup 6)
-uv run python scripts/build_installer.py
+uv run python scripts/build_installer.py --version=1.2.3
 ```
 Output locations:
 - Portable directory: `dist/FOSSEverything/`
@@ -111,6 +111,17 @@ Output location: `dist/FOSSEverything`
 
 ---
 
+### Releases and CI
+
+`.github/workflows/build-exe.yml` runs on every push to `main`, every `v*` tag, and pull requests:
+
+1. `version` computes `MAJOR.MINOR.RUN_NUMBER` from `version` in `pyproject.toml` (bump major or minor there), or uses the tag for `vX.Y.Z` pushes.
+2. Windows, Linux, and macOS jobs run the tests, build with PyInstaller, smoke test the frozen app (`--configure`), and package. Windows also silently installs and uninstalls the setup wizard and checks its options.
+3. `release` (push to `main` or a tag only) publishes a GitHub release with every asset plus `SHA256SUMS.txt`, and marks it latest. The README links use `releases/latest/download/<asset>`, so they never need editing.
+
+Asset names are fixed: `FOSSEverything-Setup.exe`, `FOSSEverything-Portable-win64.zip`, `FOSSEverything-macos.dmg`, `FOSSEverything-Portable-macos.zip`, `FOSSEverything-Portable-linux64.tar.gz`. `tests/test_installer_and_release.py` fails if the workflow, installer script, and README drift apart.
+
+Installer-only flags (used by the setup wizard and `install.sh`): `FOSSEverything --configure --theme=<id> --ui-scale=<0.5-2.5>` writes first-run preferences and exits.
 ## 6. Extending Tools & Workspaces
 
 To add a new tool or workspace:

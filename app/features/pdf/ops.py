@@ -369,9 +369,12 @@ def compress_pdf(input_path: str, output_path: str, dpi: int = 120, quality: str
             f"-sOutputFile={output_path}",
             input_path,
         ]
-        result = subprocess.run(args, capture_output=True, text=True)
-        if result.returncode == 0 and os.path.exists(output_path):
-            return output_path
+        try:
+            result = subprocess.run(args, capture_output=True, text=True, timeout=120)
+            if result.returncode == 0 and os.path.exists(output_path):
+                return output_path
+        except (subprocess.TimeoutExpired, OSError):
+            pass  # noqa: 10
 
     # Cross-platform fallback: PyMuPDF native deflate & garbage collection
     with pymupdf.open(input_path) as doc:

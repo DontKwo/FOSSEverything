@@ -9,8 +9,9 @@ ISS_PATH = os.path.join(ROOT_DIR, "installer", "FOSSEverything.iss")
 BUILD_EXE_SCRIPT = os.path.join(ROOT_DIR, "scripts", "build_executable.py")
 
 ISCC_CANDIDATES = [
-    r"C:\Program Files (x86)\Inno Setup 6\ISCC.exe",  # noqa: 26 (standard Inno Setup install location, used as a fallback lookup)
-    r"C:\Program Files\Inno Setup 6\ISCC.exe",  # noqa: 26 (standard Inno Setup install location, used as a fallback lookup)
+    os.path.join(os.environ[env_name], "Inno Setup 6", "ISCC.exe")
+    for env_name in ("ProgramFiles(x86)", "ProgramFiles")
+    if env_name in os.environ
 ]
 
 
@@ -24,10 +25,10 @@ def find_iscc() -> str | None:
     return None
 
 
-def build() -> None:
+def build(version: str | None = None) -> None:
     if sys.platform != "win32":
         print("The Inno Setup installer is Windows-only; skipping on this platform.")  # noqa: 25 (CLI status output, not debug)
-        print("On macOS/Linux, use setup.sh instead (installs uv, syncs deps, runs the app).")  # noqa: 25 (CLI status output, not debug)
+        print("On macOS/Linux, use the release DMG or tarball (see README).")  # noqa: 25 (CLI status output, not debug)
         return
 
     print("Building the PyInstaller executable first...")  # noqa: 25 (CLI status output, not debug)
@@ -44,7 +45,8 @@ def build() -> None:
         sys.exit(1)
 
     print(f"Compiling installer with: {iscc}")  # noqa: 25 (CLI status output, not debug)
-    res = subprocess.run([iscc, ISS_PATH], cwd=ROOT_DIR)
+    iscc_cmd = [iscc] + ([f"/DMyAppVersion={version}"] if version else []) + [ISS_PATH]
+    res = subprocess.run(iscc_cmd, cwd=ROOT_DIR)
     if res.returncode != 0:
         print("Installer build FAILED. Review error messages above.")  # noqa: 25 (CLI status output, not debug)
         sys.exit(res.returncode)
@@ -52,4 +54,5 @@ def build() -> None:
 
 
 if __name__ == "__main__":
-    build()
+    version_arg = next((arg.split("=", 1)[1] for arg in sys.argv[1:] if arg.startswith("--version=")), None)
+    build(version=version_arg)
