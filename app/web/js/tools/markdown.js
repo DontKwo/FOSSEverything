@@ -7,12 +7,15 @@ window.FOSS = window.FOSS || {};
   }
 
   function calcPreviewDoc(bodyHtml) {
-    var isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    var bg = isDark ? "#0d1322" : "#ffffff";
-    var fg = isDark ? "#e6edf3" : "#1f2328";
-    var border = isDark ? "#30363d" : "#d0d7de";
-    var codeBg = isDark ? "#161b22" : "#f6f8fa";
-    var linkColor = isDark ? "#58a6ff" : "#0969da";
+    var theme = document.documentElement.getAttribute("data-theme") || "ut_austin_dark";
+    var lightThemes = ["light", "sepia", "solarized", "ut_austin"];
+    var isDark = lightThemes.indexOf(theme) === -1;
+    var cs = window.getComputedStyle(document.documentElement);
+    var bg = cs.getPropertyValue("--bg-base").trim() || (isDark ? "#13171a" : "#ffffff");
+    var fg = cs.getPropertyValue("--text").trim() || (isDark ? "#f0f2f5" : "#1f2328");
+    var border = cs.getPropertyValue("--border").trim() || (isDark ? "#363d44" : "#d0d7de");
+    var codeBg = cs.getPropertyValue("--bg-raised").trim() || (isDark ? "#1c2127" : "#f6f8fa");
+    var linkColor = cs.getPropertyValue("--accent").trim() || (isDark ? "#bf5700" : "#0969da");
 
     return "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
       "<style>" +

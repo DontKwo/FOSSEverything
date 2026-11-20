@@ -102,14 +102,14 @@ class ToolRegistry:
         accepted for words of four or more characters. Prefix a query with a
         workspace name (``pdf:`` or ``images:``) to limit that category.
         """
-        category, words = self._parse_query(query)
+        category, raw_candidate, words = self._parse_query(query)
         if not words:
-            results = [SearchResult(tool, 0) for tool in self.all() if self._in_category(tool, category)]
+            results = [SearchResult(tool, 0) for tool in self.all() if self._in_category(tool, category, raw_candidate)]
             return results[:limit] if limit else results
 
         results = []
         for tool in self.all():
-            if not self._in_category(tool, category):
+            if not self._in_category(tool, category, raw_candidate):
                 continue
             result = self._score(tool, words)
             if result is not None:
@@ -118,22 +118,46 @@ class ToolRegistry:
         return results[:limit] if limit else results
 
     @staticmethod
-    def _parse_query(query: str) -> tuple[str | None, tuple[str, ...]]:
+    def _parse_query(query: str) -> tuple[str | None, str | None, tuple[str, ...]]:
         raw_words = query.lower().split()
         category = None
+        raw_candidate = None
         words = []
+        category_map = {
+            "pdf": "Documents",
+            "docs": "Documents",
+            "documents": "Documents",
+            "resume": "Documents",
+            "image": "Visuals",
+            "images": "Visuals",
+            "visuals": "Visuals",
+            "media": "Media",
+            "files": "Files & Storage",
+            "data": "Data & Text",
+            "text": "Data & Text",
+            "security": "Security & Network",
+            "utilities": "Utilities",
+        }
         for raw_word in raw_words:
             if raw_word.endswith(":"):
                 candidate = raw_word[:-1]
-                if candidate in {"pdf", "image", "images", "media", "data", "text", "resume"}:
-                    category = "Images" if candidate == "image" else candidate.title()
+                if candidate in category_map:
+                    category = category_map[candidate]
+                    raw_candidate = candidate
                     continue
             words.extend(_tokens(raw_word))
-        return category, tuple(words)
+        return category, raw_candidate, tuple(words)
 
     @staticmethod
-    def _in_category(tool: ToolDefinition, category: str | None) -> bool:
-        return category is None or tool.category.lower() == category.lower()
+    def _in_category(tool: ToolDefinition, category: str | None, raw_candidate: str | None = None) -> bool:
+        if category is None:
+            return True
+        tool_cat = tool.category.lower()
+        if tool_cat == category.lower():
+            return True
+        if raw_candidate and tool_cat == raw_candidate.lower():
+            return True
+        return False
 
     def _score(self, tool: ToolDefinition, words: tuple[str, ...]) -> SearchResult | None:
         title_tokens = _tokens(tool.title)

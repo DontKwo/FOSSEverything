@@ -1,188 +1,140 @@
-# fosseverything: local desktop power tool # noqa: 19
+<div align="center">
+  <img src="assets/logo.png" alt="FOSSEverything Logo" width="280" />
 
-[![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20Offline-success)](https://github.com/DontKwo/FOSSEverything)
-[![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](https://github.com/DontKwo/FOSSEverything)
-[![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-informational)](https://github.com/DontKwo/FOSSEverything)
-[![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
+  # FOSSEverything
 
-FOSSEverything is an offline desktop utility suite for editing documents, media, and data locally. Edit PDFs, manipulate images, transcode audio and video, extract text with Tesseract OCR, inspect 3D models, monitor local network sockets, generate QR codes, tailor ATS-friendly resumes, compute folder hash manifests, and batch-convert files. All processing executes on your device with zero cloud tracking, zero accounts, and zero telemetry.
+  **The offline desktop power tool for documents, media, data, and daily workflows.**
+
+  [![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20Offline-success.svg)](PRIVACY.md)
+  [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](https://github.com/DontKwo/FOSSEverything/releases)
+  [![Build Executables](https://github.com/DontKwo/FOSSEverything/actions/workflows/build-exe.yml/badge.svg)](https://github.com/DontKwo/FOSSEverything/actions/workflows/build-exe.yml)
+  [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
+
+</div>
 
 ---
 
-## quick start
+FOSSEverything is a desktop utility suite for editing documents, manipulating media, inspecting 3D models, converting datasets, and monitoring system network connections. Every operation executes entirely on your physical machine with zero cloud tracking, zero account requirements, and zero remote telemetry.
 
-### Portable Binaries & Distributables
-Standalone packages bundle a dedicated runtime with all core dependencies and require zero setup.
-- **Windows:** Download `FOSSEverything-Setup.exe` (or `FOSSEverything-Portable-win64.zip`) from [Releases](https://github.com/DontKwo/FOSSEverything/releases). The setup wizard installs Start Menu and Desktop shortcuts.
-- **Linux:** Download `FOSSEverything-Portable-linux64.tar.gz` from [Releases](https://github.com/DontKwo/FOSSEverything/releases). Extract and run `./install.sh` (or `./FOSSEverything --install-desktop`) to register the application launcher shortcut with the high-resolution app icon.
+---
 
-### Run From Source
-Prerequisites: [uv](https://astral.sh/uv) and Python 3.11+.
+## Downloads & Releases
+
+Pre-compiled standalone packages bundle dependencies and execute out of the box without requiring a Python installation:
+
+| Platform | Format | Direct Download | Installation Note |
+|---|---|---|---|
+| **Windows** | Setup Installer | [FOSSEverything-Setup.exe](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Setup.exe) | Setup wizard with Start Menu and desktop shortcuts |
+| **Windows** | Portable ZIP | [FOSSEverything-Portable-win64.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-win64.zip) | Extract and launch `FOSSEverything.exe` directly |
+| **macOS** | Portable ZIP | [FOSSEverything-Portable-macos.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-macos.zip) | Extract and drag `FOSSEverything.app` to Applications |
+| **Linux** | Portable Tarball | [FOSSEverything-Portable-linux64.tar.gz](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-linux64.tar.gz) | Extract and run `./install.sh` for desktop launcher |
+
+Find older versions and checksum manifests on the [Releases Page](https://github.com/DontKwo/FOSSEverything/releases).
+
+---
+
+## Feature Showcase
+
+### Application Hub & Global Command Palette
+Launch capabilities, search with natural language keywords, and access pinned favorites instantly with `Ctrl+K` (`Cmd+K` on macOS).
+
+![FOSSEverything Application Hub](assets/screenshots/01_home_hub.png)
+
+---
+
+### PDF Studio
+Merge, split, reorder, compress, encrypt, water-mark, and redact PDF documents locally.
+
+![PDF Studio](assets/screenshots/02_pdf_studio.png)
+
+---
+
+### Interactive 3D Model Viewer
+Inspect STL, OBJ, PLY, GLTF, and STEP 3D models with bounding box diagnostics, wireframe shading, and cross-section slicing.
+
+![3D Model Viewer](assets/screenshots/03_3d_viewer.png)
+
+---
+
+### Local Network Monitor
+Audit open network sockets, active TCP/UDP connections, listening ports, process owners, and bandwidth transfer rates.
+
+![Network Monitor](assets/screenshots/04_network_monitor.png)
+
+---
+
+### Data Studio & Converter
+Format, validate, query, and minify structured datasets including JSON, YAML, TOML, XML, and CSV with live syntax highlighting.
+
+![Data Studio](assets/screenshots/05_data_studio.png)
+
+---
+
+### Universal Media Converter & Batch Compressor
+Transcode images, audio, video, and documents with configurable compression presets and stream-copy audio extraction.
+
+![Universal Converter](assets/screenshots/06_converter.png)
+
+---
+
+## Core Tool Suites
+
+| Suite | Included Tools | Key Capabilities |
+|---|---|---|
+| **Documents** | PDF Studio, OCR & Text, Markdown Editor, Resume Builder | Merge/split PDFs, offline Tesseract OCR in 18+ languages, live Markdown preview, ATS resume exporter |
+| **Visuals** | Image Studio, Photo Collage, Color Palette, 3D Viewer | Redaction, cropping, filters, EXIF metadata viewer, palette extraction, 3D mesh slicing |
+| **Media** | Audio/Video Studio, Playlist Manager | Stream-copy trimming, MP3/WAV/AAC extraction, M3U8 parsing, format transcoding |
+| **Files & Storage** | File Converter, Compressor, Archive Tools, Batch Renamer | Batch media conversion, ZIP/TAR/7Z extraction, regex renaming, collision previews |
+| **Data & Text** | Data Studio, Text Tools, Encoding, Unit Converter | JSONPath queries, regex search/diff, Base64/Hex/URL codec, Pint physical unit engine |
+| **Security & Network** | Network Monitor, Sherlock OSINT, Metadata Tools | Live socket inspector, username search across 300+ platforms, EXIF/ID3 stripper |
+| **Utilities** | QR & Barcodes | Vector SVG QR code generator with logo embedding, file and webcam barcode scanner |
+
+---
+
+## Native Desktop & Shell Integration
+
+FOSSEverything integrates with desktop operating systems:
+- **File Drag & Drop**: Drop files anywhere onto the window to route directly to the matching tool.
+- **Single-Instance IPC**: Launching a file forwards it to your active window over local TCP socket `127.0.0.1:47891`.
+- **Context Menus**: Register "Open in FOSSEverything" in your system file explorer:
+  ```bash
+  # Windows, macOS, or Linux
+  python main.py --register-shell
+
+  # Remove integration
+  python main.py --unregister-shell
+  ```
+
+---
+
+## Documentation Links
+
+- [Developer Guide & Architecture](docs/DEVELOPMENT.md): Source installation, architecture overview, test runners, and build procedures.
+- [User Guide](docs/USER_GUIDE.md): End-user usage tips, shortcuts, and tool manuals.
+- [Frequently Asked Questions (FAQ)](docs/FAQ.md): Common troubleshooting and platform questions.
+- [Contributing Guidelines](CONTRIBUTING.md): PR guidelines, coding invariants, and testing standards.
+- [Privacy Policy](PRIVACY.md): Data handling guarantees and offline architecture specification.
+- [Third-Party Notices](NOTICES.md): Open source licenses and library acknowledgments.
+
+---
+
+## Quick Start (From Source)
+
+For developers running from Git:
 
 ```bash
 git clone https://github.com/DontKwo/FOSSEverything.git
 cd FOSSEverything
 
-# Bootstrap dependencies and launch
+# Install dependencies and start
 uv sync
 uv run python main.py
 ```
 
-Helper launch scripts are also provided:
-```bash
-./setup.sh        # macOS / Linux
-.\setup.ps1       # Windows PowerShell
-```
-
-### Developer vs. Packaged Distributable Coexistence
-Developers often run both the cloned Git repo via `uv run python main.py` and have the packaged standalone binary installed. Both workflows are designed to coexist cleanly:
-- **Shared Offline Configuration:** User preferences (themes, UI scaling, tool settings) reside in `~/.fosseverything/settings.json`, remaining consistent whether launched from source or via the packaged executable.
-- **Single-Instance Routing:** If an instance is already running (either development or packaged), subsequent launches automatically forward opened files to the active window via local socket IPC (`127.0.0.1:47891`).
-- **Updates:**
-  - *Source installs* update dynamically via `git pull && uv sync`.
-  - *Packaged binaries* update via GitHub Releases. The automated CI/CD workflow builds fresh release assets for Windows and Linux on new merges and pull requests.
-- **Desktop Launchers & Shortcuts:** On Windows, the installer creates system Start Menu and Desktop shortcuts. On Linux, running `FOSSEverything --install-desktop` installs `fosseverything.desktop` into `~/.local/share/applications` and registers high-resolution app icons into `~/.local/share/icons/hicolor/256x256/apps/`.
+For complete development instructions, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
 
 ---
 
-## file integration and shell routing
+## License
 
-FOSSEverything automatically routes files opened via double-click, drag-and-drop, or CLI arguments to the matching tool:
-
-- `.pdf` -> PDF Editor
-- `.png`, `.jpg`, `.webp`, `.bmp`, `.tiff`, `.svg` -> Image Editor
-- `.mp4`, `.mov`, `.mkv`, `.mp3`, `.wav`, `.aac` -> Video & Audio
-- `.stl`, `.obj`, `.ply`, `.gltf`, `.step` -> 3D Model Viewer
-- `.docx`, `.xlsx`, `.pptx` -> Office Tools
-- `.json`, `.yaml`, `.csv`, `.xml`, `.toml` -> Data Tools
-- `.zip`, `.tar`, `.gz`, `.7z` -> Archive Tools
-
-Register shell associations in your operating system file manager:
-
-```bash
-# Register "Open in FOSSEverything" context menu items
-python main.py --register-shell
-
-# Remove shell integration
-python main.py --unregister-shell
-```
-
-Platform behavior:
-- **Windows**: Adds `HKEY_CURRENT_USER` registry keys for right-click file and directory actions.
-- **Linux**: Creates a FreeDesktop `.desktop` file under `~/.local/share/applications/`.
-- **macOS**: Configures a command-line launcher at `~/.local/bin/fosseverything`.
-
----
-
-
----
-
-## Trademark and Directory Disclaimer
-
-**TRADEMARK & DIRECTORY DISCLAIMER:** FOSSEverything indexes and catalogs Free and Open Source Software. All product names, logos, brands, and registered trademarks belong to their respective owners. Reference to any software project, organization, or brand does not constitute endorsement or affiliation. The software and directory are provided AS IS without warranty of any kind.
-
-## search portal overview
-
-FOSSEverything uses an entirely local, offline search index (with no AI or cloud dependencies) to help you instantly discover tools, workspaces, and actions. Simply press `Ctrl+K` (`Cmd+K` on macOS) or use the search bar to jump to any capability using natural keywords.
-
----
-
-## core tools
-
-| Tool | Capabilities |
-|---|---|
-| PDFs | View, annotate, reorder, merge, split, compress, password-protect, stamp watermarks, insert page numbers, and extract text. |
-| Images | Crop, resize, freehand markup, shapes, text, auto-enhance, blur, pixelate redaction, and screen capture. |
-| Video & Audio | Lossless stream-copy trimming, audio extraction (MP3, WAV, AAC), container transcoding, compression presets, and frame capture. |
-| OCR & Text | Offline Tesseract OCR across 18+ languages. Generates searchable PDFs with invisible text layers and plain text exports. |
-| 3D Model Viewer | Inspect STL, OBJ, PLY, GLTF, and STEP models with Three.js rendering, bounding box measurements, cross-section slicing, and export. |
-| Network Monitor | View local socket connections, listening ports, process owners, and live network transfer rates via psutil. |
-| Archive & Compression | Compress and extract ZIP, TAR, GZ, and 7Z archives with password protection and integrity checking. |
-| File Compressor | Unified media compression tool optimizing PDFs, images, video, and audio to target file size budgets. |
-| Resume Builder | Master resume repository with granular bullet-point toggles, section reordering, ATS keyword analysis, and PDF export. |
-| File Converter | Batch and single-file format conversions across images, documents, audio, video, spreadsheets, and structured data. |
-| Office Documents | Extract text and metadata from DOCX, XLSX, and PPTX documents, with format conversion to PDF, TXT, and Markdown. |
-| Metadata Tools | Inspect and edit EXIF tags, PDF document properties, and audio/video ID3 tags. Strip metadata with stream-copy. |
-| QR & Barcodes | Generate custom vector SVG QR codes with logo embedding. Scan and decode QR codes and 1D barcodes from files or webcam. |
-| Batch Renamer | Batch rename files with regular expressions, sequential zero-padded numbering, case transforms, and disk collision previews. |
-| Data Studio | Format, validate, and minify JSON, YAML, TOML, and XML. Evaluate JSONPath queries and infer Draft-07 JSON Schemas. |
-| Markdown Editor | Side-by-side Markdown editing with live HTML rendering, table formatting, and document export. |
-| Color Palette | Extract dominant palettes using median-cut and K-means clustering. Live eyedropper pixel sampler with WCAG contrast ratios. |
-| Photo Collage | Arrange photos into custom grid templates with borders, cell padding, fit modes, and captions. |
-| Hash & Verify | Checksum calculation (SHA-256, SHA-512, MD5, BLAKE2). Generate and verify directory tree manifest files. |
-| Text Tools | Case transforms, text reversal, whitespace normalization, line deduplication, regex search, and side-by-side diffing. |
-| Encoding / Decoding | Encode and decode Base64, URL percent-encoding, HTML entities, hex strings, and byte representations. |
-
----
-
-## local development setup
-
-FOSSEverything relies on [uv](https://astral.sh/uv) to manage Python dependencies seamlessly.
-
-1. Ensure you have Python 3.11+ installed.
-2. Clone the repository and navigate into it:
-   ```bash
-   git clone https://github.com/DontKwo/FOSSEverything.git
-   cd FOSSEverything
-   ```
-3. Install dependencies using `uv`:
-   ```bash
-   uv sync
-   ```
-4. Run the application locally:
-   ```bash
-   uv run python main.py
-   ```
-
----
-
-## contribution guide
-
-We welcome contributions! Please review the [CONTRIBUTING.md](CONTRIBUTING.md) file before opening any pull requests. It contains detailed information on codebase architecture, testing procedures (`uv run pytest`), and style invariants necessary for merging your code.
-
----
-
-## architecture and privacy
-
-- **100% Local Processing**: All tasks execute directly on local CPU and GPU resources.
-- **Zero Telemetry**: No tracking pixels, crash analytics, external pings, or background cloud sync.
-- **Safe Outputs**: Modifying operations save to new file destinations by default.
-- **Keyboard Navigation**: Press `Ctrl+K` (or `Cmd+K` on macOS) anywhere to invoke the global command palette.
-
-Read [PRIVACY.md](PRIVACY.md) for full data processing details.
-
----
-
-## building standalone executables
-
-Build standalone distributable binaries with PyInstaller:
-
-```bash
-# Windows
-build.bat
-
-# macOS / Linux
-bash build.sh
-
-# Platform-agnostic direct invocation
-python scripts/build_executable.py
-
-# Single-file binary distribution
-python scripts/build_executable.py --onefile
-```
-
-Build outputs are saved to `dist/FOSSEverything.exe` (Windows), `dist/FOSSEverything.app` (macOS), or `dist/FOSSEverything` (Linux).
-PyMuPDF fallback compression operates automatically when Ghostscript is not present.
-
-To build the Windows installer package (requires [Inno Setup](https://jrsoftware.org/isinfo.php)):
-```bash
-python scripts/build_installer.py
-```
-
----
-
-## contributing and license
-
-Contributions are welcome. Please refer to [CONTRIBUTING.md](CONTRIBUTING.md) for development setup instructions and required verification checks.
-
-FOSSEverything is distributed under the GNU Affero General Public License v3.0 or later. See [LICENSE](LICENSE) for terms and [NOTICES.md](NOTICES.md) for third-party dependency notices.
+FOSSEverything is distributed under the GNU Affero General Public License v3.0 or later. See [LICENSE](LICENSE) for details.

@@ -34,6 +34,10 @@ THEME_BG_MAP = {
     "cyberpunk": "#090117",
     "ut_austin": "#ffffff",
     "ut": "#ffffff",
+    "ut_austin_dark": "#13171a",
+    "ut_dark": "#13171a",
+    "high_contrast": "#000000",
+    "sepia": "#f4ecd8",
 }
 
 

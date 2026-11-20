@@ -34,7 +34,7 @@
   --icon-md: 1.25rem;
   --icon-lg: 1.75rem;
 
-  --sidebar-w: clamp(14rem, 17vw, 18rem);
+  --sidebar-w: clamp(11rem, 13vw, 12rem);
   --rail-w: 4rem;
   --topbar-h: 3.5rem;
   --z-topbar: 10;

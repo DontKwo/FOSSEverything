@@ -1,6 +1,10 @@
+import json
+import os
+from datetime import datetime, timezone
 from typing import Any
 
 from app.features.network_monitor.db import (
+    app_data_dir,
     connect,
     connections_over_time,
     db_path,
@@ -187,3 +191,101 @@ class NetworkMonitorApiMixin:
         finally:
             conn.close()
         return ok(pruned_count=pruned, days=days)
+
+    @api_method
+    def network_export_log(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Export live or historical connection logs to JSON, CSV, or text file.
+        source = str(params.get("source", "history")).lower()
+        format_type = str(params.get("format", "json")).lower()
+        if format_type not in ("json", "csv", "txt"):
+            format_type = "json"
+
+        records: list[dict[str, Any]] = []
+        if source == "live":
+            monitor = self._get_monitor()
+            try:
+                conns: list[LiveConnection] = monitor.poll()
+            except Exception:
+                conns = []
+            filter_str = str(params.get("filter", "")).lower().strip()
+            for conn_item in conns:
+                if filter_str:
+                    combined = f"{conn_item.process_name} {conn_item.local_port} {conn_item.remote_ip} {conn_item.remote_domain or ''} {conn_item.status}".lower()
+                    if filter_str not in combined:
+                        continue
+                records.append({
+                    "timestamp": conn_item.first_seen,
+                    "pid": conn_item.pid,
+                    "process_name": conn_item.process_name,
+                    "protocol": conn_item.protocol,
+                    "local_port": conn_item.local_port,
+                    "remote_ip": conn_item.remote_ip,
+                    "remote_domain": conn_item.remote_domain,
+                    "remote_port": conn_item.remote_port,
+                    "status": conn_item.status,
+                })
+        else:
+            query_str = str(params.get("query") or "")
+            proc = str(params.get("process") or params.get("process_name") or "")
+            dom = str(params.get("domain") or "")
+            limit = int(params.get("limit", 5000))
+            conn = connect()
+            try:
+                events = search_history(conn, query=query_str, process=proc, domain=dom, limit=limit)
+            finally:
+                conn.close()
+            for event in events:
+                records.append({
+                    "timestamp": event["timestamp"],
+                    "pid": event["pid"],
+                    "process_name": event["process_name"],
+                    "protocol": event["protocol"],
+                    "local_port": event["local_port"],
+                    "remote_ip": event["remote_ip"],
+                    "remote_domain": event["remote_domain"],
+                    "remote_port": event["remote_port"],
+                    "status": "CLOSED",
+                })
+
+        output_path = str(params.get("output_path", "")).strip()
+        if not output_path:
+            log_dir = os.path.join(app_data_dir(), "logs")
+            os.makedirs(log_dir, exist_ok=True)
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+            output_path = os.path.join(log_dir, f"network_{source}_{stamp}.{format_type}")
+        else:
+            parent_dir = os.path.dirname(os.path.abspath(output_path))
+            if parent_dir:
+                os.makedirs(parent_dir, exist_ok=True)
+
+        if format_type == "json":
+            with open(output_path, "w", encoding="utf-8") as file_handle:
+                json.dump(records, file_handle, indent=2)
+        elif format_type == "csv":
+            import csv
+            with open(output_path, "w", newline="", encoding="utf-8") as file_handle:
+                writer = csv.writer(file_handle)
+                writer.writerow(["timestamp", "pid", "process_name", "protocol", "local_port", "remote_ip", "remote_domain", "remote_port", "status"])
+                for row_record in records:
+                    writer.writerow([
+                        row_record.get("timestamp", ""),
+                        row_record.get("pid", ""),
+                        row_record.get("process_name", ""),
+                        row_record.get("protocol", ""),
+                        row_record.get("local_port", ""),
+                        row_record.get("remote_ip", ""),
+                        row_record.get("remote_domain", ""),
+                        row_record.get("remote_port", ""),
+                        row_record.get("status", ""),
+                    ])
+        else:
+            with open(output_path, "w", encoding="utf-8") as file_handle:
+                file_handle.write(f"# Network Monitor Log - Exported {datetime.now(timezone.utc).isoformat()}\n")
+                file_handle.write(f"# Total Records: {len(records)}\n\n")
+                for row_record in records:
+                    local_info = f":{row_record['local_port']}" if row_record.get('local_port') else ""
+                    remote_info = f"{row_record['remote_ip']}:{row_record['remote_port']}" if row_record.get('remote_ip') else ""
+                    domain_info = f" ({row_record['remote_domain']})" if row_record.get('remote_domain') else ""
+                    file_handle.write(f"[{row_record.get('timestamp', '')}] [{row_record.get('process_name', '')} (PID {row_record.get('pid', '')})] {row_record.get('protocol', '')} {local_info} -> {remote_info}{domain_info} [{row_record.get('status', '')}]\n")
+
+        return ok(file_path=output_path, count=len(records), format=format_type, source=source)

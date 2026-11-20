@@ -65,6 +65,7 @@ setattr(WebApi, "data_convert_format", LazyMethod("data_convert_format", "app.we
 setattr(WebApi, "data_convert_units", LazyMethod("data_convert_units", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "data_cron_describe", LazyMethod("data_cron_describe", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "data_csv_to_table", LazyMethod("data_csv_to_table", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_dedup_table", LazyMethod("data_dedup_table", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "data_diff_documents", LazyMethod("data_diff_documents", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "data_diff_schema", LazyMethod("data_diff_schema", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "data_format_code", LazyMethod("data_format_code", "app.web.api.tool_data", "DataApiMixin"))
@@ -89,6 +90,7 @@ setattr(WebApi, "data_render_preview", LazyMethod("data_render_preview", "app.we
 setattr(WebApi, "data_save_file", LazyMethod("data_save_file", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "data_table_to_csv", LazyMethod("data_table_to_csv", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "data_table_to_rows", LazyMethod("data_table_to_rows", "app.web.api.tool_data", "DataApiMixin"))
+setattr(WebApi, "data_transpose_table", LazyMethod("data_transpose_table", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "data_validate_against_schema", LazyMethod("data_validate_against_schema", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "data_validate_syntax", LazyMethod("data_validate_syntax", "app.web.api.tool_data", "DataApiMixin"))
 setattr(WebApi, "decode_qr", LazyMethod("decode_qr", "app.web.api.tool_qr", "QrApiMixin"))
@@ -215,6 +217,7 @@ setattr(WebApi, "_get_monitor", LazyMethod("_get_monitor", "app.web.api.tool_net
 setattr(WebApi, "network_apps", LazyMethod("network_apps", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "network_database_ops", LazyMethod("network_database_ops", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "network_destination_status", LazyMethod("network_destination_status", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
+setattr(WebApi, "network_export_log", LazyMethod("network_export_log", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "network_get_connections", LazyMethod("network_get_connections", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "network_history", LazyMethod("network_history", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
 setattr(WebApi, "network_manage_destinations", LazyMethod("network_manage_destinations", "app.web.api.tool_network_monitor", "NetworkMonitorApiMixin"))
@@ -313,6 +316,10 @@ setattr(WebApi, "resume_render_preview", LazyMethod("resume_render_preview", "ap
 setattr(WebApi, "resume_sample", LazyMethod("resume_sample", "app.web.api.tool_resume", "ResumeApiMixin"))
 setattr(WebApi, "resume_save_file", LazyMethod("resume_save_file", "app.web.api.tool_resume", "ResumeApiMixin"))
 setattr(WebApi, "resume_save_profile", LazyMethod("resume_save_profile", "app.web.api.tool_resume", "ResumeApiMixin"))
+setattr(WebApi, "sherlock_export", LazyMethod("sherlock_export", "app.web.api.tool_sherlock", "SherlockApiMixin"))
+setattr(WebApi, "sherlock_get_sites", LazyMethod("sherlock_get_sites", "app.web.api.tool_sherlock", "SherlockApiMixin"))
+setattr(WebApi, "sherlock_search", LazyMethod("sherlock_search", "app.web.api.tool_sherlock", "SherlockApiMixin"))
+setattr(WebApi, "sherlock_update_database", LazyMethod("sherlock_update_database", "app.web.api.tool_sherlock", "SherlockApiMixin"))
 setattr(WebApi, "text_case_transform", LazyMethod("text_case_transform", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
 setattr(WebApi, "text_diff", LazyMethod("text_diff", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
 setattr(WebApi, "text_line_ops", LazyMethod("text_line_ops", "app.web.api.tool_text_tools", "TextToolsApiMixin"))
@@ -373,6 +380,8 @@ def __getattr__(name: str) -> Any:
         return getattr(importlib.import_module("app.web.api.tool_renamer"), "RenamerApiMixin")
     if name == "ResumeApiMixin":
         return getattr(importlib.import_module("app.web.api.tool_resume"), "ResumeApiMixin")
+    if name == "SherlockApiMixin":
+        return getattr(importlib.import_module("app.web.api.tool_sherlock"), "SherlockApiMixin")
     if name == "TextToolsApiMixin":
         return getattr(importlib.import_module("app.web.api.tool_text_tools"), "TextToolsApiMixin")
     if name == "UnitConverterApiMixin":
@@ -382,7 +391,7 @@ def __getattr__(name: str) -> Any:
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 def __dir__() -> list[str]:
-    return ["WebApi", "ArchiveApiMixin", "CollageApiMixin", "CompressorApiMixin", "ConverterApiMixin", "DataApiMixin", "EncodingApiMixin", "ImagesApiMixin", "MarkdownApiMixin", "MediaApiMixin", "MetadataApiMixin", "Model3dApiMixin", "NetworkMonitorApiMixin", "OcrApiMixin", "PaletteApiMixin", "PdfApiMixin", "PlaylistApiMixin", "QrApiMixin", "RenamerApiMixin", "ResumeApiMixin", "TextToolsApiMixin", "UnitConverterApiMixin", "WordCounterApiMixin", ]
+    return ["WebApi", "ArchiveApiMixin", "CollageApiMixin", "CompressorApiMixin", "ConverterApiMixin", "DataApiMixin", "EncodingApiMixin", "ImagesApiMixin", "MarkdownApiMixin", "MediaApiMixin", "MetadataApiMixin", "Model3dApiMixin", "NetworkMonitorApiMixin", "OcrApiMixin", "PaletteApiMixin", "PdfApiMixin", "PlaylistApiMixin", "QrApiMixin", "RenamerApiMixin", "ResumeApiMixin", "SherlockApiMixin", "TextToolsApiMixin", "UnitConverterApiMixin", "WordCounterApiMixin", ]
 
-__all__ = ["WebApi", "ArchiveApiMixin", "CollageApiMixin", "CompressorApiMixin", "ConverterApiMixin", "DataApiMixin", "EncodingApiMixin", "ImagesApiMixin", "MarkdownApiMixin", "MediaApiMixin", "MetadataApiMixin", "Model3dApiMixin", "NetworkMonitorApiMixin", "OcrApiMixin", "PaletteApiMixin", "PdfApiMixin", "PlaylistApiMixin", "QrApiMixin", "RenamerApiMixin", "ResumeApiMixin", "TextToolsApiMixin", "UnitConverterApiMixin", "WordCounterApiMixin", ]
+__all__ = ["WebApi", "ArchiveApiMixin", "CollageApiMixin", "CompressorApiMixin", "ConverterApiMixin", "DataApiMixin", "EncodingApiMixin", "ImagesApiMixin", "MarkdownApiMixin", "MediaApiMixin", "MetadataApiMixin", "Model3dApiMixin", "NetworkMonitorApiMixin", "OcrApiMixin", "PaletteApiMixin", "PdfApiMixin", "PlaylistApiMixin", "QrApiMixin", "RenamerApiMixin", "ResumeApiMixin", "SherlockApiMixin", "TextToolsApiMixin", "UnitConverterApiMixin", "WordCounterApiMixin", ]
 

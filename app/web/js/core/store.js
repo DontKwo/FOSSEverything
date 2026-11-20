@@ -5,10 +5,27 @@ window.FOSS = window.FOSS || {};
   var cache = {};
   var listeners = {};
 
+  try {
+    var stored = localStorage.getItem("foss_settings");
+    if (stored) {
+      var parsed = JSON.parse(stored);
+      if (parsed && typeof parsed === "object") {
+        cache = parsed;
+      }
+    }
+  } catch (e) {}
+
+  function persistCache() {
+    try {
+      localStorage.setItem("foss_settings", JSON.stringify(cache));
+    } catch (e) {}
+  }
+
   function loadAll() {
     return window.FOSS.api("get_settings_all", {}).then(function (res) {
       if (res && res.ok && res.settings) {
-        cache = res.settings;
+        cache = Object.assign({}, cache, res.settings);
+        persistCache();
       }
       return cache;
     });
@@ -23,6 +40,7 @@ window.FOSS = window.FOSS || {};
 
   function set(key, value) {
     cache[key] = value;
+    persistCache();
     window.FOSS.api("set_setting", { key: key, value: value });
     if (listeners[key]) {
       listeners[key].forEach(function (cb) {
@@ -66,4 +84,3 @@ window.FOSS = window.FOSS || {};
     subscribe: subscribe
   };
 })();
-

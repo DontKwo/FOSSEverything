@@ -33,6 +33,9 @@ name: Build Executables & Release Distributables
   release:
     types: [ published ]
 
+permissions:
+  contents: write
+
 jobs:
   build-windows:
     name: Build Windows Binary & Installer
@@ -74,6 +77,16 @@ jobs:
         shell: pwsh
         run: |
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+            if (-not (Test-Path $iscc)) {
+              $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+            }
+          }
           if (Test-Path $iscc) {
             & $iscc installer\FOSSEverything.iss
           } else {
@@ -167,5 +180,63 @@ jobs:
         with:
           files: |
             dist/FOSSEverything-Portable-linux64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-macos:
+    name: Build macOS Standalone Bundle & Package
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+
+      - name: Run Test Suite
+        run: |
+          uv run python -m pytest --ignore=tests/ui -q
+
+      - name: Build Standalone Executable (PyInstaller)
+        run: |
+          uv run python scripts/build_executable.py
+
+      - name: Prepare macOS Portable Distribution Package
+        run: |
+          cd dist
+          if [ -d "FOSSEverything.app" ]; then
+            zip -r -y FOSSEverything-Portable-macos.zip FOSSEverything.app
+          elif [ -d "FOSSEverything" ]; then
+            zip -r -y FOSSEverything-Portable-macos.zip FOSSEverything
+          else
+            zip -r -y FOSSEverything-Portable-macos.zip *
+          fi
+
+      - name: Upload macOS Portable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOSSEverything-Portable-macos
+          path: dist/FOSSEverything-Portable-macos.zip
+          retention-days: 14
+
+      - name: Attach macOS Assets to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/FOSSEverything-Portable-macos.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

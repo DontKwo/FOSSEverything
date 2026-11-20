@@ -83,7 +83,11 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=os.path.join(assets_dir, 'icon.ico') if os.path.exists(os.path.join(assets_dir, 'icon.ico')) else None,
+    icon=(
+        os.path.join(assets_dir, 'icon.icns')
+        if sys.platform == 'darwin' and os.path.exists(os.path.join(assets_dir, 'icon.icns'))
+        else (os.path.join(assets_dir, 'icon.ico') if os.path.exists(os.path.join(assets_dir, 'icon.ico')) else None)
+    ),
 )
 coll = COLLECT(
     exe,
@@ -94,3 +98,11 @@ coll = COLLECT(
     upx_exclude=[],
     name='FOSSEverything',
 )
+
+if sys.platform == 'darwin':
+    app = BUNDLE(
+        coll,
+        name='FOSSEverything.app',
+        icon=os.path.join(assets_dir, 'icon.icns') if os.path.exists(os.path.join(assets_dir, 'icon.icns')) else None,
+        bundle_identifier='com.fosseverything.desktop',
+    )

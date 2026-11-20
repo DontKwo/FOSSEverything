@@ -242,6 +242,19 @@ class DataOpsTests(unittest.TestCase):
         self.assertLess(runs[1], runs[2])
         self.assertGreater(runs[0], start)
 
+    def test_transpose_markdown_table(self) -> None:
+        tbl = "| Name | Age |\n| --- | --- |\n| Alice | 30 |\n| Bob | 25 |"
+        res = data_ops.transpose_markdown_table(tbl)
+        self.assertIn("| Name | Alice | Bob |", res)
+        self.assertIn("| Age | 30 | 25 |", res)
+
+    def test_dedup_markdown_table(self) -> None:
+        tbl = "| Name | Role |\n| --- | --- |\n| Alice | Dev |\n| Bob | Ops |\n| Alice | Dev |"
+        res, count = data_ops.dedup_markdown_table(tbl)
+        self.assertEqual(count, 1)
+        self.assertEqual(res.count("Alice"), 1)
+        self.assertIn("Bob", res)
+
 
 if __name__ == "__main__":
     unittest.main()

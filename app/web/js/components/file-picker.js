@@ -63,8 +63,10 @@ window.FOSS.components = window.FOSS.components || {};
       }
     }, [window.FOSS.icons.el("close", 16)]);
 
-    var actions = window.FOSS.dom.el("div", { className: "row", gap: "sm" }, [browseBtn, clearBtn]);
-    var info = window.FOSS.dom.el("div", { className: "stack", gap: "xs" }, [nameEl, pathEl]);
+    var actions = window.FOSS.dom.el("div", { className: "file-picker-actions row" }, [browseBtn, clearBtn]);
+    var info = window.FOSS.dom.el("div", { className: "file-picker-info stack" }, [nameEl, pathEl]);
+    var fileIcon = window.FOSS.icons.el("file", 18);
+    fileIcon.classList.add("file-picker-icon");
 
     var wrap = window.FOSS.dom.el("div", {
       className: "file-picker",
@@ -75,7 +77,7 @@ window.FOSS.components = window.FOSS.components || {};
         browseBtn.click();
       }
     }, [
-      window.FOSS.icons.el("file", 18),
+      fileIcon,
       info,
       actions
     ]);

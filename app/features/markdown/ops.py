@@ -156,14 +156,24 @@ def build_styled_markdown_document(
 ) -> str:
     # Render complete HTML document with GitHub typography styles for preview or export.
     body_html = render_markdown_to_html(text, flavor=flavor)
-    is_dark = theme_mode.lower() == "dark" and not for_pdf
+    mode = theme_mode.lower()
+    is_dark = mode not in ("light", "sepia", "solarized", "ut_austin") and not for_pdf
+    is_ut_dark = mode in ("ut_austin_dark", "ut_dark")
 
-    bg_color = "#0d1322" if is_dark else "#ffffff"
-    text_color = "#e6edf3" if is_dark else "#1f2328"
-    border_color = "#30363d" if is_dark else "#d0d7de"
-    code_bg = "#161b22" if is_dark else "#f6f8fa"
-    table_alt = "#161b22" if is_dark else "#f6f8fa"
-    link_color = "#58a6ff" if is_dark else "#0969da"
+    if is_dark:
+        bg_color = "#13171a" if is_ut_dark else "#0d1322"
+        text_color = "#f0f2f5" if is_ut_dark else "#e6edf3"
+        border_color = "#363d44" if is_ut_dark else "#30363d"
+        code_bg = "#1c2127" if is_ut_dark else "#161b22"
+        table_alt = "#1c2127" if is_ut_dark else "#161b22"
+        link_color = "#bf5700" if is_ut_dark else "#58a6ff"
+    else:
+        bg_color = "#ffffff"
+        text_color = "#1f2328"
+        border_color = "#d0d7de"
+        code_bg = "#f6f8fa"
+        table_alt = "#f6f8fa"
+        link_color = "#0969da"
 
     css = f"""
     body {{

@@ -191,7 +191,7 @@ window.FOSS = window.FOSS || {};
       type: "text",
       className: "input font-mono",
       "data-testid": "converter-output-stem",
-      placeholder: "converted",
+      placeholder: "Same name as input file",
       "aria-label": "Suggested Filename",
       title: "Suggested Filename"
     });
@@ -242,12 +242,16 @@ window.FOSS = window.FOSS || {};
         clearError();
         var tgt = targetSelect.value;
         var stem = outputStemInput.value.trim();
+        var fileStem = (currentFile ? currentFile.split(/[/\\]/).pop().replace(/\.[^/.]*$/, "") : "") || "converted";
+        var finalStem = (stem || fileStem).replace(/\.[^/.]*$/, "");
+        var ext = extForTarget(tgt);
+        var defaultName = ext ? (finalStem + "." + ext) : finalStem;
         var dpi = parseInt(dpiInput.value, 10) || 150;
         var q = qualitySlider.getValue();
 
         window.FOSS.api("select_save_path", {
           title: "Save Converted File",
-          default_name: stem || "converted",
+          default_name: defaultName,
           file_types: buildFileTypes(tgt, availableTargetsList)
         }).then(function (res) {
           var outPath = (res && res.path) || "";
@@ -684,8 +688,11 @@ window.FOSS = window.FOSS || {};
     function loadFile(filePath) {
       currentFile = filePath;
       var fileName = filePath.split(/[/\\]/).pop();
+      var fileStem = fileName.replace(/\.[^/.]*$/, "");
       fileDisplay.textContent = fileName;
       fileDisplay.setAttribute("title", filePath);
+      outputStemInput.value = fileStem;
+      outputStemInput.placeholder = fileStem;
       statusBar.textContent = "Analyzing " + fileName + "...";
 
       window.FOSS.api("converter_available_targets", { file_path: filePath }).then(function (res) {

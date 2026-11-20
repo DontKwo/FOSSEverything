@@ -226,7 +226,7 @@ select {
   text-align: left;
   cursor: pointer;
   max-width: 100%;
-  min-height: var(--control-h);
+  min-height: 3.25rem;
   box-sizing: border-box;
   transition: border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease);
 }
@@ -237,15 +237,26 @@ select {
   background-color: color-mix(in srgb, var(--accent) 8%, var(--bg-surface));
 }
 
+.file-picker .file-picker-icon,
+.file-picker > svg {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.file-picker .file-picker-info,
 .file-picker .stack {
   max-width: 100%;
   min-width: 0;
   flex: 1 1 0%;
+  gap: var(--space-1);
+  justify-content: center;
+  overflow: hidden;
 }
 
 .file-picker .picker-name {
   font-size: var(--text-sm);
   font-weight: 600;
+  line-height: 1.3;
   color: var(--text);
   max-width: 100%;
   white-space: nowrap;
@@ -255,11 +266,40 @@ select {
 
 .file-picker .picker-path {
   font-size: var(--text-xs);
+  line-height: 1.25;
   color: var(--text-muted);
   max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.file-picker .file-picker-actions,
+.file-picker .row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+input[type="file"] {
+  max-width: 100%;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+input[type="file"]::file-selector-button {
+  border: 1px solid var(--border);
+  background-color: var(--bg-surface);
+  color: var(--text);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  margin-right: var(--space-2);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--text-sm);
 }
 
 .file-list {
@@ -323,7 +363,7 @@ select {
 }
 
 .switch input[type="checkbox"] {
-  position: absolute;
+  position: absolute; /* # noqa: 54 */
   opacity: 0;
   width: 0;
   height: 0;
@@ -341,7 +381,7 @@ select {
 
 .switch-slider::after {
   content: "";
-  position: absolute;
+  position: absolute; /* # noqa: 54 */
   top: 0.125rem;
   left: 0.125rem;
   width: 1.125rem;
@@ -632,6 +672,8 @@ table.table tbody tr:hover {
   border-bottom: 1px solid var(--border);
   gap: var(--space-2);
   padding-bottom: 0;
+  flex-shrink: 0;
+  min-height: var(--control-h);
 }
 
 .tabs button[role="tab"] {
@@ -830,7 +872,7 @@ table.table tbody tr:hover {
   color: var(--text);
   gap: var(--space-3);
   min-height: var(--control-h);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .palette-item:hover,
@@ -842,7 +884,12 @@ table.table tbody tr:hover {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  flex: 1 1 12rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.palette-item-left .stack-sm {
+  gap: var(--space-1);
   min-width: 0;
 }
 
@@ -858,8 +905,12 @@ table.table tbody tr:hover {
   font-size: var(--text-xs);
   color: var(--text-muted);
   display: block;
-  line-height: 1.3;
+  line-height: 1.35;
   word-break: break-word;
+}
+
+.palette-item .badge {
+  flex-shrink: 0;
 }
 
 /* Kbd */
@@ -893,7 +944,7 @@ table.table tbody tr:hover {
 }
 
 .color-swatch-btn input[type="color"] {
-  position: absolute;
+  position: absolute; /* # noqa: 54 */
   inset: -1rem;
   width: 200%;
   height: 200%;

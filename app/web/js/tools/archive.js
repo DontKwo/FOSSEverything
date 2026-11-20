@@ -864,9 +864,11 @@ window.FOSS = window.FOSS || {};
           return;
         }
         var targetFmt = convertTargetSelect.value;
+        var baseName = (globalInspectPath ? globalInspectPath.split(/[/\\]/).pop() : "").replace(/\.(tar\.[a-z0-9]+|[a-z0-9]+)$/i, "") || "archive";
+        var defaultName = targetFmt ? (baseName + "." + targetFmt) : baseName;
         window.FOSS.api("select_save_path", {
           title: "Select Converted Archive Location",
-          default_name: "converted",
+          default_name: defaultName,
           file_types: archiveFileTypes(targetFmt)
         }).then(function (res) {
           if (res && res.path) {

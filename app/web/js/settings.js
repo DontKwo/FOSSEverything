@@ -18,7 +18,13 @@ window.FOSS = window.FOSS || {};
     ]);
     page.appendChild(header);
 
-    var split = window.FOSS.dom.el("div", { className: "split resizable", "data-testid": "settings-split" });
+    var savedSplitWidth = window.FOSS.store ? window.FOSS.store.get("split_settings-split_left", "18rem") : "18rem";
+    var split = window.FOSS.dom.el("div", {
+      className: "split resizable settings-split",
+      "data-testid": "settings-split",
+      "data-split-key": "settings-split",
+      style: "--split-left: " + savedSplitWidth + ";"
+    });
 
     // Left nav sections list
     var sections = [
@@ -32,6 +38,8 @@ window.FOSS = window.FOSS || {};
       { id: "about", label: "About" }
     ];
 
+    var contentPanel = window.FOSS.dom.el("div", { className: "card settings-content", "data-testid": "settings-content-panel" });
+
     var navEl = window.FOSS.dom.el("div", { className: "card settings-nav stack-sm", style: "min-width: 14rem;" });
     sections.forEach(function (sec) {
       var isAct = activeSection === sec.id;
@@ -41,7 +49,11 @@ window.FOSS = window.FOSS || {};
         "data-testid": "settings-nav-" + sec.id,
         onClick: function () {
           activeSection = sec.id;
-          render(container, sec.id);
+          navEl.querySelectorAll("button").forEach(function (b) {
+            var bAct = b.getAttribute("data-testid") === "settings-nav-" + sec.id;
+            b.className = "btn " + (bAct ? "btn-primary" : "btn-ghost");
+          });
+          renderSectionContent(contentPanel, sec.id);
         }
       });
       navEl.appendChild(btn);
@@ -58,7 +70,6 @@ window.FOSS = window.FOSS || {};
     split.appendChild(divider);
 
     // Right content panel
-    var contentPanel = window.FOSS.dom.el("div", { className: "card settings-content", "data-testid": "settings-content-panel" });
     renderSectionContent(contentPanel, activeSection);
     split.appendChild(contentPanel);
 
@@ -194,7 +205,7 @@ window.FOSS = window.FOSS || {};
     panel.appendChild(window.FOSS.dom.el("h2", { className: "card-title", text: "Appearance & Themes" }));
 
     // Theme selector
-    var currentTheme = window.FOSS.store.get("theme", "dark");
+    var currentTheme = window.FOSS.store.get("theme", "ut_austin_dark");
     var themeSelect = window.FOSS.dom.el("select", {
       "data-testid": "settings-theme-select",
       "aria-label": "Select theme",
@@ -202,7 +213,8 @@ window.FOSS = window.FOSS || {};
         window.FOSS.theme.setTheme(e.target.value);
       }
     }, [
-      window.FOSS.dom.el("option", { value: "dark", text: "Dark (Default)", selected: currentTheme === "dark" }),
+      window.FOSS.dom.el("option", { value: "ut_austin_dark", text: "UT Austin Dark (Default)", selected: currentTheme === "ut_austin_dark" || currentTheme === "ut_dark" }),
+      window.FOSS.dom.el("option", { value: "dark", text: "Dark", selected: currentTheme === "dark" }),
       window.FOSS.dom.el("option", { value: "light", text: "Light", selected: currentTheme === "light" }),
       window.FOSS.dom.el("option", { value: "solarized", text: "Solarized", selected: currentTheme === "solarized" }),
       window.FOSS.dom.el("option", { value: "monokai", text: "Monokai", selected: currentTheme === "monokai" }),
@@ -212,7 +224,7 @@ window.FOSS = window.FOSS || {};
     var themeField = window.FOSS.dom.el("div", { className: "field" }, [
       window.FOSS.dom.el("label", { text: "Color Theme" }),
       themeSelect,
-      window.FOSS.dom.el("span", { className: "hint", text: "Choose from 6 WCAG AA contrast-verified color themes." })
+      window.FOSS.dom.el("span", { className: "hint", text: "Choose from 7 WCAG AA contrast-verified color themes." })
     ]);
     panel.appendChild(themeField);
 

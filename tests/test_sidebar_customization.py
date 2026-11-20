@@ -31,8 +31,8 @@ class TestSidebarCustomization(unittest.TestCase):
             "ui_scale": 1.75,
             "custom_colors": {"accent": "#ff0077"},
             "favorites": ["pdf", "ocr"],
-            "recent_files": ["C:/tmp/test.pdf"],
-            "recent_outputs": ["C:/tmp/out.png"],
+            "recent_files": ["tmp/test.pdf"],
+            "recent_outputs": ["tmp/out.png"],
             "sidebar_layout": custom_layout,
         }
 
@@ -49,8 +49,8 @@ class TestSidebarCustomization(unittest.TestCase):
                 self.assertEqual(written.get("ui_scale"), 1.0)
                 self.assertEqual(written.get("custom_colors"), {})
                 self.assertEqual(written.get("favorites"), ["pdf", "ocr"])
-                self.assertEqual(written.get("recent_files"), ["C:/tmp/test.pdf"])
-                self.assertEqual(written.get("recent_outputs"), ["C:/tmp/out.png"])
+                self.assertEqual(written.get("recent_files"), ["tmp/test.pdf"])
+                self.assertEqual(written.get("recent_outputs"), ["tmp/out.png"])
                 self.assertEqual(written.get("sidebar_layout"), custom_layout)
 
     def test_app_catalog_completeness(self) -> None:
@@ -59,16 +59,16 @@ class TestSidebarCustomization(unittest.TestCase):
             "pdf", "ocr", "markdown", "resume",
             "images", "collage", "palette", "model3d",
             "media", "playlist",
-            "converter", "compressor", "archive", "renamer", "metadata", "qr", "network_monitor",
+            "converter", "compressor", "archive", "renamer", "metadata", "qr", "network_monitor", "sherlock",
             "unit_converter", "data", "text_tools", "encoding",
         }
         actual_ids = {app.id for app in HOME_APPS}
-        self.assertEqual(len(HOME_APPS), 21)
+        self.assertEqual(len(HOME_APPS), 22)
         self.assertEqual(actual_ids, expected_ids)
 
         self.assertEqual(
             list(HOME_CATEGORIES),
-            ["Documents", "Visuals", "Media", "Utilities", "Data"],
+            ["Documents", "Visuals", "Media", "Files & Storage", "Data & Text", "Security & Network", "Utilities"],
         )
 
         for app in HOME_APPS:

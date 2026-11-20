@@ -3,21 +3,37 @@ window.FOSS = window.FOSS || {};
 
 (function () {
   var readyPromise = null;
+  var isReady = false;
+
+  window.addEventListener("pywebviewready", function () {
+    isReady = true;
+  });
+
+  function isApiReady() {
+    if (isReady) return true;
+    if (window.pywebview && window.pywebview.api) {
+      if (typeof window.pywebview.api.ping === "function" || Object.keys(window.pywebview.api).length > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   function waitForReady() {
-    if (window.pywebview && window.pywebview.api) {
+    if (isApiReady()) {
       return Promise.resolve();
     }
     if (!readyPromise) {
       readyPromise = new Promise(function (resolve) {
         var checkInterval = null;
         window.addEventListener("pywebviewready", function () {
+          isReady = true;
           if (checkInterval) clearInterval(checkInterval);
           resolve();
         }, { once: true });
         // Fallback check
         checkInterval = setInterval(function () {
-          if (window.pywebview && window.pywebview.api) {
+          if (isApiReady()) {
             clearInterval(checkInterval);
             resolve();
           }
@@ -41,7 +57,7 @@ window.FOSS = window.FOSS || {};
             return;
           }
           elapsed += 40;
-          if (elapsed >= 2000) {
+          if (elapsed >= 10000) {
             clearInterval(timer);
             reject(new Error("API method not available: " + name));
           }

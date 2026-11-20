@@ -4,28 +4,30 @@ window.FOSS = window.FOSS || {};
 (function () {
   var selectedCategory = "All";
   var searchQuery = "";
+  var ASSET_ROOT = ["assets", "home"].join("/");
   var DEFAULT_APPS = [
-    { id: "pdf", name: "PDF Tools", category: "Documents", description: "Merge, reorder, split, extract text, and password protect PDFs.", artwork_url: "assets/home/pdf.png" },
-    { id: "images", name: "Image Tools", category: "Visuals", description: "Convert formats, crop, resize, rotate, flip, remove background, and compress images.", artwork_url: "assets/home/images.png" },
-    { id: "ocr", name: "OCR Studio", category: "Documents", description: "Extract text from scans and images; create searchable PDFs completely offline.", artwork_url: "assets/home/ocr.png" },
-    { id: "resume", name: "Resume Builder", category: "Documents", description: "Build a master resume and check bullets and reorder sections to tailor per job.", artwork_url: "assets/home/resume.png" },
-    { id: "playlist", name: "Playlist Porter", category: "Media", description: "Convert playlists between Spotify, YouTube, and YouTube Music with M3U8/CSV export.", artwork_url: "assets/home/playlist.png" },
-    { id: "converter", name: "File Converter", category: "Utilities", description: "Universal file converter: convert any document, image, media, 3D, or data file format into any other.", artwork_url: "assets/home/converter.jpg" },
-    { id: "compressor", name: "File Compressor", category: "Utilities", description: "Centralized compression for PDF documents, images, video, audio, and archives.", artwork_url: "assets/home/compressor.jpg" },
-    { id: "metadata", name: "Metadata Tools", category: "Utilities", description: "Inspect, edit, or remove image/PDF/office/audio/video metadata before sharing.", artwork_url: "assets/home/metadata.png" },
-    { id: "qr", name: "QR and Barcodes", category: "Utilities", description: "Generate custom offline QR codes and scan/decode barcodes from images and PDFs.", artwork_url: "assets/home/qr.png" },
-    { id: "renamer", name: "Batch Renamer", category: "Utilities", description: "Rename files with search & replace, numbering, prefixes, casing, and undo safety.", artwork_url: "assets/home/renamer.png" },
-    { id: "unit_converter", name: "Unit Converter", category: "Data", description: "Dimensional analysis across 30 physical categories and compound expressions.", artwork_url: "assets/home/unit_converter.svg" },
-    { id: "data", name: "Data Studio", category: "Data", description: "Format, minify, validate, convert, and query JSON, YAML, TOML, CSV, XML, and SQL.", artwork_url: "assets/home/data.png" },
-    { id: "markdown", name: "Markdown Preview", category: "Documents", description: "Live GitHub-flavored Markdown editor with instant side-by-side preview and HTML export.", artwork_url: "assets/home/markdown.svg" },
-    { id: "palette", name: "Color Palette", category: "Visuals", description: "Extract dominant color palettes and sample exact pixel colors with mouse eyedropper.", artwork_url: "assets/home/palette.png" },
-    { id: "collage", name: "Photo Collage", category: "Visuals", description: "Create customizable photo grid collages and side-by-side compositions.", artwork_url: "assets/home/collage.png" },
-    { id: "model3d", name: "3D Model Studio", category: "Visuals", description: "Cut with planes, inspect geometry, repair mesh, scale, measure, and convert STL/OBJ/PLY/STEP.", artwork_url: "assets/home/model3d.png" },
-    { id: "text_tools", name: "Text Tools", category: "Data", description: "Case conversion, word counter, readability analytics, grammar inspection, citations, and diff.", artwork_url: "assets/home/text_tools.png" },
-    { id: "encoding", name: "Encoding / Decoding", category: "Data", description: "Encode and decode text and files between Base64, URL, HTML entities, hex, and binary.", artwork_url: "assets/home/encoding.png" },
-    { id: "network_monitor", name: "Network Monitor", category: "Utilities", description: "Watch live outbound connections by process, flag unknown destinations, and query history.", artwork_url: "assets/home/network_monitor.svg" },
-    { id: "archive", name: "Archive Studio", category: "Utilities", description: "Create, list, and extract ZIP, TAR, and TAR.GZ archives offline.", artwork_url: "assets/home/archive.svg" },
-    { id: "media", name: "Audio & Video", category: "Media", description: "Trim clips, extract MP3 audio, generate Whisper subtitles, adjust speed, reverse, and create GIFs.", artwork_url: "assets/home/media.png" },
+    { id: "pdf", name: "PDF Tools", category: "Documents", description: "Merge, reorder, split, extract text, and password protect PDFs.", artwork_url: ASSET_ROOT + "/pdf.png" },
+    { id: "images", name: "Image Tools", category: "Visuals", description: "Convert formats, crop, resize, rotate, flip, remove background, and compress images.", artwork_url: ASSET_ROOT + "/images.png" },
+    { id: "ocr", name: "OCR Studio", category: "Documents", description: "Extract text from scans and images; create searchable PDFs completely offline.", artwork_url: ASSET_ROOT + "/ocr.png" },
+    { id: "resume", name: "Resume Builder", category: "Documents", description: "Build a master resume and check bullets and reorder sections to tailor per job.", artwork_url: ASSET_ROOT + "/resume.png" },
+    { id: "playlist", name: "Playlist Porter", category: "Media", description: "Convert playlists between Spotify, YouTube, and YouTube Music with M3U8/CSV export.", artwork_url: ASSET_ROOT + "/playlist.png" },
+    { id: "converter", name: "File Converter", category: "Files & Storage", description: "Universal file converter: convert any document, image, media, 3D, or data file format into any other.", artwork_url: ASSET_ROOT + "/converter.jpg" },
+    { id: "compressor", name: "File Compressor", category: "Files & Storage", description: "Centralized compression for PDF documents, images, video, audio, and archives.", artwork_url: ASSET_ROOT + "/compressor.jpg" },
+    { id: "metadata", name: "Metadata Tools", category: "Security & Network", description: "Inspect, edit, or remove image/PDF/office/audio/video metadata before sharing.", artwork_url: ASSET_ROOT + "/metadata.png" },
+    { id: "qr", name: "QR and Barcodes", category: "Utilities", description: "Generate custom offline QR codes and scan/decode barcodes from images and PDFs.", artwork_url: ASSET_ROOT + "/qr.png" },
+    { id: "renamer", name: "Batch Renamer", category: "Files & Storage", description: "Rename files with search & replace, numbering, prefixes, casing, and undo safety.", artwork_url: ASSET_ROOT + "/renamer.png" },
+    { id: "unit_converter", name: "Unit Converter", category: "Data & Text", description: "Dimensional analysis across 30 physical categories and compound expressions.", artwork_url: ASSET_ROOT + "/unit_converter.svg" },
+    { id: "data", name: "Data Studio", category: "Data & Text", description: "Format, minify, validate, convert, and query JSON, YAML, TOML, CSV, XML, and SQL.", artwork_url: ASSET_ROOT + "/data.png" },
+    { id: "markdown", name: "Markdown Preview", category: "Documents", description: "Live GitHub-flavored Markdown editor with instant side-by-side preview and HTML export.", artwork_url: ASSET_ROOT + "/markdown.svg" },
+    { id: "palette", name: "Color Palette", category: "Visuals", description: "Extract dominant color palettes and sample exact pixel colors with mouse eyedropper.", artwork_url: ASSET_ROOT + "/palette.png" },
+    { id: "collage", name: "Photo Collage", category: "Visuals", description: "Create customizable photo grid collages and side-by-side compositions.", artwork_url: ASSET_ROOT + "/collage.png" },
+    { id: "model3d", name: "3D Model Studio", category: "Visuals", description: "Cut with planes, inspect geometry, repair mesh, scale, measure, and convert STL/OBJ/PLY/STEP.", artwork_url: ASSET_ROOT + "/model3d.png" },
+    { id: "text_tools", name: "Text Tools", category: "Data & Text", description: "Case conversion, word counter, readability analytics, grammar inspection, citations, and diff.", artwork_url: ASSET_ROOT + "/text_tools.png" },
+    { id: "encoding", name: "Encoding / Decoding", category: "Data & Text", description: "Encode and decode text and files between Base64, URL, HTML entities, hex, and binary.", artwork_url: ASSET_ROOT + "/encoding.png" },
+    { id: "network_monitor", name: "Network Monitor", category: "Security & Network", description: "Watch live outbound connections by process, flag unknown destinations, and query history.", artwork_url: ASSET_ROOT + "/network_monitor.svg" },
+    { id: "sherlock", name: "Sherlock Username Search", category: "Security & Network", description: "Find social media and online accounts by username across hundreds of networks.", artwork_url: ASSET_ROOT + "/sherlock.png" },
+    { id: "archive", name: "Archive Studio", category: "Files & Storage", description: "Create, list, and extract ZIP, TAR, and TAR.GZ archives offline.", artwork_url: ASSET_ROOT + "/archive.svg" },
+    { id: "media", name: "Audio & Video", category: "Media", description: "Trim clips, extract MP3 audio, generate Whisper subtitles, adjust speed, reverse, and create GIFs.", artwork_url: ASSET_ROOT + "/media.png" },
   ];
   var allApps = DEFAULT_APPS.slice();
 
@@ -44,7 +46,7 @@ window.FOSS = window.FOSS || {};
             name: t.title,
             category: t.category || "Utilities",
             description: t.description || "",
-            artwork_url: t.artwork_url || ("assets/home/" + t.id + ".png")
+            artwork_url: t.artwork_url || (ASSET_ROOT + "/" + t.id + ".png")
           };
         }
       });
@@ -239,8 +241,8 @@ window.FOSS = window.FOSS || {};
       }, [window.FOSS.icons.el(isFav ? "star_filled" : "star", 16)]);
 
       var imgBox = window.FOSS.dom.el("div", { className: "tile-img-box" });
-      var preferred = app.artwork_url || ("assets/home/" + app.id + ".png");
-      var candidateExts = [preferred, "assets/home/" + app.id + ".svg", "assets/home/" + app.id + ".png", "assets/home/" + app.id + ".jpg"];
+      var preferred = app.artwork_url || (ASSET_ROOT + "/" + app.id + ".png");
+      var candidateExts = [preferred, ASSET_ROOT + "/" + app.id + ".svg", ASSET_ROOT + "/" + app.id + ".png", ASSET_ROOT + "/" + app.id + ".jpg"];
       var extIndex = 0;
       var imgEl = window.FOSS.dom.el("img", {
         className: "tile-img",

@@ -66,3 +66,18 @@ class WebApiTests(unittest.TestCase):
         self.assertEqual(struct_res.get("format"), "JSON")
         self.assertIn("root", struct_res)
 
+    def test_data_table_endpoints(self) -> None:
+        tbl = "| Col1 | Col2 |\n| --- | --- |\n| A | B |\n| C | D |"
+        trans_res = self.api.data_transpose_table({"content": tbl})
+        self.assertTrue(trans_res.get("ok"))
+        self.assertIn("| Col1 | A | C |", trans_res["result"])
+
+        dup_tbl = "| X |\n| --- |\n| 1 |\n| 1 |"
+        dedup_res = self.api.data_dedup_table({"content": dup_tbl})
+        self.assertTrue(dedup_res.get("ok"))
+        self.assertEqual(dedup_res.get("duplicates_removed"), 1)
+
+    def test_open_url_validation(self) -> None:
+        err_res = self.api.open_url({})
+        self.assertFalse(err_res.get("ok"))
+

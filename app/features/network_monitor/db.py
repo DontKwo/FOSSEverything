@@ -79,17 +79,36 @@ class ConnectionEvent:
     is_new_destination: bool
 
 
+def seed_known_destinations(conn: sqlite3.Connection) -> int:
+    # Update unverified destinations in sqlite matching safe subnets or domains.
+    from app.features.network_monitor.resolver import is_safe_destination
+    rows = conn.execute("SELECT id, ip, domain FROM destinations WHERE known = 0").fetchall()
+    updated = 0
+    for r in rows:
+        if is_safe_destination(r["ip"], r["domain"]):
+            conn.execute("UPDATE destinations SET known = 1 WHERE id = ?", (r["id"],))
+            updated += 1
+    if updated > 0:
+        conn.commit()
+    return updated
+
+
 def record_destination(conn: sqlite3.Connection, ip: str, domain: str | None) -> tuple[bool, bool]:
-    """Insert `ip` into the known-destinations table if new. Returns (is_new, is_known) without a separate round-trip for the known flag."""
+    # Insert ip into the known destinations table if new; returns (is_new, is_known).
     row = conn.execute("SELECT id, domain, known FROM destinations WHERE ip = ?", (ip,)).fetchone()
     if row is None:
+        from app.features.network_monitor.resolver import is_safe_destination
+        known_flag = 1 if is_safe_destination(ip, domain) else 0
         conn.execute(
-            "INSERT INTO destinations (ip, domain, first_seen, known) VALUES (?, ?, ?, 0)",
-            (ip, domain, now_iso()),
+            "INSERT INTO destinations (ip, domain, first_seen, known) VALUES (?, ?, ?, ?)",
+            (ip, domain, now_iso(), known_flag),
         )
-        return True, False
+        return True, bool(known_flag)
     if domain and not row["domain"]:
-        conn.execute("UPDATE destinations SET domain = ? WHERE id = ?", (domain, row["id"]))
+        from app.features.network_monitor.resolver import is_safe_destination
+        known_flag = 1 if (row["known"] or is_safe_destination(ip, domain)) else 0
+        conn.execute("UPDATE destinations SET domain = ?, known = ? WHERE id = ?", (domain, known_flag, row["id"]))
+        return False, bool(known_flag)
     return False, bool(row["known"])
 
 

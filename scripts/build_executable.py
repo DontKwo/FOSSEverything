@@ -61,9 +61,17 @@ def build(onefile: bool = False) -> None:
         cmd.extend(["--add-data", f"{wv_lib}{os.pathsep}webview/lib"])
         cmd.extend(["--add-data", f"{wv_lib}{os.pathsep}."])
 
-    icon_path = os.path.join(assets_dir, "icon.ico")
-    if sys.platform == "win32" and os.path.isfile(icon_path):
-        cmd.extend(["--icon", icon_path])
+    if sys.platform == "win32":
+        icon_path = os.path.join(assets_dir, "icon.ico")
+        if os.path.isfile(icon_path):
+            cmd.extend(["--icon", icon_path])
+    elif sys.platform == "darwin":
+        icns_path = os.path.join(assets_dir, "icon.icns")
+        png_path = os.path.join(assets_dir, "icon.png")
+        if os.path.isfile(icns_path):
+            cmd.extend(["--icon", icns_path])
+        elif os.path.isfile(png_path):
+            cmd.extend(["--icon", png_path])
 
     # Add hidden imports
     hidden_imports = [

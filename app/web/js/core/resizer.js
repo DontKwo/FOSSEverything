@@ -87,6 +87,10 @@ window.FOSS.components = window.FOSS.components || {};
     var nextPx = clampSplitPx(split, side, (currentRem + step) * rootFs);
 
     split.style.setProperty(prop, (nextPx / rootFs).toFixed(2) + "rem");
+    var splitKey = split.dataset.splitKey || split.getAttribute("data-testid") || split.id;
+    if (splitKey && window.FOSS.store) {
+      window.FOSS.store.set("split_" + splitKey + "_" + side, (nextPx / rootFs).toFixed(2) + "rem");
+    }
   }
 
   function handleMouseDown(e) {
@@ -196,6 +200,16 @@ window.FOSS.components = window.FOSS.components || {};
 
     if (activeDrag.kind === "sidebar" && activeDrag.lastRem && window.FOSS.store) {
       window.FOSS.store.set("sidebar_width_rem", parseFloat(activeDrag.lastRem.toFixed(2)));
+    }
+
+    if (activeDrag.kind === "split" && activeDrag.splitEl && window.FOSS.store) {
+      var sKey = activeDrag.splitEl.dataset.splitKey || activeDrag.splitEl.getAttribute("data-testid") || activeDrag.splitEl.id;
+      if (sKey) {
+        var sVal = activeDrag.splitEl.style.getPropertyValue("--split-" + activeDrag.side);
+        if (sVal) {
+          window.FOSS.store.set("split_" + sKey + "_" + activeDrag.side, sVal.trim());
+        }
+      }
     }
 
     if (activeDrag.divider) {

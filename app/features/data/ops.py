@@ -809,7 +809,7 @@ def grammar_check_text(text: str) -> dict:
 
     # Spelling check using spellchecker
     try:
-        from spellchecker import SpellChecker
+        from spellchecker import SpellChecker  # noqa: 22
         spell = SpellChecker()
         words = re.findall(r"\b[a-zA-Z]{3,}\b", text)
         misspelled = spell.unknown([w.lower() for w in words])
@@ -817,7 +817,7 @@ def grammar_check_text(text: str) -> dict:
             cand = spell.candidates(w)
             cand_str = f" Did you mean: {', '.join(list(cand)[:3])}?" if cand else ""
             issues.append({"type": "spelling", "message": f"Possible spelling error: '{w}'.{cand_str}"})
-    except Exception:
+    except Exception:  # noqa: 10
         pass
 
     score = max(0, 100 - (len(issues) * 12))
@@ -1374,6 +1374,91 @@ def csv_to_markdown_table(csv_text: str, delimiter: str = ",", include_header: b
         padded = row + [""] * (len(headers) - len(row))
         lines.append("| " + " | ".join(padded) + " |")
     return "\n".join(lines)
+
+
+def transpose_markdown_table(table_text: str) -> str:
+    # Transpose markdown table rows and columns.
+    if not table_text or not table_text.strip():
+        return ""
+    lines = [line.strip() for line in table_text.strip().splitlines() if line.strip()]
+    if len(lines) < 2:
+        return table_text.strip()
+
+    parsed: list[list[str]] = []
+    for line in lines:
+        if line.startswith("|") and line.endswith("|"):
+            line = line[1:-1]
+        cells = [cell.strip() for cell in line.split("|")]
+        parsed.append(cells)
+
+    if not parsed:
+        return table_text.strip()
+
+    header = parsed[0]
+    body = parsed[1:]
+    if body and all(cell.strip().replace("-", "").replace(":", "") == "" for cell in body[0]):
+        body = body[1:]
+
+    matrix = [header] + body
+    if not matrix or not any(matrix):
+        return table_text.strip()
+
+    max_cols = max(len(row) for row in matrix)
+    padded_matrix = [row + [""] * (max_cols - len(row)) for row in matrix]
+
+    transposed = [list(col) for col in zip(*padded_matrix)]
+    if not transposed:
+        return table_text.strip()
+
+    new_header = transposed[0]
+    new_body = transposed[1:]
+
+    rendered = ["| " + " | ".join(new_header) + " |"]
+    rendered.append("| " + " | ".join(["---"] * len(new_header)) + " |")
+    for row in new_body:
+        rendered.append("| " + " | ".join(row) + " |")
+    return "\n".join(rendered)
+
+
+def dedup_markdown_table(table_text: str) -> tuple[str, int]:
+    # Deduplicate markdown table rows and return count removed.
+    if not table_text or not table_text.strip():
+        return "", 0
+    lines = [line.strip() for line in table_text.strip().splitlines() if line.strip()]
+    if len(lines) < 2:
+        return table_text.strip(), 0
+
+    parsed: list[list[str]] = []
+    for line in lines:
+        if line.startswith("|") and line.endswith("|"):
+            line = line[1:-1]
+        cells = [cell.strip() for cell in line.split("|")]
+        parsed.append(cells)
+
+    if not parsed:
+        return table_text.strip(), 0
+
+    header = parsed[0]
+    body = parsed[1:]
+    if body and all(cell.strip().replace("-", "").replace(":", "") == "" for cell in body[0]):
+        body = body[1:]
+
+    seen: set[tuple[str, ...]] = set()
+    unique_body: list[list[str]] = []
+    for row in body:
+        row_key = tuple(row)
+        if row_key not in seen:
+            seen.add(row_key)
+            unique_body.append(row)
+
+    duplicates_removed = len(body) - len(unique_body)
+
+    rendered = ["| " + " | ".join(header) + " |"]
+    rendered.append("| " + " | ".join(["---"] * len(header)) + " |")
+    for row in unique_body:
+        padded = row + [""] * (len(header) - len(row))
+        rendered.append("| " + " | ".join(padded) + " |")
+    return "\n".join(rendered), duplicates_removed
 
 
 def validate_against_schema(data: Any, schema: dict) -> dict:

@@ -70,38 +70,55 @@ window.FOSS = window.FOSS || {};
     selectedIndex = 0;
     var q = (query || "").toLowerCase().trim();
 
-    window.FOSS.api("search_tools", { query: query }).then(function (res) {
-      var backendResults = (res && res.ok && res.results) || [];
-      var registered = (window.FOSS.router && window.FOSS.router.getRegisteredTools) ? window.FOSS.router.getRegisteredTools() : {};
+    function processTools(backendResults) {
+      var registeredList = [];
+      if (window.FOSS.router && typeof window.FOSS.router.getRegisteredTools === "function") {
+        registeredList = window.FOSS.router.getRegisteredTools() || [];
+      }
 
       var mergedMap = {};
-      backendResults.forEach(function (r) {
-        mergedMap[r.id] = Object.assign({}, r);
+      (backendResults || []).forEach(function (r) {
+        if (r && r.id) {
+          mergedMap[r.id] = Object.assign({}, r);
+        }
       });
 
-      Object.keys(registered).forEach(function (toolId) {
-        var t = registered[toolId];
-        if (toolId === "home" || toolId === "settings") return;
-        if (!mergedMap[toolId]) {
-          var title = t.title || toolId;
+      registeredList.forEach(function (t) {
+        if (!t || !t.id || t.id === "home" || t.id === "settings") return;
+        var existing = mergedMap[t.id];
+        if (!existing) {
+          var title = t.title || t.id;
           var desc = t.description || "";
           var cat = t.category || "Utilities";
-          if (!q || title.toLowerCase().indexOf(q) >= 0 || desc.toLowerCase().indexOf(q) >= 0 || cat.toLowerCase().indexOf(q) >= 0) {
-            mergedMap[toolId] = {
-              id: toolId,
+          var matchQuery = !q || title.toLowerCase().indexOf(q) >= 0 || desc.toLowerCase().indexOf(q) >= 0 || cat.toLowerCase().indexOf(q) >= 0;
+          if (matchQuery) {
+            mergedMap[t.id] = {
+              id: t.id,
               title: title,
               description: desc,
               category: cat,
               icon: t.icon || "file"
             };
           }
-        } else if (t.icon && !mergedMap[toolId].icon) {
-          mergedMap[toolId].icon = t.icon;
+        } else {
+          if (t.icon && !existing.icon) {
+            existing.icon = t.icon;
+          }
+          if (t.category && !existing.category) {
+            existing.category = t.category;
+          }
         }
       });
 
       currentResults = Object.values(mergedMap);
       renderResults();
+    }
+
+    window.FOSS.api("search_tools", { query: query }).then(function (res) {
+      var backendResults = (res && res.ok && res.results) || [];
+      processTools(backendResults);
+    }).catch(function () {
+      processTools([]);
     });
   }
 

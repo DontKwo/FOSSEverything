@@ -11,6 +11,7 @@ from app.features.data.ops import (
     convert_data_format,
     convert_units,
     csv_to_markdown_table,
+    dedup_markdown_table,
     describe_cron,
     diff_documents,
     diff_json_schema,
@@ -39,6 +40,7 @@ from app.features.data.ops import (
     parse_ics,
     query_jsonpath,
     render_markdown_preview,
+    transpose_markdown_table,
     validate_against_schema,
     validate_syntax,
 )
@@ -513,6 +515,20 @@ class DataApiMixin:
             keep_empty_columns=bool(params.get("keep_empty_columns", False)),
         )
         return ok(result=tbl)
+
+    @api_method
+    def data_transpose_table(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Transpose markdown table rows and columns.
+        require(params, "content")
+        tbl = transpose_markdown_table(str(params["content"]))
+        return ok(result=tbl)
+
+    @api_method
+    def data_dedup_table(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Deduplicate markdown table rows.
+        require(params, "content")
+        tbl, count = dedup_markdown_table(str(params["content"]))
+        return ok(result=tbl, duplicates_removed=count)
 
     @api_method
     def data_csv_to_table(self, params: dict[str, Any]) -> dict[str, Any]:

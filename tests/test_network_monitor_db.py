@@ -182,6 +182,40 @@ class DestinationApiTests(unittest.TestCase):
         result = NetworkMonitorApiMixin().network_manage_destinations({})
         self.assertFalse(result["ok"])
 
+    def test_network_export_log_json_and_csv(self) -> None:
+        path = os.path.join(tempfile.mkdtemp(), "nm_export.db")
+        api = NetworkMonitorApiMixin()
+        with patch("app.features.network_monitor.db.db_path", return_value=path):
+            test_conn = db.connect(path)
+            evt = db.ConnectionEvent(
+                timestamp="2026-02-01T12:00:00+00:00",
+                pid=1234,
+                process_name="curl.exe",
+                local_port=54321,
+                remote_ip="93.184.216.34",
+                remote_domain="example.com",
+                remote_port=443,
+                protocol="TCP",
+                bytes_sent=100,
+                bytes_recv=500,
+                is_new_destination=False,
+            )
+            db.log_connection(test_conn, evt)
+            test_conn.commit()
+            test_conn.close()
+
+            json_out = os.path.join(tempfile.mkdtemp(), "log.json")
+            res_json = api.network_export_log({"source": "history", "format": "json", "output_path": json_out})
+            self.assertTrue(res_json["ok"])
+            self.assertEqual(res_json["count"], 1)
+            self.assertTrue(os.path.isfile(json_out))
+
+            csv_out = os.path.join(tempfile.mkdtemp(), "log.csv")
+            res_csv = api.network_export_log({"source": "history", "format": "csv", "output_path": csv_out})
+            self.assertTrue(res_csv["ok"])
+            self.assertEqual(res_csv["count"], 1)
+            self.assertTrue(os.path.isfile(csv_out))
+
 
 if __name__ == "__main__":
     unittest.main()

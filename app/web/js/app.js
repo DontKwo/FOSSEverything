@@ -3,22 +3,26 @@ window.FOSS = window.FOSS || {};
 
 (function () {
   function boot() {
+    window.FOSS.theme.init();
+    window.FOSS.shortcuts.init();
+    window.FOSS.dropzone.init();
+    window.FOSS.tooltips.init();
+    if (window.FOSS.resizer) window.FOSS.resizer.init();
+
+    // Check collapsed sidebar setting
+    if (window.FOSS.store.get("sidebar_collapsed", false)) {
+      var appEl = document.querySelector(".app");
+      if (appEl) appEl.classList.add("sidebar-rail");
+    }
+
+    // Initial route: render home immediately on DOM ready
+    window.FOSS.router.open("home");
+
+    // Asynchronously synchronize settings from Python backend
     window.FOSS.store.loadAll().then(function () {
       window.FOSS.theme.init();
-      window.FOSS.shortcuts.init();
-      window.FOSS.dropzone.init();
-      window.FOSS.tooltips.init();
-      if (window.FOSS.resizer) window.FOSS.resizer.init();
-
-      // Check collapsed sidebar setting
-      if (window.FOSS.store.get("sidebar_collapsed", false)) {
-        var appEl = document.querySelector(".app");
-        if (appEl) appEl.classList.add("sidebar-rail");
-      }
-
-      // Initial route: home
-      window.FOSS.router.open("home");
-
+      window.FOSS.ready = true;
+    }).catch(function () {
       window.FOSS.ready = true;
     });
   }
@@ -117,7 +121,12 @@ window.FOSS = window.FOSS || {};
   function openPaths(paths, mode) {
     if (paths && paths.length > 0) {
       if (mode === "ocr") {
-        window.FOSS.router.open("ocr");
+        window.FOSS.router.open("ocr").then(function () {
+          var tool = window.FOSS.router.getTool ? window.FOSS.router.getTool("ocr") : null;
+          if (tool && tool.onFiles) {
+            tool.onFiles(paths, window.FOSS.router.createContext("ocr"));
+          }
+        });
       } else {
         window.FOSS.router.routeFiles(paths);
       }

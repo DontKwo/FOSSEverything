@@ -451,7 +451,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "data-hdf5-details"
     }, [window.FOSS.dom.el("div", { className: "text-sm text-muted text-center", text: "Select a group or dataset to see its details." })]);
 
-    var grid = window.FOSS.dom.el("div", { className: "split resizable", style: "--split-left: 15rem; min-height: 0; flex: 1 1 0%;" }, [
+    var grid = window.FOSS.dom.el("div", { className: "split resizable", style: "--split-left: 20rem; min-height: 0; flex: 1 1 0%;" }, [
       window.FOSS.dom.el("div", { className: "flex-col", style: "width: 100%; min-width: 0;" }, [
         window.FOSS.dom.el("div", { className: "row items-center flex-wrap gap-2 mb-2" }, [searchInput]),
         treeFrame,
@@ -1039,12 +1039,8 @@ window.FOSS = window.FOSS || {};
       text: "Ready"
     });
 
-    var sidebarCol = window.FOSS.dom.el("div", { className: "data-sidebar-pane" });
     var filterQuery = "";
     var currentStructure = null;
-
-    var inputCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3" });
-    var inputTitle = window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Structure Source" });
 
     var filePicker = window.FOSS.components.filePicker({
       testid: "data-structure-file-picker",
@@ -1082,14 +1078,14 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.icons.el("file-text", 14), toggleLabel]);
 
-    var textEditorDrawer = window.FOSS.dom.el("div", { className: "flex-col gap-2 hidden" });
+    var textEditorDrawer = window.FOSS.dom.el("div", { className: "flex-col gap-2 hidden mt-2" });
 
     var codeEditor = window.FOSS.components.codeEditor({
       testid: "data-structure-text-input",
       title: "Raw Data Payload",
       placeholder: '{\n  "project": "FOSSEverything",\n  "tools": [{"name": "pdf"}, {"name": "ocr"}]\n}',
       ariaLabel: "Raw data input for structure inspection",
-      fillHeight: true
+      fillHeight: false
     });
 
     var inspectTextBtn = window.FOSS.dom.el("button", {
@@ -1115,25 +1111,24 @@ window.FOSS = window.FOSS || {};
     textEditorDrawer.appendChild(codeEditor.el);
     textEditorDrawer.appendChild(inspectTextBtn);
 
-    inputCard.appendChild(inputTitle);
-    inputCard.appendChild(filePicker.el);
-    inputCard.appendChild(toggleTextBtn);
-    inputCard.appendChild(textEditorDrawer);
+    var topToolbar = window.FOSS.dom.el("div", { className: "card card-compact flex-col gap-2 mb-2" }, [
+      window.FOSS.dom.el("div", { className: "row items-center justify-between gap-3 flex-wrap" }, [
+        window.FOSS.dom.el("div", { className: "grow min-w-0" }, [filePicker.el]),
+        window.FOSS.dom.el("div", { className: "row gap-2 items-center flex-shrink-0" }, [toggleTextBtn])
+      ]),
+      textEditorDrawer
+    ]);
 
     var detailsBox = window.FOSS.dom.el("div", {
       className: "wb-box wb-details text-xs font-mono",
       id: "data-node-details-content",
       text: "Click any node in the tree to view properties."
     });
-    var detailsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-2" }, [
+    var detailsCard = window.FOSS.dom.el("div", { className: "card flex-col gap-2 grow", style: "min-height: 0;" }, [
       window.FOSS.dom.el("h3", { className: "card-title text-base", text: "Selected Node Details" }),
       detailsBox
     ]);
 
-    sidebarCol.appendChild(inputCard);
-    sidebarCol.appendChild(detailsCard);
-
-    var stageCol = window.FOSS.dom.el("div", { className: "data-stage-pane" });
     var treeCard = window.FOSS.dom.el("div", { className: "card flex-col gap-3 wb-card-fill" });
     var treeHeader = window.FOSS.dom.el("div", { className: "row items-center flex-wrap gap-2 wb-field-full" });
 
@@ -1185,25 +1180,24 @@ window.FOSS = window.FOSS || {};
 
     treeCard.appendChild(treeHeader);
     treeCard.appendChild(framedScroll(treeRoot));
-    stageCol.appendChild(treeCard);
 
     var hdf5Explorer = createHdf5Explorer(function (msg) { statusBar.textContent = msg; });
-    stageCol.appendChild(hdf5Explorer.el);
+
+    var genericSplit = window.FOSS.dom.el("div", { className: "split resizable data-workbench grow", style: "min-height: 0; flex: 1 1 0%;" }, [
+      treeCard,
+      window.FOSS.components.splitDivider({ side: "left" }),
+      detailsCard
+    ]);
 
     function showGenericTree(generic) {
-      detailsCard.classList.toggle("hidden", !generic);
-      treeCard.classList.toggle("hidden", !generic);
+      genericSplit.classList.toggle("hidden", !generic);
       hdf5Explorer.el.classList.toggle("hidden", generic);
     }
 
-    var workbench = window.FOSS.dom.el("div", { className: "split resizable data-workbench" }, [
-      sidebarCol,
-      window.FOSS.components.splitDivider({ side: "left" }),
-      stageCol
-    ]);
-
     panel.appendChild(statusBar);
-    panel.appendChild(workbench);
+    panel.appendChild(topToolbar);
+    panel.appendChild(genericSplit);
+    panel.appendChild(hdf5Explorer.el);
 
     function renderTree(rootNode, filter) {
       treeRoot.innerHTML = "";

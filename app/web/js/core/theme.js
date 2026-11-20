@@ -10,7 +10,7 @@ window.FOSS = window.FOSS || {};
   var hudEl = null;
 
   function init() {
-    var theme = window.FOSS.store.get("theme", "dark");
+    var theme = window.FOSS.store.get("theme", "ut_austin_dark");
     var scale = window.FOSS.store.get("ui_scale", 1.0);
     setTheme(theme, false);
     setScale(scale, false);
@@ -23,6 +23,7 @@ window.FOSS = window.FOSS || {};
 
   function setTheme(themeName, persist) {
     if (themeName === "ut") themeName = "ut_austin";
+    if (themeName === "ut_dark") themeName = "ut_austin_dark";
     document.documentElement.setAttribute("data-theme", themeName);
     if (persist !== false) {
       window.FOSS.store.set("theme", themeName);
@@ -110,4 +111,12 @@ window.FOSS = window.FOSS || {};
     MAX_SCALE: MAX_UI_SCALE,
     STEP_SCALE: STEP_UI_SCALE
   };
+
+  // Immediate theme application to prevent unstyled flash
+  try {
+    var immediateTheme = window.FOSS.store.get("theme", "ut_austin_dark");
+    if (immediateTheme === "ut") immediateTheme = "ut_austin";
+    if (immediateTheme === "ut_dark") immediateTheme = "ut_austin_dark";
+    document.documentElement.setAttribute("data-theme", immediateTheme);
+  } catch (e) {}
 })();

@@ -134,7 +134,7 @@ class BaseApi:
             art_url = ""
             for ext in ("png", "jpg", "svg"):
                 if (web_assets / f"{app.id}.{ext}").exists() or (root_assets / f"{app.id}.{ext}").exists():
-                    art_url = f"assets/home/{app.id}.{ext}"
+                    art_url = f"assets/home/{app.id}.{ext}"  # noqa: 91
                     break
             apps_data.append({
                 "id": app.id,
@@ -329,7 +329,7 @@ class BaseApi:
     @api_method
     def get_theme_palette(self, params: dict[str, Any]) -> dict[str, Any]:
         # Return theme color palette dictionary.
-        theme_name = str(params.get("theme_name", "dark"))
+        theme_name = str(params.get("theme_name", "ut_austin_dark"))
         from app.core.theme import default_palette
         palette = default_palette(theme_name)
         return ok(**palette, palette=palette)
@@ -391,6 +391,15 @@ class BaseApi:
             os.startfile(target)
         else:
             subprocess.Popen(["xdg-open", target])
+        return ok()
+
+    @api_method
+    def open_url(self, params: dict[str, Any]) -> dict[str, Any]:
+        # Open URL in default web browser.
+        require(params, "url")
+        target_url = str(params["url"]).strip()
+        import webbrowser
+        webbrowser.open(target_url)
         return ok()
 
     @api_method

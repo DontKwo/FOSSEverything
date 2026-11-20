@@ -21,6 +21,7 @@ installer/Output/
 # Logs and scratch/debug artifacts
 *.log
 mojibake_scan.txt
+selftest_result.json
 
 # Credential/token caches (never commit secrets)
 .cache

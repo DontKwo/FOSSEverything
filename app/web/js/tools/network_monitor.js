@@ -141,6 +141,8 @@ window.FOSS = window.FOSS || {};
     currentSortCol = String(defaults.get("network_monitor", "default_sort", "process"));
     currentSortAsc = true;
     selectedDestination = "";
+    var autoStart = defaults.get("network_monitor", "auto_start", true) !== false;
+    var isMonitoringPaused = !autoStart;
     var pollSeconds = Number(defaults.get("network_monitor", "poll_interval", 2));
     if (!isFinite(pollSeconds) || pollSeconds < 0) pollSeconds = 0;
 
@@ -327,7 +329,8 @@ window.FOSS = window.FOSS || {};
     function loadLive() {
       if (isPolling) return;
       isPolling = true;
-      statusBar.textContent = "Polling live connections...";
+      var statusPrefix = isMonitoringPaused ? "[PAUSED] " : "";
+      statusBar.textContent = statusPrefix + "Polling live connections...";
       window.FOSS.api("network_get_connections", {}).then(function (res) {
         isPolling = false;
         rawLiveConnections = (res && res.connections) || [];
@@ -337,7 +340,7 @@ window.FOSS = window.FOSS || {};
         var downKb = (tp.down_kb !== undefined ? tp.down_kb : 0).toFixed(1);
 
         throughputPill.textContent = "Up: " + upKb + " KB/s | Down: " + downKb + " KB/s";
-        statusBar.textContent = "Live connections: " + count;
+        statusBar.textContent = (isMonitoringPaused ? "[PAUSED] " : "") + "Live connections: " + count;
         applyLiveFilterAndRender();
       }).catch(function () {
         isPolling = false;
@@ -362,6 +365,59 @@ window.FOSS = window.FOSS || {};
         applyLiveFilterAndRender();
       });
     }
+
+    function startLiveTimer() {
+      clearLiveTimer();
+      if (!isMonitoringPaused && livePollIntervalMs > 0) {
+        livePollTimer = setInterval(loadLive, livePollIntervalMs);
+      }
+    }
+
+    var toggleScanBtn = window.FOSS.dom.el("button", {
+      className: "btn " + (isMonitoringPaused ? "btn-secondary" : "btn-secondary"),
+      "data-testid": "network_monitor-live-toggle-scan-btn",
+      "aria-label": isMonitoringPaused ? "Resume live monitoring" : "Pause live monitoring",
+      title: isMonitoringPaused ? "Resume live monitoring" : "Pause live monitoring",
+      onclick: function () {
+        isMonitoringPaused = !isMonitoringPaused;
+        updateScanButton();
+        if (isMonitoringPaused) {
+          clearLiveTimer();
+          statusBar.textContent = "[PAUSED] Live monitoring paused. Click Resume to re-enable.";
+        } else {
+          loadLive();
+          startLiveTimer();
+        }
+      }
+    }, [
+      window.FOSS.icons.el(isMonitoringPaused ? "play" : "pause", 16),
+      window.FOSS.dom.el("span", { text: isMonitoringPaused ? "Resume" : "Pause" })
+    ]);
+
+    function updateScanButton() {
+      toggleScanBtn.innerHTML = "";
+      toggleScanBtn.appendChild(window.FOSS.icons.el(isMonitoringPaused ? "play" : "pause", 16));
+      toggleScanBtn.appendChild(window.FOSS.dom.el("span", { text: isMonitoringPaused ? "Resume" : "Pause" }));
+      toggleScanBtn.title = isMonitoringPaused ? "Resume live monitoring" : "Pause live monitoring";
+      toggleScanBtn.setAttribute("aria-label", toggleScanBtn.title);
+    }
+
+    var saveLogBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
+      "data-testid": "network_monitor-live-save-log-btn",
+      "aria-label": "Save live log to file",
+      title: "Save current live connections to JSON log file",
+      onclick: function () {
+        window.FOSS.api("network_export_log", { source: "live", format: "json" }).then(function (res) {
+          if (res && res.ok && res.file_path) {
+            window.FOSS.toast.show("Saved live log (" + res.count + " records) to " + res.file_path, "success");
+          }
+        });
+      }
+    }, [
+      window.FOSS.icons.el("save", 16),
+      window.FOSS.dom.el("span", { text: "Save Log" })
+    ]);
 
     var refreshBtn = window.FOSS.dom.el("button", {
       className: "btn btn-primary",
@@ -390,14 +446,7 @@ window.FOSS = window.FOSS || {};
       onclick: function () { markSelected(false); }
     }, [window.FOSS.dom.el("span", { text: "Mark as Unknown" })]);
 
-    function startLiveTimer() {
-      clearLiveTimer();
-      if (livePollIntervalMs > 0) {
-        livePollTimer = setInterval(loadLive, livePollIntervalMs);
-      }
-    }
-
-    var pollOptions = [0, 1, 2, 5, 10, 30];
+    var pollOptions = [0, 1, 2, 5, 10, 30, 60];
     if (pollOptions.indexOf(pollSeconds) === -1) pollOptions.push(pollSeconds);
     pollOptions.sort(function (a, b) { return a - b; });
 
@@ -413,7 +462,7 @@ window.FOSS = window.FOSS || {};
     }, pollOptions.map(function (sec) {
       return window.FOSS.dom.el("option", {
         value: String(sec * 1000),
-        text: sec === 0 ? "Auto: Off" : "Auto: " + sec + "s"
+        text: sec === 0 ? "Poll: Off" : "Poll: " + sec + "s"
       });
     }));
     autoRefreshSelect.value = String(pollSeconds * 1000);
@@ -456,7 +505,9 @@ window.FOSS = window.FOSS || {};
     var toolbarTop = window.FOSS.dom.el("div", { className: "row gap-sm items-center mb-sm flex-wrap" }, [
       filterInput,
       autoRefreshSelect,
+      toggleScanBtn,
       refreshBtn,
+      saveLogBtn,
       markKnownBtn,
       markUnknownBtn
     ]);
@@ -674,10 +725,30 @@ window.FOSS = window.FOSS || {};
       }
     }, [window.FOSS.dom.el("span", { text: "Wipe All History" })]);
 
+    var exportHistBtn = window.FOSS.dom.el("button", {
+      className: "btn btn-secondary",
+      "data-testid": "network_monitor-history-export-btn",
+      "aria-label": "Export history log",
+      title: "Export filtered connection history to CSV log file",
+      onclick: function () {
+        var proc = procInput.value.trim();
+        var dom = domInput.value.trim();
+        window.FOSS.api("network_export_log", { source: "history", format: "csv", process: proc, domain: dom }).then(function (res) {
+          if (res && res.ok && res.file_path) {
+            window.FOSS.toast.show("Exported " + res.count + " history records to " + res.file_path, "success");
+          }
+        });
+      }
+    }, [
+      window.FOSS.icons.el("download", 16),
+      window.FOSS.dom.el("span", { text: "Export Log" })
+    ]);
+
     var controlsRow = window.FOSS.dom.el("div", { className: "row gap-sm items-center mb-md flex-wrap" }, [
       procInput,
       domInput,
       searchBtn,
+      exportHistBtn,
       retentionBtn,
       wipeBtn
     ]);
@@ -937,6 +1008,7 @@ window.FOSS = window.FOSS || {};
     category: "Utilities",
     icon: "network_monitor",
     defaults: [
+      { key: "auto_start", label: "Auto-start live scanning", type: "boolean", default: true, hint: "When false, scanning remains paused until manually resumed." },
       { key: "poll_interval", label: "Live poll interval (seconds)", type: "number", default: 2, min: 0, max: 60, step: 1, hint: "0 turns automatic refresh off." },
       {
         key: "default_sort",

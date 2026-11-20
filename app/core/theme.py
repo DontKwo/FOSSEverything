@@ -125,7 +125,26 @@ _UT_AUSTIN_PALETTE = {
     "danger": "#b3261e",
 }
 
-THEME_PRESET_ORDER = ("dark", "light", "high_contrast", "solarized", "sepia", "ut_austin")
+_UT_AUSTIN_DARK_PALETTE = {
+    "background": "#13171a",
+    "panel": "#20272c",
+    "text": "#f7f5f0",
+    "muted": "#b8c2c8",
+    "border": "#3a4750",
+    "button": "#2a333a",
+    "input": "#161b1e",
+    "menu": "#20272c",
+    "toolbar": "#181e22",
+    "tab": "#2a333a",
+    "accent": "#bf5700",
+    "on_accent": "#ffffff",
+    "selection_text": "#ffffff",
+    "success": "#2e7d32",
+    "warning": "#d97706",
+    "danger": "#dc2626",
+}
+
+THEME_PRESET_ORDER = ("dark", "light", "high_contrast", "solarized", "sepia", "ut_austin", "ut_austin_dark")
 
 THEME_PRESET_LABELS = {
     "dark": "Dark",
@@ -134,6 +153,7 @@ THEME_PRESET_LABELS = {
     "solarized": "Solarized",
     "sepia": "Sepia",
     "ut_austin": "UT Austin",
+    "ut_austin_dark": "UT Austin Dark",
 }
 
 _THEME_PRESETS = {
@@ -144,6 +164,8 @@ _THEME_PRESETS = {
     "sepia": _SEPIA_PALETTE,
     "ut_austin": _UT_AUSTIN_PALETTE,
     "ut": _UT_AUSTIN_PALETTE,
+    "ut_austin_dark": _UT_AUSTIN_DARK_PALETTE,
+    "ut_dark": _UT_AUSTIN_DARK_PALETTE,
 }
 
 _theme_listeners: list[Callable[[], None]] = []
@@ -162,12 +184,12 @@ def notify_theme_changed() -> None:
 
 
 def default_palette(theme_name: str) -> dict[str, str]:
-    return dict(_THEME_PRESETS.get(theme_name, _DARK_PALETTE))
+    return dict(_THEME_PRESETS.get(theme_name, _UT_AUSTIN_DARK_PALETTE))
 
 
 def current_theme_name(settings: Any = None) -> str:
-    theme_name = str(get_setting("app/theme", "dark"))
-    return theme_name if theme_name in _THEME_PRESETS else "dark"
+    theme_name = str(get_setting("app/theme", "ut_austin_dark"))
+    return theme_name if theme_name in _THEME_PRESETS else "ut_austin_dark"
 
 
 def load_ui_palette(settings: Any = None) -> dict[str, str]:

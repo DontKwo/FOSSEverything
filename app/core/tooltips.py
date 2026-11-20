@@ -290,6 +290,8 @@ TOOLTIP_DICTIONARY: dict[str, TooltipEntry] = {
     "Encode File": TooltipEntry("Encode File", "Encode File", "Encode an arbitrary local file to Base64, hex, or binary text.", ("encode", "file", "base64", "hex", "binary")),
     "Decode to File": TooltipEntry("Decode to File", "Decode to File", "Decode Base64, hex, or binary text back to a saved local file.", ("decode", "file", "base64", "hex", "binary")),
     "Cron": TooltipEntry("Cron", "Cron", "Parse a cron expression into a human-readable description and preview its next run times.", ("cron", "schedule", "crontab", "job scheduler")),
+    "Sherlock Search": TooltipEntry("Sherlock Search", "Sherlock Search", "Search for accounts registered with a target username across 400+ online platforms.", ("sherlock", "username", "osint", "social", "search")),
+    "Save network log": TooltipEntry("Save network log", "Save network log", "Export active or historical connection logs to JSON, CSV, or text file.", ("network", "export", "log", "save", "connections")),
 }
 
 
