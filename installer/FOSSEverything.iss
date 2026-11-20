@@ -103,66 +103,66 @@ Root: HKA; Subkey: "Software\Classes\FOSSEverything.File"; ValueType: string; Va
 Root: HKA; Subkey: "Software\Classes\FOSSEverything.File\DefaultIcon"; ValueType: string; ValueData: "{app}\{#MyAppExeName},0"; Check: AnyAssociationSelected
 Root: HKA; Subkey: "Software\Classes\FOSSEverything.File\shell\open\command"; ValueType: string; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Check: AnyAssociationSelected
 ; PDF documents
-Root: HKA; Subkey: "Software\Classes\.pdf\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\pdf
+Root: HKA; Subkey: "Software\Classes\.pdf\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\pdf
 ; Images
-Root: HKA; Subkey: "Software\Classes\.bmp\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
-Root: HKA; Subkey: "Software\Classes\.gif\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
-Root: HKA; Subkey: "Software\Classes\.ico\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
-Root: HKA; Subkey: "Software\Classes\.jpeg\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
-Root: HKA; Subkey: "Software\Classes\.jpg\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
-Root: HKA; Subkey: "Software\Classes\.png\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
-Root: HKA; Subkey: "Software\Classes\.svg\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
-Root: HKA; Subkey: "Software\Classes\.tif\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
-Root: HKA; Subkey: "Software\Classes\.tiff\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
-Root: HKA; Subkey: "Software\Classes\.webp\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.bmp\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.gif\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.ico\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.jpeg\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.jpg\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.png\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.svg\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.tif\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.tiff\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
+Root: HKA; Subkey: "Software\Classes\.webp\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\images
 ; Audio and video
-Root: HKA; Subkey: "Software\Classes\.aac\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.avi\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.flac\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.flv\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.m4a\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.m4v\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.mkv\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.mov\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.mp3\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.mp4\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.ogg\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.opus\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.wav\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.webm\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.wma\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
-Root: HKA; Subkey: "Software\Classes\.wmv\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.aac\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.avi\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.flac\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.flv\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.m4a\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.m4v\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.mkv\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.mov\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.mp3\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.mp4\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.ogg\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.opus\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.wav\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.webm\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.wma\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
+Root: HKA; Subkey: "Software\Classes\.wmv\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\media
 ; Office documents
-Root: HKA; Subkey: "Software\Classes\.docm\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\office
-Root: HKA; Subkey: "Software\Classes\.docx\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\office
-Root: HKA; Subkey: "Software\Classes\.odp\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\office
-Root: HKA; Subkey: "Software\Classes\.ods\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\office
-Root: HKA; Subkey: "Software\Classes\.odt\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\office
-Root: HKA; Subkey: "Software\Classes\.pptm\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\office
-Root: HKA; Subkey: "Software\Classes\.pptx\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\office
-Root: HKA; Subkey: "Software\Classes\.xlsm\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\office
-Root: HKA; Subkey: "Software\Classes\.xlsx\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\office
+Root: HKA; Subkey: "Software\Classes\.docm\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\office
+Root: HKA; Subkey: "Software\Classes\.docx\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\office
+Root: HKA; Subkey: "Software\Classes\.odp\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\office
+Root: HKA; Subkey: "Software\Classes\.ods\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\office
+Root: HKA; Subkey: "Software\Classes\.odt\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\office
+Root: HKA; Subkey: "Software\Classes\.pptm\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\office
+Root: HKA; Subkey: "Software\Classes\.pptx\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\office
+Root: HKA; Subkey: "Software\Classes\.xlsm\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\office
+Root: HKA; Subkey: "Software\Classes\.xlsx\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\office
 ; Data files
-Root: HKA; Subkey: "Software\Classes\.csv\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\data
-Root: HKA; Subkey: "Software\Classes\.json\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\data
-Root: HKA; Subkey: "Software\Classes\.tsv\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\data
-Root: HKA; Subkey: "Software\Classes\.xml\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\data
-Root: HKA; Subkey: "Software\Classes\.yaml\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\data
-Root: HKA; Subkey: "Software\Classes\.yml\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\data
+Root: HKA; Subkey: "Software\Classes\.csv\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\data
+Root: HKA; Subkey: "Software\Classes\.json\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\data
+Root: HKA; Subkey: "Software\Classes\.tsv\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\data
+Root: HKA; Subkey: "Software\Classes\.xml\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\data
+Root: HKA; Subkey: "Software\Classes\.yaml\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\data
+Root: HKA; Subkey: "Software\Classes\.yml\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\data
 ; Playlists
-Root: HKA; Subkey: "Software\Classes\.m3u\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\playlists
-Root: HKA; Subkey: "Software\Classes\.m3u8\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\playlists
+Root: HKA; Subkey: "Software\Classes\.m3u\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\playlists
+Root: HKA; Subkey: "Software\Classes\.m3u8\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\playlists
 ; 3D models
-Root: HKA; Subkey: "Software\Classes\.iges\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\model3d
-Root: HKA; Subkey: "Software\Classes\.igs\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\model3d
-Root: HKA; Subkey: "Software\Classes\.obj\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\model3d
-Root: HKA; Subkey: "Software\Classes\.ply\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\model3d
-Root: HKA; Subkey: "Software\Classes\.step\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\model3d
-Root: HKA; Subkey: "Software\Classes\.stl\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\model3d
-Root: HKA; Subkey: "Software\Classes\.stp\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\model3d
+Root: HKA; Subkey: "Software\Classes\.iges\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\model3d
+Root: HKA; Subkey: "Software\Classes\.igs\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\model3d
+Root: HKA; Subkey: "Software\Classes\.obj\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\model3d
+Root: HKA; Subkey: "Software\Classes\.ply\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\model3d
+Root: HKA; Subkey: "Software\Classes\.step\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\model3d
+Root: HKA; Subkey: "Software\Classes\.stl\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\model3d
+Root: HKA; Subkey: "Software\Classes\.stp\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\model3d
 ; Markdown documents
-Root: HKA; Subkey: "Software\Classes\.markdown\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\markdown
-Root: HKA; Subkey: "Software\Classes\.md\OpenWithProgids"; ValueType: none; ValueName: "FOSSEverything.File"; Flags: uninsdeletevalue; Components: assoc\markdown
+Root: HKA; Subkey: "Software\Classes\.markdown\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\markdown
+Root: HKA; Subkey: "Software\Classes\.md\OpenWithProgids"; ValueType: string; ValueName: "FOSSEverything.File"; ValueData: ""; Flags: uninsdeletevalue; Components: assoc\markdown
 
 [Code]
 var
