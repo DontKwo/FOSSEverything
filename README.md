@@ -24,15 +24,15 @@ FOSSEverything is a desktop utility suite for editing documents, manipulating me
 Every push to `main` builds all platforms and publishes a new [GitHub release](https://github.com/DontKwo/FOSSEverything/releases/latest).
 
 <!-- RELEASE-LINKS-START -->
-Latest release: **[v0.1.27](https://github.com/DontKwo/FOSSEverything/releases/tag/v0.1.27)** ([all releases](https://github.com/DontKwo/FOSSEverything/releases) | [SHA256SUMS.txt](https://github.com/DontKwo/FOSSEverything/releases/latest/download/SHA256SUMS.txt))
+Latest release: **[v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/tag/v0.1.28)** ([all releases](https://github.com/DontKwo/FOSSEverything/releases) | [SHA256SUMS.txt](https://github.com/DontKwo/FOSSEverything/releases/latest/download/SHA256SUMS.txt))
 
 | Platform | Latest download | Versioned link | How to install |
 |---|---|---|---|
-| **Windows** | [FOSSEverything-Setup.exe](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Setup.exe) | [v0.1.27](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.27/FOSSEverything-Setup.exe) | Setup wizard: folder, components, shortcuts, PATH, theme, startup view |
-| **Windows** | [FOSSEverything-Portable-win64.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-win64.zip) | [v0.1.27](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.27/FOSSEverything-Portable-win64.zip) | Extract anywhere and run `FOSSEverything.exe` |
-| **macOS** | [FOSSEverything-macos.dmg](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-macos.dmg) | [v0.1.27](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.27/FOSSEverything-macos.dmg) | Open the DMG and drag the app to Applications |
-| **macOS** | [FOSSEverything-Portable-macos.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-macos.zip) | [v0.1.27](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.27/FOSSEverything-Portable-macos.zip) | Extract and run `FOSSEverything.app` |
-| **Linux** | [FOSSEverything-Portable-linux64.tar.gz](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-linux64.tar.gz) | [v0.1.27](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.27/FOSSEverything-Portable-linux64.tar.gz) | Extract and run `./install.sh` (use `--help` for options) |
+| **Windows** | [FOSSEverything-Setup.exe](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Setup.exe) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-Setup.exe) | Setup wizard: folder, components, shortcuts, PATH, theme, startup view |
+| **Windows** | [FOSSEverything-Portable-win64.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-win64.zip) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-Portable-win64.zip) | Extract anywhere and run `FOSSEverything.exe` |
+| **macOS** | [FOSSEverything-macos.dmg](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-macos.dmg) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-macos.dmg) | Open the DMG and drag the app to Applications |
+| **macOS** | [FOSSEverything-Portable-macos.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-macos.zip) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-Portable-macos.zip) | Extract and run `FOSSEverything.app` |
+| **Linux** | [FOSSEverything-Portable-linux64.tar.gz](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-linux64.tar.gz) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-Portable-linux64.tar.gz) | Extract and run `./install.sh` (use `--help` for options) |
 <!-- RELEASE-LINKS-END -->
 
 Installer options, silent install flags, and first-launch warnings (SmartScreen, Gatekeeper) are covered in the [User Guide](docs/USER_GUIDE.md#installing).
