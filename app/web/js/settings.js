@@ -557,6 +557,64 @@ window.FOSS = window.FOSS || {};
   function renderHomeSettings(panel) {
     panel.appendChild(window.FOSS.dom.el("h2", { className: "card-title", text: "Home & Workspaces" }));
 
+    var stack = window.FOSS.dom.el("div", { className: "stack" });
+
+    var currentStartup = window.FOSS.store.get("startup_view", "home") || "home";
+    var startupOptions = [
+      { value: "home", text: "Application Hub (Default)" },
+      { value: "pdf", text: "PDF Tools" },
+      { value: "images", text: "Image Studio" },
+      { value: "media", text: "Media Studio" },
+      { value: "converter", text: "File Converter" },
+      { value: "data", text: "Data Studio" },
+      { value: "model3d", text: "3D Model Viewer" },
+      { value: "network_monitor", text: "Network Monitor" }
+    ];
+    var startupSelect = window.FOSS.dom.el("select", {
+      className: "select",
+      "data-testid": "settings-startup-view-select",
+      "aria-label": "Default startup workspace",
+      onChange: function (e) {
+        window.FOSS.store.set("startup_view", e.target.value);
+      }
+    }, startupOptions.map(function (opt) {
+      return window.FOSS.dom.el("option", {
+        value: opt.value,
+        text: opt.text,
+        selected: currentStartup === opt.value
+      });
+    }));
+
+    var startupField = window.FOSS.dom.el("div", { className: "field" }, [
+      window.FOSS.dom.el("label", { text: "Default Startup Workspace" }),
+      startupSelect,
+      window.FOSS.dom.el("span", { className: "hint", text: "Choose which workspace opens when FOSSEverything starts." })
+    ]);
+    stack.appendChild(startupField);
+
+    var collapsedCheck = window.FOSS.dom.el("input", {
+      type: "checkbox",
+      className: "checkbox",
+      id: "settings-sidebar-collapsed-toggle",
+      "data-testid": "settings-sidebar-collapsed-toggle",
+      "aria-label": "Start with Collapsed Sidebar",
+      checked: Boolean(window.FOSS.store.get("sidebar_collapsed", false)),
+      onChange: function (e) {
+        var collapsed = Boolean(e.target.checked);
+        window.FOSS.store.set("sidebar_collapsed", collapsed);
+        var appEl = document.querySelector(".app");
+        if (appEl) appEl.classList.toggle("sidebar-rail", collapsed);
+      }
+    });
+    var collapsedLabel = window.FOSS.dom.el("label", {
+      className: "row gap-2 items-center",
+      htmlFor: "settings-sidebar-collapsed-toggle"
+    }, [
+      collapsedCheck,
+      window.FOSS.dom.el("span", { text: "Start with Collapsed Sidebar" })
+    ]);
+    stack.appendChild(collapsedLabel);
+
     var clearRecentsBtn = window.FOSS.dom.el("button", {
       className: "btn btn-secondary",
       text: "Clear Recent Files History",
@@ -567,7 +625,9 @@ window.FOSS = window.FOSS || {};
         });
       }
     });
-    panel.appendChild(clearRecentsBtn);
+    stack.appendChild(window.FOSS.dom.el("div", { className: "row" }, [clearRecentsBtn]));
+
+    panel.appendChild(stack);
   }
 
   function renderKeybindings(panel) {

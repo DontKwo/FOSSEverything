@@ -6,7 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from app.system.install_options import INSTALL_THEMES, apply_install_options, parse_install_options
+from app.system.install_options import (
+    INSTALL_SIDEBAR_MODES,
+    INSTALL_STARTUP_VIEWS,
+    INSTALL_THEMES,
+    apply_install_options,
+    parse_install_options,
+)
 
 
 @pytest.fixture
@@ -38,6 +44,24 @@ def test_scale_is_clamped_and_rounded(settings_dir: Path, raw: str, expected: fl
 
 
 @pytest.mark.parametrize(
+    ("mode", "expected_collapsed"),
+    [("expanded", False), ("collapsed", True)],
+)
+def test_sidebar_mode_is_persisted(settings_dir: Path, mode: str, expected_collapsed: bool) -> None:
+    assert mode in INSTALL_SIDEBAR_MODES
+    ok, _ = apply_install_options([f"--sidebar={mode}"])
+    assert ok
+    assert read_settings(settings_dir)["sidebar_collapsed"] is expected_collapsed
+
+
+@pytest.mark.parametrize("view_id", INSTALL_STARTUP_VIEWS)
+def test_every_startup_view_is_accepted(settings_dir: Path, view_id: str) -> None:
+    ok, _ = apply_install_options([f"--startup-view={view_id}"])
+    assert ok
+    assert read_settings(settings_dir)["startup_view"] == view_id
+
+
+@pytest.mark.parametrize(
     "argv",
     [
         [],
@@ -47,7 +71,13 @@ def test_scale_is_clamped_and_rounded(settings_dir: Path, raw: str, expected: fl
         ["--ui-scale=big"],
         ["--ui-scale=nan"],
         ["--ui-scale=inf"],
+        ["--sidebar="],
+        ["--sidebar=hidden"],
+        ["--startup-view="],
+        ["--startup-view=missing"],
         ["--theme=dark", "--ui-scale=abc"],
+        ["--theme=dark", "--sidebar=invalid"],
+        ["--theme=dark", "--startup-view=invalid"],
     ],
 )
 def test_invalid_input_writes_nothing(settings_dir: Path, argv: list[str]) -> None:
@@ -59,10 +89,21 @@ def test_invalid_input_writes_nothing(settings_dir: Path, argv: list[str]) -> No
 
 def test_existing_unrelated_settings_survive(settings_dir: Path) -> None:
     (settings_dir / "settings.json").write_text(json.dumps({"favorites": ["pdf"]}), encoding="utf-8")
-    ok, _ = apply_install_options(["--configure", "--theme=light", "--ui-scale=1.5"])
+    ok, _ = apply_install_options(
+        ["--configure", "--theme=light", "--ui-scale=1.5", "--sidebar=collapsed", "--startup-view=pdf"]
+    )
     assert ok
-    assert read_settings(settings_dir) == {"favorites": ["pdf"], "theme": "light", "ui_scale": 1.5}
+    assert read_settings(settings_dir) == {
+        "favorites": ["pdf"],
+        "theme": "light",
+        "ui_scale": 1.5,
+        "sidebar_collapsed": True,
+        "startup_view": "pdf",
+    }
 
 
 def test_parse_ignores_unrelated_arguments() -> None:
-    assert parse_install_options(["--configure", "file.pdf", "--theme=dark"]) == {"theme": "dark"}
+    parsed = parse_install_options(
+        ["--configure", "file.pdf", "--theme=dark", "--sidebar=collapsed", "--startup-view=data"]
+    )
+    assert parsed == {"theme": "dark", "sidebar": "collapsed", "startup_view": "data"}

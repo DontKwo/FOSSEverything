@@ -9,6 +9,8 @@ IN_PLACE=0
 LINK_CLI=1
 THEME=""
 UI_SCALE=""
+SIDEBAR=""
+STARTUP_VIEW=""
 UNINSTALL=0
 ASSUME_YES=0
 ARGS_GIVEN=$#
@@ -23,6 +25,9 @@ Usage: ./install.sh [options]
   --theme ID          First-run theme: ut_austin_dark, dark, light, solarized,
                       monokai, cyberpunk, ut_austin
   --ui-scale N        First-run interface scale, 0.5 to 2.5 (for example 1.25)
+  --sidebar MODE      First-run sidebar layout: expanded or collapsed
+  --startup-view ID   First-run view: home, pdf, images, media, converter,
+                      data, model3d, network_monitor
   --uninstall         Remove the launcher, menu entry, and installed copy
   -y, --yes           Never prompt; use defaults and the options above
   -h, --help          Show this help
@@ -36,6 +41,8 @@ while [ $# -gt 0 ]; do
         --no-cli-link) LINK_CLI=0; shift ;;
         --theme) THEME="${2:?--theme needs an id}"; shift 2 ;;
         --ui-scale) UI_SCALE="${2:?--ui-scale needs a number}"; shift 2 ;;
+        --sidebar) SIDEBAR="${2:?--sidebar needs expanded or collapsed}"; shift 2 ;;
+        --startup-view) STARTUP_VIEW="${2:?--startup-view needs a view id}"; shift 2 ;;
         --uninstall) UNINSTALL=1; shift ;;
         -y|--yes) ASSUME_YES=1; shift ;;
         -h|--help) usage; exit 0 ;;
@@ -77,6 +84,8 @@ if [ "${ARGS_GIVEN}" -eq 0 ] && [ "${ASSUME_YES}" -eq 0 ] && [ -t 0 ]; then
     fi
     THEME="$(ask 'Theme (ut_austin_dark, dark, light, solarized, monokai, cyberpunk, ut_austin)' 'ut_austin_dark')"
     UI_SCALE="$(ask 'Interface scale (0.5 to 2.5)' '1.0')"
+    SIDEBAR="$(ask 'Sidebar layout (expanded or collapsed)' 'expanded')"
+    STARTUP_VIEW="$(ask 'Startup workspace (home, pdf, images, media, converter, data, model3d, network_monitor)' 'home')"
 fi
 
 if [ ! -f "${SCRIPT_DIR}/FOSSEverything" ]; then
@@ -109,6 +118,8 @@ fi
 CONFIGURE_ARGS=()
 [ -n "${THEME}" ] && CONFIGURE_ARGS+=("--theme=${THEME}")
 [ -n "${UI_SCALE}" ] && CONFIGURE_ARGS+=("--ui-scale=${UI_SCALE}")
+[ -n "${SIDEBAR}" ] && CONFIGURE_ARGS+=("--sidebar=${SIDEBAR}")
+[ -n "${STARTUP_VIEW}" ] && CONFIGURE_ARGS+=("--startup-view=${STARTUP_VIEW}")
 if [ ${#CONFIGURE_ARGS[@]} -gt 0 ]; then
     "${BIN_PATH}" --configure "${CONFIGURE_ARGS[@]}" || echo "[WARN] Could not apply preferences; change them in Settings."
 fi

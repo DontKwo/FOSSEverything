@@ -15,12 +15,21 @@ window.FOSS = window.FOSS || {};
       if (appEl) appEl.classList.add("sidebar-rail");
     }
 
-    // Initial route: render home immediately on DOM ready
-    window.FOSS.router.open("home");
+    // Initial route: render configured startup workspace immediately on DOM ready
+    var initialView = window.FOSS.store.get("startup_view", "home") || "home";
+    window.FOSS.router.open(initialView);
 
     // Asynchronously synchronize settings from Python backend
     window.FOSS.store.loadAll().then(function () {
       window.FOSS.theme.init();
+      var rootEl = document.querySelector(".app");
+      if (rootEl) {
+        rootEl.classList.toggle("sidebar-rail", Boolean(window.FOSS.store.get("sidebar_collapsed", false)));
+      }
+      var loadedStartup = window.FOSS.store.get("startup_view", "home") || "home";
+      if (loadedStartup !== "home" && window.FOSS.router.getActiveView() === "home") {
+        window.FOSS.router.open(loadedStartup);
+      }
       window.FOSS.ready = true;
     }).catch(function () {
       window.FOSS.ready = true;

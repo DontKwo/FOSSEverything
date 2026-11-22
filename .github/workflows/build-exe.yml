@@ -125,11 +125,11 @@ jobs:
           $settingsDir = Join-Path $env:USERPROFILE ".fosseverything"
           if (Test-Path $settingsDir) { Remove-Item $settingsDir -Recurse -Force }
           $setup = (Get-ChildItem installer\Output\FOSSEverything-Setup.exe).FullName
-          $install = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/DIR=`"$installDir`"","/TYPE=full","/TASKS=desktopicon","/Theme=light","/Scale=1.25" -Wait -PassThru
+          $install = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/DIR=`"$installDir`"","/TYPE=full","/TASKS=desktopicon","/Theme=light","/Scale=1.25","/Sidebar=collapsed","/StartupView=pdf" -Wait -PassThru
           if ($install.ExitCode -ne 0) { throw "Installer exited with $($install.ExitCode)" }
           if (-not (Test-Path (Join-Path $installDir "FOSSEverything.exe"))) { throw "FOSSEverything.exe missing after install" }
           $json = Get-Content (Join-Path $settingsDir "settings.json") -Raw | ConvertFrom-Json
-          if ($json.theme -ne "light" -or [double]$json.ui_scale -ne 1.25) { throw "Installer wizard options were not applied: $($json | ConvertTo-Json -Compress)" }
+          if ($json.theme -ne "light" -or [double]$json.ui_scale -ne 1.25 -or -not $json.sidebar_collapsed -or $json.startup_view -ne "pdf") { throw "Installer wizard options were not applied: $($json | ConvertTo-Json -Compress)" }
           $pdfKey = "HKCU:\Software\Classes\.pdf\OpenWithProgids"
           if ((Get-Item $pdfKey -ErrorAction SilentlyContinue).Property -notcontains "FOSSEverything.File") { throw "Open with entry for .pdf was not registered" }
           if (-not (Test-Path -LiteralPath "HKCU:\Software\Classes\*\shell\FOSSEverything")) { throw "Explorer context menu was not registered" }
@@ -198,10 +198,12 @@ jobs:
           mkdir -p "${TEST_ROOT}"
           tar -xzf dist/FOSSEverything-Portable-linux64.tar.gz -C "${TEST_ROOT}"
           PREFIX="${RUNNER_TEMP}/foss-prefix"
-          "${TEST_ROOT}/FOSSEverything/install.sh" --prefix "${PREFIX}" --no-cli-link --theme light --ui-scale 1.25 --yes
+          "${TEST_ROOT}/FOSSEverything/install.sh" --prefix "${PREFIX}" --no-cli-link --theme light --ui-scale 1.25 --sidebar collapsed --startup-view pdf --yes
           test -x "${PREFIX}/FOSSEverything"
           grep -q '"theme": "light"' "${FOSS_SETTINGS_DIR}/settings.json"
           grep -q '"ui_scale": 1.25' "${FOSS_SETTINGS_DIR}/settings.json"
+          grep -q '"sidebar_collapsed": true' "${FOSS_SETTINGS_DIR}/settings.json"
+          grep -q '"startup_view": "pdf"' "${FOSS_SETTINGS_DIR}/settings.json"
           "${TEST_ROOT}/FOSSEverything/install.sh" --prefix "${PREFIX}" --uninstall --yes
           test ! -e "${PREFIX}"
 
@@ -321,3 +323,26 @@ jobs:
           fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check out branch for README update
+        if: github.ref_type == 'branch'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          path: repo
+          persist-credentials: true
+
+      - name: Update README release links
+        if: github.ref_type == 'branch'
+        working-directory: repo
+        shell: bash
+        run: |
+          python3 scripts/update_readme_release_links.py --version "${{ needs.version.outputs.version }}" --repo "${{ github.repository }}"
+          if ! git diff --quiet README.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "docs(release): update README release links for ${{ needs.version.outputs.tag }} [skip ci]"
+            git pull --rebase origin "${{ github.ref_name }}"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi

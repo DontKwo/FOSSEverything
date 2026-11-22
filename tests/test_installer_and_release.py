@@ -1,16 +1,24 @@
 """Static checks that the installer script, release workflow, and README stay consistent."""
 from __future__ import annotations
 
-import re
 from pathlib import Path
+import re
 
+import pytest
 import yaml
 
-from app.system.install_options import INSTALL_THEMES
+from app.system.install_options import INSTALL_SIDEBAR_MODES, INSTALL_STARTUP_VIEWS, INSTALL_THEMES
 from app.system.shell_integration import FILE_FAMILIES
+from scripts.update_readme_release_links import (
+    END_MARKER,
+    START_MARKER,
+    render_release_block,
+    update_readme_text,
+)
 
 ROOT = Path(__file__).resolve().parent.parent
 ISS_TEXT = (ROOT / "installer" / "FOSSEverything.iss").read_text(encoding="utf-8")
+LINUX_SH_TEXT = (ROOT / "installer" / "install-linux.sh").read_text(encoding="utf-8")
 WORKFLOW_PATH = ROOT / ".github" / "workflows" / "build-exe.yml"
 README_TEXT = (ROOT / "README.md").read_text(encoding="utf-8")
 
@@ -33,6 +41,11 @@ def registry_extensions(component: str) -> set[str]:
     return set(pattern.findall(ISS_TEXT))
 
 
+def extract_pascal_values(func_name: str) -> tuple[str, ...]:
+    block = ISS_TEXT.split(f"function {func_name}")[1].split("end;")[0]
+    return tuple(re.findall(r"^\s+\d+: Result := '([a-z0-9_]+)';", block, re.MULTILINE))
+
+
 def test_every_file_family_has_a_component_and_registry_entries() -> None:
     assert len(FAMILY_COMPONENT_IDS) == len(FILE_FAMILIES)
     for component_id, (label, extensions) in zip(FAMILY_COMPONENT_IDS, FILE_FAMILIES):
@@ -41,8 +54,12 @@ def test_every_file_family_has_a_component_and_registry_entries() -> None:
 
 
 def test_wizard_theme_list_matches_app_themes() -> None:
-    pascal_themes = re.findall(r"^\s+\d: Result := '([a-z_]+)';", ISS_TEXT.split("function ThemeIdAt")[1].split("end;")[0], re.MULTILINE)
-    assert tuple(pascal_themes) == INSTALL_THEMES
+    assert extract_pascal_values("ThemeIdAt") == INSTALL_THEMES
+
+
+def test_wizard_sidebar_and_startup_views_match_app_options() -> None:
+    assert extract_pascal_values("SidebarModeAt") == INSTALL_SIDEBAR_MODES
+    assert extract_pascal_values("StartupViewAt") == INSTALL_STARTUP_VIEWS
 
 
 def test_wizard_scales_are_within_app_range() -> None:
@@ -59,10 +76,33 @@ def test_installer_assets_and_files_exist() -> None:
     assert (ROOT / "LICENSE").is_file()
 
 
-def test_installer_exposes_core_customization() -> None:
-    for needle in ("[Types]", "[Components]", "[Tasks]", "CreateCustomPage", "DisableDirPage=no", "DisableProgramGroupPage=no", "AllowNoIcons=yes"):
+def test_installer_exposes_core_customization_and_tasks() -> None:
+    required_markers = (
+        "[Types]",
+        'Name: "standard"',
+        "[Components]",
+        "[Tasks]",
+        'Name: "desktopicon"',
+        'Name: "sendtomenu"',
+        'Name: "addtopath"',
+        'Name: "autostart"',
+        "AddDirToUserPath",
+        "RemoveDirFromUserPath",
+        "--sidebar={code:GetSidebarMode}",
+        "--startup-view={code:GetStartupView}",
+        "CreateCustomPage",
+        "DisableDirPage=no",
+        "DisableProgramGroupPage=no",
+        "AllowNoIcons=yes",
+        "#ifndef MyAppVersion",
+    )
+    for needle in required_markers:
         assert needle in ISS_TEXT, needle
-    assert "#ifndef MyAppVersion" in ISS_TEXT
+
+
+def test_linux_installer_exposes_sidebar_and_startup_view() -> None:
+    assert "--sidebar" in LINUX_SH_TEXT
+    assert "--startup-view" in LINUX_SH_TEXT
 
 
 def load_workflow() -> dict[str, object]:
@@ -90,7 +130,46 @@ def test_workflow_notes_and_readme_reference_only_produced_assets() -> None:
     for asset in RELEASE_ASSETS - {"SHA256SUMS.txt"}:
         assert asset in workflow_text, asset
         assert asset in readme_assets, asset
+    assert "scripts/update_readme_release_links.py" in workflow_text
 
 
-def test_readme_links_to_releases_page() -> None:
+def test_readme_has_release_markers_and_links() -> None:
+    assert START_MARKER in README_TEXT
+    assert END_MARKER in README_TEXT
     assert "https://github.com/DontKwo/FOSSEverything/releases" in README_TEXT
+
+
+@pytest.mark.parametrize("raw_version", ["0.1.27", "v0.1.28", "1.4.0"])
+def test_render_release_block_includes_all_assets(raw_version: str) -> None:
+    clean = raw_version.lstrip("v")
+    block = render_release_block(raw_version, repo="Org/Repo")
+    assert block.startswith(START_MARKER)
+    assert block.endswith(END_MARKER)
+    assert f"https://github.com/Org/Repo/releases/tag/v{clean}" in block
+    for asset in RELEASE_ASSETS:
+        assert f"https://github.com/Org/Repo/releases/latest/download/{asset}" in block
+    for asset in RELEASE_ASSETS - {"SHA256SUMS.txt"}:
+        assert f"https://github.com/Org/Repo/releases/download/v{clean}/{asset}" in block
+
+
+def test_update_readme_text_preserves_surrounding_text() -> None:
+    sample = f"Header\n\n{START_MARKER}\nold links\n{END_MARKER}\n\nFooter\n"
+    updated = update_readme_text(sample, "2.0.1")
+    assert updated.startswith("Header\n\n<!-- RELEASE-LINKS-START -->")
+    assert updated.endswith("<!-- RELEASE-LINKS-END -->\n\nFooter\n")
+    assert "old links" not in updated
+    assert "releases/tag/v2.0.1" in updated
+
+
+@pytest.mark.parametrize(
+    ("bad_text", "bad_ver"),
+    [
+        ("no markers", "1.0.0"),
+        (f"{START_MARKER}\nmissing end", "1.0.0"),
+        (f"{START_MARKER}\n{END_MARKER}", ""),
+        (f"{START_MARKER}\n{END_MARKER}", "v"),
+    ],
+)
+def test_update_readme_text_rejects_invalid_inputs(bad_text: str, bad_ver: str) -> None:
+    with pytest.raises(ValueError):
+        update_readme_text(bad_text, bad_ver)
