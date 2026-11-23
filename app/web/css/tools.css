@@ -59,13 +59,19 @@
   flex: 1 1 0%;
   min-height: 14rem;
   height: 100%;
-  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   overflow: hidden;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--bg-surface-sunken);
   min-width: 0;
   box-sizing: border-box;
+}
+
+.model3d-viewport-wrapper > canvas {
+  grid-area: 1 / 1;
 }
 
 .model3d-sidebar,
@@ -1301,14 +1307,15 @@ html.is-resizing .model3d-canvas-container canvas,
 .ocr-preview-canvas {
   flex: 1 1 0%;
   min-height: 14rem;
-  position: relative;
+  display: flex;
   background-color: var(--bg-raised);
   border-radius: var(--radius-md);
 }
 
 .ocr-preview-scroll {
-  position: absolute;
-  inset: 0;
+  flex: 1 1 0%;
+  width: 100%;
+  height: 100%;
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -1357,9 +1364,10 @@ html.is-resizing .model3d-canvas-container canvas,
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
-  position: absolute;
-  top: var(--space-2);
-  left: var(--space-2);
+  grid-area: 1 / 1;
+  align-self: start;
+  justify-self: start;
+  margin: var(--space-2);
   z-index: 10;
   background-color: var(--bg-surface);
   padding: var(--space-1) var(--space-2);
@@ -1374,7 +1382,10 @@ html.is-resizing .model3d-canvas-container canvas,
 }
 
 .model3d-overlay-badge {
-  position: absolute;
+  grid-area: 1 / 1;
+  align-self: end;
+  justify-self: start;
+  margin: var(--space-3);
   z-index: 10;
   background-color: var(--bg-surface);
   padding: var(--space-1) var(--space-2);
@@ -1386,9 +1397,10 @@ html.is-resizing .model3d-canvas-container canvas,
 }
 
 .model3d-overlay-stack {
-  position: absolute;
-  bottom: var(--space-3);
-  right: var(--space-3);
+  grid-area: 1 / 1;
+  align-self: end;
+  justify-self: end;
+  margin: var(--space-3);
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -1399,6 +1411,7 @@ html.is-resizing .model3d-canvas-container canvas,
 
 .model3d-overlay-stack .model3d-overlay-badge {
   position: static;
+  margin: 0;
 }
 
 .model3d-plane-item {

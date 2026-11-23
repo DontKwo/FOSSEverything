@@ -117,13 +117,14 @@ class FixtureFactory:
         wav_path = path.with_suffix(".tmp.wav")
         sample_rate = 22050
         num_samples = int(sample_rate * duration_s)
-        with wave.open(str(wav_path), "w") as wf:
-            wf.setnchannels(1)
-            wf.setsampwidth(2)
-            wf.setframerate(sample_rate)
+        with wave.open(str(wav_path), "w") as wav_handle:
+            wav_handle.setnchannels(1)
+            wav_handle.setsampwidth(2)
+            wav_handle.setframerate(sample_rate)
             for idx in range(num_samples):
-                val = int(16000.0 * math.sin(2.0 * math.pi * 440.0 * (idx / sample_rate)))
-                wf.writeframes(struct.pack("<h", val))
+                phase_rad = 2.0 * math.pi * 440.0 * (idx / sample_rate)
+                sample_i16 = int(16000.0 * math.sin(phase_rad))
+                wav_handle.writeframes(struct.pack("<h", sample_i16))
         if fmt.lower() == "wav":
             if path.exists():
                 path.unlink()
@@ -299,7 +300,7 @@ class FixtureFactory:
         elif fam == "css":
             target.write_text("body { margin: 0; padding: 0; }\n", encoding="utf-8")
         elif fam == "qr":
-            img = qrcode.make("https://foss.local/matrix")
+            img = qrcode.make("https://example.org/matrix")
             img.save(str(target))
         else:
             target.write_bytes(b"DATA\x00" * 16)

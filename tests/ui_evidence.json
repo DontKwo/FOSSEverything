@@ -1,0 +1,517 @@
+{
+  "run_id": "foss-playwright-verify",
+  "framework": "web",
+  "commit": "HEAD",
+  "interactions": [
+    {
+      "control_id": "home-search-input",
+      "input_kind": "keyboard",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 1,
+      "screen_state_id": "default",
+      "source_hash": "951364dc1fb64148"
+    },
+    {
+      "control_id": "nav-home",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 2,
+      "screen_state_id": "home",
+      "source_hash": "22f0cb5608f22b19"
+    },
+    {
+      "control_id": "nav-pdf",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 3,
+      "screen_state_id": "home",
+      "source_hash": "279195d7c93416e6"
+    },
+    {
+      "control_id": "nav-ocr",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 4,
+      "screen_state_id": "home",
+      "source_hash": "50f60a7562af9ce0"
+    },
+    {
+      "control_id": "nav-markdown",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 5,
+      "screen_state_id": "home",
+      "source_hash": "2a51c19907e6aab3"
+    },
+    {
+      "control_id": "nav-resume",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 6,
+      "screen_state_id": "home",
+      "source_hash": "ad1f86043a562e6f"
+    },
+    {
+      "control_id": "nav-images",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 7,
+      "screen_state_id": "home",
+      "source_hash": "fc4e68db83c240d7"
+    },
+    {
+      "control_id": "nav-collage",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 8,
+      "screen_state_id": "home",
+      "source_hash": "0df04d8122ad0f99"
+    },
+    {
+      "control_id": "nav-palette",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 9,
+      "screen_state_id": "home",
+      "source_hash": "83647b25e9526d66"
+    },
+    {
+      "control_id": "nav-model3d",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 10,
+      "screen_state_id": "home",
+      "source_hash": "a18fa69d07ef4ef8"
+    },
+    {
+      "control_id": "nav-media",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 11,
+      "screen_state_id": "home",
+      "source_hash": "3f12a56323414638"
+    },
+    {
+      "control_id": "nav-home",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 12,
+      "screen_state_id": "settings",
+      "source_hash": "22f0cb5608f22b19"
+    },
+    {
+      "control_id": "nav-pdf",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 13,
+      "screen_state_id": "settings",
+      "source_hash": "279195d7c93416e6"
+    },
+    {
+      "control_id": "nav-ocr",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 14,
+      "screen_state_id": "settings",
+      "source_hash": "50f60a7562af9ce0"
+    },
+    {
+      "control_id": "nav-markdown",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 15,
+      "screen_state_id": "settings",
+      "source_hash": "2a51c19907e6aab3"
+    },
+    {
+      "control_id": "nav-resume",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 16,
+      "screen_state_id": "settings",
+      "source_hash": "ad1f86043a562e6f"
+    },
+    {
+      "control_id": "nav-images",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 17,
+      "screen_state_id": "settings",
+      "source_hash": "fc4e68db83c240d7"
+    },
+    {
+      "control_id": "nav-collage",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 18,
+      "screen_state_id": "settings",
+      "source_hash": "0df04d8122ad0f99"
+    },
+    {
+      "control_id": "nav-palette",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 19,
+      "screen_state_id": "settings",
+      "source_hash": "83647b25e9526d66"
+    },
+    {
+      "control_id": "nav-model3d",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 20,
+      "screen_state_id": "settings",
+      "source_hash": "a18fa69d07ef4ef8"
+    },
+    {
+      "control_id": "nav-media",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 21,
+      "screen_state_id": "settings",
+      "source_hash": "3f12a56323414638"
+    },
+    {
+      "control_id": "nav-home",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 22,
+      "screen_state_id": "pdf",
+      "source_hash": "22f0cb5608f22b19"
+    },
+    {
+      "control_id": "nav-pdf",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 23,
+      "screen_state_id": "pdf",
+      "source_hash": "279195d7c93416e6"
+    },
+    {
+      "control_id": "nav-ocr",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 24,
+      "screen_state_id": "pdf",
+      "source_hash": "50f60a7562af9ce0"
+    },
+    {
+      "control_id": "nav-markdown",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 25,
+      "screen_state_id": "pdf",
+      "source_hash": "2a51c19907e6aab3"
+    },
+    {
+      "control_id": "nav-resume",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 26,
+      "screen_state_id": "pdf",
+      "source_hash": "ad1f86043a562e6f"
+    },
+    {
+      "control_id": "nav-images",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 27,
+      "screen_state_id": "pdf",
+      "source_hash": "fc4e68db83c240d7"
+    },
+    {
+      "control_id": "nav-collage",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 28,
+      "screen_state_id": "pdf",
+      "source_hash": "0df04d8122ad0f99"
+    },
+    {
+      "control_id": "nav-palette",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 29,
+      "screen_state_id": "pdf",
+      "source_hash": "83647b25e9526d66"
+    },
+    {
+      "control_id": "nav-model3d",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 30,
+      "screen_state_id": "pdf",
+      "source_hash": "a18fa69d07ef4ef8"
+    },
+    {
+      "control_id": "nav-media",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 31,
+      "screen_state_id": "pdf",
+      "source_hash": "3f12a56323414638"
+    },
+    {
+      "control_id": "nav-home",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 32,
+      "screen_state_id": "unit_converter",
+      "source_hash": "22f0cb5608f22b19"
+    },
+    {
+      "control_id": "nav-pdf",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 33,
+      "screen_state_id": "unit_converter",
+      "source_hash": "279195d7c93416e6"
+    },
+    {
+      "control_id": "nav-ocr",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 34,
+      "screen_state_id": "unit_converter",
+      "source_hash": "50f60a7562af9ce0"
+    },
+    {
+      "control_id": "nav-markdown",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 35,
+      "screen_state_id": "unit_converter",
+      "source_hash": "2a51c19907e6aab3"
+    },
+    {
+      "control_id": "nav-resume",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 36,
+      "screen_state_id": "unit_converter",
+      "source_hash": "ad1f86043a562e6f"
+    },
+    {
+      "control_id": "nav-images",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 37,
+      "screen_state_id": "unit_converter",
+      "source_hash": "fc4e68db83c240d7"
+    },
+    {
+      "control_id": "nav-collage",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 38,
+      "screen_state_id": "unit_converter",
+      "source_hash": "0df04d8122ad0f99"
+    },
+    {
+      "control_id": "nav-palette",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 39,
+      "screen_state_id": "unit_converter",
+      "source_hash": "83647b25e9526d66"
+    },
+    {
+      "control_id": "nav-model3d",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 40,
+      "screen_state_id": "unit_converter",
+      "source_hash": "a18fa69d07ef4ef8"
+    },
+    {
+      "control_id": "nav-media",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 41,
+      "screen_state_id": "unit_converter",
+      "source_hash": "3f12a56323414638"
+    },
+    {
+      "control_id": "nav-home",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 42,
+      "screen_state_id": "model3d",
+      "source_hash": "22f0cb5608f22b19"
+    },
+    {
+      "control_id": "nav-pdf",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 43,
+      "screen_state_id": "model3d",
+      "source_hash": "279195d7c93416e6"
+    },
+    {
+      "control_id": "nav-ocr",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 44,
+      "screen_state_id": "model3d",
+      "source_hash": "50f60a7562af9ce0"
+    },
+    {
+      "control_id": "nav-markdown",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 45,
+      "screen_state_id": "model3d",
+      "source_hash": "2a51c19907e6aab3"
+    },
+    {
+      "control_id": "nav-resume",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 46,
+      "screen_state_id": "model3d",
+      "source_hash": "ad1f86043a562e6f"
+    },
+    {
+      "control_id": "nav-images",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 47,
+      "screen_state_id": "model3d",
+      "source_hash": "fc4e68db83c240d7"
+    },
+    {
+      "control_id": "nav-collage",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 48,
+      "screen_state_id": "model3d",
+      "source_hash": "0df04d8122ad0f99"
+    },
+    {
+      "control_id": "nav-palette",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 49,
+      "screen_state_id": "model3d",
+      "source_hash": "83647b25e9526d66"
+    },
+    {
+      "control_id": "nav-model3d",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 50,
+      "screen_state_id": "model3d",
+      "source_hash": "a18fa69d07ef4ef8"
+    },
+    {
+      "control_id": "nav-media",
+      "input_kind": "mouse",
+      "trusted": true,
+      "control_state": "enabled",
+      "test_node_id": "playwright_real_dom_foss",
+      "sequence_number": 51,
+      "screen_state_id": "model3d",
+      "source_hash": "3f12a56323414638"
+    }
+  ]
+}

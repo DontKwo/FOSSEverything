@@ -8,6 +8,7 @@ from typing import Any
 
 import pymupdf as fitz
 from PIL import Image
+import trimesh
 import yaml
 
 from app.features.converter.ops import (
@@ -176,7 +177,6 @@ def _convert_single_internal(
 
     if ext in EXT_MODELS or target_fmt in ("GLTF", "GLB", "3MF", "OFF"):
         try:
-            import trimesh
             mesh = trimesh.load(file_path)
             mesh.export(target_path)
             return [target_path]

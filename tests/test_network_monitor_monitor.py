@@ -31,7 +31,7 @@ def _make_conn(pid: int = 1234, remote_ip: str = "8.8.8.8") -> FakeConn:
         fd=1,
         family=socket.AF_INET,
         type=socket.SOCK_STREAM,
-        laddr=Addr("192.168.1.5", 51000),
+        laddr=Addr("198.51.100.5", 51000),
         raddr=Addr(remote_ip, 443),
         status=psutil.CONN_ESTABLISHED,
         pid=pid,

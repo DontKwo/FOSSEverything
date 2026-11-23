@@ -2,7 +2,7 @@
 name = "FOSSEverything"
 version = "0.1.0"
 description = "Free, local-first, offline file suite for documents, media, data, and everyday work."
-license = "GPL-3.0-or-later"
+license = "MIT"
 authors = [
     { name = "DontKwo", email = "323857007+DontKwo@users.noreply.github.com" }
 ]

@@ -14,7 +14,7 @@ def test_unit_converter_walkthrough(page: Page, api: Any, tmp_path: Path) -> Non
     val_in.fill("50")
 
     swap_btn = page.locator("[data-testid='unit_converter-swap-btn']")
-    swap_btn.click()
+    swap_btn.click(timeout=5000)
     page.wait_for_timeout(100)
 
     hero_res = page.locator("[data-testid='unit_converter-hero-result']")
@@ -27,7 +27,7 @@ def test_unit_converter_walkthrough(page: Page, api: Any, tmp_path: Path) -> Non
     target_in = page.locator("[data-testid='unit_converter-expr-target']")
     target_in.fill("seconds")
     eval_btn = page.locator("[data-testid='unit_converter-expr-btn']")
-    eval_btn.click()
+    eval_btn.click(timeout=5000)
     page.wait_for_timeout(150)
 
     err = page.locator("[data-testid='unit_converter-expr-error']")
@@ -35,7 +35,7 @@ def test_unit_converter_walkthrough(page: Page, api: Any, tmp_path: Path) -> Non
 
     expr_in.fill("100 km/h")
     target_in.fill("mph")
-    eval_btn.click()
+    eval_btn.click(timeout=5000)
     page.wait_for_timeout(150)
 
     res = page.locator("[data-testid='unit_converter-expr-result']")

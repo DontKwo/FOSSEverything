@@ -98,7 +98,7 @@ def test_index_html_structure() -> None:
     # Verify CSS links order
     expected_css = ["tokens.css", "themes.css", "base.css", "layout.css", "components.css", "tools.css"]
     links = re.findall(r'<link[^>]+href=["\']([^"\']+\.css)["\']', text)
-    css_names = [Path(l).name for l in links]
+    css_names = [Path(css_href).name for css_href in links]
     assert css_names == expected_css, f"CSS order {css_names} != expected {expected_css}"
 
 

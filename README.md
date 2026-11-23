@@ -1,146 +1,78 @@
-<div align="center">
-  <img src="assets/logo.png" alt="FOSSEverything Logo" width="280" />
+<p align="center">
+  <img src="assets/logo.png" alt="FOSSEverything Logo" width="240" />
+</p>
 
-  # FOSSEverything
+# FOSSEverything
 
-  **The offline desktop power tool for documents, media, data, and daily workflows.**
+**All-in-one offline desktop utility suite for PDFs, images, audio, video, 3D models, archives, and data.**
 
-  [![Privacy: 100% Offline](https://img.shields.io/badge/Privacy-100%25%20Offline-success.svg)](PRIVACY.md)
-  [![Latest release](https://img.shields.io/github/v/release/DontKwo/FOSSEverything?label=release)](https://github.com/DontKwo/FOSSEverything/releases/latest)
-  [![Platform: Windows | macOS | Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue.svg)](https://github.com/DontKwo/FOSSEverything/releases)
-  [![Build Executables](https://github.com/DontKwo/FOSSEverything/actions/workflows/build-exe.yml/badge.svg)](https://github.com/DontKwo/FOSSEverything/actions/workflows/build-exe.yml)
-  [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](LICENSE)
-
-</div>
+FOSSEverything runs completely locally on Windows, macOS, and Linux with zero cloud uploads, accounts, or tracking. Convert files, edit PDFs, inspect 3D parts, strip metadata, and run batch utilities from one clean window.
 
 ---
 
-FOSSEverything is a desktop utility suite for editing documents, manipulating media, inspecting 3D models, converting datasets, and monitoring system network connections. Every operation executes entirely on your physical machine with zero cloud tracking, zero account requirements, and zero remote telemetry.
+## Download
+
+| Platform | Download | Setup Guide |
+| :--- | :--- | :--- |
+| Windows | [FOSSEverything-Windows.exe](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Windows.exe) | [Windows Install Steps](docs/INSTALLATION.md#windows) |
+| macOS | [FOSSEverything-macOS.dmg](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-macOS.dmg) | [macOS Install Steps](docs/INSTALLATION.md#macos) |
+| Linux | [FOSSEverything-Linux.tar.gz](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Linux.tar.gz) | [Linux Install Steps](docs/INSTALLATION.md#linux) |
 
 ---
 
-## Downloads
+## Screenshots
 
-Every push to `main` builds all platforms and publishes a new [GitHub release](https://github.com/DontKwo/FOSSEverything/releases/latest).
+<p align="center">
+  <img src="assets/screenshots/01_home_hub.png" alt="FOSSEverything Application Hub" width="760" />
+</p>
 
-<!-- RELEASE-LINKS-START -->
-Latest release: **[v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/tag/v0.1.28)** ([all releases](https://github.com/DontKwo/FOSSEverything/releases) | [SHA256SUMS.txt](https://github.com/DontKwo/FOSSEverything/releases/latest/download/SHA256SUMS.txt))
-
-| Platform | Latest download | Versioned link | How to install |
-|---|---|---|---|
-| **Windows** | [FOSSEverything-Setup.exe](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Setup.exe) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-Setup.exe) | Setup wizard: folder, components, shortcuts, PATH, theme, startup view |
-| **Windows** | [FOSSEverything-Portable-win64.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-win64.zip) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-Portable-win64.zip) | Extract anywhere and run `FOSSEverything.exe` |
-| **macOS** | [FOSSEverything-macos.dmg](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-macos.dmg) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-macos.dmg) | Open the DMG and drag the app to Applications |
-| **macOS** | [FOSSEverything-Portable-macos.zip](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-macos.zip) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-Portable-macos.zip) | Extract and run `FOSSEverything.app` |
-| **Linux** | [FOSSEverything-Portable-linux64.tar.gz](https://github.com/DontKwo/FOSSEverything/releases/latest/download/FOSSEverything-Portable-linux64.tar.gz) | [v0.1.28](https://github.com/DontKwo/FOSSEverything/releases/download/v0.1.28/FOSSEverything-Portable-linux64.tar.gz) | Extract and run `./install.sh` (use `--help` for options) |
-<!-- RELEASE-LINKS-END -->
-
-Installer options, silent install flags, and first-launch warnings (SmartScreen, Gatekeeper) are covered in the [User Guide](docs/USER_GUIDE.md#installing).
+<p align="center">
+  <img src="assets/screenshots/02_pdf_studio.png" alt="FOSSEverything PDF Studio" width="760" />
+</p>
 
 ---
 
-## Feature Showcase
+## How to Use
 
-### Application Hub & Global Command Palette
-Launch capabilities, search with natural language keywords, and access pinned favorites instantly with `Ctrl+K` (`Cmd+K` on macOS).
-
-![FOSSEverything Application Hub](assets/screenshots/01_home_hub.png)
-
----
-
-### PDF Studio
-Merge, split, reorder, compress, encrypt, water-mark, and redact PDF documents locally.
-
-![PDF Studio](assets/screenshots/02_pdf_studio.png)
+1. Download the package for your operating system from the table above.
+2. Follow the [Desktop Installation Guide](docs/INSTALLATION.md) if Windows SmartScreen or macOS Gatekeeper warns about an unrecognized app.
+3. Launch **FOSSEverything**, press `Ctrl+K` (`Cmd+K` on macOS) or drag any file onto the window to open the matching tool.
 
 ---
 
-### Interactive 3D Model Viewer
-Inspect STL, OBJ, PLY, GLTF, and STEP 3D models with bounding box diagnostics, wireframe shading, and cross-section slicing.
+## Key Features
 
-![3D Model Viewer](assets/screenshots/03_3d_viewer.png)
-
----
-
-### Local Network Monitor
-Audit open network sockets, active TCP/UDP connections, listening ports, process owners, and bandwidth transfer rates.
-
-![Network Monitor](assets/screenshots/04_network_monitor.png)
+- **Document & PDF Studio**: Merge, split, compress, encrypt, watermark, redact, and run offline OCR on PDFs.
+- **Media, Image & 3D Tools**: Batch convert formats, remove image backgrounds locally, extract palettes, and slice STL/OBJ/STEP models.
+- **Data, Security & Archives**: Format JSON/YAML/TOML/CSV/SQL, inspect local network sockets, strip EXIF/ID3 metadata, and verify archives offline.
 
 ---
 
-### Data Studio & Converter
-Format, validate, query, and minify structured datasets including JSON, YAML, TOML, XML, and CSV with live syntax highlighting.
+## Safety & Disclaimers
 
-![Data Studio](assets/screenshots/05_data_studio.png)
-
----
-
-### Universal Media Converter & Batch Compressor
-Transcode images, audio, video, and documents with configurable compression presets and stream-copy audio extraction.
-
-![Universal Converter](assets/screenshots/06_converter.png)
+- **Official `main` Releases Only**: Download installers exclusively from [DontKwo/FOSSEverything Releases](https://github.com/DontKwo/FOSSEverything/releases/latest) (`main` branch). Never run forked builds unless you are sure they contain no malware; only official `main` releases are maintained by the author, and I make no promises.
+- **OS Security Warnings**: Windows SmartScreen and macOS Gatekeeper will likely warn that independently built executables are unrecognized or unsafe. Bypassing prompts is strictly at your own discretion using [Desktop Installation Guide](docs/INSTALLATION.md).
+- **File & System Modifications Disclaimer**: FOSSEverything transforms local files, metadata, and optional OS context-menu entries when requested. Provided "AS IS" under the [MIT License](LICENSE) with zero warranty or liability; keep backups and run batch operations at your own risk.
 
 ---
 
-## Core Tool Suites
+## Documentation
 
-| Suite | Included Tools | Key Capabilities |
-|---|---|---|
-| **Documents** | PDF Studio, OCR & Text, Markdown Editor, Resume Builder | Merge/split PDFs, offline Tesseract OCR in 18+ languages, live Markdown preview, ATS resume exporter |
-| **Visuals** | Image Studio, Photo Collage, Color Palette, 3D Viewer | Redaction, cropping, filters, EXIF metadata viewer, palette extraction, 3D mesh slicing |
-| **Media** | Audio/Video Studio, Playlist Manager | Stream-copy trimming, MP3/WAV/AAC extraction, M3U8 parsing, format transcoding |
-| **Files & Storage** | File Converter, Compressor, Archive Tools, Batch Renamer | Batch media conversion, ZIP/TAR/7Z extraction, regex renaming, collision previews |
-| **Data & Text** | Data Studio, Text Tools, Encoding, Unit Converter | JSONPath queries, regex search/diff, Base64/Hex/URL codec, Pint physical unit engine |
-| **Security & Network** | Network Monitor, Sherlock OSINT, Metadata Tools | Live socket inspector, username search across 300+ platforms, EXIF/ID3 stripper |
-| **Utilities** | QR & Barcodes | Vector SVG QR code generator with logo embedding, file and webcam barcode scanner |
+### User Documentation
+- [User Guide](docs/USER_GUIDE.md)
+- [Desktop Installation Guide](docs/INSTALLATION.md)
+- [Frequently Asked Questions](docs/FAQ.md)
+- [Privacy Statement](PRIVACY.md)
 
----
+### Developer Documentation
+- [Developer Guide](docs/DEVELOPMENT.md)
+- [Developer uv Installation](docs/UV_INSTALLATION.md)
+- [Contributing Guidelines](CONTRIBUTING.md)
 
-## Native Desktop & Shell Integration
+### AI, Technical & Reference Documentation
+- [AI Agent Reference](AGENTS.md)
 
-FOSSEverything integrates with desktop operating systems:
-- **File Drag & Drop**: Drop files anywhere onto the window to route directly to the matching tool.
-- **Single-Instance IPC**: Launching a file forwards it to your active window over local TCP socket `127.0.0.1:47891`.
-- **Context Menus**: Register "Open in FOSSEverything" in your system file explorer:
-  ```bash
-  # Windows, macOS, or Linux
-  python main.py --register-shell
-
-  # Remove integration
-  python main.py --unregister-shell
-  ```
-
----
-
-## Documentation Links
-
-- [Developer Guide & Architecture](docs/DEVELOPMENT.md): Source installation, architecture overview, test runners, and build procedures.
-- [User Guide](docs/USER_GUIDE.md): End-user usage tips, shortcuts, and tool manuals.
-- [Frequently Asked Questions (FAQ)](docs/FAQ.md): Common troubleshooting and platform questions.
-- [Contributing Guidelines](CONTRIBUTING.md): PR guidelines, coding invariants, and testing standards.
-- [Privacy Policy](PRIVACY.md): Data handling guarantees and offline architecture specification.
-- [Third-Party Notices](NOTICES.md): Open source licenses and library acknowledgments.
-
----
-
-## Quick Start (From Source)
-
-For developers running from Git:
-
-```bash
-git clone https://github.com/DontKwo/FOSSEverything.git
-cd FOSSEverything
-
-# Install dependencies and start
-uv sync
-uv run python main.py
-```
-
-For complete development instructions, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
-
----
-
-## License
-
-FOSSEverything is distributed under the GNU Affero General Public License v3.0 or later. See [LICENSE](LICENSE) for details.
+### Legal & Security Policies
+- [Security Policy](SECURITY.md)
+- [Third-Party Notices](THIRD_PARTY_NOTICES.md)
+- [MIT License](LICENSE)

@@ -29,7 +29,9 @@ def test_media_walkthrough(page: Page, api: Any, tmp_path: Path) -> None:
 
     page.fill("[data-testid='media-trim-start']", "0.2")
     page.fill("[data-testid='media-trim-end']", "0.8")
-    page.evaluate("window.FOSS.api('media_trim', {input_path: '%s', output_path: '%s', start_time: 0.2, end_time: 0.8, fast_copy: false})" % (clip_mp4.replace('\\', '/'), out_trim.replace('\\', '/')))
+    in_escaped = clip_mp4.replace("\\", "/")
+    out_trim_escaped = out_trim.replace("\\", "/")
+    page.evaluate(f"window.FOSS.api('media_trim', {{input_path: '{in_escaped}', output_path: '{out_trim_escaped}', start_time: 0.2, end_time: 0.8, fast_copy: false}})")
     page.wait_for_timeout(1500)
     assert Path(out_trim).exists()
 
@@ -42,6 +44,7 @@ def test_media_walkthrough(page: Page, api: Any, tmp_path: Path) -> None:
     page.click("[data-testid='media-choose-file']")
     page.wait_for_timeout(300)
 
-    page.evaluate("window.FOSS.api('media_speed_reverse', {input_path: '%s', output_path: '%s', speed_factor: 1.0, reverse: true})" % (clip_mp4.replace('\\', '/'), out_effect.replace('\\', '/')))
+    out_effect_escaped = out_effect.replace("\\", "/")
+    page.evaluate(f"window.FOSS.api('media_speed_reverse', {{input_path: '{in_escaped}', output_path: '{out_effect_escaped}', speed_factor: 1.0, reverse: true}})")
     page.wait_for_timeout(1500)
     assert Path(out_effect).exists()

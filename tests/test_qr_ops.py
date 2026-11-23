@@ -29,8 +29,8 @@ class QrOpsTests(unittest.TestCase):
         self.assertIn("END:VCARD", payload)
 
     def test_email_payload(self) -> None:
-        payload = qr_ops.make_email_payload("dev@FOSSEverything.local", subject="Hello", body="World")
-        self.assertTrue(payload.startswith("mailto:dev@FOSSEverything.local"))
+        payload = qr_ops.make_email_payload("dev@example.org", subject="Hello", body="World")
+        self.assertTrue(payload.startswith("mailto:dev@example.org"))
         self.assertIn("subject=Hello", payload)
 
     def test_save_qr_code(self) -> None:
@@ -60,7 +60,7 @@ class QrOpsTests(unittest.TestCase):
         self.assertEqual(img.mode, "RGBA")
 
     def test_generate_qr_svg(self) -> None:
-        svg = qr_ops.generate_qr_svg("https://FOSSEverything.local", error_correction="M")
+        svg = qr_ops.generate_qr_svg("https://example.org", error_correction="M")
         self.assertIn("<svg", svg)
         self.assertIn("</svg>", svg)
         self.assertIn("<rect", svg)
@@ -100,11 +100,11 @@ class QrOpsTests(unittest.TestCase):
         self.assertEqual(qr_ops.parse_qr_payload(event)["type"], "calendar")
 
     def test_decode_qr_from_numpy_array(self) -> None:
-        img = qr_ops.generate_qr_code("https://FOSSEverything.local/qrcode-array", box_size=8)
+        img = qr_ops.generate_qr_code("https://example.org/qrcode-array", box_size=8)
         arr = __import__("numpy").array(img)
         results = qr_ops.decode_qr_and_barcodes(arr)
         self.assertTrue(results)
-        self.assertIn("https://FOSSEverything.local/qrcode-array", results[0]["payload"])
+        self.assertIn("https://example.org/qrcode-array", results[0]["payload"])
 
     def test_calendar_payload_uses_ical_datetime(self) -> None:
         event = qr_ops.make_calendar_payload("Sync", "2026-11-01T12:00", "2026-11-01T13:30:00Z")

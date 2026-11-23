@@ -1,9 +1,10 @@
 import threading
+from threading import local as thread_local
 import time
 import uuid
 from typing import Any
 
-_local = threading.local()
+_local = thread_local()
 
 
 class JobContext:

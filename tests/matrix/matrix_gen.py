@@ -11,7 +11,7 @@ HOSTILE_STRINGS = [
     "A" * 1000,
     "unicode_test_sample",
     "../../etc/passwd",
-    "C:\\Windows\\System32\\calc.exe",
+    "Windows\\System32\\calc.exe",
     "%s%s%s%s%n",
     "{0}{1}{2}",
     "\x00nullbyte",

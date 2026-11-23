@@ -10,26 +10,22 @@ import yaml
 from app.system.install_options import INSTALL_SIDEBAR_MODES, INSTALL_STARTUP_VIEWS, INSTALL_THEMES
 from app.system.shell_integration import FILE_FAMILIES
 from scripts.update_readme_release_links import (
-    END_MARKER,
-    START_MARKER,
-    render_release_block,
-    update_readme_text,
+    RELEASE_ENTRIES,
+    normalize_version,
+    render_download_rows,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
 ISS_TEXT = (ROOT / "installer" / "FOSSEverything.iss").read_text(encoding="utf-8")
 LINUX_SH_TEXT = (ROOT / "installer" / "install-linux.sh").read_text(encoding="utf-8")
-WORKFLOW_PATH = ROOT / ".github" / "workflows" / "build-exe.yml"
+WORKFLOW_PATH = ROOT / ".github" / "workflows" / "ci.yml"
 README_TEXT = (ROOT / "README.md").read_text(encoding="utf-8")
 
 FAMILY_COMPONENT_IDS = ("pdf", "images", "media", "office", "data", "playlists", "model3d", "markdown")
 RELEASE_ASSETS = {
-    "FOSSEverything-Setup.exe",
-    "FOSSEverything-Portable-win64.zip",
-    "FOSSEverything-macos.dmg",
-    "FOSSEverything-Portable-macos.zip",
-    "FOSSEverything-Portable-linux64.tar.gz",
-    "SHA256SUMS.txt",
+    "FOSSEverything-Windows.exe",
+    "FOSSEverything-macOS.dmg",
+    "FOSSEverything-Linux.tar.gz",
 }
 
 
@@ -111,65 +107,38 @@ def load_workflow() -> dict[str, object]:
 
 def test_workflow_builds_every_platform_and_publishes() -> None:
     jobs = load_workflow()["jobs"]
-    assert {"version", "build-windows", "build-linux", "build-macos", "release"} <= set(jobs)
+    assert {"lint-and-test", "build-windows", "build-linux", "build-macos", "release"} <= set(jobs)
     assert jobs["release"]["permissions"]["contents"] == "write"
-    assert set(jobs["release"]["needs"]) == {"version", "build-windows", "build-linux", "build-macos"}
+    assert set(jobs["release"]["needs"]) == {"lint-and-test", "build-windows", "build-linux", "build-macos"}
 
 
-def test_workflow_triggers_on_push_and_tags() -> None:
-    triggers = load_workflow()["on"]
+def test_workflow_triggers_on_push_and_pr() -> None:
+    workflow = load_workflow()
+    triggers = workflow.get("on", workflow.get(True))
     assert "main" in triggers["push"]["branches"]
-    assert "v*" in triggers["push"]["tags"]
+    assert "main" in triggers["pull_request"]["branches"]
 
 
 def test_workflow_notes_and_readme_reference_only_produced_assets() -> None:
     workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
     readme_assets = set(re.findall(r"releases/latest/download/([A-Za-z0-9._-]+)", README_TEXT))
-    assert readme_assets
-    assert readme_assets <= RELEASE_ASSETS
-    for asset in RELEASE_ASSETS - {"SHA256SUMS.txt"}:
-        assert asset in workflow_text, asset
-        assert asset in readme_assets, asset
-    assert "scripts/update_readme_release_links.py" in workflow_text
-
-
-def test_readme_has_release_markers_and_links() -> None:
-    assert START_MARKER in README_TEXT
-    assert END_MARKER in README_TEXT
-    assert "https://github.com/DontKwo/FOSSEverything/releases" in README_TEXT
-
-
-@pytest.mark.parametrize("raw_version", ["0.1.27", "v0.1.28", "1.4.0"])
-def test_render_release_block_includes_all_assets(raw_version: str) -> None:
-    clean = raw_version.lstrip("v")
-    block = render_release_block(raw_version, repo="Org/Repo")
-    assert block.startswith(START_MARKER)
-    assert block.endswith(END_MARKER)
-    assert f"https://github.com/Org/Repo/releases/tag/v{clean}" in block
+    assert readme_assets == RELEASE_ASSETS
     for asset in RELEASE_ASSETS:
+        assert asset in workflow_text, asset
+
+
+def test_readme_links_latest_releases() -> None:
+    assert "https://github.com/DontKwo/FOSSEverything/releases/latest" in README_TEXT
+    assert "SHA256SUMS" not in README_TEXT
+
+
+def test_render_download_rows_includes_all_assets() -> None:
+    block = render_download_rows(repo="Org/Repo")
+    for _plat, asset in RELEASE_ENTRIES:
         assert f"https://github.com/Org/Repo/releases/latest/download/{asset}" in block
-    for asset in RELEASE_ASSETS - {"SHA256SUMS.txt"}:
-        assert f"https://github.com/Org/Repo/releases/download/v{clean}/{asset}" in block
 
 
-def test_update_readme_text_preserves_surrounding_text() -> None:
-    sample = f"Header\n\n{START_MARKER}\nold links\n{END_MARKER}\n\nFooter\n"
-    updated = update_readme_text(sample, "2.0.1")
-    assert updated.startswith("Header\n\n<!-- RELEASE-LINKS-START -->")
-    assert updated.endswith("<!-- RELEASE-LINKS-END -->\n\nFooter\n")
-    assert "old links" not in updated
-    assert "releases/tag/v2.0.1" in updated
-
-
-@pytest.mark.parametrize(
-    ("bad_text", "bad_ver"),
-    [
-        ("no markers", "1.0.0"),
-        (f"{START_MARKER}\nmissing end", "1.0.0"),
-        (f"{START_MARKER}\n{END_MARKER}", ""),
-        (f"{START_MARKER}\n{END_MARKER}", "v"),
-    ],
-)
-def test_update_readme_text_rejects_invalid_inputs(bad_text: str, bad_ver: str) -> None:
+@pytest.mark.parametrize("bad_ver", ["", "   ", "v", "VV"])
+def test_normalize_version_rejects_empty_inputs(bad_ver: str) -> None:
     with pytest.raises(ValueError):
-        update_readme_text(bad_text, bad_ver)
+        normalize_version(bad_ver)

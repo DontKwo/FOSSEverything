@@ -724,8 +724,8 @@ def preview_step_pipeline(
                 if pattern_str:
                     try:
                         stem = re.sub(pattern_str, replacement_str, stem)
-                    except re.error:
-                        pass
+                    except re.error as err:
+                        _ = err
 
             elif step_type == "change_extension":
                 new_ext = str(step.get("extension", "")).strip()

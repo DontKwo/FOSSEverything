@@ -1,83 +1,54 @@
 # FOSSEverything User Guide
 
-Welcome to FOSSEverything, the offline desktop power tool. This guide will walk you through the basics of operating the application, utilizing search filters, and contributing new application modules to the ecosystem.
+Welcome to FOSSEverything, the offline desktop suite for documents, media, data, 3D models, and system utilities.
 
 ## Installing
 
-Download the package for your platform from the [latest release](https://github.com/DontKwo/FOSSEverything/releases/latest).
+Download the single package for your computer from [Latest Releases](https://github.com/DontKwo/FOSSEverything/releases/latest) and follow the [Desktop Installation Guide](INSTALLATION.md) for Windows, macOS, or Linux:
 
-### Windows setup wizard
+- **Windows**: `FOSSEverything-Windows.exe` runs the setup wizard (per-user install needs no admin rights, optional Explorer right-click menu, Open With entries, desktop shortcut, initial theme, and UI scale).
+- **macOS**: `FOSSEverything-macOS.dmg` packages `FOSSEverything.app` (drag to Applications and approve under Privacy & Security if prompted).
+- **Linux**: `FOSSEverything-Linux.tar.gz` includes `FOSSEverything` and `./install.sh` (interactive or `--theme`, `--ui-scale`, `--prefix` flags).
 
-The installer asks for:
-- **Install folder** and **Start Menu folder** (or none).
-- **Installation type**: Full, Compact (app only), or Custom components: Explorer right-click menu "Open in FOSSEverything", and Open with entries per file family (PDF, images, audio and video, Office, data, playlists, 3D models, Markdown).
-- **Shortcuts**: desktop icon.
-- **First-run preferences**: theme and interface size. Existing preferences are kept by default.
-- **Per-user or all-users** install (no administrator rights needed for per-user).
-
-Uninstalling removes shortcuts and registry entries and offers to delete your preferences.
-
-Silent install flags:
+### Silent Windows Installer Options
 
 ```text
-FOSSEverything-Setup.exe /VERYSILENT /CURRENTUSER /DIR="<install folder>" /TYPE=compact /COMPONENTS="ctx,assoc\pdf" /TASKS=desktopicon /Theme=dark /Scale=1.25
+FOSSEverything-Windows.exe /VERYSILENT /CURRENTUSER /DIR="<install folder>" /TYPE=compact /COMPONENTS="ctx,assoc\pdf" /TASKS=desktopicon /Theme=dark /Scale=1.25
 ```
 
-Themes: `ut_austin_dark`, `dark`, `light`, `solarized`, `monokai`, `cyberpunk`, `ut_austin`. Scale: `0.9`, `1.0`, `1.1`, `1.25`, `1.5`, `2.0`.
+Themes: `ut_austin_dark`, `dark`, `light`, `solarized`, `monokai`, `cyberpunk`, `ut_austin`. Scales: `0.9`, `1.0`, `1.1`, `1.25`, `1.5`, `2.0`.
 
-### macOS
-
-Open `FOSSEverything-macos.dmg` and drag the app to Applications. Builds are not notarized yet, so the first launch needs right-click, **Open**. If macOS still blocks it, run `xattr -dr com.apple.quarantine /Applications/FOSSEverything.app`.
-
-### Linux
-
-Extract the tarball and run `./install.sh`. It prompts for install folder, command link, theme, and scale when run in a terminal. Scripted use:
+### Silent Linux Installer Options
 
 ```bash
 ./install.sh --prefix ~/apps/FOSSEverything --theme dark --ui-scale 1.25 --no-cli-link --yes
 ./install.sh --uninstall --prefix ~/apps/FOSSEverything --yes
 ```
 
-Use `./install.sh --help` for every option.
+---
 
-### Windows SmartScreen
+## Using the Application
 
-Builds are not code signed yet. If SmartScreen warns, choose **More info**, then **Run anyway**. Compare the file against `SHA256SUMS.txt` on the release page.
-## Running the Web Portal
+- **Command Palette (`Ctrl+K` / `Cmd+K`)**: Type plain words such as `shrink`, `pdf`, `strip`, or `convert image` to jump to matching tools.
+- **Drag and Drop**: Drag any document, image, media file, archive, or 3D model onto the window to open its matching workspace.
+- **Offline Privacy**: Every conversion runs locally on your CPU and disk unless you explicitly trigger an optional neural model download in the Background Remover.
 
-Because FOSSEverything is designed as a standalone offline desktop application, the primary way to launch the interface is via the standard Python bootstrapper:
+---
 
-```bash
-uv run python main.py
-```
+## Tool Suites
 
-This commands spins up a headless Python backend that coordinates local hardware operations while simultaneously launching a native OS window using `pywebview`. There is no cloud backend, no telemetry, and no accounts required.
+- **Documents**: PDF Studio (merge, split, reorder, compress, encrypt, redact), Offline OCR, Markdown Studio, Resume Studio.
+- **Visuals & 3D**: Image Studio, Photo Collage, Color Palette Extractor, 3D Mesh & STEP Viewer.
+- **Media**: Audio/Video Studio, Trim/Stream Copy, Playlist Manager, Batch Compressor.
+- **Data & Security**: Data Studio (JSON/YAML/TOML/CSV/XML), Text Tools, Encoding/Hashing, Unit Converter, Local Network Monitor, Metadata Stripper, QR & Barcode Tools.
 
-If you are developing or testing UI changes purely on the frontend, you can bypass the backend and run a static HTTP server on the `app/web/` directory:
-```bash
-uv run python -m http.server 3000 --directory app/web
-```
-Navigate to `http://localhost:3000` in any web browser to view the interface structure.
+---
 
-## Using Search Filters
+## Related Documentation
 
-The search portal is the fastest way to navigate FOSSEverything.
-
-1. **Invoke the Search**: Press `Ctrl+K` (or `Cmd+K` on macOS) anywhere in the application to open the global command palette.
-2. **Intent-Based Keywords**: You do not need to know the exact name of a tool. The search engine normalizes words and maps intent aliases. For example, typing `shrink`, `reduce`, or `compress` will immediately suggest tools like the "File Compressor" and "Archive & Compression".
-3. **Combination Filters**: The search supports basic AND matching. For instance, searching for `convert image` will instantly filter down the toolkit to the exact conversion utilities matching both concepts.
-
-## Submitting New FOSS Applications
-
-FOSSEverything uses an extensible plugin-style registry. Adding a new workspace or application requires modifications in three distinct layers to maintain separation of concerns:
-
-1. **Domain Operations (`app/features/<feature_name>/ops.py`)**:
-   Implement pure Python functions capable of processing files completely offline. Ensure you import no GUI code or webview context.
-2. **Web API Mixin (`app/web/api/tool_<feature_name>.py`)**:
-   Create a mixin class containing endpoints decorated with `@api_method`. Ensure validation on inputs and structured returns via `ok()` or `fail()`. Expose your methods lazily in `app/web/api/__init__.py`.
-3. **Frontend Integration (`app/web/js/tools/<feature_name>.js`)**:
-   Create the workspace UI using standard HTML/CSS/JS. Avoid using any external frontend frameworks.
-4. **Registration (`app/core/tool_registry.py`)**:
-   Add a `HomeApp` definition mapped to your tool ID with plain-language keywords and aliases so the search engine can discover your utility offline.
-
-Once implemented, run all standard checks (`uv run pytest`) and submit a pull request!
+- [Project Overview](../README.md)
+- [Desktop Installation Guide](INSTALLATION.md)
+- [Frequently Asked Questions](FAQ.md)
+- [Privacy Statement](../PRIVACY.md)
+- [Developer Guide](DEVELOPMENT.md)
+- [Security Policy](../SECURITY.md)

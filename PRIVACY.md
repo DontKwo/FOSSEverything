@@ -22,4 +22,11 @@ A few optional capabilities use pretrained models or external tools:
 
 ## Auditing and Inspection
 
-All processing logic is inspectable in the `app/features/<feature>/ops.py` modules. See [CONTRIBUTING.md](CONTRIBUTING.md) for testing guidelines and development setup.
+All processing logic is inspectable in the `app/features/<feature>/ops.py` modules. See [Contributing Guidelines](CONTRIBUTING.md) and [Developer Guide](docs/DEVELOPMENT.md) for testing and source instructions.
+
+## Related Documentation
+
+- [Project Overview](README.md)
+- [Security Policy](SECURITY.md)
+- [User Guide](docs/USER_GUIDE.md)
+- [MIT License](LICENSE)

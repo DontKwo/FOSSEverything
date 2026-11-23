@@ -130,7 +130,7 @@ def main() -> None:
     bg_color = THEME_BG_MAP.get(saved_theme, "#090d16")
     win_w, win_h = calc_initial_window_size()
 
-    is_selftest = "--selftest" in sys.argv
+    is_selftest = "--selftest" in sys.argv or "--self-test" in sys.argv
 
     window = webview.create_window(
         title="FOSSEverything",

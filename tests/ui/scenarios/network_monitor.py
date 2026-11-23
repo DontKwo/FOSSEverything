@@ -67,9 +67,9 @@ def scenario_live_sort_and_mark(page: Page, fixtures: dict[str, str], api: Any) 
     if header.count() == 0:
         calc_clear_overlays(page)
         return
-    header.click()
+    header.click(timeout=5000)
     expect(page.locator("[data-testid='network_monitor-sort-pid']")).to_have_attribute("aria-sort", "ascending")
-    page.locator("[data-testid='network_monitor-sort-pid']").click()
+    page.locator("[data-testid='network_monitor-sort-pid']").click(timeout=5000)
     expect(page.locator("[data-testid='network_monitor-sort-pid']")).to_have_attribute("aria-sort", "descending")
 
     rows = page.locator("[data-testid='network_monitor-live-row']").filter(

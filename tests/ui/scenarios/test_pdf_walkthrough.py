@@ -29,12 +29,12 @@ def test_pdf_walkthrough(page: Page, api: Any, tmp_path: Path) -> None:
     page.evaluate("window.FOSS.router.open('pdf', 'merge')")
     page.locator(
         "[data-testid='pdf-merge-add-btn'], [data-testid='pdf-add-files-btn']"
-    ).first.click()
+    ).first.click(timeout=5000)
     page.wait_for_timeout(200)
 
     page.locator(
         "[data-testid='pdf-merge-save-btn'], [data-testid='pdf-merge-btn']"
-    ).first.click()
+    ).first.click(timeout=5000)
     page.wait_for_timeout(300)
 
     expect(
@@ -50,7 +50,7 @@ def test_pdf_walkthrough(page: Page, api: Any, tmp_path: Path) -> None:
     page.evaluate("window.FOSS.router.open('pdf', 'merge')")
     page.locator(
         "[data-testid='pdf-merge-add-btn'], [data-testid='pdf-add-files-btn']"
-    ).first.click()
+    ).first.click(timeout=5000)
     page.wait_for_timeout(300)
 
     page.click("[data-testid='pdf-select-all-btn']")
@@ -64,7 +64,7 @@ def test_pdf_walkthrough(page: Page, api: Any, tmp_path: Path) -> None:
 
     page.locator(
         "[data-testid='pdf-merge-save-btn'], [data-testid='pdf-merge-btn']"
-    ).first.click()
+    ).first.click(timeout=5000)
     page.wait_for_timeout(300)
 
     expect(

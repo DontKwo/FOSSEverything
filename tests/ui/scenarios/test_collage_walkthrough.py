@@ -21,45 +21,31 @@ def test_collage_walkthrough(page: Page, api: Any, tmp_path: Path) -> None:
     page.evaluate("window.FOSS.router.open('collage', 'main')")
     expect(page.locator("[data-testid='collage-status']")).to_have_text("Ready")
 
-    page.evaluate(
-        "document.querySelector(\"[data-testid='collage-add-images']\").click();"
-    )
+    page.click("[data-testid='collage-add-images']")
     page.wait_for_timeout(300)
     expect(page.locator("[data-testid='collage-preview-display'] img")).to_be_visible()
 
-    page.evaluate(
-        "document.querySelector(\"[data-testid='collage-captions-check']\").click();"
-    )
+    page.click("[data-testid='collage-captions-check']")
     page.wait_for_timeout(300)
 
-    page.evaluate(
-        "document.querySelector(\"[data-testid='collage-save-btn']\").click();"
-    )
+    page.click("[data-testid='collage-save-btn']")
     page.wait_for_timeout(300)
     expect(page.locator("[data-testid='collage-result']")).to_be_visible()
     assert Path(col_out).exists()
 
-    page.evaluate(
-        'document.querySelector("[data-testid=\'collage-mode-toggle\']").querySelectorAll("button").forEach(b => { if(b.textContent.includes("Freeform")) b.click(); });'
-    )
+    page.locator("[data-testid='collage-mode-toggle'] button", has_text="Freeform").click(timeout=5000)
     page.wait_for_timeout(200)
     expect(page.locator("[data-testid='collage-freeform-canvas']")).to_be_visible()
 
-    page.evaluate(
-        "document.querySelector(\"[data-testid='collage-add-images']\").click();"
-    )
+    page.click("[data-testid='collage-add-images']")
     page.wait_for_timeout(300)
     expect(page.locator("[data-testid='collage-layers-list']")).to_contain_text(
         "sample"
     )
 
-    page.evaluate(
-        "document.querySelector(\"[data-testid='collage-export-kind-layered']\").click();"
-    )
+    page.click("[data-testid='collage-export-kind-layered']")
     page.wait_for_timeout(200)
-    page.evaluate(
-        "document.querySelector(\"[data-testid='collage-export-layers-btn']\").click();"
-    )
+    page.click("[data-testid='collage-export-layers-btn']")
     page.wait_for_timeout(300)
     expect(page.locator("[data-testid='collage-result']")).to_be_visible()
     assert Path(layers_out).exists()

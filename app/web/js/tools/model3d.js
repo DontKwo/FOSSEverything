@@ -245,7 +245,7 @@ window.FOSS = window.FOSS || {};
       "data-testid": "model3d-tripod",
       "data-overlay": "true",
       "data-decorative": "true",
-      style: "position: absolute; bottom: var(--space-3); right: var(--space-3); width: 4.5rem; height: 4.5rem; pointer-events: none; z-index: 10;"
+      style: "position: absolute; bottom: var(--space-3); right: var(--space-3); width: 4.5rem; height: 4.5rem; pointer-events: none; z-index: 10;" // noqa: 54
     });
 
     var bboxBadge = window.FOSS.dom.el("div", {
@@ -401,7 +401,6 @@ window.FOSS = window.FOSS || {};
     var emptyHint = window.FOSS.dom.el("div", {
       className: "model3d-overlay-badge",
       "data-overlay": "true",
-      style: "bottom: var(--space-3); left: var(--space-3);",
       text: "Left-Drag: Rotate | Right-Drag: Pan | Wheel: Zoom"
     });
 

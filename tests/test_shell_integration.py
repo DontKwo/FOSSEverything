@@ -1,4 +1,5 @@
 """Unit tests for shell integration and file routing."""
+import os
 import unittest
 from unittest.mock import patch, mock_open, MagicMock
 from app.system import shell_integration
@@ -25,10 +26,11 @@ class TestShellIntegration(unittest.TestCase):
 
     @patch("os.path.abspath")
     def test_resolve_windows_command(self, mock_abspath: MagicMock) -> None:
-        mock_abspath.return_value = "C:\\dummy\\path.exe"
-        cmd = shell_integration._resolve_windows_command(exe_path="C:\\dummy\\path.exe")
+        dummy_exe = os.path.join("dummy", "path.exe")
+        mock_abspath.return_value = dummy_exe
+        cmd = shell_integration._resolve_windows_command(exe_path=dummy_exe)
         self.assertTrue(cmd.endswith(' "%1"'))
-        self.assertTrue(cmd.startswith('"C:\\dummy\\path.exe"'))
+        self.assertTrue(cmd.startswith(f'"{dummy_exe}"'))
 
     @patch("os.makedirs")
     @patch("shutil.which")

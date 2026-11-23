@@ -48,3 +48,5 @@ Before any commit or submission, all invariants must be verified to prevent regr
   ```bash
   uv run pytest tests/test_api_contract.py tests/test_web_static.py
   ```
+- Keep documentation consistent across [README.md](README.md), [docs/](docs/USER_GUIDE.md), [SECURITY.md](SECURITY.md), and [LICENSE](LICENSE) (MIT License, Copyright (c) 2026 DontKwo).
+- Every `docs/*.md` file requires a `## Related Documentation` footer linking back to `../README.md`.

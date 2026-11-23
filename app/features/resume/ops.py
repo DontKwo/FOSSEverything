@@ -74,7 +74,7 @@ def create_sample_master_resume() -> MasterResume:
         name="Alex Morgan",
         title="Guidance, Navigation, and Control Engineer",
         email="alex.morgan@utexas.edu",
-        phone="(512) 555-0199",
+        phone="(000) 555-0199",
         location="Austin, TX",
         linkedin="linkedin.com/in/alexmorgan-aero",
         github="github.com/alexmorgan",
@@ -481,14 +481,16 @@ def apply_profile(resume: MasterResume, profile_name: str) -> bool:
 
 
 def resolve_calibri_fonts() -> dict[str, Any]:
-    # Resolve Windows Calibri, Carlito, or PyMuPDF built-in fallback fonts.
+    # Resolve Windows Calibri or PyMuPDF built-in fallback fonts.
+    sys_root = os.environ.get("SystemRoot", "")
+    fonts_dir = os.path.join(sys_root, "Fonts") if sys_root else ""
     calibri_paths = {
-        "regular": r"C:\Windows\Fonts\calibri.ttf",
-        "bold": r"C:\Windows\Fonts\calibrib.ttf",
-        "italic": r"C:\Windows\Fonts\calibrii.ttf",
-        "bold_italic": r"C:\Windows\Fonts\calibriz.ttf",
+        "regular": os.path.join(fonts_dir, "calibri.ttf"),
+        "bold": os.path.join(fonts_dir, "calibrib.ttf"),
+        "italic": os.path.join(fonts_dir, "calibrii.ttf"),
+        "bold_italic": os.path.join(fonts_dir, "calibriz.ttf"),
     }
-    if all(os.path.exists(p) for p in calibri_paths.values()):
+    if fonts_dir and all(os.path.exists(p) for p in calibri_paths.values()):
         return {
             "use_files": True,
             "paths": calibri_paths,

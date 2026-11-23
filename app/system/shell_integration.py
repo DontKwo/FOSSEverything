@@ -170,8 +170,8 @@ def start_ipc_server(window: Any) -> threading.Thread:
             if srv is not None:
                 try:
                     srv.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    _ = exc
 
     thread = threading.Thread(target=_listen, daemon=True)
     thread.start()

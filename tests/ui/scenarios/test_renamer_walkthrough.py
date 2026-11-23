@@ -15,9 +15,9 @@ def test_renamer_walkthrough(page: Page, api: Any, fixtures: dict[str, str]) -> 
             page.wait_for_timeout(100)
             clear_btn = page.locator("button", has_text="Clear")
             if clear_btn.count() > 0 and clear_btn.first.is_visible():
-                clear_btn.first.click()
+                clear_btn.first.click(timeout=5000)
                 page.wait_for_timeout(100)
-        except Exception:
-            pass
+        except Exception as exc:
+            _ = (name, exc)
 
         scenario_fn(page, fixtures, api)

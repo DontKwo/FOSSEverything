@@ -39,11 +39,14 @@ def calc_blend(fg: tuple[float, float, float, float], bg: tuple[float, float, fl
 def calc_luminance(rgb: tuple[float, float, float]) -> float:
     # Compute relative luminance from RGB 0-255 tuple.
     chan: list[float] = []
-    for v in rgb:
-        norm = v / 255.0
-        c = norm / 12.92 if norm <= 0.03928 else ((norm + 0.055) / 1.055) ** 2.4
-        chan.append(c)
-    return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2]
+    for channel_val in rgb:
+        norm = channel_val / 255.0
+        linear_channel = norm / 12.92 if norm <= 0.03928 else ((norm + 0.055) / 1.055) ** 2.4
+        chan.append(linear_channel)
+    lum_red = 0.2126 * chan[0]
+    lum_green = 0.7152 * chan[1]
+    lum_blue = 0.0722 * chan[2]
+    return lum_red + lum_green + lum_blue
 
 
 def calc_contrast_ratio(c1_str: str, c2_str: str) -> float:

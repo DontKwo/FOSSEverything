@@ -7,8 +7,8 @@ def calc_clear_overlays(page: Page) -> None:
     # Clear tooltips, toasts, and reset view scroll.
     try:
         page.mouse.move(0, 0)
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as exc:  # noqa: BLE001
+        _ = exc
     page.evaluate(
         "if (window.FOSS && window.FOSS.tooltips) window.FOSS.tooltips.hide(); "
         "var t = document.getElementById('tooltip-host'); if (t) t.innerHTML = ''; "

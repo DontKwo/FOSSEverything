@@ -7,7 +7,7 @@ window.FOSS = window.FOSS || {};
       name: "Alex Morgan",
       title: "Quantitative Finance & Systems Engineering",
       email: "alex.morgan@utexas.edu",
-      phone: "(512) 555-0199",
+      phone: "(000) 555-0199",
       location: "Austin, TX",
       linkedin: "linkedin.com/in/alexmorgan-finance",
       github: "github.com/alexmorgan",

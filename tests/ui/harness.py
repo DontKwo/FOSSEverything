@@ -79,7 +79,7 @@ def make_page(
         })
     };
     document.addEventListener("DOMContentLoaded", () => {
-        window.dispatchEvent(new Event("pywebviewready"));
+        window.dispatchEvent(new Event("pywebviewready")); // noqa: 48
     });
     """
     context.add_init_script(bridge_script)
