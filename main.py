@@ -1,10 +1,14 @@
 import ctypes
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
+from pathlib import Path
+import shutil
+import subprocess
 import sys
 import threading
 import time
-from pathlib import Path
 from typing import Any
 
 if sys.platform == "win32":
@@ -90,8 +94,94 @@ def run_selftest(window: webview.Window) -> None:
         os._exit(0)
 
 
+class _QuietWebHandler(SimpleHTTPRequestHandler):
+    """Static handler that keeps headless HTTP serving quiet."""
+
+    def log_message(self, format: str, *args: Any) -> None:
+        return
+
+
+def _find_headless_browser() -> str | None:
+    if sys.platform == "win32":
+        roots = [
+            os.environ.get("PROGRAMFILES", ""),
+            os.environ.get("PROGRAMFILES(X86)", ""),
+            os.environ.get("LOCALAPPDATA", ""),
+        ]
+        rel_parts = (("Microsoft", "Edge", "Application", "msedge.exe"), ("Google", "Chrome", "Application", "chrome.exe"))
+        for root in roots:
+            if not root:
+                continue
+            for parts in rel_parts:
+                candidate = Path(root).joinpath(*parts)
+                if candidate.is_file():
+                    return str(candidate)
+        return shutil.which("msedge") or shutil.which("chrome")
+    for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser", "microsoft-edge"):
+        found = shutil.which(name)
+        if found:
+            return found
+    mac_paths = (
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+        "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    )
+    for mac_path in mac_paths:
+        if Path(mac_path).is_file():
+            return mac_path
+    return None
+
+
+def _parse_screenshot_arg(argv: list[str]) -> str | None:
+    for idx, token in enumerate(argv):
+        if token == "--screenshot" and idx + 1 < len(argv):
+            return argv[idx + 1]
+        if token.startswith("--screenshot="):
+            return token.split("=", 1)[1]
+    return None
+
+
+def _capture_headless_screenshot(raw_out: str) -> int:
+    browser = _find_headless_browser()
+    if not browser:
+        sys.stderr.write("No Chromium or Edge browser found for --screenshot.\n")
+        return 1
+    out_path = Path(raw_out).expanduser().resolve()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    web_root = calc_app_base_dir() / "app" / "web"
+    handler = partial(_QuietWebHandler, directory=str(web_root))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    port = int(server.server_address[1])
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        cmd = [
+            browser,
+            "--headless=new",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-background-networking",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--window-size=1440,900",
+            "--virtual-time-budget=4000",
+            f"--screenshot={out_path}",
+            f"http://127.0.0.1:{port}/index.html",
+        ]
+        subprocess.run(cmd, check=True, timeout=45)  # noqa: 32
+        sys.stdout.write(f"Saved screenshot to {out_path}\n")
+        return 0
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
 def main() -> None:
     # Desktop application entry point.
+    shot_arg = _parse_screenshot_arg(sys.argv[1:])
+    if shot_arg:
+        raise SystemExit(_capture_headless_screenshot(shot_arg))
     if "--configure" in sys.argv:
         configured, _message = apply_install_options(sys.argv[1:])
         sys.exit(0 if configured else 1)

@@ -6,7 +6,9 @@ Developers building from source, running `pytest`, or executing the strict repos
 
 ---
 
-## Windows
+## Platform Instructions
+
+### Windows
 
 Install `uv` using PowerShell or winget:
 
@@ -17,7 +19,7 @@ winget install --id=astral-sh.uv -e
 
 ---
 
-## macOS
+### macOS
 
 Install `uv` using the standalone installer or Homebrew:
 
@@ -28,7 +30,7 @@ brew install uv
 
 ---
 
-## Linux
+### Linux
 
 Install `uv` using the standalone installer:
 

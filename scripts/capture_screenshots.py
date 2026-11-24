@@ -1,90 +1,108 @@
 """Automated screenshot capture script for FOSSEverything showcase."""
+
+from __future__ import annotations
+
+import argparse
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
-import os
+from pathlib import Path
+import sys
+import threading
 import time
+from typing import Any
+
 from playwright.sync_api import sync_playwright
 
 from app.web.api import WebApi
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SCREENSHOTS_DIR = os.path.join(ROOT_DIR, "assets", "screenshots")
-os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
-
-api = WebApi()
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 
-def capture_all() -> None:
-    # Capture application feature screenshots.
-    with sync_playwright() as p:
-        browser = p.chromium.launch(channel="msedge", headless=True)
-        page = browser.new_page(viewport={"width": 1280, "height": 820}, device_scale_factor=1)
+class QuietStaticHandler(SimpleHTTPRequestHandler):
+    """Static handler that keeps automated screenshot output quiet."""
 
-        def py_call_handler(name: str, args_json: str) -> str:
-            try:
-                args = json.loads(args_json)
-                method = getattr(api, name)
-                res = method(*args)
-                return json.dumps(res, default=str)
-            except Exception as exc:
-                return json.dumps({"ok": False, "error": str(exc)})
+    def log_message(self, format: str, *args: Any) -> None:
+        return
 
-        page.expose_function("__py_call", py_call_handler)
-        bridge_script = """
-        window.pywebview = {
-            api: new Proxy({}, {
-                get: (t, name) => (...args) => window.__py_call(String(name), JSON.stringify(args)).then(JSON.parse)
-            })
-        };
-        """
-        page.add_init_script(bridge_script)
 
-        html_path = "file:///" + os.path.join(ROOT_DIR, "app", "web", "index.html").replace("\\", "/")
-        page.goto(html_path)
-        page.wait_for_selector(".app")
-        time.sleep(1.0)
+def _launch_browser(pw: Any) -> Any:
+    try:
+        return pw.chromium.launch(headless=True)
+    except Exception:  # noqa: 10
+        return pw.chromium.launch(channel="msedge", headless=True)
 
-        # 1. Home Hub
-        page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "01_home_hub.png"))
-        print("Captured 01_home_hub.png")
 
-        # 2. PDF Studio
-        page.evaluate("window.FOSS.router.open('pdf', 'merge')")
-        time.sleep(0.8)
-        page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "02_pdf_studio.png"))
-        print("Captured 02_pdf_studio.png")
+def capture_all(out_dir: Path) -> None:
+    """Capture application feature screenshots into out_dir."""
+    out_resolved = out_dir.expanduser().resolve()
+    out_resolved.mkdir(parents=True, exist_ok=True)
+    api = WebApi()
 
-        # 3. 3D Model Viewer
-        page.evaluate("window.FOSS.router.open('model3d')")
-        time.sleep(0.8)
-        page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "03_3d_viewer.png"))
-        print("Captured 03_3d_viewer.png")
+    web_root = ROOT_DIR / "app" / "web"
+    handler = partial(QuietStaticHandler, directory=str(web_root))
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    port = int(server.server_address[1])
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
 
-        # 4. Network Monitor
-        page.evaluate("window.FOSS.router.open('network_monitor')")
-        time.sleep(0.8)
-        page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "04_network_monitor.png"))
-        print("Captured 04_network_monitor.png")
+    try:
+        with sync_playwright() as pw:
+            browser = _launch_browser(pw)
+            page = browser.new_page(viewport={"width": 1440, "height": 900}, device_scale_factor=1)
 
-        # 5. Data Studio
-        page.evaluate("window.FOSS.router.open('data')")
-        time.sleep(0.8)
-        page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "05_data_studio.png"))
-        print("Captured 05_data_studio.png")
+            def py_call_handler(name: str, args_json: str) -> str:
+                try:
+                    args = json.loads(args_json)
+                    method = getattr(api, name)
+                    res = method(*args)
+                    return json.dumps(res, default=str)
+                except Exception as exc:
+                    return json.dumps({"ok": False, "error": str(exc)})
 
-        # 6. Converter & Compressor
-        page.evaluate("window.FOSS.router.open('converter')")
-        time.sleep(0.8)
-        page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "06_converter.png"))
-        print("Captured 06_converter.png")
+            page.expose_function("__py_call", py_call_handler)
+            bridge_script = """
+            window.pywebview = {
+                api: new Proxy({}, {
+                    get: (t, name) => (...args) => window.__py_call(String(name), JSON.stringify(args)).then(JSON.parse)
+                })
+            };
+            """
+            page.add_init_script(bridge_script)
+            page.goto(f"http://127.0.0.1:{port}/index.html", wait_until="networkidle")
+            page.wait_for_selector(".app")
+            time.sleep(1.0)
 
-        # 7. Command Palette Search
-        page.evaluate("window.FOSS.router.open('home'); window.FOSS.palette.open()")
-        time.sleep(0.8)
-        page.screenshot(path=os.path.join(SCREENSHOTS_DIR, "07_command_palette.png"))
-        print("Captured 07_command_palette.png")
+            views = [
+                ("01_home_hub.png", None),
+                ("02_pdf_studio.png", "window.FOSS.router.open('pdf', 'merge')"),
+                ("03_3d_viewer.png", "window.FOSS.router.open('model3d')"),
+                ("04_network_monitor.png", "window.FOSS.router.open('network_monitor')"),
+                ("05_data_studio.png", "window.FOSS.router.open('data')"),
+                ("06_converter.png", "window.FOSS.router.open('converter')"),
+                ("07_command_palette.png", "window.FOSS.router.open('home'); window.FOSS.palette.open()"),
+            ]
+            for filename, js_expr in views:
+                if js_expr:
+                    page.evaluate(js_expr)
+                    time.sleep(0.8)
+                target = out_resolved / filename
+                page.screenshot(path=str(target), full_page=False)
+                sys.stdout.write(f"Captured {filename}\n")
 
-        browser.close()
+            browser.close()
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Capture FOSSEverything desktop screenshots.")
+    parser.add_argument("--out-dir", type=Path, default=ROOT_DIR / "assets" / "screenshots")
+    args = parser.parse_args()
+    capture_all(args.out_dir)
+    return 0
 
 
 if __name__ == "__main__":
-    capture_all()
+    raise SystemExit(main())

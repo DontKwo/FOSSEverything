@@ -2,15 +2,11 @@
 
 Install and launch `FOSSEverything` on your computer without Python or terminal setup.
 
-## Safety & Authenticity Warning
-
-- **Official `main` Releases Only**: Download `FOSSEverything` exclusively from [DontKwo/FOSSEverything Releases](https://github.com/DontKwo/FOSSEverything/releases/latest).
-- **Fork Warning**: Do **not** download or run executables from forked repositories unless you have verified the source code yourself and confirmed they contain no malware. Only official `main` releases are maintained by the author, and I make no promises.
-- **Bypassing Security Prompts**: Because independent open-source executables do not carry paid commercial signing certificates, Windows and macOS will warn that the app is unrecognized or potentially unsafe. Bypassing these prompts is strictly at your own discretion, and the software is provided "AS IS" with zero liability.
-
 ---
 
-## Windows
+## Platform Instructions
+
+### Windows
 
 1. Download `FOSSEverything-Windows.exe` from [Latest Releases](https://github.com/DontKwo/FOSSEverything/releases/latest).
 2. Double-click `FOSSEverything-Windows.exe` to run the setup wizard (choose install folder, optional right-click menu entries, Start Menu shortcut, theme, and interface size).
@@ -21,7 +17,7 @@ Install and launch `FOSSEverything` on your computer without Python or terminal 
 
 ---
 
-## macOS
+### macOS
 
 1. Download `FOSSEverything-macOS.dmg` from [Latest Releases](https://github.com/DontKwo/FOSSEverything/releases/latest).
 2. Open the DMG and drag **FOSSEverything** into **Applications**.
@@ -33,11 +29,19 @@ Install and launch `FOSSEverything` on your computer without Python or terminal 
 
 ---
 
-## Linux
+### Linux
 
 1. Download `FOSSEverything-Linux.tar.gz` from [Latest Releases](https://github.com/DontKwo/FOSSEverything/releases/latest).
 2. Extract the archive in your file manager (or run `tar -xzf FOSSEverything-Linux.tar.gz`).
 3. Run `./install.sh` (or run `./FOSSEverything` directly from the extracted directory).
+
+---
+
+## Safety & Authenticity Warning
+
+- **Official `main` Releases Only**: Download `FOSSEverything` exclusively from [DontKwo/FOSSEverything Releases](https://github.com/DontKwo/FOSSEverything/releases/latest).
+- **Fork Warning**: Do **not** download or run executables from forked repositories unless you have verified the source code yourself and confirmed they contain no malware. Only official `main` releases are maintained by the author, and I make no promises.
+- **Bypassing Security Prompts**: Because independent open-source executables do not carry paid commercial signing certificates, Windows and macOS will warn that the app is unrecognized or potentially unsafe. Bypassing these prompts is strictly at your own discretion, and the software is provided "AS IS" with zero liability.
 
 ---
 
